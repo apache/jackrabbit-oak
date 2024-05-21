@@ -453,7 +453,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
             siblingPath = nodeName2
      */
 
-
     @Ignore
     @Test
     public void testMoveVersionableNodeOverDeletedVersionableNode() throws Exception {
