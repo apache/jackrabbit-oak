@@ -338,7 +338,7 @@ var oak = (function(global){
      */
     api.regexFind = function(pattern) {
         print(db.nodes.find({_id: {$regex: pattern}}));
-        db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
+        db.nodes.find({_id: {$regex: pattern}}, {_id: 1}).forEach(function(doc) {
             print(doc._id);
         });
     }
@@ -353,7 +353,7 @@ var oak = (function(global){
      */
     api.removeDescendantsAndSelfMatching = function(pattern) {
         var count = 0;
-        db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
+        db.nodes.find({_id: {$regex: pattern}}, {_id: 1}).forEach(function(doc) {
             print("Removing " + doc._id + " and its children");
             var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
             count += result.nRemoved;
