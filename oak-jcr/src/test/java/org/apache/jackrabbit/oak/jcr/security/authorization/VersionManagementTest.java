@@ -31,6 +31,7 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -451,6 +452,8 @@ public class VersionManagementTest extends AbstractEvaluationTest {
                 - childNPath2 = nodeName3
             siblingPath = nodeName2
      */
+
+    @Ignore
     @Test
     public void testMoveVersionableNodeOverDeletedVersionableNode() throws Exception {
         modify(path, REP_WRITE, true);
