@@ -18,25 +18,34 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DocumentPropertyStateTest {
 
@@ -137,5 +146,22 @@ public class DocumentPropertyStateTest {
         // must not read the string via streams
         assertEquals(0, reads.size());
     }
+
+    @Test
+    public void compressValueThrowsException() throws CommitFailedException, IOException {
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child(TEST_NODE).setProperty("p", "TEST", Type.STRING);
+        TestUtils.merge(ns, builder);
+
+        PropertyState propertyState = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
+        assertEquals(Type.STRING, Objects.requireNonNull(propertyState).getType());
+        assertEquals(1, propertyState.count());
+
+        Compression mockCompression = mock(Compression.class);
+        OutputStream mockOutputStream = mock(OutputStream.class);
+        when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
+        assertEquals("TEST", propertyState.getValue(Type.STRING));
+    }
+
 
 }
