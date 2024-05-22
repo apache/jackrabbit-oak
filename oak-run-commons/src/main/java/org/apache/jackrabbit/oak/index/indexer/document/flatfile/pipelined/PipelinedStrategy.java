@@ -516,6 +516,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (Throwable e) {
+                LOG.info("[TASK:PIPELINED-DUMP:FAIL] Error: {}", e.toString());
                 LOG.warn("Error dumping from MongoDB. Cancelling all tasks. Error: {}", e.toString());
                 // Cancel in order
                 cancelFuture(downloadFuture);

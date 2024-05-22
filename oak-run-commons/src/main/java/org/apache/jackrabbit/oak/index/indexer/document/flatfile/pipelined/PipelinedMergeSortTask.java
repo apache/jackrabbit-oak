@@ -210,8 +210,8 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         int intermediateFilesCount = 0;
+        LOG.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
-            LOG.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.debug("Waiting for next intermediate sorted file");
                 Path sortedIntermediateFile = sortedFilesQueue.take();
@@ -259,10 +259,8 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     }
                 }
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            LOG.info("[TASK:{}:FAIL] Error: {}", THREAD_NAME.toUpperCase(Locale.ROOT), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {

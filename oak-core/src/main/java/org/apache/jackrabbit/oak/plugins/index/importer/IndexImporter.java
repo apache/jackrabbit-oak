@@ -486,35 +486,40 @@ public class IndexImporter {
         String indexImportPhaseName = indexImportState == null ? "null" : indexImportState.toString();
         int count = 1;
         Stopwatch start = Stopwatch.createStarted();
-        while (count <= maxRetries) {
-            LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
-            LOG.info("[TASK:{}:START]", indexImportPhaseName);
-            try {
-                step.execute();
-                long durationSeconds = start.elapsed(TimeUnit.SECONDS);
-                LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
-                        MetricsFormatter.newBuilder()
-                                .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
-                                .add("durationSeconds", durationSeconds)
-                                .build()
-                );
+        LOG.info("[TASK:{}:START]", indexImportPhaseName);
+        try {
+            while (count <= maxRetries) {
+                LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
+                try {
+                    step.execute();
+                    long durationSeconds = start.elapsed(TimeUnit.SECONDS);
+                    LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
+                            MetricsFormatter.newBuilder()
+                                    .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
+                                    .add("durationSeconds", durationSeconds)
+                                    .build()
+                    );
 
-                MetricsUtils.setCounterOnce(statisticsProvider,
-                        "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
-                        durationSeconds);
-                indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
-                        FormattingUtils.formatToSeconds(durationSeconds));
-                indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
-                        durationSeconds);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                            durationSeconds);
+                    indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
+                            FormattingUtils.formatToSeconds(durationSeconds));
+                    indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                            durationSeconds);
 
-                break;
-            } catch (CommitFailedException | IOException e) {
-                LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
-                if (count++ >= maxRetries) {
-                    LOG.warn("IndexImporterStepExecutor:{} failed after {} retries", indexImportState, maxRetries, e);
-                    throw e;
+                    break;
+                } catch (CommitFailedException | IOException e) {
+                    LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
+                    if (count++ >= maxRetries) {
+                        LOG.warn("IndexImporterStepExecutor:{} failed after {} retries", indexImportState, maxRetries, e);
+                        throw e;
+                    }
                 }
             }
+        } catch (Throwable t) {
+            LOG.info("[TASK:{}:FAIL] Error: {}", indexImportPhaseName, t.toString());
+            throw t;
         }
     }
 

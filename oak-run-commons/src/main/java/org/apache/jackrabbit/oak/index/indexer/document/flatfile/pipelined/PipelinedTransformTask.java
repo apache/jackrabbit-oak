@@ -215,10 +215,8 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     }
                 }
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            LOG.info("[TASK:{}:FAIL] Error: {}", threadName.toUpperCase(Locale.ROOT), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
