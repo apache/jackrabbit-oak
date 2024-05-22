@@ -71,7 +71,7 @@ public final class AzureUtilities {
     public static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
     private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
     private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
-    private static final long TOKEN_REFRESHER_DELAY = 4L;
+    private static final long TOKEN_REFRESHER_DELAY = 1L;
 
     private static final Logger log = LoggerFactory.getLogger(AzureUtilities.class);
     private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
