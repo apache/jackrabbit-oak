@@ -457,9 +457,15 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         readCount++;
                         if (readCount % TRAVERSING_WARN == 0) {
                             FilterIterators.checkReadLimit(readCount, settings);
-                            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
-                            LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}, caller {}", 
-                                    readCount, intermediateNodeReadCount, indexName, filter, caller);
+                            if (readCount == 2 * TRAVERSING_WARN) {
+                                LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}",
+                                        readCount, intermediateNodeReadCount, indexName, filter,
+                                        new Exception("call stack"));
+                            } else {
+                                String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+                                LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}, caller {}",
+                                        readCount, intermediateNodeReadCount, indexName, filter, caller);
+                            }
                         }
                         return;
                     } else {

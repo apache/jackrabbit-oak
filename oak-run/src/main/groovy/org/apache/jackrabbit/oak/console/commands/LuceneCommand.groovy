@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.console.commands
 
-import com.google.common.base.Stopwatch
+import org.apache.jackrabbit.guava.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition
@@ -40,7 +40,7 @@ import org.codehaus.groovy.tools.shell.Groovysh
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 
 
-import static com.google.common.base.Preconditions.checkNotNull
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 class LuceneCommand extends ComplexCommandSupport {
     public static final String COMMAND_NAME = 'lucene'

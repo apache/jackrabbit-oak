@@ -23,15 +23,15 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Reader;
@@ -46,12 +46,42 @@ import java.util.stream.Collectors;
  */
 class ElasticIndexHelper {
 
+    /**
+     * Mapping version that uses <a href="https://semver.org/">SemVer Specification</a> to allow changes without
+     * breaking existing queries.
+     * Changes breaking compatibility should increment the major version (indicating that a reindex is mandatory).
+     * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
+     * use the new feature).
+     * Changes that do not affect queries should increment the patch version (eg: bug fixes).
+     * <p>
+     * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
+     * actual version needs to be set in oak-search.
+     */
+    protected static final String MAPPING_VERSION;
+    static {
+        MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+        if (MAPPING_VERSION == null) {
+            throw new IllegalStateException("Mapping version is not set");
+        }
+    }
+
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
     private static final Time INITIAL_REFRESH_INTERVAL = Time.of(b -> b.time("-1"));
+
     private static final String INITIAL_NUMBER_OF_REPLICAS = "0";
 
     private static final String OAK_WORD_DELIMITER_GRAPH_FILTER = "oak_word_delimiter_graph_filter";
+
+    protected static final String SUGGEST_NESTED_VALUE = "value";
+
+    protected static final String DYNAMIC_BOOST_NESTED_VALUE = "value";
+
+    protected static final String DYNAMIC_BOOST_NESTED_BOOST = "boost";
+
+    protected static final String DYNAMIC_PROPERTY_NAME = "name";
+
+    protected static final String DYNAMIC_PROPERTY_VALUE = "value";
 
     /**
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
@@ -92,14 +122,30 @@ class ElasticIndexHelper {
                                         .searchAnalyzer("keyword")
                                         .searchQuoteAnalyzer("keyword")))
                 .properties(FieldNames.PATH_DEPTH,
-                        b1 -> b1.integer(
-                                b2 -> b2.docValues(false)))
+                        b1 -> b1.integer(b2 -> b2.docValues(false)))
                 .properties(FieldNames.FULLTEXT,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")))
+                        b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
                 .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")));
+                        b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
+                .properties(FieldNames.SPELLCHECK,
+                        b1 -> b1.text(b2 -> b2.analyzer("trigram")))
+                .properties(FieldNames.SUGGEST,
+                        b1 -> b1.nested(
+                                // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-search-speed.html#faster-prefix-queries
+                                b2 -> b2.properties(SUGGEST_NESTED_VALUE,
+                                        b3 -> b3.text(
+                                                b4 -> b4.analyzer("oak_analyzer")
+                                        )
+                                )
+                        )
+                )
+                .properties(ElasticIndexDefinition.DYNAMIC_PROPERTIES, b1 -> b1.nested(
+                                b2 -> b2.properties(DYNAMIC_PROPERTY_NAME, b3 -> b3.keyword(b4 -> b4))
+                                        .properties(DYNAMIC_PROPERTY_VALUE,
+                                                b3 -> b3.text(b4 -> b4.analyzer("oak_analyzer"))
+                                        )
+                        )
+                );
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")
@@ -109,31 +155,28 @@ class ElasticIndexHelper {
         // .endObject();
     }
 
-
     /**
-     * Returns a {@code UpdateSettingsRequest} to make an index ready to be queried and updated in near real time.
+     * Returns a {@code PutIndicesSettingsRequest} to make an index ready to be queried and updated in near real time.
      *
      * @param remoteIndexName the final index name (no alias)
      * @param indexDefinition the definition used to read settings/mappings
-     * @return an {@code UpdateSettingsRequest}
-     * <p>
-     * TODO: migrate to Elasticsearch Java client when the following issue will be fixed
-     * <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
+     * @return an {@code PutIndicesSettingsRequest}
      */
-    public static UpdateSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
-        UpdateSettingsRequest request = new UpdateSettingsRequest(remoteIndexName);
+    public static PutIndicesSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
+        IndexSettings indexSettings = IndexSettings.of(is -> is
+                .numberOfReplicas(Integer.toString(indexDefinition.numberOfReplicas))
+                // TODO: we should pass null to reset the refresh interval to the default value but the following bug prevents it. We need to wait for a fix
+                // <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
+                .refreshInterval(Time.of(t -> t.time("1s"))));
 
-        Settings.Builder settingsBuilder = Settings.builder()
-                .putNull("index.refresh_interval") // null=reset a setting back to the default value
-                .put("index.number_of_replicas", indexDefinition.numberOfReplicas);
-
-        return request.settings(settingsBuilder);
+        return PutIndicesSettingsRequest.of(pisr -> pisr
+                .index(remoteIndexName)
+                .settings(indexSettings));
     }
-
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (indexDefinition.getSimilarityProperties().size() > 0) {
+        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
             builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
         }
 
@@ -188,16 +231,12 @@ class ElasticIndexHelper {
     private static void mapIndexRules(@NotNull TypeMapping.Builder builder,
                                       @NotNull ElasticIndexDefinition indexDefinition) {
         checkIndexRules(indexDefinition);
-        boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
             Type<?> type = null;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
-                if (pd.useInSuggest) {
-                    useInSuggest = true;
-                }
             }
 
             Property.Builder pBuilder = new Property.Builder();
@@ -227,31 +266,13 @@ class ElasticIndexHelper {
             }
             builder.properties(name, pBuilder.build());
 
-            builder.properties(FieldNames.SPELLCHECK,
-                    b1 -> b1.text(
-                            b2 -> b2.analyzer("trigram"))
-            );
-
-            if (useInSuggest) {
-                builder.properties(FieldNames.SUGGEST,
-                        b1 -> b1.nested(
-                                // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
-                                b2 -> b2.properties("value",
-                                        b3 -> b3.text(
-                                                b4 -> b4.analyzer("oak_analyzer")
-                                        )
-                                )
-                        )
-                );
-            }
-
             for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
                 builder.properties(pd.nodeName,
                         b1 -> b1.nested(
-                                b2 -> b2.properties("value",
+                                b2 -> b2.properties(DYNAMIC_BOOST_NESTED_VALUE,
                                                 b3 -> b3.text(
                                                         b4 -> b4.analyzer("oak_analyzer")))
-                                        .properties("boost",
+                                        .properties(DYNAMIC_BOOST_NESTED_BOOST,
                                                 b3 -> b3.double_(f -> f)
                                         )
                         )
@@ -271,7 +292,7 @@ class ElasticIndexHelper {
                                 "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
                                 "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
                                 "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() + "" +
+                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
                                 "  }" +
                                 "}");
 

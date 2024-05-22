@@ -81,6 +81,7 @@ public class PurgeOldIndexVersionIT {
         Assert.assertTrue(IndexUtils.isIndexDisabledAndHiddenNodesDeleted(n, "/oak:index/test-1"));
         Assert.assertTrue(IndexUtils.isIndexDisabledAndHiddenNodesDeleted(n, "/oak:index/test-2"));
         Assert.assertTrue(IndexUtils.isIndexEnabledAndHiddenNodesPresent(n, "/oak:index/test-2-custom-1"));
+        p.close();
     }
 
     @Test
@@ -105,6 +106,7 @@ public class PurgeOldIndexVersionIT {
         Assert.assertTrue(IndexUtils.isIndexDisabledAndHiddenNodesDeleted(n, "/oak:index/test-1"));
         Assert.assertTrue(IndexUtils.isIndexEnabledAndHiddenNodesPresent(n, "/oak:index/test-2"));
         Assert.assertTrue(IndexUtils.isIndexEnabledAndHiddenNodesPresent(n, "/oak:index/test-2-custom-1"));
+        p.close();
     }
 
     private void initGlobal() throws Exception {

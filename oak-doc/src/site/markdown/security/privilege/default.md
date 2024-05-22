@@ -92,7 +92,8 @@ The new Privileges introduced with Oak 1.0 have the following effect:
 #### Mapping Privileges to Items and API Calls
 An overview on how the built-in privileges map to API calls and individual items
 can be found in ['Mapping Privileges to Items'](mappingtoitems.html)
-and ['Mapping API Calls to Privileges'](mappingtoprivileges.html)
+and ['Mapping API Calls to Privileges'](mappingtoprivileges.html).
+See also ['Mapping Privileges to JCR/Jackrabbit Actions'](mappingprivilegestoactions.html) and ['Mapping of JCR Actions to Oak Permissions'](../permission.html#mapping-of-jcr-actions-to-oak-permissions)
 
 <a name="representation"></a>
 ### Representation in the Repository

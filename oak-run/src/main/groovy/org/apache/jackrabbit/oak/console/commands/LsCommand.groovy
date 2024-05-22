@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import com.google.common.collect.Iterables
+import org.apache.jackrabbit.guava.common.collect.Iterables
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.codehaus.groovy.tools.shell.CommandSupport

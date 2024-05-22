@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -89,7 +88,7 @@ public final class GCGeneration {
 
     /**
      * Create a new instance with the generation and the full generation incremented by one
-     * and the compaction flag left unchanged.
+     * and the compaction flag set.
      */
     @NotNull
     public GCGeneration nextFull() {
@@ -97,12 +96,21 @@ public final class GCGeneration {
     }
 
     /**
-     * Create a new instance with the generation incremented by one and the full
-     * generation and the compaction flag left unchanged.
+     * Create a new instance with the generation incremented by one, the full
+     * generation left unchanged and the compaction flag set.
      */
     @NotNull
     public GCGeneration nextTail() {
         return new GCGeneration(generation + 1, fullGeneration, true);
+    }
+
+    /**
+     * Create a new instance with the compaction flag set and the generation and the
+     * full generation left unchanged.
+     */
+    @NotNull
+    public GCGeneration nextPartial() {
+        return new GCGeneration(generation, fullGeneration, true);
     }
 
     /**
@@ -155,8 +163,8 @@ public final class GCGeneration {
     @Override
     public String toString() {
         return "GCGeneration{" +
-                "generation=" + generation + ',' +
-                "fullGeneration=" + fullGeneration +  ',' +
+                "generation=" + generation + ", " +
+                "fullGeneration=" + fullGeneration +  ", " +
                 "isCompacted=" + isCompacted + '}';
     }
 

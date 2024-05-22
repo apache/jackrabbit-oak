@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.53-SNAPSHOT</version>
+    <version>1.65-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,8 +33,8 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.hlrc.version>7.17.9</elasticsearch.hlrc.version>
-    <elasticsearch.java.client.version>8.7.0</elasticsearch.java.client.version>
+    <elasticsearch.java.client.version>8.13.2</elasticsearch.java.client.version>
+    <lucene.version>9.10.0</lucene.version>
   </properties>
 
   <build>
@@ -43,36 +43,30 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
-          <instructions>
+          <instructions combine.self="override">
             <_exportcontents>
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
+              !io.opentelemetry.sdk.autoconfigure.*,
               !jdk.net.*,
-              !org.apache.avalon.framework.logger.*,
               !org.apache.log.*,
               !org.apache.logging.*,
-              !org.elasticsearch.geometry.*,
-              !org.joda.convert.*,
-              !org.locationtech.jts.geom.*,
-              !org.locationtech.spatial4j.*,
               !sun.misc.*,
-              !org.apache.lucene.search.similarity.*,
               !org.apache.lucene.analysis.*,
               !org.glassfish.json.*,
               !com.sun.management.*,
-              !joptsimple.*,
-              !org.apache.lucene.search.suggest.document.*,
               !jakarta.json.bind.*,
-              !com.carrotsearch.randomizedtesting.*,
               *
             </Import-Package>
             <Embed-Dependency>
               oak-search;scope=compile|runtime;inline=true,
-              elasticsearch;groupId=org.elasticsearch,
+              elasticsearch-java;groupId=co.elastic.clients,
               *;scope=compile|runtime
             </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
+            <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
+            <_plugin />
           </instructions>
         </configuration>
       </plugin>
@@ -94,22 +88,22 @@
     <!-- Optional OSGi dependencies, used only when running within OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
+      <artifactId>osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
+      <artifactId>org.osgi.service.component</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.scr.annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.annotation.versioning</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -124,16 +118,6 @@
     </dependency>
 
     <!-- Elastic/Lucene -->
-    <dependency>
-      <groupId>org.elasticsearch.client</groupId>
-      <artifactId>elasticsearch-rest-high-level-client</artifactId>
-      <version>${elasticsearch.hlrc.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.elasticsearch.client</groupId>
-      <artifactId>elasticsearch-rest-client</artifactId>
-      <version>${elasticsearch.hlrc.version}</version>
-    </dependency>
 	<dependency>
       <groupId>co.elastic.clients</groupId>
       <artifactId>elasticsearch-java</artifactId>
@@ -145,61 +129,14 @@
       <version>${jackson.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.elasticsearch</groupId>
-      <artifactId>elasticsearch</artifactId>
-      <version>${elasticsearch.hlrc.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.elasticsearch</groupId>
-          <artifactId>elasticsearch-cli</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.elasticsearch</groupId>
-          <artifactId>elasticsearch-geo</artifactId>
-        </exclusion>
-
-        <!-- https://github.com/elastic/elasticsearch/issues/29184#issuecomment-662480046 -->
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-backward-codecs</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-grouping</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-memory</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-misc</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-queryparser</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-sandbox</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-spatial</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-spatial-extras</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-spatial3d</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-suggest</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>${lucene.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analysis-common</artifactId>
+      <version>${lucene.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
@@ -311,8 +248,23 @@
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
-      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <artifactId>org.apache.sling.testing.osgi-mock.junit4</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.osgi</groupId>
+       <artifactId>org.osgi.service.event</artifactId>
+       <scope>test</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.osgi</groupId>
+       <artifactId>org.osgi.service.log</artifactId>
+       <scope>test</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.osgi</groupId>
+       <artifactId>org.osgi.service.cm</artifactId>
+       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -359,11 +311,5 @@
       <version>1.19.0</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-      <scope>test</scope>
-    </dependency>
-
   </dependencies>
 </project>

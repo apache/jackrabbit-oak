@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -38,11 +39,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test methods (mostly) copied from oak-it RootTest and parameterized to run
@@ -554,6 +559,54 @@ public class MoveTest {
         assertEquals("/x/xx", xx.getPath());
         root.commit();
         assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveOrderable() throws Exception {
+        Root root = session.getLatestRoot();
+        root.getTree("/x").setOrderableChildren(true);
+        root.getTree("/y").setOrderableChildren(true);
+        root.commit();
+        assertChildOrder(root.getTree("/x"), "xx");
+        assertChildOrder(root.getTree("/y"));
+
+        root.move("/x/xx", "/y/xx");
+        assertChildOrder(root.getTree("/x"));
+        assertChildOrder(root.getTree("/y"), "xx");
+        root.commit();
+        assertChildOrder(root.getTree("/x"));
+        assertChildOrder(root.getTree("/y"), "xx");
+    }
+
+    @Test
+    public void moveToFailsOnNodeBuilder() {
+        MutableRoot root = (MutableRoot) session.getLatestRoot();
+        MutableTree x = root.getTree("/x");
+        NodeBuilder xxBuilder = mock(NodeBuilder.class);
+        // fails the move on the NodeBuilder
+        when(xxBuilder.moveTo(any(), any())).thenReturn(false);
+        MutableRoot.Move move = mock(MutableRoot.Move.class);
+        MutableTree xx = new MutableTree(root, xxBuilder, move);
+        xx.setParentAndName(x, "xx");
+        MutableTree y = root.getTree("/y");
+
+        assertFalse(xx.moveTo(y, "xx"));
+        // must still have same parent
+        assertEquals("/x", xx.getParent().getPath());
+    }
+
+    private void assertChildOrder(Tree tree, String... names) {
+        MutableTree t = (MutableTree) tree;
+        PropertyState childOrder = t.getNodeBuilder().getProperty(OAK_CHILD_ORDER);
+        List<String> children = new ArrayList<>();
+        if (childOrder != null) {
+            childOrder.getValue(Type.NAMES).forEach(children::add);
+        }
+        List<String> expected = new ArrayList<>();
+        if (names != null) {
+            expected.addAll(Arrays.asList(names));
+        }
+        assertEquals(expected, children);
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {

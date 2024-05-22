@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
-class SimpleNodeStateHolder implements NodeStateHolder{
+public class SimpleNodeStateHolder implements NodeStateHolder{
     private final String line;
     private final List<String> pathElements;
 

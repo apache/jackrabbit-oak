@@ -32,16 +32,17 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_INSECURE;
@@ -67,14 +68,19 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     private final Map<String, Integer> actualLabelCount = new HashMap<>();
     private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
     private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
+    private static final Random INDEX_SUFFIX_RANDOMIZER = new Random(7);
 
 
     @Before
     public void createIndex() throws RepositoryException {
-        String indexName = UUID.randomUUID().toString();
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync().evaluatePathRestrictions();
         builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
+        // Statistical facets in Elasticsearch use a random function with a fixed seed but the results are not
+        // consistent when the index name changes. So we set the index name to a fixed values.
+        String indexName = "FacetCommonTestIndex" + INDEX_SUFFIX_RANDOMIZER.nextInt(1000);
+        builder.getBuilderTree().setProperty(PROP_RANDOM_SEED, 3000L, Type.LONG);
+        builder.getBuilderTree().setProperty("indexNameSeed", 300L, Type.LONG);
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
         indexRule.property("cons").propertyIndex();
         indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
@@ -173,18 +179,34 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
 
-        assertEventually(() -> assertEquals("Unexpected number of facets", actualAclLabelCount.size(), getFacets().size()));
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
 
-        for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
-            String facetLabel = facet.getKey();
-            assertEventually(() -> {
-                int facetCount = getFacets().get(facetLabel);
-                float ratio = ((float) facetCount) / facet.getValue();
-                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
-                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                        Math.abs(ratio - 1) < 0.1);
-            });
-        }
+            for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
+                String facetLabel = facet.getKey();
+                assertEventually(() -> {
+                    int facetCount = facets.get(facetLabel);
+                    float ratio = ((float) facetCount) / facet.getValue();
+                    assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
+                                    "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                            Math.abs(ratio - 1) < 0.1);
+                });
+            }
+
+            try {
+                // Verify that the query result is not affected by the facet sampling
+                int rowCounter = 0;
+                RowIterator rows = getQueryResult(null).getRows();
+                while (rows.hasNext()) {
+                    rows.nextRow();
+                    rowCounter++;
+                }
+                assertEquals("Unexpected number of rows", 3000, rowCounter);
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Test
@@ -196,11 +218,14 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
         createDataset(NUM_LEAF_NODES_FOR_SMALL_DATASET);
 
-        assertEventually(() -> assertEquals("Unexpected number of facets", actualAclLabelCount.size(), getFacets().size()));
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
 
-        // Since the hit count is less than sample size -> flow should have switched to secure facet count instead of statistical
-        // and thus the count should be exactly equal
-        assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
+            // Since the hit count is less than sample size -> flow should have switched to secure facet count instead of statistical
+            // and thus the count should be exactly equal
+            assertEquals(actualAclLabelCount, facets);
+        });
     }
 
     @Test
@@ -242,19 +267,16 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         assertEventually(() -> {
             Map<String, Integer> facets = getFacets();
             assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
-        });
 
-        for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
-
-            assertEventually(() -> {
+            for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
                 String facetLabel = facet.getKey();
-                int facetCount = getFacets().get(facetLabel);
+                int facetCount = facets.get(facetLabel);
                 float ratio = ((float) facetCount) / facet.getValue();
                 assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
                                 "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
                         Math.abs(ratio - 1) < 0.1);
-            });
-        }
+            }
+        });
     }
 
     @Test
@@ -279,18 +301,16 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         assertEventually(() -> {
             Map<String, Integer> facets = getFacets();
             assertEquals("Unexpected number of facets", actualLabelCount.size(), facets.size());
-        });
 
-        for (Map.Entry<String, Integer> facet : actualLabelCount.entrySet()) {
-            assertEventually(() -> {
+            for (Map.Entry<String, Integer> facet : actualLabelCount.entrySet()) {
                 String facetLabel = facet.getKey();
-                int facetCount = getFacets().get(facetLabel);
+                int facetCount = facets.get(facetLabel);
                 float ratio = ((float) facetCount) / facet.getValue();
                 assertTrue("Facet count for label: " + facetLabel + " is outside of 5% margin of error. " +
                                 "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
                         Math.abs(ratio - 1) < 0.05);
-            });
-        }
+            }
+        });
     }
 
     private Map<String, Integer> getFacets() {
@@ -308,19 +328,7 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     }
 
     private Map<String, Integer> getFacets(String path) {
-        String pathCons = "";
-        if (path != null) {
-            pathCons = " AND ISDESCENDANTNODE('" + path + "')";
-        }
-        String query = "SELECT [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
-        Query q;
-        QueryResult queryResult;
-        try {
-            q = qm.createQuery(query, Query.JCR_SQL2);
-            queryResult = q.execute();
-        } catch (RepositoryException e) {
-            throw new RuntimeException(e);
-        }
+        QueryResult queryResult = getQueryResult(path);
         long start = LOG_PERF.start("Getting the Facet Results...");
         FacetResult facetResult = new FacetResult(queryResult);
         LOG_PERF.end(start, -1, "Facet Results fetched");
@@ -329,6 +337,23 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
                 .stream()
                 .flatMap(dim -> Objects.requireNonNull(facetResult.getFacets(dim)).stream())
                 .collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
+    }
+
+    private QueryResult getQueryResult(String path) {
+        String pathCons = "";
+        if (path != null) {
+            pathCons = " AND ISDESCENDANTNODE('" + path + "')";
+        }
+        String query = "SELECT [jcr:path], [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
+        Query q;
+        QueryResult queryResult;
+        try {
+            q = qm.createQuery(query, Query.JCR_SQL2);
+            queryResult = q.execute();
+        } catch (RepositoryException e) {
+            throw new RuntimeException(e);
+        }
+        return queryResult;
     }
 
     protected void assertEventually(Runnable r) {

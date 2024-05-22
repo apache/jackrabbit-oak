@@ -163,6 +163,7 @@ public class IndexPrinter implements InventoryPrinter {
             po.text("Has hidden oak mount", info.hasHiddenOakLibsMount());
             po.text("Has property index", info.hasPropertyIndexNode());
         }
+        po.text("Is active", info.isActive());
 
         if (info.hasIndexDefinitionChangedWithoutReindexing()) {
             String diff = info.getIndexDefinitionDiff();

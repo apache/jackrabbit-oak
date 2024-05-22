@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Test;
 
 import java.util.Set;
 
@@ -360,6 +361,80 @@ public class VersionableTest extends AbstractJCRTest {
 
         assertFalse(guest.getNode(childPath).isCheckedOut());
         assertFalse(guest.getNode(nodePath).isCheckedOut());
+    }
+
+    public void testNonVersionableCheckedOut() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+
+        node.setProperty("jcr:isCheckedOut", false);
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+    }
+
+    public void testModifyNonVersionableNodeWithCheckedOutProperty() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+
+        node.setProperty("jcr:isCheckedOut", false);
+        superuser.save();
+
+        node.setProperty("test", true);
+        superuser.save();
+
+        assertTrue(node.getProperty("test").getBoolean());
+
+        node.setProperty("test", false);
+        superuser.save();
+
+        assertFalse(node.getProperty("test").getBoolean());
+
+        node.getProperty("test").remove();
+        superuser.save();
+        assertFalse(node.hasProperty("test"));
+
+        node.addNode(nodeName2, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.hasNode(nodeName2));
+
+        node.getNode(nodeName2).remove();
+        superuser.save();
+
+        assertFalse(node.hasNode(nodeName2));
+    }
+
+   public void testAddRemoveMixinVersionable() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        node.addMixin(mixVersionable);
+        superuser.save();
+        assertTrue(node.hasProperty(jcrIsCheckedOut));
+        assertTrue(node.isCheckedOut());
+        node.checkin();
+        superuser.save();
+        assertFalse(node.isCheckedOut());
+        node.checkout();
+        superuser.save();
+        assertTrue(node.isCheckedOut());
+        node.removeMixin(mixVersionable);
+        superuser.save();
+        assertTrue(node.isCheckedOut());
+        assertFalse(node.hasProperty(jcrIsCheckedOut));
+        node.addMixin(mixVersionable);
+        superuser.save();
+        assertTrue(node.hasProperty(jcrIsCheckedOut));
+        assertTrue(node.isCheckedOut());
+        node.checkin();
+        superuser.save();
+        assertFalse(node.isCheckedOut());
+        node.checkout();
+        superuser.save();
+        assertTrue(node.isCheckedOut());
     }
 
     private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors, String versionName) throws RepositoryException {

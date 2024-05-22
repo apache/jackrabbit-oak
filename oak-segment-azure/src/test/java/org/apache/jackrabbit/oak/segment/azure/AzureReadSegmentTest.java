@@ -94,7 +94,7 @@ public class AzureReadSegmentTest {
         @Override
         public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
                 FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-            return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor) {
+            return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor, writeAccessController) {
                 @Override
                 public SegmentArchiveReader open(String archiveName) throws IOException {
                     CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
@@ -110,7 +110,7 @@ public class AzureReadSegmentTest {
                 @Override
                 public SegmentArchiveWriter create(String archiveName) throws IOException {
                     CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
-                    return new AzureSegmentArchiveWriter(archiveDirectory, ioMonitor, fileStoreMonitor) {
+                    return new AzureSegmentArchiveWriter(archiveDirectory, ioMonitor, fileStoreMonitor, writeAccessController) {
                         @Override
                         public Buffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(

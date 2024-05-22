@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
+import co.elastic.clients.json.JsonpMapper;
+import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonGenerator;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -34,16 +38,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import java.io.OutputStream;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.mockito.Mockito.when;
 
 public class ElasticIndexerTest {
-
-    private NodeState root = INITIAL_CONTENT;
 
     @Test
     public void nodeIndexed_WithIncludedPaths() throws Exception {
@@ -52,11 +58,20 @@ public class ElasticIndexerTest {
         idxb.includedPaths("/content");
 
         NodeState defn = idxb.build();
-        IndexDefinition idxDefn = new ElasticIndexDefinition(root, defn, "/oak:index/testIndex", "testPrefix");
+        IndexDefinition idxDefn = new ElasticIndexDefinition(INITIAL_CONTENT, defn, "/oak:index/testIndex", "testPrefix");
 
-        NodeBuilder builder = root.builder();
+        NodeBuilder builder = INITIAL_CONTENT.builder();
 
-        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class),
+        ElasticConnection elasticConnectionMock = mock(ElasticConnection.class);
+        ElasticsearchAsyncClient elasticsearchAsyncClientMock = mock(ElasticsearchAsyncClient.class);
+        JsonpMapper jsonMapperMock = mock(JsonpMapper.class);
+        JsonProvider jsonProviderMock = mock(JsonProvider.class);
+        when(jsonProviderMock.createGenerator(any(OutputStream.class))).thenReturn(mock(JsonGenerator.class));
+        when(jsonMapperMock.jsonProvider()).thenReturn(jsonProviderMock);
+        when(elasticsearchAsyncClientMock._jsonpMapper()).thenReturn(jsonMapperMock);
+        when(elasticConnectionMock.getAsyncClient()).thenReturn(elasticsearchAsyncClientMock);
+
+        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(elasticConnectionMock,
                 mock(ElasticIndexTracker.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, false);
         ElasticIndexer indexer = new ElasticIndexer(idxDefn, mock(FulltextBinaryTextExtractor.class), builder,
                 mock(IndexingProgressReporter.class), indexWriter, mock(ElasticIndexEditorProvider.class), mock(IndexHelper.class));

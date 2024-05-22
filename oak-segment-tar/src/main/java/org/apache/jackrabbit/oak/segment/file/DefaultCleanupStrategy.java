@@ -19,20 +19,14 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -52,7 +46,7 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         // to clear stale weak references in the SegmentTracker
         System.gc();
 
-        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context, context.getReclaimer()));
+        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context));
         if (cleanupResult.isInterrupted()) {
             context.getGCListener().info("cleanup interrupted");
         }
@@ -62,13 +56,17 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         long finalSize = size(context);
         long reclaimedSize = cleanupResult.getReclaimedSize();
         context.getFileStoreStats().reclaimed(reclaimedSize);
-        context.getGCJournal().persist(
-            reclaimedSize,
-            finalSize,
-            getGcGeneration(context),
-            context.getCompactionMonitor().getCompactedNodes(),
-            context.getCompactedRootId()
-        );
+
+        GCJournal gcJournal = context.getGCJournal();
+        if (gcJournal != null) {
+            gcJournal.persist(
+                    reclaimedSize,
+                    finalSize,
+                    getGcGeneration(context),
+                    context.getCompactionMonitor().getCompactedNodes(),
+                    context.getCompactedRootId()
+            );
+        }
         context.getGCListener().cleaned(reclaimedSize, finalSize);
         context.getGCListener().info(
             "cleanup completed in {}. Post cleanup size is {} and space reclaimed {}.",
@@ -79,40 +77,9 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         return cleanupResult.getRemovableFiles();
     }
 
-    private static CleanupContext newCleanupContext(Context context, Predicate<GCGeneration> old) {
-        return new CleanupContext() {
-
-            private boolean isUnreferencedBulkSegment(UUID id, boolean referenced) {
-                return !isDataSegmentId(id.getLeastSignificantBits()) && !referenced;
-            }
-
-            private boolean isOldDataSegment(UUID id, GCGeneration generation) {
-                return isDataSegmentId(id.getLeastSignificantBits()) && old.apply(generation);
-            }
-
-            @Override
-            public Collection<UUID> initialReferences() {
-                Set<UUID> references = newHashSet();
-                for (SegmentId id : context.getSegmentTracker().getReferencedSegmentIds()) {
-                    if (id.isBulkSegmentId()) {
-                        references.add(id.asUUID());
-                    }
-                }
-                return references;
-            }
-
-            @Override
-            public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
-                return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation)
-                        || generation.getFullGeneration() > getGcGeneration(context).getFullGeneration();
-            }
-
-            @Override
-            public boolean shouldFollow(UUID from, UUID to) {
-                return !isDataSegmentId(to.getLeastSignificantBits());
-            }
-
-        };
+    private static CleanupContext newCleanupContext(Context context) {
+        return new DefaultCleanupContext(context.getSegmentTracker(), context.getReclaimer(),
+                context.getCompactedRootId());
     }
 
     private static String toFileNames(@NotNull List<String> files) {

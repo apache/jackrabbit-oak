@@ -20,8 +20,13 @@ package org.apache.jackrabbit.oak.composite.impl;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -102,14 +107,13 @@ public class NonDefaultMountWriteReportingObserver implements Observer {
         public void report() {
             if ( changes.isEmpty() )
                 return;
-            
-            RuntimeException location = new RuntimeException();
-            for ( StackTraceElement element : location.getStackTrace() )
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for ( StackTraceElement element : stackTrace )
                 for ( String acceptedClassName : cfg.ignoredClassNameFragments() )
                     if ( element.getClassName().contains(acceptedClassName ))
                         return;
             
-            reporter.reportChanges(changes, location);
+            reporter.reportChanges(changes, Arrays.stream(stackTrace));
         }
 
         @Override
@@ -150,27 +154,30 @@ public class NonDefaultMountWriteReportingObserver implements Observer {
     static class ChangeReporter {
         
         private static final int LOG_OUTPUT_MAX_ITEMS = 50;
+        private static final String STACK_TRACE_DELIMITER = "\tat ";
         
         private final Logger logger = LoggerFactory.getLogger(getClass());
         
-        void reportChanges(Map<String, String> changes, RuntimeException location) {
+        void reportChanges(Map<String, String> changes, Stream<StackTraceElement> stackTrace) {
             
             if ( !logger.isWarnEnabled() )
                 return;
             
-            StringBuilder out = new StringBuilder();
-            out.append("Unexpected changes (")
-                .append(changes.size())
-                .append(") performed on a non-default mount. Printing at most ")
-                .append(LOG_OUTPUT_MAX_ITEMS);
+            StringWriter out = new StringWriter();
+            PrintWriter writer = new PrintWriter(new StringWriter());
+            writer.append("Unexpected changes (");
+            writer.print(changes.size());
+            writer.append(") performed on a non-default mount. Printing at most ");
+            writer.println(LOG_OUTPUT_MAX_ITEMS);
             
             changes.entrySet().stream()
                 .limit(LOG_OUTPUT_MAX_ITEMS)
-                .forEach( e -> 
-                    out.append("\n- ").append(e.getKey()).append(" : ").append(e.getValue())
+                .forEach( e -> writer.append(e.getKey()).append(" : ").println(e.getValue())
             );
 
-            logger.warn(out.toString(), location);
+            writer.append("Changes triggered ");
+            stackTrace.forEach(e -> writer.append(STACK_TRACE_DELIMITER).println(e));
+            logger.warn(out.toString());
         }
     }
 }

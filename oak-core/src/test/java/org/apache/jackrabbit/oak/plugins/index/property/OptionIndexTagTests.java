@@ -73,14 +73,14 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag y, index name nodetype)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
-        assertTrue(result, result.indexOf("/* nodeType ") >= 0);
+        assertTrue(result, result.indexOf("/* nodeType") >= 0);
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index name nodetype)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
-        assertTrue(result, result.indexOf("/* nodeType ") >= 0);
+        assertTrue(result, result.indexOf("/* nodeType") >= 0);
         
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag y)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
-        assertTrue(result, result.indexOf("/* traverse ") >= 0);
+        assertTrue(result, result.indexOf("/* traverse") >= 0);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         assertTrue(result, result.indexOf("/* property uuid") >= 0);
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index name nodetype)";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
-        assertTrue(result, result.indexOf("/* nodeType ") >= 0);
+        assertTrue(result, result.indexOf("/* nodeType") >= 0);
     }
 
     @Test

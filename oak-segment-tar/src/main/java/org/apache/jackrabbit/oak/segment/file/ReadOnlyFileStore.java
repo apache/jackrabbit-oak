@@ -77,8 +77,9 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                 .withMemoryMapping(memoryMapping)
                 .withReadOnly()
                 .withPersistence(builder.getPersistence())
+                .withInitialisedReadersAndWriters(false)
                 .build();
-
+        tarFiles.init();
         writer = defaultSegmentWriterBuilder("read-only").withoutCache().build(this);
         gcRetainedGenerations = builder.getGcOptions().getRetainedGenerations();
 

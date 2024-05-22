@@ -44,7 +44,15 @@ public class Canceller {
     }
 
     Canceller() {
-        // Prevent instantiation outside of this package.
+        // Prevent instantiation outside this package.
+    }
+
+    /**
+     * Check if this instance can ever return anything other than {@code NOPE}.
+     * This will be only be false for {@code ROOT} and short circuits thereof.
+     */
+    public boolean isCancelable() {
+        return (this != ROOT);
     }
 
     /**
@@ -91,10 +99,9 @@ public class Canceller {
      * returned instance will be canceled when this instance is canceled, but
      * will never transition back to an "uncanceled" state.
      *
-     * @return an new instance of {@link Canceller}.
+     * @return a new instance of {@link Canceller}.
      */
     public Canceller withShortCircuit() {
         return new ShortCircuitCanceller(this);
     }
-
 }

@@ -65,7 +65,7 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
     Otherwise proper alias naming and mapping will not be applied
      */
     @Override
-    protected void preIndexOpertaions(List<NodeStateIndexer> indexers) {
+    protected void preIndexOperations(List<NodeStateIndexer> indexers) {
         // For all the available indexers check if it's an ElasticIndexer
         // and then provision the index
         for (NodeStateIndexer indexer : indexers) {

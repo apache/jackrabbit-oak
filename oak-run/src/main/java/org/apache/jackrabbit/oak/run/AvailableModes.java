@@ -45,6 +45,7 @@ public final class AvailableModes {
             .put(DocumentStoreCheckCommand.NAME, new DocumentStoreCheckCommand())
             .put("explore", new ExploreCommand())
             .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
+            .put(FlatFileCommand.NAME, new FlatFileCommand())
             .put(FrozenNodeRefsByScanningCommand.NAME, new FrozenNodeRefsByScanningCommand())
             .put(FrozenNodeRefsUsingIndexCommand.NAME, new FrozenNodeRefsUsingIndexCommand())
             .put("garbage", new GarbageCommand())

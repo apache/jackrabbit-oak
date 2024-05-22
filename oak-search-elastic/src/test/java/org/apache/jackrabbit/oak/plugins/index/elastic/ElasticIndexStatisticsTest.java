@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.CountRequest;
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import org.apache.jackrabbit.guava.common.base.Ticker;
@@ -117,6 +118,21 @@ public class ElasticIndexStatisticsTest {
         // cache miss, read data from elastic
         assertEquals(5000, indexStatistics.numDocs());
         verify(elasticClientMock, times(3)).count(any(CountRequest.class));
+
+        // move cache time ahead of 30 minutes, cache value expired
+        ticker.tick(Duration.ofMinutes(30));
+
+        // cache miss, read data using an elastic query
+        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf))));
+        verify(elasticClientMock, times(4)).count(any(CountRequest.class));
+
+        // call again with the same query but a different instance
+        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf))));
+        verifyNoMoreInteractions(elasticClientMock);
+
+        // call again with a different query
+        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf.boost(100F)))));
+        verify(elasticClientMock, times(5)).count(any(CountRequest.class));
     }
 
     private static class MutableTicker extends Ticker {

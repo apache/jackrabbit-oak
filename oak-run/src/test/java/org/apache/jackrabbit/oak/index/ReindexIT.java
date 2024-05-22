@@ -48,16 +48,15 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.security.Permission;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static java.lang.System.getSecurityManager;
-import static java.lang.System.setSecurityManager;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -68,7 +67,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ReindexIT extends LuceneAbstractIndexCommandTest {
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
@@ -128,10 +126,17 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
     @Test
     public void reindexIgnoreMissingTikaDepThrow() throws Exception{
+        final AtomicInteger exitCode = new AtomicInteger(-1);
         IndexCommand command = new IndexCommand() {
             @Override
             public void checkTikaDependency() throws ClassNotFoundException {
                 throw new ClassNotFoundException();
+            }
+
+            //avoid System.exit(), we just want to make sure that exit is called with the correct code
+            @Override
+            public void exit(int status) {
+                exitCode.set(status);
             }
         };
         String[] args = {
@@ -139,19 +144,24 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 "--", // -- indicates that options have ended and rest needs to be treated as non option
                 "test"
         };
-        assertExits(1, () -> command.execute(args));
+        command.execute(args);
+        assertEquals("Epxpect to exit with status 1", 1, exitCode.get());
         assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue", errContent.toString("UTF-8").trim());
     }
 
     @Test
     public void reindexAndThenImport() throws Exception {
         createTestData(true);
+        int fooSuggestCount = 2;
+        int contentCount = 100;
+        addSuggestContent(fixture, "/testnode/suggest1", "foo", fooSuggestCount);
         fixture.getAsyncIndexUpdate("async").run();
 
         //Update index to bar property also but do not index yet
         indexBarPropertyAlso(fixture);
 
         int fooCount = getFooCount(fixture, "foo");
+        List<String> suggestResults1 = getSuggestResults(fixture);
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
 
         //Close the repository so as all changes are flushed
@@ -178,15 +188,18 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         //import
 
         IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
-        addTestContent(fixture2, "/testNode/b", "foo", 100);
-        addTestContent(fixture2, "/testNode/c", "bar", 100);
+        addTestContent(fixture2, "/testNode/b", "foo", contentCount);
+        addTestContent(fixture2, "/testNode/c", "bar", contentCount);
+        addSuggestContent(fixture2, "/testNode/suggest2", "foo", fooSuggestCount);
         fixture2.getAsyncIndexUpdate("async").run();
 
         String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("traverse"));
         assertThat(explain, not(containsString(TEST_INDEX_PATH)));
         int foo2Count = getFooCount(fixture2, "foo");
-        assertEquals(fooCount + 100, foo2Count);
+        List<String> suggestResults2 = getSuggestResults(fixture2);
+        assertEquals(suggestResults1.size() + fooSuggestCount, suggestResults2.size());
+        assertEquals(fooCount + contentCount + fooSuggestCount, foo2Count);
         assertNotNull(fixture2.getNodeStore().retrieve(checkpoint));
         fixture2.close();
 
@@ -213,8 +226,10 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
         IndexRepositoryFixture fixture4 = new LuceneRepositoryFixture(storeDir);
         int foo4Count = getFooCount(fixture4, "foo");
+        List<String> suggestResults4 = getSuggestResults(fixture4);
         //new count should be same as previous
         assertEquals(foo2Count, foo4Count);
+        assertEquals(suggestResults2.size(), suggestResults4.size());
 
         //Checkpoint must be released
         assertNull(fixture4.getNodeStore().retrieve(checkpoint));
@@ -389,47 +404,27 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         return explanation;
     }
 
-    public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {
-        final SecurityManager originalSecurityManager = getSecurityManager();
-        setSecurityManager(new SecurityManager() {
-            @Override
-            public void checkPermission(final Permission perm) {
-                if (originalSecurityManager != null)
-                    originalSecurityManager.checkPermission(perm);
-            }
+    public List<String> getSuggestResults(IndexRepositoryFixture fixture) throws Exception {
+        Session session = fixture.getAdminSession();
 
-            @Override
-            public void checkPermission(final Permission perm, final Object context) {
-                if (originalSecurityManager != null)
-                    originalSecurityManager.checkPermission(perm, context);
-            }
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String sql = "SELECT [rep:suggest()] FROM [nt:base] WHERE SUGGEST('sugge')";
+        String explanation = getQueryPlan(fixture, sql);
+        assertThat(explanation, containsString("/oak:index/fooIndex"));
 
-            @Override
-            public void checkExit(final int status) {
-                super.checkExit(status);
-                throw new ExitException(status);
-            }
-        });
-        try {
-            executable.run();
-            fail("Expected System.exit(" + expectedStatus + ") to be called, but it wasn't called.");
-        } catch (final ExitException e) {
-            assertEquals(expectedStatus, e.status);
-        } finally {
-            setSecurityManager(originalSecurityManager);
+        Query q = qm.createQuery(sql, Query.SQL);
+        List<String> result = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(result);
+        return result;
+    }
+
+    private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
+        RowIterator it = result.getRows();
+        while (it.hasNext()) {
+            Row row = it.nextRow();
+            results.add(row.getValue(propertyName).getString());
         }
+        return results;
     }
-
-    public interface ThrowingExecutable<E extends Throwable> {
-        void run() throws E;
-    }
-
-    private static class ExitException extends SecurityException {
-        final int status;
-
-        private ExitException(final int status) {
-            this.status = status;
-        }
-    }
-
 }

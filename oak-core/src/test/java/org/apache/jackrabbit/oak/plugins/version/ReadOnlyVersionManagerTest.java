@@ -216,4 +216,16 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
         assertTrue(history.exists());
         assertEquals(historyUuid, history.getProperty(JCR_UUID).getValue(Type.STRING));
     }
-}
+
+    @Test
+    public void testCheckedOutNonVersionable() throws RepositoryException, CommitFailedException {
+        NodeUtil node = new NodeUtil(root.getTree("/"));
+        node.addChild("nonVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        root.commit();
+
+        Tree nonVersionable = root.getTree("/nonVersionable");
+        nonVersionable.setProperty(JCR_ISCHECKEDOUT, Boolean.FALSE, Type.BOOLEAN);
+        root.commit();
+
+        assertTrue(versionManager.isCheckedOut(nonVersionable));
+    }}

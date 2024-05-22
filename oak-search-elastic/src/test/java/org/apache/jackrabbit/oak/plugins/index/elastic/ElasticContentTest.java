@@ -61,6 +61,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     public void indexWithAnalyzedProperty() throws Exception {
         reset(spyMetricHandler);
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         String indexName = UUID.randomUUID().toString();
         String indexNameWithPrefix = esConnection.getIndexPrefix() + "." + indexName;
@@ -99,6 +100,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Ignore("this test fails because of a bug with nodeScopeIndex (every node gets indexed in an empty doc)")
     public void indexWithAnalyzedNodeScopeIndexProperty() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed().nodeScopeIndex();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -116,6 +118,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void indexContentWithLongPath() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -143,6 +146,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void defineIndexTwice() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         String testId = UUID.randomUUID().toString();
         Tree index = setIndex(testId, builder);
         root.commit();
@@ -157,6 +161,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void analyzedFieldWithLongValue() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -174,6 +179,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void indexWithDefaultFetchSizes() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").propertyIndex();
         setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -197,6 +203,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     public void indexWithCustomFetchSizes() throws Exception {
         BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
+            builder.includedPaths("/content");
             builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
             builder.indexRule("nt:base").property(p).propertyIndex();
             setIndex(p + "_" + UUID.randomUUID(), builder);
@@ -236,6 +243,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     public void indexWithLowTrackTotalHits() throws Exception {
         BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
+            builder.includedPaths("/content");
             builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
             builder.getBuilderTree().setProperty("trackTotalHits", 10L, Type.LONG);
             builder.indexRule("nt:base").property(p).propertyIndex();
@@ -263,6 +271,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void deduplicateFields() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").propertyIndex();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();

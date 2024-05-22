@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.api.security.user;
 
 import org.jetbrains.annotations.NotNull;
-import org.osgi.annotation.versioning.ProviderType;
+import org.osgi.annotation.versioning.ConsumerType;
 
 /**
  * A query to match {@link Authorizable}s. Pass an instance of this interface to
@@ -42,7 +42,7 @@ import org.osgi.annotation.versioning.ProviderType;
  *  });
  * </pre>
  */
-@ProviderType
+@ConsumerType
 public interface Query {
 
     /**

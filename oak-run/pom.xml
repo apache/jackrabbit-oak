@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.53-SNAPSHOT</version>
+    <version>1.65-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -31,9 +31,13 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
-    <jetty.version>9.4.46.v20220331</jetty.version>
+    <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
+      + 84 MB (RDB/Tomcat, OAK-10752)
+      + 80 MB (Java 17, OAK-10638)
+      + 78.7 MB Apache Commons Lang » 3.0 (OAK-10615)
+      + 78 MB Azure Identity client library for Java (OAK-10604)
       + 60 MB Groovy 2.5 (OAK-10066)
       + 56 MB MongoDB Java driver 3.12.7 (OAK-9357)
       + 55 MB Add support for segment persistent cache (OAK-7744)
@@ -47,7 +51,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>62914560</max.jar.size>
+    <max.jar.size>88080384</max.jar.size>
   </properties>
 
   <build>
@@ -280,6 +284,12 @@
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-cli-picocli</artifactId>
+      <version>${groovy.version}</version>
+      <classifier>indy</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy-groovysh</artifactId>
       <version>${groovy.version}</version>
       <classifier>indy</classifier>
@@ -312,6 +322,10 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -361,7 +375,7 @@
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>2.8.0</version>
+      <version>2.10.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
@@ -474,8 +488,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.arakelian</groupId>
-      <artifactId>docker-junit-rule</artifactId>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

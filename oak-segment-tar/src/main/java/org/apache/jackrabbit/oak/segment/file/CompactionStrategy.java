@@ -20,10 +20,12 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.segment.SegmentWriterFactory;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -51,7 +53,11 @@ interface CompactionStrategy {
 
         BlobStore getBlobStore();
 
-        Canceller getCanceller();
+        Canceller getHardCanceller();
+
+        Canceller getSoftCanceller();
+
+        Supplier<Canceller> getStateSaveTriggerSupplier();
 
         int getGCCount();
 

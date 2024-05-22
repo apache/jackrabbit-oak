@@ -106,6 +106,6 @@ requires the ability to read access control content on the target path.
 
 - [Mapping Privileges to Items](../privilege/mappingtoitems.html)
 - [Mapping API Calls to Privileges](../privilege/mappingtoprivileges.html)
-
+- [Mapping Privileges to JCR/Jackrabbit Actions](../privilege/mappingprivilegestoactions.html)
 
 

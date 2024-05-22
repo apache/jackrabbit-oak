@@ -85,8 +85,7 @@ public abstract class CompositeTestSupport extends TestSupport {
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-query-spi").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-security-spi").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-segment-tar").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-store-spi").versionAsInProject(),
-            mavenBundle().groupId("com.google.guava").artifactId("guava").versionAsInProject()
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-store-spi").versionAsInProject()
         );
     }
 

@@ -44,13 +44,12 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.References;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.oak.jcr.observation.jmx.ConsolidatedListenerMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -65,40 +64,42 @@ import org.osgi.framework.BundleContext;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
-@Component
-@References({
-        @Reference(name = "observer",
+@Component(reference = {
+        @Reference(
+                name = "observer",
                 bind = "bindObserver",
                 unbind = "unbindObserver",
-                referenceInterface = Observer.class,
+                service = Observer.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
+                cardinality = ReferenceCardinality.MULTIPLE),
         @Reference(name = "listenerMBean",
                 bind = "bindListenerMBean",
                 unbind = "unbindListenerMBean",
-                referenceInterface = EventListenerMBean.class,
+                service = EventListenerMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "backgroundObserverMBean",
+                cardinality = ReferenceCardinality.MULTIPLE),
+        @Reference(
+                name = "backgroundObserverMBean",
                 bind = "bindBackgroundObserverMBean",
                 unbind = "unbindBackgroundObserverMBean",
-                referenceInterface = BackgroundObserverMBean.class,
+                service = BackgroundObserverMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "changeProcessorMBean",
+                cardinality = ReferenceCardinality.MULTIPLE),
+        @Reference(
+                name = "changeProcessorMBean",
                 bind = "bindChangeProcessorMBean",
                 unbind = "unbindChangeProcessorMBean",
-                referenceInterface = ChangeProcessorMBean.class,
+                service = ChangeProcessorMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "filterConfigMBean",
+                cardinality = ReferenceCardinality.MULTIPLE),
+        @Reference(
+                name = "filterConfigMBean",
                 bind = "bindFilterConfigMBean",
                 unbind = "unbindFilterConfigMBean",
-                referenceInterface = FilterConfigMBean.class,
+                service = FilterConfigMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
-
-})
+                cardinality = ReferenceCardinality.MULTIPLE)
+}, service = {})
 public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean {
     private final AtomicInteger observerCount = new AtomicInteger();
     private final Map<ObjectName, EventListenerMBean> eventListeners = Maps.newConcurrentMap();

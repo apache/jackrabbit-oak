@@ -33,7 +33,12 @@ class FullCompactionStrategy extends AbstractCompactionStrategy {
     }
 
     @Override
-    GCGeneration nextGeneration(GCGeneration current) {
+    GCGeneration partialGeneration(GCGeneration current) {
+        return current.nextPartial();
+    }
+
+    @Override
+    GCGeneration targetGeneration(GCGeneration current) {
         return current.nextFull();
     }
 

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -67,6 +68,7 @@ public abstract class AbstractPersistentCacheTest {
     }
 
     @Test
+    @Ignore("OAK-10543")
     public void writeAndReadManySegments() {
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
         final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);

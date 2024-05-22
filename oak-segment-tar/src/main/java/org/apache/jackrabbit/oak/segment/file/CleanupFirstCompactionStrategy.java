@@ -19,20 +19,13 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -76,46 +69,6 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
 
         PrintableStopwatch watch = PrintableStopwatch.createStarted();
 
-        Predicate<GCGeneration> reclaimer;
-
-        GCGeneration currentGeneration = context.getRevisions().getHead().getSegmentId().getGcGeneration();
-
-        switch (context.getGCOptions().getGCType()) {
-            case FULL:
-                reclaimer = generation -> {
-                    if (generation == null) {
-                        return false;
-                    }
-                    if (generation.getFullGeneration() < currentGeneration.getFullGeneration()) {
-                        return true;
-                    }
-                    if (generation.getFullGeneration() > currentGeneration.getFullGeneration()) {
-                        return true;
-                    }
-                    return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
-                };
-                break;
-            case TAIL:
-                reclaimer = generation -> {
-                    if (generation == null) {
-                        return false;
-                    }
-                    if (generation.getFullGeneration() < currentGeneration.getFullGeneration() - 1) {
-                        return true;
-                    }
-                    if (generation.getFullGeneration() == currentGeneration.getFullGeneration() - 1) {
-                        return !generation.isCompacted();
-                    }
-                    if (generation.getFullGeneration() > currentGeneration.getFullGeneration()) {
-                        return true;
-                    }
-                    return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
-                };
-                break;
-            default:
-                throw new IllegalArgumentException("invalid garbage collection type");
-        }
-
         context.getGCListener().info("pre-compaction cleanup started");
         context.getGCListener().updateStatus(CLEANUP.message());
 
@@ -124,7 +77,7 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
 
         System.gc();
 
-        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context, reclaimer));
+        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context));
 
         if (cleanupResult.isInterrupted()) {
             context.getGCListener().info("cleanup interrupted");
@@ -149,39 +102,37 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
         return strategy.compact(context);
     }
 
-    private static CleanupContext newCleanupContext(Context context, Predicate<GCGeneration> old) {
-        return new CleanupContext() {
+    private static CleanupContext newCleanupContext(Context context) {
+        GCGeneration currentGeneration = context.getRevisions().getHead().getSegmentId().getGcGeneration();
+        String compactedRoot = context.getGCJournal().read().getRoot();
 
-            private boolean isUnreferencedBulkSegment(UUID id, boolean referenced) {
-                return !isDataSegmentId(id.getLeastSignificantBits()) && !referenced;
-            }
-
-            private boolean isOldDataSegment(UUID id, GCGeneration generation) {
-                return isDataSegmentId(id.getLeastSignificantBits()) && old.apply(generation);
-            }
-
-            @Override
-            public Collection<UUID> initialReferences() {
-                Set<UUID> references = newHashSet();
-                for (SegmentId id : context.getSegmentTracker().getReferencedSegmentIds()) {
-                    if (id.isBulkSegmentId()) {
-                        references.add(id.asUUID());
+        switch (context.getGCOptions().getGCType()) {
+            case FULL:
+                return new DefaultCleanupContext(context.getSegmentTracker(), generation -> {
+                    if (generation == null) {
+                        return false;
                     }
-                }
-                return references;
-            }
-
-            @Override
-            public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
-                return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation);
-            }
-
-            @Override
-            public boolean shouldFollow(UUID from, UUID to) {
-                return !isDataSegmentId(to.getLeastSignificantBits());
-            }
-
-        };
+                    if (generation.getFullGeneration() < currentGeneration.getFullGeneration()) {
+                        return true;
+                    }
+                    return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
+                }, compactedRoot);
+            case TAIL:
+                return new DefaultCleanupContext(context.getSegmentTracker(), generation -> {
+                    if (generation == null) {
+                        return false;
+                    }
+                    if (generation.getFullGeneration() < currentGeneration.getFullGeneration() - 1) {
+                        return true;
+                    }
+                    if (generation.getFullGeneration() == currentGeneration.getFullGeneration() - 1) {
+                        return !generation.isCompacted();
+                    }
+                    return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
+                }, compactedRoot);
+            default:
+                throw new IllegalArgumentException("invalid garbage collection type");
+        }
     }
 
     private static String toFileNames(@NotNull List<String> files) {
@@ -191,13 +142,4 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
             return Joiner.on(",").join(files);
         }
     }
-
-    private static GCGeneration getGcGeneration(Context context) {
-        return context.getRevisions().getHead().getSegmentId().getGcGeneration();
-    }
-
-    private static long size(Context context) {
-        return context.getTarFiles().size();
-    }
-
 }

@@ -23,12 +23,11 @@ import java.util.regex.Pattern;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class NumericConstraint<T> implements Predicate<Value>, com.google.common.base.Predicate<Value> {
+public abstract class NumericConstraint<T> implements Predicate<Value> {
     private static final Logger log = LoggerFactory.getLogger(NumericConstraint.class);
 
     private boolean invalid;
@@ -105,16 +104,6 @@ public abstract class NumericConstraint<T> implements Predicate<Value>, com.goog
             log.warn("Error checking numeric constraint " + this, e);
             return false;
         }
-    }
-
-    /**
-     * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
-     */
-    @Deprecated(since = "1.26.0", forRemoval = true)
-    @Override
-    public boolean apply(@Nullable Value value) {
-        GuavaDeprecation.handleCall("OAK-8874");
-        return test(value);
     }
 
     protected abstract T getValue(Value value) throws RepositoryException;

@@ -120,9 +120,8 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
                 Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
-        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
-                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
-                "  and (contains([nt:unstructured].[foo], 'bar')) */", 
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n"
+                + " */",
                 plan.get(0));
 
         plan = executeQuery(
@@ -132,9 +131,8 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
                 Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
-        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
-                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
-                "  and (not contains([nt:unstructured].[foo], 'bar')) */", 
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n"
+                + " */",
                 plan.get(0));
         
         plan = executeQuery(
@@ -144,9 +142,8 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
                 Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
-        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
-                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
-                "  and (contains([nt:unstructured].[foo], 'bar')) */", 
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n"
+                + " */",
                 plan.get(0));
         
         setTraversalEnabled(true);

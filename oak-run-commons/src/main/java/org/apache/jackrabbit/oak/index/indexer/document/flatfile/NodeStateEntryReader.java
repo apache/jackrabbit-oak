@@ -32,17 +32,17 @@ import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 public class NodeStateEntryReader {
     private final BlobDeserializer blobDeserializer;
 
-    public NodeStateEntryReader(BlobStore blobStore){
+    public NodeStateEntryReader(BlobStore blobStore) {
         this.blobDeserializer = new BlobIdSerializer(blobStore);
     }
 
-    public NodeStateEntry read(String line){
+    public NodeStateEntry read(String line) {
         String[] parts = NodeStateEntryWriter.getParts(line);
         long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
         return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage).build();
     }
 
-    private NodeState parseState(String part) {
+    protected NodeState parseState(String part) {
         JsonDeserializer des = new JsonDeserializer(blobDeserializer);
         return des.deserialize(part);
     }

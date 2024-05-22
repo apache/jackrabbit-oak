@@ -20,9 +20,12 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -41,8 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
  * Test the Property2 index mechanism.
@@ -77,7 +78,9 @@ public class PropertyIndexDisabledTest {
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("x10"));
         PropertyIndex propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
-        assertEquals("property foo = x10", propertyIndex.getPlan(f, root));
+        assertThat(propertyIndex.getPlan(f, root), containsString("property foo\n"
+                + "    indexDefinition: /oak:index/foo\n"
+                + "    values: 'x10'\n"));
 
         // now test with a node that doesn't exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
@@ -95,7 +98,9 @@ public class PropertyIndexDisabledTest {
         // need to create a new one - otherwise the cached plan is used
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
-        assertEquals("property foo = x10", propertyIndex.getPlan(f, root));
+        assertThat(propertyIndex.getPlan(f, root), containsString("property foo\n"
+                + "    indexDefinition: /oak:index/foo\n"
+                + "    values: 'x10'\n"));
         
         // test with a property that does not exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");

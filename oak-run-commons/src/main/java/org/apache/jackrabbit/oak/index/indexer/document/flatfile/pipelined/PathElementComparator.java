@@ -18,21 +18,18 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import java.util.Comparator;
 import java.util.Set;
 
-class PathElementComparator implements Comparator<String[]> {
+public class PathElementComparator implements Comparator<String[]> {
     private final Set<String> preferred;
 
     public PathElementComparator(Set<String> preferredPathElements) {
-        this.preferred = ImmutableSet.copyOf(preferredPathElements);
+        this.preferred = Set.copyOf(preferredPathElements);
     }
 
     @Override
     public int compare(String[] p1, String[] p2) {
-
         int i1 = 0;
         int i2 = 0;
 

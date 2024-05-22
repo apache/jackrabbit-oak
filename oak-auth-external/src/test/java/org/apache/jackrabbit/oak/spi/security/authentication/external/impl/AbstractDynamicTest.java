@@ -57,9 +57,15 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
         createAutoMembershipGroups();
         previouslySyncedUser = syncPriorToDynamicMembership();
+        long now = System.currentTimeMillis();
 
         userManager = getUserManager(r);
         valueFactory = getValueFactory(r);
+
+        while (now == System.currentTimeMillis()) {
+            // Wait to ensure that the internal timestamp of the DynamicSyncContext is ahead of the last sync time (OAK-10379)
+        }
+
         syncContext = new DynamicSyncContext(syncConfig, idp, userManager, valueFactory);
 
         // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership 

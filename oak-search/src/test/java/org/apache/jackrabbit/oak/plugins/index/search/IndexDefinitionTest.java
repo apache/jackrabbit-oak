@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -35,12 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
@@ -55,6 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper.ne
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
@@ -62,7 +63,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class IndexDefinitionTest {
@@ -72,13 +72,13 @@ public class IndexDefinitionTest {
     private final NodeBuilder builder = root.builder();
 
     @Test
-    public void defaultConfig() throws Exception{
+    public void defaultConfig() {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertFalse(idxDefn.hasSyncPropertyDefinitions());
     }
 
     @Test
-    public void fullTextEnabled() throws Exception{
+    public void fullTextEnabled() {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
         assertTrue("By default fulltext is enabled", idxDefn.isFullTextEnabled());
@@ -91,9 +91,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void propertyTypes() throws Exception{
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, of(TYPENAME_LONG), STRINGS));
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
+    public void propertyTypes() throws Exception {
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, Set.of(TYPENAME_LONG), STRINGS));
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("foo", "bar"), STRINGS));
         builder.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
@@ -110,10 +110,18 @@ public class IndexDefinitionTest {
         assertTrue(rule.getConfig("foo").skipTokenization("foo"));
     }
 
+
     @Test
-    public void propertyDefinition() throws Exception{
+    public void queryPathsAsString() {
+        builder.setProperty(createProperty(IndexConstants.QUERY_PATHS, "/foo/bar", STRING));
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertEquals(new String[]{"/foo/bar"}, idxDefn.getQueryPaths());
+    }
+
+    @Test
+    public void propertyDefinition() {
         builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("foo", "bar"), STRINGS));
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
 
@@ -124,7 +132,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void propertyDefinitionWithExcludes() throws Exception{
+    public void propertyDefinitionWithExcludes() {
         builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
@@ -135,7 +143,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleSanity() throws Exception{
+    public void indexRuleSanity() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -159,7 +167,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleInheritance() throws Exception{
+    public void indexRuleInheritance() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         builder.setProperty(PROP_NAME, "testIndex");
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
@@ -172,7 +180,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleMixin() throws Exception{
+    public void indexRuleMixin() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("mix:title");
         TestUtil.child(rules, "mix:title/properties/jcr:title")
@@ -185,7 +193,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleMixinInheritance() throws Exception{
+    public void indexRuleMixinInheritance() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("mix:mimeType");
         TestUtil.child(rules, "mix:mimeType/properties/jcr:mimeType")
@@ -201,7 +209,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleInheritanceDisabled() throws Exception{
+    public void indexRuleInheritanceDisabled() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         builder.setProperty(PROP_NAME, "testIndex");
         rules.child("nt:hierarchyNode")
@@ -217,9 +225,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleInheritanceOrdering() throws Exception{
+    public void indexRuleInheritanceOrdering() {
         NodeBuilder rules = builder.child(INDEX_RULES);
-        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:hierarchyNode", "nt:base"),NAMES);
+        rules.setProperty(OAK_CHILD_ORDER, List.of("nt:hierarchyNode", "nt:base"), NAMES);
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
 
@@ -229,10 +237,11 @@ public class IndexDefinitionTest {
         assertEquals(2.0, getRule(defn, "nt:hierarchyNode").boost, 0);
         assertEquals(3.0, getRule(defn, "nt:query").boost, 0);
     }
+
     @Test
-    public void indexRuleInheritanceOrdering2() throws Exception{
+    public void indexRuleInheritanceOrdering2() {
         NodeBuilder rules = builder.child(INDEX_RULES);
-        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:base", "nt:hierarchyNode"),NAMES);
+        rules.setProperty(OAK_CHILD_ORDER, List.of("nt:base", "nt:hierarchyNode"), NAMES);
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
 
@@ -245,7 +254,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleWithPropertyRegEx() throws Exception{
+    public void indexRuleWithPropertyRegEx() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -269,7 +278,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleWithPropertyRegEx2() throws Exception{
+    public void indexRuleWithPropertyRegEx2() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -295,7 +304,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void indexRuleWithPropertyOrdering() throws Exception{
+    public void indexRuleWithPropertyOrdering() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -307,7 +316,7 @@ public class IndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
 
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop2", "prop1"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop2", "prop1"), NAMES);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
 
@@ -323,14 +332,14 @@ public class IndexDefinitionTest {
         assertEquals(4.0f, rule1.getConfig("fooProp").boost, 0);
 
         //Order it correctly to get expected result
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop1", "prop2"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop1", "prop2"), NAMES);
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
     }
 
     @Test
-    public void propertyConfigCaseInsensitive() throws Exception{
+    public void propertyConfigCaseInsensitive() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/foo")
@@ -353,7 +362,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void skipTokenization() throws Exception{
+    public void skipTokenization() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop2")
@@ -369,9 +378,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void formatUpdate() throws Exception{
+    public void formatUpdate() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of(TYPENAME_STRING), of("foo", "Bar"), "async");
+                "lucene", Set.of(TYPENAME_STRING), Set.of("foo", "Bar"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.isOfOldFormat());
 
@@ -386,9 +395,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void propertyRegExAndRelativeProperty() throws Exception{
+    public void propertyRegExAndRelativeProperty() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of(TYPENAME_STRING), of("foo"), "async");
+                "lucene", Set.of(TYPENAME_STRING), Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.isOfOldFormat());
 
@@ -401,9 +410,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void fulltextEnabledAndAggregate() throws Exception{
+    public void fulltextEnabledAndAggregate() {
         NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of("foo"), "async");
+                "lucene", Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertFalse(defn.isFullTextEnabled());
 
@@ -416,9 +425,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void costConfig() throws Exception {
+    public void costConfig() {
         NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of("foo"), "async");
+                "lucene", Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(1.0, defn.getCostPerEntry(), 0);
         assertEquals(1.0, defn.getCostPerExecution(), 0);
@@ -436,9 +445,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void fulltextCost() throws Exception{
+    public void fulltextCost() {
         NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of("foo"), "async");
+                "lucene", Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(300, defn.getFulltextEntryCount(300));
         assertEquals(IndexDefinition.DEFAULT_ENTRY_COUNT + 100,
@@ -452,9 +461,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void customTikaConfig() throws Exception{
+    public void customTikaConfig() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertFalse(defn.hasCustomTikaConfig());
 
@@ -467,13 +476,13 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void customTikaMimeTypes() throws Exception{
+    public void customTikaMimeTypes() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals("application/test", defn.getTikaMappedMimeType("application/test"));
 
-        NodeBuilder app =defnb.child(FulltextIndexConstants.TIKA)
+        NodeBuilder app = defnb.child(FulltextIndexConstants.TIKA)
                 .child(FulltextIndexConstants.TIKA_MIME_TYPES)
                 .child("application");
         app.child("test").setProperty(FulltextIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
@@ -485,9 +494,9 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void maxExtractLength() throws Exception{
+    public void maxExtractLength() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(-IndexDefinition.DEFAULT_MAX_EXTRACT_LENGTH * IndexDefinition.DEFAULT_MAX_FIELD_LENGTH,
                 defn.getMaxExtractLength());
@@ -500,13 +509,13 @@ public class IndexDefinitionTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void nullCheckEnabledWithNtBase() throws Exception{
+    public void nullCheckEnabledWithNtBase() {
         builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
     }
 
     @Test(expected = IllegalStateException.class)
-    public void nullCheckEnabledWithRegex() throws Exception{
+    public void nullCheckEnabledWithRegex() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child(TestUtil.NT_TEST);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
@@ -518,7 +527,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nullCheckEnabledWithTestNode() throws Exception{
+    public void nullCheckEnabledWithTestNode() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
                 .setProperty(PROP_NAME, "foo")
@@ -529,7 +538,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void notNullCheckEnabledWithTestNode() throws Exception{
+    public void notNullCheckEnabledWithTestNode() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
                 .setProperty(PROP_NAME, "foo")
@@ -541,7 +550,7 @@ public class IndexDefinitionTest {
 
     //OAK-2477
     @Test
-    public void testSuggestFrequency() throws Exception {
+    public void testSuggestFrequency() {
         int suggestFreq = 40;
         //default config
         NodeBuilder indexRoot = builder;
@@ -571,7 +580,7 @@ public class IndexDefinitionTest {
 
     //OAK-2477
     @Test
-    public void testSuggestAnalyzed() throws Exception {
+    public void testSuggestAnalyzed() {
         //default config
         NodeBuilder indexRoot = builder;
         IndexDefinition idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
@@ -598,7 +607,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void testSuggestEnabledOnNamedProp() throws Exception {
+    public void testSuggestEnabledOnNamedProp() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
                 .setProperty(PROP_NAME, "foo")
@@ -609,7 +618,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void testSuggestEnabledOnRegexProp() throws Exception {
+    public void testSuggestEnabledOnRegexProp() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child(TestUtil.NT_TEST);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
@@ -622,7 +631,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void testSuggestDisabled() throws Exception {
+    public void testSuggestDisabled() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
                 .setProperty(PROP_NAME, "foo");
@@ -632,7 +641,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void analyzedEnabledForBoostedField() throws Exception {
+    public void analyzedEnabledForBoostedField() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -659,7 +668,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeFullTextIndexed_Regex() throws Exception {
+    public void nodeFullTextIndexed_Regex() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -681,7 +690,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeFullTextIndexed_Simple() throws Exception {
+    public void nodeFullTextIndexed_Simple() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -702,7 +711,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeFullTextIndexed_Aggregates() throws Exception {
+    public void nodeFullTextIndexed_Aggregates() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -721,7 +730,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nonIndexPropShouldHaveAllOtherConfigDisabled() throws Exception{
+    public void nonIndexPropShouldHaveAllOtherConfigDisabled() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         TestUtil.child(rules, "nt:folder/properties/prop1")
@@ -754,38 +763,38 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void costPerEntry() throws Exception{
+    public void costPerEntry() {
         builder.setProperty(FulltextIndexConstants.COMPAT_MODE, 2);
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertEquals(1.0, defn.getCostPerEntry(), 0.0);
     }
 
     @Test
-    public void sync() throws Exception{
+    public void sync() throws Exception {
         TestUtil.enableIndexingMode(builder, IndexingMode.SYNC);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertTrue(idxDefn.isSyncIndexingEnabled());
     }
 
     @Test
-    public void hasPersistedIndex() throws Exception{
+    public void hasPersistedIndex() {
         assertFalse(IndexDefinition.hasPersistedIndex(builder.getNodeState()));
         builder.child(":status");
         assertTrue(IndexDefinition.hasPersistedIndex(builder.getNodeState()));
     }
 
     @Test
-    public void uniqueIdForFreshIndex() throws Exception{
+    public void uniqueIdForFreshIndex() {
         IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
         assertEquals("0", defn.getUniqueId());
 
         builder.child(":status");
-        defn = IndexDefinition.newBuilder(root, builder.getNodeState(),"/foo").build();
+        defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
         assertNull(defn.getUniqueId());
     }
 
     @Test
-    public void nodeTypeChange() throws Exception{
+    public void nodeTypeChange() {
         IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
         NodeBuilder b2 = root.builder();
         TestUtil.registerNodeType(b2, TestUtil.TEST_NODE_TYPE);
@@ -801,7 +810,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void uniqueIsSync() throws Exception{
+    public void uniqueIsSync() {
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").unique();
 
@@ -812,7 +821,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void syncIsProperty() throws Exception{
+    public void syncIsProperty() {
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").sync();
 
@@ -822,7 +831,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void syncPropertyDefinitions() throws Exception{
+    public void syncPropertyDefinitions() {
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").sync();
 
@@ -846,7 +855,7 @@ public class IndexDefinitionTest {
             "- * (UNDEFINED) multiple";
 
     @Test
-    public void nodeTypeIndexed() throws Exception{
+    public void nodeTypeIndexed() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -872,7 +881,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeTypeIndexedSync() throws Exception{
+    public void nodeTypeIndexedSync() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -894,7 +903,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeTypeIndexed_IgnoreOtherProps() throws Exception{
+    public void nodeTypeIndexed_IgnoreOtherProps() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -915,7 +924,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeTypeIndexed_IgnoreAggregates() throws Exception{
+    public void nodeTypeIndexed_IgnoreAggregates() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -937,7 +946,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void nodeTypeIndex_mixin() throws Exception{
+    public void nodeTypeIndex_mixin() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -960,7 +969,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void mixinAndPrimaryType() throws Exception{
+    public void mixinAndPrimaryType() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -1049,21 +1058,21 @@ public class IndexDefinitionTest {
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
-    private static IndexingRule getRule(IndexDefinition defn, String typeName){
+    private static IndexingRule getRule(IndexDefinition defn, String typeName) {
         return defn.getApplicableIndexingRule(asState(newNode(typeName)));
     }
 
-    private static NodeState asState(NodeBuilder nb){
+    private static NodeState asState(NodeBuilder nb) {
         return nb.getNodeState();
     }
 
-    private static NodeBuilder newNode(String typeName){
+    private static NodeBuilder newNode(String typeName) {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
     }
 
-    private static NodeBuilder newNode(String typeName, String mixins){
+    private static NodeBuilder newNode(String typeName, String mixins) {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName);
         builder.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(mixins), Type.NAMES);

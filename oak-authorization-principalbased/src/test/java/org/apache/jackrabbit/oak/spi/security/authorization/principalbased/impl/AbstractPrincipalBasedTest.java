@@ -210,9 +210,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     static FilterProviderImpl createFilterProviderImpl(@NotNull final String path) {
-        FilterProviderImpl fp = new FilterProviderImpl();
-        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(path).getMock(), Collections.emptyMap());
-        return fp;
+        return new FilterProviderImpl(path);
     }
 
     @NotNull

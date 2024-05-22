@@ -28,25 +28,32 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.io.IOException;
-import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class NodeStateEntryWriter {
+    private static final boolean SORTED_PROPERTIES = Boolean.getBoolean("oak.NodeStateEntryWriter.sort");
     private static final String OAK_CHILD_ORDER = ":childOrder";
-    private static final String DELIMITER = "|";
+    public static final String DELIMITER = "|";
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
+    private final boolean includeChildOrder;
 
     //TODO Possible optimizations
     //1. Compression
     //2. Dictionary for properties
 
     public NodeStateEntryWriter(BlobStore blobStore) {
+        this(blobStore, false);
+    }
+
+    public NodeStateEntryWriter(BlobStore blobStore, boolean includeChildOrder) {
         this.serializer = new JsonSerializer(jw, new BlobIdSerializer(blobStore));
+        this.includeChildOrder = includeChildOrder;
     }
 
     public String toString(NodeStateEntry e) {
@@ -55,16 +62,6 @@ public class NodeStateEntryWriter {
 
     public String toString(String path, String nodeStateAsJson) {
         return path + DELIMITER + nodeStateAsJson;
-    }
-
-    public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
-        writeTo(writer, nse.getPath(), asJson(nse.getNodeState()));
-    }
-
-    public void writeTo(Writer writer, String path, String value) throws IOException {
-        writer.write(path);
-        writer.write(DELIMITER);
-        writer.write(value);
     }
 
     public String toString(List<String> pathElements, String nodeStateAsJson) {
@@ -77,21 +74,35 @@ public class NodeStateEntryWriter {
     }
 
     public String asJson(NodeState nodeState) {
+        if (SORTED_PROPERTIES) {
+            return asSortedJson(nodeState);
+        }
+        return asJson(nodeState.getProperties());
+    }
+
+    String asSortedJson(NodeState nodeState) {
+        List<PropertyState> properties = new ArrayList<>();
+        nodeState.getProperties().forEach(properties::add);
+        properties.sort(Comparator.comparing(PropertyState::getName));
+        return asJson(properties);
+    }
+
+    private String asJson(Iterable<? extends PropertyState> properties) {
         jw.resetWriter();
         jw.object();
-        for (PropertyState ps : nodeState.getProperties()) {
+        properties.forEach(ps -> {
             String name = ps.getName();
             if (include(name)) {
                 jw.key(name);
                 serializer.serialize(ps);
             }
-        }
+        });
         jw.endObject();
         return jw.toString();
     }
 
     private boolean include(String propertyName) {
-        return !OAK_CHILD_ORDER.equals(propertyName);
+        return !OAK_CHILD_ORDER.equals(propertyName) || includeChildOrder;
     }
 
     //~-----------------------------------< Utilities to parse >

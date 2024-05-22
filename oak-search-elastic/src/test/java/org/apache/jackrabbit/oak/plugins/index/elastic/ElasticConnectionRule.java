@@ -48,8 +48,16 @@ public class ElasticConnectionRule extends ExternalResource {
     private ElasticConnectionModel elasticConnectionModel;
 
     public ElasticConnectionRule(String elasticConnectionString) {
+        this(elasticConnectionString,
+                "elastic_test_" +
+                        RandomStringUtils.random(5, true, false).toLowerCase() +
+                        System.currentTimeMillis()
+        );
+    }
+
+    public ElasticConnectionRule(String elasticConnectionString, String indexPrefix) {
         this.elasticConnectionString = elasticConnectionString;
-        indexPrefix = "elastic_test_" + RandomStringUtils.random(5, true, false).toLowerCase();
+        this.indexPrefix = indexPrefix;
     }
 
     public ElasticsearchContainer elastic;
@@ -105,7 +113,7 @@ public class ElasticConnectionRule extends ExternalResource {
             elasticConnectionModel.elasticPort = port;
             elasticConnectionModel.elasticApiKey = apiKey;
             elasticConnectionModel.elasticApiSecret = apiSecret;
-            elasticConnectionModel.indexPrefix = indexPrefix + System.currentTimeMillis();
+            elasticConnectionModel.indexPrefix = indexPrefix;
         } catch (URISyntaxException e) {
             LOG.error("Provided elastic connection string is not valid ", e);
         }
@@ -118,7 +126,7 @@ public class ElasticConnectionRule extends ExternalResource {
         elasticConnectionModel.elasticPort = elastic.getMappedPort(ElasticConnection.DEFAULT_PORT);
         elasticConnectionModel.elasticApiKey = null;
         elasticConnectionModel.elasticApiSecret = null;
-        elasticConnectionModel.indexPrefix = indexPrefix + System.currentTimeMillis();
+        elasticConnectionModel.indexPrefix = indexPrefix;
     }
 
     private Map<String, String> getUriQueryParams(URI uri) {
@@ -145,7 +153,7 @@ public class ElasticConnectionRule extends ExternalResource {
             String apiSecret = queryParams.get("key_secret");
 
             return ElasticConnection.newBuilder()
-                    .withIndexPrefix(indexPrefix + System.currentTimeMillis())
+                    .withIndexPrefix(indexPrefix)
                     .withConnectionParameters(scheme, host, port)
                     .withApiKeys(apiKey, apiSecret)
                     .build();

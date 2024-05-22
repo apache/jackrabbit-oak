@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
  * property and the value of that property matches any of the UUIDs that
  * has been passed to the predicate's constructor.
  */
-public class UuidPredicate implements Predicate<NodeState>, com.google.common.base.Predicate<NodeState> {
+public class UuidPredicate implements Predicate<NodeState> {
     private final String[] uuids;
 
     /**
@@ -64,15 +63,5 @@ public class UuidPredicate implements Predicate<NodeState>, com.google.common.ba
             }
         }
         return false;
-    }
-
-    /**
-     * @deprecated use {@link #test(NodeState)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
-     */
-    @Deprecated(since = "1.26.0", forRemoval = true)
-    @Override
-    public boolean apply(NodeState node) {
-        GuavaDeprecation.handleCall("OAK-8874");
-        return test(node);
     }
 }

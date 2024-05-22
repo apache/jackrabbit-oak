@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.JournalReaderTest;
 import org.apache.jackrabbit.oak.segment.azure.AzureJournalFile;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.junit.Before;
 import org.junit.ClassRule;
 
@@ -48,7 +49,7 @@ public class AzureJournalReaderTest extends JournalReaderTest {
             CloudAppendBlob blob = container.getAppendBlobReference("journal/journal.log.001");
             blob.createOrReplace();
             blob.appendText(s);
-            return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log"));
+            return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", new WriteAccessController()));
         } catch (StorageException | URISyntaxException e) {
             throw new IOException(e);
         }

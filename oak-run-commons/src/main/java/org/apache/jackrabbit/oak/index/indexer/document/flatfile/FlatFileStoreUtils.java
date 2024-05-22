@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.commons.Compression;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -36,8 +35,11 @@ import java.util.List;
 
 /**
  * This class provides common utility functions for building FlatFileStore.
+ *
+ * @deprecated Use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils} instead
  */
 public class FlatFileStoreUtils {
+    public static final String METADATA_SUFFIX = ".metadata";
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
@@ -67,11 +69,6 @@ public class FlatFileStoreUtils {
         return new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(out)));
     }
 
-    public static BufferedOutputStream createOutputStream(File file, Compression algorithm) throws IOException {
-        OutputStream out = new FileOutputStream(file);
-        return new BufferedOutputStream(algorithm.getOutputStream(out));
-    }
-
     public static long sizeOf(List<File> sortedFiles) {
         return sortedFiles.stream().mapToLong(File::length).sum();
     }
@@ -86,4 +83,5 @@ public class FlatFileStoreUtils {
     public static String getSortedStoreFileName(Compression algorithm) {
         return algorithm.addSuffix("store-sorted.json");
     }
+
 }

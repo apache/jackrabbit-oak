@@ -157,6 +157,37 @@ public class DocumentStoreCheckCommandTest {
         assertThat(lines.get(0), containsString(JCR_UUID));
     }
 
+    @Test
+    public void path() throws Exception {
+        createNodeWithUUID(false);
+        DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
+        cmd.execute(
+                "--summary", "false",
+                "--counter", "false",
+                "--path", "/referenceable",
+                "--out", output.getAbsolutePath(),
+                MongoUtils.URL
+        );
+        List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
+        assertEquals(1, lines.size());
+        assertThat(lines.get(0), containsString(JCR_UUID));
+    }
+
+    @Test
+    public void pathDoesNotExist() throws Exception {
+        createNodeWithUUID(false);
+        DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
+        cmd.execute(
+                "--summary", "false",
+                "--counter", "false",
+                "--path", "/does-not-exist",
+                "--out", output.getAbsolutePath(),
+                MongoUtils.URL
+        );
+        List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
+        assertThat(lines, is(empty()));
+    }
+
     private DocumentNodeStore createDocumentNodeStore() {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);

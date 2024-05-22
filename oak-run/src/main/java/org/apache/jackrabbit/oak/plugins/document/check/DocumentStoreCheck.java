@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,15 +32,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -91,6 +95,8 @@ public class DocumentStoreCheck {
 
     private final boolean consistency;
 
+    private final List<String> paths;
+
     private DocumentStoreCheck(DocumentNodeStore ns,
                                DocumentStore store,
                                Closer closer,
@@ -106,7 +112,8 @@ public class DocumentStoreCheck {
                                boolean predecessors,
                                boolean successors,
                                boolean uuid,
-                               boolean consistency) {
+                               boolean consistency,
+                               List<String> paths) {
         this.ns = ns;
         this.store = store;
         this.closer = closer;
@@ -129,6 +136,7 @@ public class DocumentStoreCheck {
         this.successors = successors;
         this.uuid = uuid;
         this.consistency = consistency;
+        this.paths = paths;
     }
 
     public void run() throws Exception {
@@ -136,7 +144,7 @@ public class DocumentStoreCheck {
         scheduleResultWriter(results);
 
         DocumentProcessor processor = createDocumentProcessor();
-        for (NodeDocument doc : getAllDocs(store)) {
+        for (NodeDocument doc : paths.isEmpty() ? getAllDocs(store) : getDocs(store, paths)) {
             processor.processDocument(doc, results);
         }
         processor.end(results);
@@ -233,6 +241,14 @@ public class DocumentStoreCheck {
         }
     }
 
+    private static Iterable<NodeDocument> getDocs(DocumentStore store,
+                                                  List<String> paths) {
+        return paths.stream()
+                .map(p -> store.find(Collection.NODES, Utils.getIdFromPath(p)))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
     public static class Builder {
 
         private final DocumentNodeStore ns;
@@ -266,6 +282,8 @@ public class DocumentStoreCheck {
         private boolean uuid;
 
         private boolean consistency;
+
+        private final List<String> paths = new ArrayList<>();
 
         public Builder(DocumentNodeStore ns,
                        DocumentStore store,
@@ -340,10 +358,16 @@ public class DocumentStoreCheck {
             return this;
         }
 
+        public Builder withPaths(List<String> paths) {
+            this.paths.clear();
+            this.paths.addAll(paths);
+            return this;
+        }
+
         public DocumentStoreCheck build() {
             return new DocumentStoreCheck(ns, store, closer, progress, silent,
                     summary, counter, numThreads, output, orphan, baseVersion,
-                    versionHistory, predecessors, successors, uuid, consistency);
+                    versionHistory, predecessors, successors, uuid, consistency, paths);
         }
     }
 

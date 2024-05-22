@@ -73,8 +73,7 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     public boolean importIndex(String indexDirPath, boolean ignoreLocalLock) throws IOException, CommitFailedException {
 
         try {
-            IndexImporter importer =
-                    new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock));
+            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock));
             providerTracker.getServices().forEach(importer::addImporterProvider);
             importer.importIndex();
         } catch (IOException | CommitFailedException | RuntimeException e) {

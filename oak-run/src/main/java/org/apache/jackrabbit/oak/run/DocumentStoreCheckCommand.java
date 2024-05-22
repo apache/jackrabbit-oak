@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import java.util.List;
+
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -74,6 +76,7 @@ class DocumentStoreCheckCommand implements Command {
                     .withSummary(options.withSummary())
                     .withCounter(options.withCounter())
                     .withNumThreads(options.getNumThreads())
+                    .withPaths(options.getPaths())
                     .build().run();
 
         } catch (Throwable e) {
@@ -111,6 +114,8 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Integer> numThreads;
 
+        final OptionSpec<String> paths;
+
         public CheckOptions(String usage) {
             super(usage);
 
@@ -139,6 +144,8 @@ class DocumentStoreCheckCommand implements Command {
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
+            paths = parser.accepts("path", "Limit check to given path")
+                    .withRequiredArg().ofType(String.class);
         }
 
         @Override
@@ -197,6 +204,10 @@ class DocumentStoreCheckCommand implements Command {
 
         public int getNumThreads() {
             return numThreads.value(options);
+        }
+
+        public List<String> getPaths() {
+            return paths.values(options);
         }
 
         boolean isHelp() {

@@ -112,7 +112,7 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                         writerInfosNode.setProperty(LEVEL1POINTER, level1Pointer);
                         writerInfosNode.setProperty(LEVEL2POINTER, level2Pointer);
                         session.save();
-                    } catch (com.google.common.util.concurrent.UncheckedExecutionException | org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
+                    } catch (org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
                         System.out.println("Got an UncheckedException (levels: " + level1Pointer + "/" + level2Pointer
                                 + ") from the google cache probably: " + e);
                         try {
@@ -202,7 +202,7 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                                 System.out.println("Reader: verified level1="+level1+", level2="+level2);
                             }
 
-                        } catch (com.google.common.util.concurrent.UncheckedExecutionException | org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
+                        } catch (org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
                             System.out.println("Got an UncheckedException from the google cache probably: " + e);
                             try {
                                 Thread.sleep(500);

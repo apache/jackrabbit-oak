@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
@@ -154,6 +155,8 @@ public class FileStore extends AbstractFileStore {
 
         this.stats = new FileStoreStats(statsProvider, this, 0);
 
+        this.snfeListener = builder.getSnfeListener();
+
         CounterStats readerCountStats = statsProvider.getCounterStats(TAR_READER_COUNT, DEFAULT);
         CounterStats segmentCountStats = statsProvider.getCounterStats(SEGMENT_COUNT, DEFAULT);
         TarFiles.Builder tarFilesBuilder = TarFiles.builder()
@@ -166,9 +169,12 @@ public class FileStore extends AbstractFileStore {
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .withPersistence(builder.getPersistence())
                 .withReaderCountStats(readerCountStats)
-                .withSegmentCountStats(segmentCountStats);
+                .withSegmentCountStats(segmentCountStats)
+                .withInitialisedReadersAndWriters(false);
 
         this.tarFiles = tarFilesBuilder.build();
+        this.tarFiles.init();
+
         long size = this.tarFiles.size();
         this.stats.init(size);
 
@@ -197,11 +203,10 @@ public class FileStore extends AbstractFileStore {
                 defaultSegmentWriterBuilder("c")
                     .with(builder.getCacheManager().withAccessTracking("COMPACT", statsProvider))
                     .withGeneration(generation)
-                    .withoutWriterPool()
+                    .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                     .build(this)
         );
 
-        this.snfeListener = builder.getSnfeListener();
         this.eagerSegmentCaching = builder.getEagerSegmentCaching();
 
         TimerStats flushTimer = statsProvider.getTimer("oak.segment.flush", METRICS_ONLY);

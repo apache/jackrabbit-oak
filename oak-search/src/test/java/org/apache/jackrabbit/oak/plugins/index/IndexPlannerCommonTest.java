@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;

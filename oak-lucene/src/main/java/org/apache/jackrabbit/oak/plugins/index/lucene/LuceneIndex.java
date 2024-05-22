@@ -1180,7 +1180,12 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
                         Cursors.checkReadLimit(readCount, settings);
-                        LOG.warn("Index-Traversed {} nodes with filter {}", readCount, filter);
+                        if (readCount == 2 * TRAVERSING_WARNING) {
+                            LOG.warn("Index-Traversed {} nodes with filter {}", readCount, filter,
+                                    new Exception("call stack"));
+                        } else {
+                            LOG.warn("Index-Traversed {} nodes with filter {}", readCount, filter);
+                        }
                     }
                     return currentRow.path;
                 }

@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
  * A repository stub implementation for Oak Segment Tar
@@ -49,8 +50,9 @@ public class OakSegmentTarRepositoryStub extends BaseRepositoryStub {
         try {
             File directory = new File("target", "segment-tar-" + System.currentTimeMillis());
             this.store = FileStoreBuilder.fileStoreBuilder(directory).withMaxFileSize(1).build();
-            Jcr jcr = new Jcr(new Oak(SegmentNodeStoreBuilders.builder(store).build()));
-            preCreateRepository(jcr);
+            Oak oak = new Oak(SegmentNodeStoreBuilders.builder(store).build());
+            Jcr jcr = new Jcr(oak);
+            preCreateRepository(jcr, oak.getWhiteboard());
             this.repository = jcr.createRepository();
             loadTestContent(repository);
         } catch (Exception e) {
@@ -62,6 +64,20 @@ public class OakSegmentTarRepositoryStub extends BaseRepositoryStub {
                 store.close();
             }
         }));
+    }
+
+    /**
+     * Override in subclass and perform additional configuration on the
+     * {@link Jcr} builder before the repository is created. This default
+     * implementation set query engine settings as returned by
+     * {@link #getQueryEngineSettings()} and adds a
+     * {@link org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer}.
+     *
+     * @param jcr the builder.
+     * @param whiteboard the oak whiteboard
+     */
+    protected void preCreateRepository(Jcr jcr, Whiteboard whiteboard) {
+        this.preCreateRepository(jcr);
     }
 
     /**

@@ -19,14 +19,12 @@
 
 package org.apache.jackrabbit.oak.backup.impl;
 
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
@@ -34,9 +32,9 @@ import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
@@ -82,15 +80,10 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
                     bufferWriter,
                     store.getBinariesInlineThreshold()
             );
-            SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
-            ClassicCompactor compactor = new ClassicCompactor(
-                    store.getReader(),
-                    writer,
-                    store.getBlobStore(),
-                    GCNodeWriteMonitor.EMPTY
-            );
-            SegmentNodeState after = compactor.compact(current, head, current, Canceller.newCanceller());
-            writer.flush();
+            CompactionWriter compactionWriter = new CompactionWriter(store.getReader(), store.getBlobStore(), gen, writer);
+            ClassicCompactor compactor = new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY);
+            SegmentNodeState after = compactor.compactUp(current, head, Canceller.newCanceller());
+            compactionWriter.flush();
             store.getRevisions().setHead(current.getRecordId(), after.getRecordId());
         } finally {
             restore.close();

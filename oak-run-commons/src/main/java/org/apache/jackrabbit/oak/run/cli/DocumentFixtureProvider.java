@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import javax.sql.DataSource;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
@@ -108,7 +109,9 @@ class DocumentFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
+            wb.register(MongoClientURI.class, uri, emptyMap());
             wb.register(MongoConnection.class, mongo, emptyMap());
+            wb.register(MongoDatabase.class, mongo.getDatabase(), emptyMap());
             closer.register(mongo::close);
             ((MongoDocumentNodeStoreBuilder) builder).setMongoDB(mongo.getMongoClient(), mongo.getDBName());
             dns = builder.build();

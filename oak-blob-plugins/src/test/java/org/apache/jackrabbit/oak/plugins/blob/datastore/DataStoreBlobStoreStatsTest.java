@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -78,6 +79,8 @@ public class DataStoreBlobStoreStatsTest {
 
         String blobId1 = dsbs.writeBlob(getTestInputStream());
         String blobId2 = dsbs.writeBlob(getTestInputStream());
+
+        assertNotEquals(blobId1, blobId2);
 
         long downloadCount = stats.getDownloadCount();
         long downloadCountLastMinute = getLastMinuteStats(stats.getDownloadCountHistory());
@@ -938,8 +941,11 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 1L, 0L).longValue());
     }
 
-
     private InputStream getTestInputStream() {
+        long was = System.currentTimeMillis();
+        while (was == System.currentTimeMillis()) {
+            // OAK-10181: wait for system time to move, otherwise we might use the same seed twice
+        }
         return new RandomInputStream(System.currentTimeMillis(), BLOB_LEN);
     }
 

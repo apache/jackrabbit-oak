@@ -44,8 +44,10 @@ import static org.apache.jackrabbit.oak.plugins.version.Utils.primaryTypeOf;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.RepositoryException;
@@ -285,41 +287,63 @@ class VersionableState {
                                @NotNull NodeBuilder dest,
                                @NotNull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
-        // 15.7.2 Restoring Type and Identifier
-        restoreFrozenTypeAndUUID(frozen, dest);
-        // 15.7.3 Restoring Properties
-        for (PropertyState p : frozen.getProperties()) {
-            if (BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
-                // ignore basic frozen properties we restored earlier
-                continue;
-            }
-            int action = getOPV(dest, p);
-            if (action == COPY || action == VERSION) {
-                dest.setProperty(p);
-            }
+
+        // OAK-9459: if the NodeState is not empty, retrieve OPVs before restoring types to avoid constraint violations
+        boolean frozenTypeRestored = false;
+        if (!dest.hasProperty(JCR_PRIMARYTYPE)) {
+            // empty NodeState
+            // 15.7.2 Restoring Type and Identifier
+            restoreFrozenTypeAndUUID(frozen, dest);
+            frozenTypeRestored = true;
         }
+
+        Map<PropertyState, Integer> opvs = new HashMap<>();
         for (PropertyState p : dest.getProperties()) {
             String propName = p.getName();
-            if (BASIC_PROPERTIES.contains(propName)) {
-                continue;
+            if (!BASIC_PROPERTIES.contains(propName) && !frozen.hasProperty(propName)) {
+                opvs.put(p, getOPV(dest, p));
             }
-            if (frozen.hasProperty(propName)) {
-                continue;
-            }
-            int action = getOPV(dest, p);
-            if (action == COPY || action == VERSION || action == ABORT) {
-                dest.removeProperty(propName);
-            } else if (action == IGNORE) {
-                // no action
-            } else if (action == INITIALIZE) {
-                resetToDefaultValue(dest, p);
-            } else if (action == COMPUTE) {
-                // only COMPUTE property definitions currently are
-                // jcr:primaryType and jcr:mixinTypes
-                // do nothing for now
-                if (!(JCR_PRIMARYTYPE.equals(propName) || JCR_MIXINTYPES.equals(propName))) {
-                    log.warn("OPV.COMPUTE not implemented for restoring property: " + propName);
+        }
+
+        if (!frozenTypeRestored) {
+            // 15.7.2 Restoring Type and Identifier
+            restoreFrozenTypeAndUUID(frozen, dest);
+        }
+
+        // 15.7.3 Restoring Properties
+        for (PropertyState p : frozen.getProperties()) {
+            // ignore basic frozen properties we restored earlier
+            if (!BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
+                int action = getOPV(dest, p);
+                if (action == COPY || action == VERSION) {
+                    dest.setProperty(p);
                 }
+            }
+        }
+
+        for (Map.Entry<PropertyState, Integer> entry : opvs.entrySet()) {
+            PropertyState p = entry.getKey();
+            String propName = p.getName();
+            switch (entry.getValue()) {
+                case COPY:
+                case VERSION:
+                case ABORT:
+                    dest.removeProperty(propName);
+                    break;
+                case IGNORE:
+                    // no action
+                    break;
+                case INITIALIZE:
+                    resetToDefaultValue(dest, p);
+                    break;
+                case COMPUTE:
+                    // only COMPUTE property definitions currently are
+                    // jcr:primaryType and jcr:mixinTypes
+                    // do nothing for now
+                    if (!(JCR_PRIMARYTYPE.equals(propName) || JCR_MIXINTYPES.equals(propName))) {
+                        log.warn("OPV.COMPUTE not implemented for restoring property: " + propName);
+                    }
+                    break;
             }
         }
         restoreChildren(frozen, dest, selector);

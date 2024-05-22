@@ -74,7 +74,7 @@ public class TikaExtractionOsgiIT {
     public Option[] configuration() throws IOException {
         return CoreOptions.options(
                 junitBundles(),
-                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
+                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "2.2.3" ),
                 frameworkProperty("repository.home").value("target"),
                 setupTikaAndPoi(),
                 jpmsOptions()
@@ -116,10 +116,10 @@ public class TikaExtractionOsgiIT {
                         , wrappedBundle(mavenBundle("org.apache.poi", "poi", versions.get(POI_VERSION)))
                         , wrappedBundle(mavenBundle("org.apache.poi", "poi-scratchpad", versions.get(POI_VERSION)))
                         , wrappedBundle(mavenBundle("org.apache.poi", "poi-ooxml", versions.get(POI_VERSION)))
-                        , wrappedBundle(mavenBundle("org.apache.poi", "poi-ooxml-schemas", versions.get(POI_VERSION)))
+                        , wrappedBundle(mavenBundle("org.apache.poi", "poi-ooxml-lite", versions.get(POI_VERSION)))
                                 .instructions("DynamicImport-Package=*")
                         , wrappedBundle(mavenBundle("org.apache.poi", "ooxml-security", "1.0"))
-                        , wrappedBundle(mavenBundle("org.apache.xmlbeans", "xmlbeans", "3.1.0"))
+                        , wrappedBundle(mavenBundle("org.apache.xmlbeans", "xmlbeans", "5.0.3"))
                         , wrappedBundle(mavenBundle("com.drewnoakes", "metadata-extractor", "2.6.2"))
                         , mavenBundle("org.apache.commons", "commons-collections4", versions.get(COLLECTIONS4_VERSION))
                         , mavenBundle("org.apache.commons", "commons-compress", versions.get(COMPRESS_VERSION))

@@ -21,519 +21,329 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.directory.api.util.Strings;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
  * Configuration of the ldap provider.
  */
-@Component(
-        label = "Apache Jackrabbit Oak LDAP Identity Provider",
-        name = "org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider",
-        configurationFactory = true,
-        metatype = true,
-        ds = false
-)
 public class LdapProviderConfig {
 
-    /**
-     * @see #getName()
-     */
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider",
+            name = "Apache Jackrabbit Oak LDAP Identity Provider"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "LDAP Provider Name",
+                description = "Name of this LDAP provider configuration. This is used to reference this provider by the login modules."
+        )
+        String provider_name() default PARAM_NAME_DEFAULT;
+
+        @AttributeDefinition(
+                name = "LDAP Server Hostname",
+                description = "Hostname of the LDAP server"
+        )
+        String host_name() default PARAM_LDAP_HOST_DEFAULT;
+
+        @AttributeDefinition(
+                name = "LDAP Server Port",
+                description = "Port of the LDAP server"
+        )
+        int host_port() default PARAM_LDAP_PORT_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Use SSL",
+                description = "Indicates if an SSL (LDAPs) connection should be used."
+        )
+        boolean host_ssl() default PARAM_USE_SSL_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Use TLS",
+                description = "Indicates if TLS should be started on connections."
+        )
+        boolean host_tls() default PARAM_USE_TLS_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Disable certificate checking",
+                description = "Indicates if server certificate validation should be disabled."
+        )
+        boolean host_noCertCheck() default PARAM_NO_CERT_CHECK_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Enabled Protocols",
+                description = "Allows to explicitly set the enabled protocols on the LdapConnectionConfig.",
+                cardinality = Integer.MAX_VALUE
+        )
+        String[] host_enabledProtocols();
+
+        @AttributeDefinition(
+                name = "Bind DN",
+                description = "DN of the user for authentication. Leave empty for anonymous bind."
+        )
+        String bind_dn() default PARAM_BIND_DN_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Bind Password",
+                description = "Password of the user for authentication.",
+                type = AttributeType.PASSWORD
+        )
+        String bind_password() default PARAM_BIND_PASSWORD_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Search Timeout",
+                description = "Time in until a search times out (eg: '1s' or '1m 30s')."
+        )
+        String searchTimeout() default PARAM_SEARCH_TIMEOUT_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Admin pool max active",
+                description = "The max active size of the admin connection pool."
+        )
+        long adminPool_maxActive() default PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Admin pool lookup on validate",
+                description = "Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the pool."
+        )
+        boolean adminPool_lookupOnValidate() default PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Admin pool min evictable idle time",
+                description = "The minimum amount of time a connection from the admin pool must be idle before becoming eligible for eviction by the idle object evictor, if running (eg: '1m 30s'). When non-positive, no connections will be evicted from the pool due to idle time alone."
+        )
+        String adminPool_minEvictableIdleTime() default PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Time interval to sleep between evictor runs for the admin pool",
+                description = "Time interval to sleep between runs of the idle object evictor thread for the admin pool (eg: '1m 30s'). When non-positive, no idle object evictor thread will be run."
+        )
+        String adminPool_timeBetweenEvictionRuns() default PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Max number of objects to be tested per run of the idle object evictor for the admin pool",
+                description = "The max number of objects to examine during each run of the idle object evictor thread for the admin pool (if any)"
+        )
+        int adminPool_numTestsPerEvictionRun() default PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User pool max active",
+                description = "The max active size of the user connection pool."
+        )
+        long userPool_maxActive() default PARAM_USER_POOL_MAX_ACTIVE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User pool lookup on validate",
+                description = "Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the pool."
+        )
+        boolean userPool_lookupOnValidate() default PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User pool min evictable idle time",
+                description = "The minimum amount of time a connection from the user pool must be idle before becoming eligible for eviction by the idle object evictor, if running (eg: '1m 30s'). When non-positive, no connections will be evicted from the pool due to idle time alone."
+        )
+        String userPool_minEvictableIdleTime() default PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Time interval to sleep between evictor runs for the user pool",
+                description = "Time interval to sleep between runs of the idle object evictor thread for the user pool (eg: '1m 30s'). When non-positive, no idle object evictor thread will be run."
+        )
+        String userPool_timeBetweenEvictionRuns() default PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Max number of objects to be tested per run of the idle object evictor for the user pool",
+                description = "The max number of objects to examine during each run of the idle object evictor thread for the user pool (if any)"
+        )
+        int userPool_numTestsPerEvictionRun() default PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User base DN",
+                description = "The base DN for user searches."
+        )
+        String user_baseDN() default PARAM_USER_BASE_DN_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User object classes",
+                description = "The list of object classes an user entry must contain.",
+                cardinality = Integer.MAX_VALUE
+        )
+        String[] user_objectclass() default {"person"};
+
+        @AttributeDefinition(
+                name = "User id attribute",
+                description = "Name of the attribute that contains the user id."
+        )
+        String user_idAttribute() default PARAM_USER_ID_ATTRIBUTE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User extra filter",
+                description = "Extra LDAP filter to use when searching for users. The final filter is" +
+                        "formatted like: '(&(<idAttr>=<userId>)(objectclass=<objectclass>)<extraFilter>)'"
+        )
+        String user_extraFilter() default PARAM_USER_EXTRA_FILTER_DEFAULT;
+
+        @AttributeDefinition(
+                name = "User DN paths",
+                description = "Controls if the DN should be used for calculating a portion of the intermediate path."
+        )
+        boolean user_makeDnPath() default PARAM_USER_MAKE_DN_PATH_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Group base DN",
+                description = "The base DN for group searches."
+        )
+        String group_baseDN() default PARAM_GROUP_BASE_DN_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Group object classes",
+                description = "The list of object classes a group entry must contain.",
+                cardinality = Integer.MAX_VALUE
+        )
+        String[] group_objectclass() default {"groupOfUniqueNames"};
+
+        @AttributeDefinition(
+                name = "Group name attribute",
+                description = "Name of the attribute that contains the group name."
+        )
+        String group_nameAttribute() default PARAM_GROUP_NAME_ATTRIBUTE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Group extra filter",
+                description = "Extra LDAP filter to use when searching for groups. The final filter is" +
+                        "formatted like: '(&(<nameAttr>=<groupName>)(objectclass=<objectclass>)<extraFilter>)'"
+        )
+        String group_extraFilter() default PARAM_GROUP_EXTRA_FILTER_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Group DN paths",
+                description = "Controls if the DN should be used for calculating a portion of the intermediate path."
+        )
+        boolean group_makeDnPath() default PARAM_GROUP_MAKE_DN_PATH_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Group member attribute",
+                description = "Group attribute that contains the member(s) of a group."
+        )
+        String group_memberAttribute() default PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Use user id for external ids",
+                description = "If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead."
+        )
+        boolean useUidForExtId() default PARAM_USE_UID_FOR_EXT_ID_DEFAULT;
+
+        @AttributeDefinition(
+                name = "Custom Attributes",
+                description = "Attributes retrieved when looking up LDAP entries. Leave empty to retrieve all attributes.",
+                cardinality = Integer.MAX_VALUE
+        )
+        String[] customattributes();
+    }
+
+    public static final String PARAM_NAME = "provider.name";
     public static final String PARAM_NAME_DEFAULT = "ldap";
 
-    /**
-     * @see #getName()
-     */
-    @Property(
-            label = "LDAP Provider Name",
-            description = "Name of this LDAP provider configuration. This is used to reference this provider by the login modules.",
-            value = PARAM_NAME_DEFAULT
-    )
-    public static final String PARAM_NAME = "provider.name";
-
-    /**
-     * @see #getHostname()
-     */
+    public static final String PARAM_LDAP_HOST = "host.name";
     public static final String PARAM_LDAP_HOST_DEFAULT = "localhost";
 
-    /**
-     * @see #getHostname()
-     */
-    @Property(
-            label = "LDAP Server Hostname",
-            description = "Hostname of the LDAP server",
-            value = PARAM_LDAP_HOST_DEFAULT
-    )
-    public static final String PARAM_LDAP_HOST = "host.name";
-
-    /**
-     * @see #getPort()
-     */
+    public static final String PARAM_LDAP_PORT = "host.port";
     public static final int PARAM_LDAP_PORT_DEFAULT = 389;
 
-    /**
-     * @see #getPort()
-     */
-    @Property(
-            label = "LDAP Server Port",
-            description = "Port of the LDAP server",
-            intValue = PARAM_LDAP_PORT_DEFAULT
-    )
-    public static final String PARAM_LDAP_PORT = "host.port";
-
-    /**
-     * @see #useSSL()
-     */
+    public static final String PARAM_USE_SSL = "host.ssl";
     public static final boolean PARAM_USE_SSL_DEFAULT = false;
 
-    /**
-     * @see #useSSL()
-     */
-    @Property(
-            label = "Use SSL",
-            description = "Indicates if an SSL (LDAPs) connection should be used.",
-            boolValue = PARAM_USE_SSL_DEFAULT
-    )
-    public static final String PARAM_USE_SSL = "host.ssl";
-
-    /**
-     * @see #useTLS()
-     */
+    public static final String PARAM_USE_TLS = "host.tls";
     public static final boolean PARAM_USE_TLS_DEFAULT = false;
 
-    /**
-     * @see #useTLS()
-     */
-    @Property(
-            label = "Use TLS",
-            description = "Indicates if TLS should be started on connections.",
-            boolValue = PARAM_USE_TLS_DEFAULT
-    )
-    public static final String PARAM_USE_TLS = "host.tls";
-
-    /**
-     * @see #noCertCheck()
-     */
+    public static final String PARAM_NO_CERT_CHECK = "host.noCertCheck";
     public static final boolean PARAM_NO_CERT_CHECK_DEFAULT = false;
 
-    /**
-     * @see #noCertCheck()
-     */
-    @Property(
-            label = "Disable certificate checking",
-            description = "Indicates if server certificate validation should be disabled.",
-            boolValue = PARAM_NO_CERT_CHECK_DEFAULT
-    )
-    public static final String PARAM_NO_CERT_CHECK = "host.noCertCheck";
-    
-    /**
-     * @see #enabledProtocols() 
-     */
-    @Property(
-            label = "Enabled Protocols",
-            description = "Allows to explicitly set the enabled protocols on the LdapConnectionConfig.",
-            value = {},
-            cardinality = Integer.MAX_VALUE
-    )
     public static final String PARAM_ENABLED_PROTOCOLS = "host.enabledProtocols";
 
-    /**
-     * @see #getBindDN()
-     */
+
+    public static final String PARAM_BIND_DN = "bind.dn";
     public static final String PARAM_BIND_DN_DEFAULT = "";
 
-    /**
-     * @see #getBindDN()
-     */
-    @Property(
-            label = "Bind DN",
-            description = "DN of the user for authentication. Leave empty for anonymous bind.",
-            value = PARAM_BIND_DN_DEFAULT
-    )
-    public static final String PARAM_BIND_DN = "bind.dn";
 
-    /**
-     * @see #getBindPassword()
-     */
+    public static final String PARAM_BIND_PASSWORD = "bind.password";
     public static final String PARAM_BIND_PASSWORD_DEFAULT = "";
 
-    /**
-     * @see #getBindPassword()
-     */
-    @Property(
-            label = "Bind Password",
-            description = "Password of the user for authentication.",
-            passwordValue = PARAM_BIND_PASSWORD_DEFAULT
-    )
-    public static final String PARAM_BIND_PASSWORD = "bind.password";
 
-    /**
-     * @see #getSearchTimeout()
-     */
+    public static final String PARAM_SEARCH_TIMEOUT = "searchTimeout";
     public static final String PARAM_SEARCH_TIMEOUT_DEFAULT = "60s";
 
-    /**
-     * @see #getSearchTimeout()
-     */
-    @Property(
-            label = "Search Timeout",
-            description = "Time in until a search times out (eg: '1s' or '1m 30s').",
-            value = PARAM_SEARCH_TIMEOUT_DEFAULT
-    )
-    public static final String PARAM_SEARCH_TIMEOUT = "searchTimeout";
-
-    /**
-     * @see PoolConfig#getMaxActive()
-     */
+    public static final String PARAM_ADMIN_POOL_MAX_ACTIVE = "adminPool.maxActive";
     public static final int PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT = 8;
 
-    /**
-     * @see PoolConfig#getMaxActive()
-     */
-    @Property(
-            label = "Admin pool max active",
-            description = "The max active size of the admin connection pool.",
-            longValue = PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT
-    )
-    public static final String PARAM_ADMIN_POOL_MAX_ACTIVE = "adminPool.maxActive";
-
-    /**
-     * @see PoolConfig#lookupOnValidate()
-     */
+    public static final String PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE = "adminPool.lookupOnValidate";
     public static final boolean PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT = true;
 
-    /**
-     * @see PoolConfig#lookupOnValidate()
-     */
-    @Property(
-            label = "Admin pool lookup on validate",
-            description = "Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the pool.",
-            boolValue = PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT
-    )
-    public static final String PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE = "adminPool.lookupOnValidate";
-
-    /**
-     * @see PoolConfig#getMinEvictableIdleTimeMillis()
-     */
+    public static final String PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME = "adminPool.minEvictableIdleTime";
     public static final String PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT = "-1";
 
-    /**
-     * @see PoolConfig#getMinEvictableIdleTimeMillis()
-     */
-    @Property(
-            label = "Admin pool min evictable idle time",
-            description = "The minimum amount of time a connection from the admin pool must be idle before becoming eligible for eviction by the idle object evictor, if running (eg: '1m 30s'). When non-positive, no connections will be evicted from the pool due to idle time alone.",
-            value = PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT
-    )
-    public static final String PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME = "adminPool.minEvictableIdleTime";
-
-    /**
-     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
-     */
+    public static final String PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS = "adminPool.timeBetweenEvictionRuns";
     public static final String PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT = "-1";
 
-    /**
-     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
-     */
-    @Property(
-            label = "Time interval to sleep between evictor runs for the admin pool",
-            description = "Time interval to sleep between runs of the idle object evictor thread for the admin pool (eg: '1m 30s'). When non-positive, no idle object evictor thread will be run.",
-            value = PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT
-    )
-    public static final String PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS = "adminPool.timeBetweenEvictionRuns";
-
-    /**
-     * @see PoolConfig#getNumTestsPerEvictionRun()
-     */
+    public static final String PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN = "adminPool.numTestsPerEvictionRun";
     public static final int PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT = 3;
 
-    /**
-     * @see PoolConfig#getNumTestsPerEvictionRun()
-     */
-    @Property(
-            label = "Max number of objects to be tested per run of the idle object evictor for the admin pool",
-            description = "The max number of objects to examine during each run of the idle object evictor thread for the admin pool (if any)",
-            intValue = PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT
-    )
-    public static final String PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN = "adminPool.numTestsPerEvictionRun";
-
-    /**
-     * @see PoolConfig#getMaxActive()
-     */
+    public static final String PARAM_USER_POOL_MAX_ACTIVE = "userPool.maxActive";
     public static final int PARAM_USER_POOL_MAX_ACTIVE_DEFAULT = 8;
 
-    /**
-     * @see PoolConfig#getMaxActive()
-     */
-    @Property(
-            label = "User pool max active",
-            description = "The max active size of the user connection pool.",
-            longValue = PARAM_USER_POOL_MAX_ACTIVE_DEFAULT
-    )
-    public static final String PARAM_USER_POOL_MAX_ACTIVE = "userPool.maxActive";
-
-    /**
-     * @see PoolConfig#lookupOnValidate()
-     */
+    public static final String PARAM_USER_POOL_LOOKUP_ON_VALIDATE = "userPool.lookupOnValidate";
     public static final boolean PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT = true;
 
-    /**
-     * @see PoolConfig#lookupOnValidate()
-     */
-    @Property(
-            label = "User pool lookup on validate",
-            description = "Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the pool.",
-            boolValue = PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT
-    )
-    public static final String PARAM_USER_POOL_LOOKUP_ON_VALIDATE = "userPool.lookupOnValidate";
-
-    /**
-     * @see PoolConfig#getMinEvictableIdleTimeMillis()
-     */
+    public static final String PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME = "userPool.minEvictableIdleTime";
     public static final String PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT = "-1";
 
-    /**
-     * @see PoolConfig#getMinEvictableIdleTimeMillis()
-     */
-    @Property(
-            label = "User pool min evictable idle time",
-            description = "The minimum amount of time a connection from the user pool must be idle before becoming eligible for eviction by the idle object evictor, if running (eg: '1m 30s'). When non-positive, no connections will be evicted from the pool due to idle time alone.",
-            value = PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT
-    )
-    public static final String PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME = "userPool.minEvictableIdleTime";
-
-    /**
-     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
-     */
+    public static final String PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS = "userPool.timeBetweenEvictionRuns";
     public static final String PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT = "-1";
 
-    /**
-     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
-     */
-    @Property(
-            label = "Time interval to sleep between evictor runs for the user pool",
-            description = "Time interval to sleep between runs of the idle object evictor thread for the user pool (eg: '1m 30s'). When non-positive, no idle object evictor thread will be run.",
-            value = PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT
-    )
-    public static final String PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS = "userPool.timeBetweenEvictionRuns";
-
-    /**
-     * @see PoolConfig#getNumTestsPerEvictionRun()
-     */
+    public static final String PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN = "userPool.numTestsPerEvictionRun";
     public static final int PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT = 3;
 
-    /**
-     * @see PoolConfig#getNumTestsPerEvictionRun()
-     */
-    @Property(
-            label = "Max number of objects to be tested per run of the idle object evictor for the user pool",
-            description = "The max number of objects to examine during each run of the idle object evictor thread for the user pool (if any)",
-            intValue = PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT
-    )
-    public static final String PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN = "userPool.numTestsPerEvictionRun";
-
-    /**
-     * @see Identity#getBaseDN()
-     */
+    public static final String PARAM_USER_BASE_DN = "user.baseDN";
     public static final String PARAM_USER_BASE_DN_DEFAULT = "ou=people,o=example,dc=com";
 
-    /**
-     * @see Identity#getBaseDN()
-     */
-    @Property(
-            label = "User base DN",
-            description = "The base DN for user searches.",
-            value = PARAM_USER_BASE_DN_DEFAULT
-    )
-    public static final String PARAM_USER_BASE_DN = "user.baseDN";
-
-    /**
-     * @see Identity#getObjectClasses()
-     */
+    public static final String PARAM_USER_OBJECTCLASS = "user.objectclass";
     public static final String[] PARAM_USER_OBJECTCLASS_DEFAULT = {"person"};
 
-    /**
-     * @see Identity#getObjectClasses()
-     */
-    @Property(
-            label = "User object classes",
-            description = "The list of object classes an user entry must contain.",
-            value = {"person"},
-            cardinality = Integer.MAX_VALUE
-    )
-    public static final String PARAM_USER_OBJECTCLASS = "user.objectclass";
-
-    /**
-     * @see Identity#getIdAttribute()
-     */
+    public static final String PARAM_USER_ID_ATTRIBUTE = "user.idAttribute";
     public static final String PARAM_USER_ID_ATTRIBUTE_DEFAULT = "uid";
 
-    /**
-     * @see Identity#getIdAttribute()
-     */
-    @Property(
-            label = "User id attribute",
-            description = "Name of the attribute that contains the user id.",
-            value = PARAM_USER_ID_ATTRIBUTE_DEFAULT
-    )
-    public static final String PARAM_USER_ID_ATTRIBUTE = "user.idAttribute";
-
-    /**
-     * @see Identity#getExtraFilter()
-     */
+    public static final String PARAM_USER_EXTRA_FILTER = "user.extraFilter";
     public static final String PARAM_USER_EXTRA_FILTER_DEFAULT = "";
 
-    /**
-     * @see Identity#getExtraFilter()
-     */
-    @Property(
-            label = "User extra filter",
-            description = "Extra LDAP filter to use when searching for users. The final filter is" +
-                    "formatted like: '(&(<idAttr>=<userId>)(objectclass=<objectclass>)<extraFilter>)'",
-            value = PARAM_USER_EXTRA_FILTER_DEFAULT
-    )
-    public static final String PARAM_USER_EXTRA_FILTER = "user.extraFilter";
-
-    /**
-     * @see Identity#makeDnPath()
-     */
+    public static final String PARAM_USER_MAKE_DN_PATH = "user.makeDnPath";
     public static final boolean PARAM_USER_MAKE_DN_PATH_DEFAULT = false;
 
-    /**
-     * @see Identity#makeDnPath()
-     */
-    @Property(
-            label = "User DN paths",
-            description = "Controls if the DN should be used for calculating a portion of the intermediate path.",
-            boolValue = PARAM_USER_MAKE_DN_PATH_DEFAULT
-    )
-    public static final String PARAM_USER_MAKE_DN_PATH = "user.makeDnPath";
-
-    /**
-     * @see Identity#getBaseDN()
-     */
+    public static final String PARAM_GROUP_BASE_DN = "group.baseDN";
     public static final String PARAM_GROUP_BASE_DN_DEFAULT = "ou=groups,o=example,dc=com";
 
-    /**
-     * @see Identity#getBaseDN()
-     */
-    @Property(
-            label = "Group base DN",
-            description = "The base DN for group searches.",
-            value = PARAM_GROUP_BASE_DN_DEFAULT
-    )
-    public static final String PARAM_GROUP_BASE_DN = "group.baseDN";
-
-    /**
-     * @see Identity#getObjectClasses()
-     */
+    public static final String PARAM_GROUP_OBJECTCLASS = "group.objectclass";
     public static final String[] PARAM_GROUP_OBJECTCLASS_DEFAULT = {"groupOfUniqueNames"};
 
-    /**
-     * @see Identity#getObjectClasses()
-     */
-    @Property(
-            label = "Group object classes",
-            description = "The list of object classes a group entry must contain.",
-            value = {"groupOfUniqueNames"},
-            cardinality = Integer.MAX_VALUE
-    )
-    public static final String PARAM_GROUP_OBJECTCLASS = "group.objectclass";
-
-    /**
-     * @see Identity#getIdAttribute()
-     */
+    public static final String PARAM_GROUP_NAME_ATTRIBUTE = "group.nameAttribute";
     public static final String PARAM_GROUP_NAME_ATTRIBUTE_DEFAULT = "cn";
 
-    /**
-     * @see Identity#getIdAttribute()
-     */
-    @Property(
-            label = "Group name attribute",
-            description = "Name of the attribute that contains the group name.",
-            value = PARAM_GROUP_NAME_ATTRIBUTE_DEFAULT
-    )
-    public static final String PARAM_GROUP_NAME_ATTRIBUTE = "group.nameAttribute";
-
-    /**
-     * @see Identity#getExtraFilter()
-     */
+    public static final String PARAM_GROUP_EXTRA_FILTER = "group.extraFilter";
     public static final String PARAM_GROUP_EXTRA_FILTER_DEFAULT = "";
 
-    /**
-     * @see Identity#getExtraFilter()
-     */
-    @Property(
-            label = "Group extra filter",
-            description = "Extra LDAP filter to use when searching for groups. The final filter is" +
-                    "formatted like: '(&(<nameAttr>=<groupName>)(objectclass=<objectclass>)<extraFilter>)'",
-            value = PARAM_GROUP_EXTRA_FILTER_DEFAULT
-    )
-    public static final String PARAM_GROUP_EXTRA_FILTER = "group.extraFilter";
-
-    /**
-     * @see Identity#makeDnPath()
-     */
+    public static final String PARAM_GROUP_MAKE_DN_PATH = "group.makeDnPath";
     public static final boolean PARAM_GROUP_MAKE_DN_PATH_DEFAULT = false;
 
-    /**
-     * @see Identity#makeDnPath()
-     */
-    @Property(
-            label = "Group DN paths",
-            description = "Controls if the DN should be used for calculating a portion of the intermediate path.",
-            boolValue = PARAM_GROUP_MAKE_DN_PATH_DEFAULT
-    )
-    public static final String PARAM_GROUP_MAKE_DN_PATH = "group.makeDnPath";
-
-    /**
-     * @see #getGroupMemberAttribute()
-     */
+    public static final String PARAM_GROUP_MEMBER_ATTRIBUTE = "group.memberAttribute";
     public static final String PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT = "uniquemember";
 
-    /**
-     * @see #getGroupMemberAttribute()
-     */
-    @Property(
-            label = "Group member attribute",
-            description = "Group attribute that contains the member(s) of a group.",
-            value = PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT
-    )
-    public static final String PARAM_GROUP_MEMBER_ATTRIBUTE = "group.memberAttribute";
-
-    /**
-     * @see #getUseUidForExtId()
-     */
+    public static final String PARAM_USE_UID_FOR_EXT_ID = "useUidForExtId";
     public static final boolean PARAM_USE_UID_FOR_EXT_ID_DEFAULT = false;
 
-    /**
-     * @see #getUseUidForExtId()
-     */
-    @Property(
-            label = "Use user id for external ids",
-            description = "If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead.",
-            boolValue = PARAM_USE_UID_FOR_EXT_ID_DEFAULT
-    )
-    public static final String PARAM_USE_UID_FOR_EXT_ID = "useUidForExtId";
-
-    /**
-     * @see Identity#getCustomAttributes()
-     */
-    public static final String[] PARAM_CUSTOM_ATTRIBUTES_DEFAULT = {};
-
-    /**
-     * @see Identity#getCustomAttributes()
-     */
-    @Property(
-            label = "Custom Attributes",
-            description = "Attributes retrieved when looking up LDAP entries. Leave empty to retrieve all attributes.",
-            value = {},
-            cardinality = Integer.MAX_VALUE
-    )
     public static final String PARAM_CUSTOM_ATTRIBUTES = "customattributes";
+    public static final String[] PARAM_CUSTOM_ATTRIBUTES_DEFAULT = {};
 
     /**
      * Defines the configuration of an identity (user or group).

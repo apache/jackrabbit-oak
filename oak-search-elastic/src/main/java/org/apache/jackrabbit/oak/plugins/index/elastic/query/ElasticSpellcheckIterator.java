@@ -16,33 +16,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.stream.Stream;
-
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.MsearchRequest;
+import co.elastic.clients.elasticsearch.core.MsearchResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.msearch.MultiSearchResponseItem;
+import co.elastic.clients.elasticsearch.core.msearch.RequestItem;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggestOption;
+import co.elastic.clients.json.JsonpUtils;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonFactoryBuilder;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import co.elastic.clients.elasticsearch.core.MsearchRequest;
-import co.elastic.clients.elasticsearch.core.MsearchResponse;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.msearch.MultiSearchResponseItem;
-import co.elastic.clients.elasticsearch.core.msearch.RequestItem;
-import co.elastic.clients.elasticsearch.core.search.Hit;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.stream.Stream;
 
 /**
  * This class is in charge to extract spell checked suggestions for a given query.
@@ -53,10 +52,12 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
  *     <li>multi search query to get a sample of 100 results for each suggestion for ACL check</li>
  * </ul>
  */
-class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
+class ElasticSpellcheckIterator implements ElasticQueryIterator {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSpellcheckIterator.class);
     protected static final String SPELLCHECK_PREFIX = "spellcheck?term=";
+
+    private static final String SUGGESTER_KEY = "oak:suggestion";
 
     private static final ObjectMapper JSON_MAPPER;
 
@@ -70,7 +71,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
     private final ElasticIndexNode indexNode;
     private final ElasticRequestHandler requestHandler;
     private final ElasticResponseHandler responseHandler;
-    private final String spellCheckQuery;
+    private final SearchRequest searchRequest;
 
     private Iterator<FulltextResultRow> internalIterator;
     private boolean loaded = false;
@@ -81,7 +82,15 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
         this.indexNode = indexNode;
         this.requestHandler = requestHandler;
         this.responseHandler = responseHandler;
-        this.spellCheckQuery = requestHandler.getPropertyRestrictionQuery().replace(SPELLCHECK_PREFIX, "");
+
+        String spellCheckQuery = requestHandler.getPropertyRestrictionQuery().replace(SPELLCHECK_PREFIX, "");
+        this.searchRequest = SearchRequest.of(sr -> sr
+                .index(indexNode.getDefinition().getIndexAlias())
+                .suggest(sb -> sb
+                        .text(spellCheckQuery)
+                        .suggesters(SUGGESTER_KEY, fs -> fs.phrase(requestHandler.suggestQuery()))
+                )
+        );
     }
 
     @Override
@@ -131,29 +140,25 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                 this.internalIterator = results.iterator();
             }
         } catch (IOException e) {
-            LOG.error("Error processing suggestions for " + spellCheckQuery, e);
+            LOG.error("Error processing suggestions for " + searchRequest, e);
         }
-
     }
 
     private Stream<String> suggestions() throws IOException {
-        SearchRequest searchReq = SearchRequest.of(sr -> sr
-                .index(indexNode.getDefinition().getIndexAlias())
-                .suggest(sb -> sb
-                        .text(spellCheckQuery)
-                        .suggesters("oak:suggestion",
-                                fs -> fs.phrase(requestHandler.suggestQuery()))
-                ));
-
         ElasticsearchClient esClient = indexNode.getConnection().getClient();
 
-        SearchResponse<ObjectNode> searchRes = esClient.search(searchReq, ObjectNode.class);
+        SearchResponse<ObjectNode> searchRes = esClient.search(searchRequest, ObjectNode.class);
 
         return searchRes
                 .suggest()
-                .get("oak:suggestion")
+                .get(SUGGESTER_KEY)
                 .stream()
                 .flatMap(node -> node.phrase().options().stream())
                 .map(PhraseSuggestOption::text);
+    }
+
+    @Override
+    public String explain() {
+        return JsonpUtils.toString(searchRequest, new StringBuilder()).toString();
     }
 }

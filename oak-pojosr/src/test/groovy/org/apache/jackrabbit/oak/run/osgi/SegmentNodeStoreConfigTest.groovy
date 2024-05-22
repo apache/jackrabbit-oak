@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import com.google.common.collect.Lists
-import com.google.common.collect.Maps
+import org.apache.jackrabbit.guava.common.collect.Lists
+import org.apache.jackrabbit.guava.common.collect.Maps
 import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.spi.state.NodeState
 import org.apache.jackrabbit.oak.spi.state.NodeStore

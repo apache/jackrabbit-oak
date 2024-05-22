@@ -20,27 +20,33 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
-import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -48,7 +54,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -61,33 +66,51 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 public abstract class DocumentStoreIndexerBase implements Closeable {
+    public static final String INDEXER_METRICS_PREFIX = "oak_indexer_";
+    public static final String METRIC_INDEXING_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "indexing_duration_seconds";
+    public static final String METRIC_MERGE_NODE_STORE_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "merge_node_store_duration_seconds";
+    public static final String METRIC_FULL_INDEX_CREATION_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "full_index_creation_duration_seconds";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Logger traversalLog = LoggerFactory.getLogger(DocumentStoreIndexerBase.class.getName() + ".traversal");
     protected final Closer closer = Closer.create();
     protected final IndexHelper indexHelper;
+    private final IndexingReporter indexingReporter;
+    private final StatisticsProvider statisticsProvider;
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
-    private final Set<String> indexerPaths = new HashSet<>();
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
         this.indexerSupport = indexerSupport;
+        this.indexingReporter = indexHelper.getIndexReporter();
+        this.statisticsProvider = indexHelper.getStatisticsProvider();
     }
 
     protected void setProviders() throws IOException {
@@ -109,15 +132,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         private final DocumentNodeStore documentNodeStore;
         private final MongoDocumentStore documentStore;
         private final Logger traversalLogger;
-        private final CompositeIndexer indexer;
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer) {
+                                                    MongoDocumentStore documentStore, Logger traversalLogger) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
             this.traversalLogger = traversalLogger;
-            this.indexer = indexer;
         }
 
         @Override
@@ -140,8 +161,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements,
-            boolean splitFlatFile, Set<IndexDefinition> indexDefinitions) throws IOException {
+    private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState,
+                                                       CompositeIndexer indexer,
+                                                       Predicate<String> pathPredicate,
+                                                       Set<String> preferredPathElements,
+                                                       boolean splitFlatFile,
+                                                       Set<IndexDefinition> indexDefinitions,
+                                                       IndexingReporter reporter) throws IOException {
         List<FlatFileStore> storeList = new ArrayList<>();
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
@@ -152,24 +178,27 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
-        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
-        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L, 10);
         FlatFileNodeStoreBuilder builder = null;
         int backOffTimeInMillis = 5000;
-        MemoryManager memoryManager = new DefaultMemoryManager();
         while (storeList.isEmpty() && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
-                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
-                        .withLastModifiedBreakPoints(lastModifiedBreakPoints)
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                         .withPathPredicate(pathPredicate)
+                        .withIndexDefinitions(indexDefinitions)
                         .withRootRevision(rootDocumentState.getRootRevision())
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
+                        .withMongoClientURI(getMongoClientURI())
+                        .withMongoDatabase(getMongoDatabase())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                                nodeStore, getMongoDocumentStore(), traversalLog, indexer));
+                                nodeStore, getMongoDocumentStore(), traversalLog))
+                        .withCheckpoint(indexerSupport.getCheckpoint())
+                        .withStatisticsProvider(indexHelper.getStatisticsProvider())
+                        .withIndexingReporter(reporter);
+
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }
@@ -206,28 +235,86 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return storeList;
     }
 
+    public IndexStore buildStore() throws IOException, CommitFailedException {
+        return buildFlatFileStore();
+    }
+
+    public IndexStore buildStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
+        IncrementalStoreBuilder builder;
+        IndexStore incrementalStore;
+        Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
+        Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
+        Stopwatch incrementalStoreWatch = Stopwatch.createStarted();
+        Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
+
+        String customExcludeEntriesRegex = ConfigHelper.getSystemPropertyAsString(
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX
+        );
+
+        if (!customExcludeEntriesRegex.isEmpty()) {
+            predicate = predicate.and(indexerSupport.getFilterPredicateBasedOnCustomRegex(Pattern.compile(customExcludeEntriesRegex), Function.identity()));
+        }
+
+        // Handle custom excluded paths if provided. This is only applicable if regex path filtering is enabled.
+        // Any paths whose ancestor is in the custom excluded paths list will be excluded from incremental index store.
+        // This is to keep in line with the custom exclude paths implementation in the pipelined strategy.
+        boolean regexPathFiltering = ConfigHelper.getSystemPropertyAsBoolean(
+                OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
+        List<String> customExcludedPaths;
+        String excludePathsString = ConfigHelper.getSystemPropertyAsString(
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS
+        ).trim();
+
+        if (regexPathFiltering && !excludePathsString.isEmpty()) {
+            customExcludedPaths = Arrays.stream(excludePathsString.split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toList());
+
+            if (!customExcludedPaths.isEmpty()) {
+                // Add an AND condition to the existing predicate to filter out paths that are ancestors of the custom excluded paths.
+                predicate = predicate.and(t -> customExcludedPaths.stream().noneMatch(excludedPath -> PathUtils.isAncestor(excludedPath, t)));
+            }
+        }
+
+        try {
+            builder = new IncrementalStoreBuilder(indexHelper.getWorkDir(), indexHelper, initialCheckpoint, finalCheckpoint)
+                    .withPreferredPathElements(preferredPathElements)
+                    .withPathPredicate(predicate)
+                    .withBlobStore(indexHelper.getGCBlobStore());
+            incrementalStore = builder.build();
+            closer.register(incrementalStore);
+        } catch (Exception e) {
+            throw new IOException("Could not build incremental store", e);
+        }
+        log.info("Completed incremental store build in {}", incrementalStoreWatch);
+        return incrementalStore;
+    }
+
     /**
-     *
      * @return an Instance of FlatFileStore, whose getFlatFileStorePath() method can be used to get the absolute path to this store.
      * @throws IOException
      * @throws CommitFailedException
+     * @deprecated replaced by {@link #buildStore()}
      */
+    @Deprecated
     public FlatFileStore buildFlatFileStore() throws IOException, CommitFailedException {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        Set<String> preferredPathElements = new HashSet<>();
-        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
-        for (IndexDefinition indexDf : indexDefinitions) {
-            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-        }
-        Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
+        Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
+        Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
+        Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
-            preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
+                preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions, indexingReporter).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
-                flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
+                flatFileStore.getStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getStorePath());
         return flatFileStore;
     }
 
     public void reindex() throws CommitFailedException, IOException {
+        log.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        Stopwatch indexJobWatch = Stopwatch.createStarted();
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
         configureEstimators(progressReporter);
@@ -235,7 +322,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
         CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
         if (indexer.isEmpty()) {
@@ -244,15 +330,22 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
         closer.register(indexer);
 
-        List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer,
-            indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), getIndexDefinitions());
+        List<FlatFileStore> flatFileStores = buildFlatFileStoreList(
+                checkpointedState,
+                indexer,
+                indexer::shouldInclude,
+                null,
+                IndexerConfiguration.parallelIndexEnabled(),
+                indexerSupport.getIndexDefinitions(),
+                indexingReporter);
 
         progressReporter.reset();
 
         progressReporter.reindexingTraversalStart("/");
 
-        preIndexOpertaions(indexer.getIndexers());
+        preIndexOperations(indexer.getIndexers());
 
+        log.info("[TASK:INDEXING:START] Starting indexing");
         Stopwatch indexerWatch = Stopwatch.createStarted();
 
         if (flatFileStores.size() > 1) {
@@ -267,15 +360,40 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
-        log.info("Completed the indexing in {}", indexerWatch);
+        long indexingDurationSeconds = indexerWatch.elapsed(TimeUnit.SECONDS);
+        log.info("Completed the indexing in {}", FormattingUtils.formatToSeconds(indexingDurationSeconds));
+        log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(indexingDurationSeconds))
+                .add("durationSeconds", indexingDurationSeconds)
+                .build());
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
+        indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
 
+        log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
+        Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        long mergeNodeStoreDurationSeconds = mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS);
+        log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds))
+                .add("durationSeconds", mergeNodeStoreDurationSeconds)
+                .build());
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
+        indexingReporter.addTiming("Merge node store", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds));
 
         indexerSupport.postIndexWork(copyOnWriteStore);
+
+        long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
+        log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds))
+                .add("durationSeconds", fullIndexCreationDurationSeconds)
+                .build());
+
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
+        indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
-        throws IOException {
+            throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(IndexerConfiguration.indexThreadPoolSize());
         List<Future> futureList = new ArrayList<>();
 
@@ -305,26 +423,16 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
-        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-        NodeState root = builder.getNodeState();
-        indexerSupport.updateIndexDefinitions(builder);
-        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
-
-        Set<IndexDefinition> indexDefinitions = new HashSet<>();
-
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
-            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
-            indexDefinitions.add(indexDf);
-        }
-        return indexDefinitions;
-    }
-
     private MongoDocumentStore getMongoDocumentStore() {
         return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
+    }
+
+    private MongoClientURI getMongoClientURI() {
+        return checkNotNull(indexHelper.getService(MongoClientURI.class));
+    }
+
+    private MongoDatabase getMongoDatabase() {
+        return checkNotNull(indexHelper.getService(MongoDatabase.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {
@@ -386,7 +494,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexers.add(indexer);
                     closer.register(indexer);
                     progressReporter.registerIndex(indexPath, true, -1);
-                    indexerPaths.add(indexPath);
                 }
             }
         }
@@ -396,7 +503,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     protected abstract List<NodeStateIndexerProvider> createProviders() throws IOException;
 
-    protected abstract void preIndexOpertaions(List<NodeStateIndexer> indexers);
+    protected abstract void preIndexOperations(List<NodeStateIndexer> indexers);
 
     //TODO OAK-7098 - Taken from IndexUpdate. Refactor to abstract out common logic like this
     private void removeIndexState(NodeBuilder definition) {

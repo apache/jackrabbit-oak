@@ -82,6 +82,11 @@ public class IndexCommand implements Command {
         Class.forName("org.apache.tika.parser.pdf.PDFParser");
     }
 
+    // to be overridden by test cases that want to check the return value
+    public void exit(int status) {
+        System.exit(status);
+    }
+
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
@@ -100,7 +105,8 @@ public class IndexCommand implements Command {
                 checkTikaDependency();
             } catch (Throwable e) {
                 System.err.println("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue");
-                System.exit(1);
+                exit(1);
+                return;
             }
         }
 
@@ -177,6 +183,8 @@ public class IndexCommand implements Command {
         dumpIndexContents(indexOpts, extendedIndexHelper);
         reindexOperation(indexOpts, extendedIndexHelper);
         importIndexOperation(indexOpts, extendedIndexHelper);
+
+        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}" , extendedIndexHelper.getIndexReporter().generateReport());
     }
 
     private ExtendedIndexHelper createIndexHelper(NodeStoreFixture fixture,
@@ -235,7 +243,7 @@ public class IndexCommand implements Command {
     private File reindex(IndexOptions idxOpts, ExtendedIndexHelper extendedIndexHelper, String checkpoint) throws IOException, CommitFailedException {
         checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
-        Stopwatch w = Stopwatch.createStarted();
+        Stopwatch reindexWatch = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", extendedIndexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
@@ -259,7 +267,7 @@ public class IndexCommand implements Command {
         indexerSupport.writeMetaInfo(checkpoint);
         File destDir = indexerSupport.copyIndexFilesToOutput();
         log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
-                extendedIndexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
+                extendedIndexHelper.getIndexPaths(), reindexWatch, reindexWatch.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
         return destDir;
     }
 

@@ -397,12 +397,12 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         String query = "EXPLAIN SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [foo1]='bar1'";
         List<String> paths = executeQuery(query, SQL2);
         assertTrue("indexed prop name shouldn't decide query plan (" + paths.get(0) + ")",
-            paths.get(0).contains("/* no-index "));
+            paths.get(0).contains("/* no-index"));
 
         query = "EXPLAIN SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [subChild/foo2]='bar2'";
         paths = executeQuery(query, SQL2);
         assertTrue("indexed prop name shouldn't decide query plan (" + paths.get(0) + ")",
-            paths.get(0).contains("/* no-index "));
+            paths.get(0).contains("/* no-index"));
     }
 
     //OAK-3576
@@ -461,7 +461,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         query = "EXPLAIN " + query;
         List<String> paths = executeQuery(query, SQL2, false);
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-            paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/oak:index/test-index"));
 
         query = "SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [subChild/foo2]='bar2'";
         executeQuery(query, SQL2);
@@ -469,7 +469,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         query = "EXPLAIN " + query;
         paths = executeQuery(query, SQL2);
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-            paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/oak:index/test-index"));
     }
 
     //OAK-3576
@@ -530,7 +530,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         List<String> paths = executeQuery(query, SQL2, false);
         assertEquals("Query augmentor should get called for full text constraints", 1, queryingCounter.get());
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-            paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/oak:index/test-index"));
 
         queryingCounter.set(0);
         query = "SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE CONTAINS(*, 'bar2')";
@@ -541,7 +541,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         paths = executeQuery(query, SQL2, false);
         assertEquals("Query augmentor should get called for full text constraints", 1, queryingCounter.get());
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-            paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/oak:index/test-index"));
     }
 
     @Test

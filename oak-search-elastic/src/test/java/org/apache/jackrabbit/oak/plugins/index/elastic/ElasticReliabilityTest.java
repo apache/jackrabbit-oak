@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import eu.rekawek.toxiproxy.Proxy;
+import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,6 +29,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -34,16 +37,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("shopify/toxiproxy:2.1.4");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
 
-    private ToxiproxyContainer internalToxiProxy;
-    private ToxiproxyContainer.ContainerProxy toxiProxy;
+    private ToxiproxyContainer toxiproxy;
+
+    private Proxy proxy;
 
     @Override
     public void before() throws Exception {
-        internalToxiProxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(elasticRule.elastic.getNetwork());
-        internalToxiProxy.start();
-        toxiProxy = internalToxiProxy.getProxy(elasticRule.elastic, 9200);
+        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(elasticRule.elastic.getNetwork());
+        toxiproxy.start();
+        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
+        proxy = toxiproxyClient.createProxy("elastic", "0.0.0.0:8666", "elasticsearch:9200");
         super.before();
     }
 
@@ -51,8 +56,8 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     @Override
     public void tearDown() throws IOException {
         super.tearDown();
-        if (internalToxiProxy.isRunning()) {
-            internalToxiProxy.stop();
+        if (toxiproxy.isRunning()) {
+            toxiproxy.stop();
         }
     }
 
@@ -64,13 +69,14 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     @Override
     protected ElasticConnection getElasticConnection() {
         return elasticRule.useDocker() ?
-                elasticRule.getElasticConnectionForDocker(toxiProxy.getContainerIpAddress(), toxiProxy.getProxyPort()) :
+                elasticRule.getElasticConnectionForDocker(toxiproxy.getHost(), toxiproxy.getMappedPort(8666)) :
                 elasticRule.getElasticConnectionFromString();
     }
 
     @Test
     public void connectionCutOnQuery() throws Exception {
-        setIndex("test1", createIndex("propa", "propb"));
+        String indexName = UUID.randomUUID().toString();
+        setIndex(indexName, createIndex("propa", "propb"));
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("propa", "a");
@@ -81,11 +87,11 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where propa is not null";
 
         // simulate an upstream connection cut
-        LimitData cutConnectionUpstream = toxiProxy.toxics()
+        LimitData cutConnectionUpstream = proxy.toxics()
                 .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0L);
 
         // elastic is down, query should not use it
-        assertThat(explain(query), not(containsString("elasticsearch:test1")));
+        assertThat(explain(query), not(containsString("elasticsearch:" + indexName)));
 
         // result set should be correct anyway since traversal is enabled
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
@@ -94,7 +100,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
         cutConnectionUpstream.remove();
 
         // result set should be the same as before but this time elastic should be used
-        assertThat(explain(query), containsString("elasticsearch:test1"));
+        assertThat(explain(query), containsString("elasticsearch:" + indexName));
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
     }
 }

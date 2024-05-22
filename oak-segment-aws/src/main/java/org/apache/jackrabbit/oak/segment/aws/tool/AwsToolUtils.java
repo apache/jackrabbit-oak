@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.Configuration;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -69,14 +70,26 @@ public class AwsToolUtils {
     }
 
     public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
-            boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval)
-            throws IOException, InvalidFileStoreVersionException, URISyntaxException {
+                                         boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval)
+            throws IOException, InvalidFileStoreVersionException {
+        return newFileStore(persistence, directory, strictVersionCheck, segmentCacheSize,
+                gcLogInterval, CompactorType.PARALLEL_COMPACTOR, 1);
+    }
+
+    public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
+                                         boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval,
+                                         CompactorType compactorType, int gcConcurrency)
+            throws IOException, InvalidFileStoreVersionException {
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(directory)
                 .withCustomPersistence(persistence)
                 .withMemoryMapping(false)
                 .withStrictVersionCheck(strictVersionCheck)
                 .withSegmentCacheSize(segmentCacheSize)
-                .withGCOptions(defaultGCOptions().setOffline().setGCLogInterval(gcLogInterval));
+                .withGCOptions(defaultGCOptions()
+                        .setOffline()
+                        .setGCLogInterval(gcLogInterval)
+                        .setCompactorType(compactorType)
+                        .setConcurrency(gcConcurrency));
 
         return builder.build();
     }

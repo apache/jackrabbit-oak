@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import eu.rekawek.toxiproxy.Proxy;
+import eu.rekawek.toxiproxy.ToxiproxyClient;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -38,7 +40,6 @@ import org.junit.Test;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
-import org.testcontainers.containers.ToxiproxyContainer.ContainerProxy;
 import org.testcontainers.utility.DockerImageName;
 
 import static eu.rekawek.toxiproxy.model.ToxicDirection.DOWNSTREAM;
@@ -52,9 +53,7 @@ import static org.junit.Assume.assumeTrue;
 
 public class LeaseUpdateSocketTimeoutIT {
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("shopify/toxiproxy:2.1.4");
-
-    private static final DockerImageName MONGODB_IMAGE = DockerImageName.parse("mongo:4.2");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
 
     private static final int MONGODB_DEFAULT_PORT = 27017;
 
@@ -64,15 +63,16 @@ public class LeaseUpdateSocketTimeoutIT {
     public Network network = Network.newNetwork();
 
     @Rule
-    public MongoDBContainer mongoDBContainer = new MongoDBContainer(MONGODB_IMAGE)
+    public MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
             .withNetwork(network)
+            .withNetworkAliases("mongo")
             .withExposedPorts(MONGODB_DEFAULT_PORT);
 
     @Rule
     public ToxiproxyContainer tp = new ToxiproxyContainer(TOXIPROXY_IMAGE)
             .withNetwork(network);
 
-    private ContainerProxy proxy;
+    private Proxy proxy;
 
     private Clock clock;
 
@@ -91,8 +91,9 @@ public class LeaseUpdateSocketTimeoutIT {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         setClusterNodeInfoClock(clock);
-        proxy = tp.getProxy(mongoDBContainer, MONGODB_DEFAULT_PORT);
-        String uri = "mongodb://" + proxy.getContainerIpAddress() + ":" + proxy.getProxyPort();
+        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(tp.getHost(), tp.getControlPort());
+        proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666", "mongo:" + MONGODB_DEFAULT_PORT);
+        String uri = "mongodb://" + tp.getHost() + ":" + tp.getMappedPort(8666);
         store = new MongoDocumentNodeStoreBuilder()
                 .setMongoDB(uri, "oak", 0)
                 .setLeaseSocketTimeout(LEASE_SO_TIMEOUT)

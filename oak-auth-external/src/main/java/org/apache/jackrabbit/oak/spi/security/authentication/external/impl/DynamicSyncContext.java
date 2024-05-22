@@ -91,7 +91,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
         
         Collection<String> principalNames = clearGroupMembership(authorizable);
-        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, createValues(principalNames));
+        setExternalPrincipalNames(authorizable, createValues(principalNames));
         return true;
     }
 
@@ -156,6 +156,10 @@ public class DynamicSyncContext extends DefaultSyncContext {
             super.syncMembership(external, auth, depth);
         } else {
             try {
+                // determine if clean up of groups (i.e. getting rid of previously synchronized membership information)
+                // is required or not. due to OAK-10517 just checking 'groupsSyncedBefore' is not sufficient.
+                boolean cleanupGroups = groupsSyncedBefore || requiresCleanup(auth);
+                
                 Iterable<ExternalIdentityRef> declaredGroupRefs = external.getDeclaredGroups();
                 // resolve group-refs respecting depth to avoid iterating twice
                 Map<ExternalIdentityRef, SyncEntry> map = collectSyncEntries(declaredGroupRefs, depth);
@@ -170,7 +174,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 }
                 
                 // clean up any other membership
-                if (groupsSyncedBefore) {
+                if (cleanupGroups) {
                     clearGroupMembership(auth);
                 }
             } catch (ExternalIdentityException e) {
@@ -200,7 +204,12 @@ public class DynamicSyncContext extends DefaultSyncContext {
             Set<String> principalsNames = syncEntries.stream().map(syncEntry -> syncEntry.principalName).collect(Collectors.toSet());
             vs = createValues(principalsNames);
         }
-        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
+        setExternalPrincipalNames(authorizable, vs);
+    }
+    
+    private void setExternalPrincipalNames(@NotNull Authorizable authorizable, @NotNull Value[] principalNames) throws RepositoryException {
+        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, principalNames);
+        authorizable.setProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC, nowValue);
     }
     
     @NotNull
@@ -377,6 +386,10 @@ public class DynamicSyncContext extends DefaultSyncContext {
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {
         return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    }
+    
+    private static boolean requiresCleanup(@NotNull Authorizable authorizable) throws RepositoryException {
+        return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC);
     }
 
     private static boolean isEveryone(@NotNull Group group) {

@@ -26,7 +26,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
-import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -170,18 +169,6 @@ public class WhiteboardUtils {
         }
     }
 
-
-    /**
-     * @deprecated use {@link #getServices(Whiteboard, Class, java.util.function.Predicate)} instead
-     */
-    @NotNull
-    @Deprecated(since = "1.20.0", forRemoval = true)
-    public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type,
-            @Nullable com.google.common.base.Predicate<T> predicate) {
-        GuavaDeprecation.handleCall("OAK-8685");
-        return getServices(wb, type, (java.util.function.Predicate<T>) (input) -> predicate.apply(input));
-    }
-
     /**
      * Returns the one of the currently available services from the whiteboard of the tracked type. If {@code predicate} is
      * not {@code null} only a service that match the predicate is returned.
@@ -207,16 +194,5 @@ public class WhiteboardUtils {
             tracker.stop();
         }
 
-    }
-
-    /**
-     * @deprecated use {@link #getService(Whiteboard, Class, Predicate)} instead
-     */
-    @Nullable
-    @Deprecated(since = "1.20.0", forRemoval = true)
-    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type,
-            @Nullable com.google.common.base.Predicate<T> predicate) {
-        GuavaDeprecation.handleCall("OAK-8685");
-        return getService(wb, type, (Predicate<T>) (input) -> predicate.apply(input));
     }
 }

@@ -16,6 +16,28 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.ResultContinuation;
+import com.microsoft.azure.storage.ResultSegment;
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsToken;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.StorageUri;
+import com.microsoft.azure.storage.blob.BlobListingDetails;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.LeaseStatus;
+import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,24 +49,14 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.ResultContinuation;
-import com.microsoft.azure.storage.ResultSegment;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.StorageUri;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.ListBlobItem;
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public final class AzureUtilities {
+    public static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
+    public static final String AZURE_SECRET_KEY = "AZURE_SECRET_KEY";
+    public static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
+    public static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
+    public static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
+
+    private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
 
     private static final Logger log = LoggerFactory.getLogger(AzureUtilities.class);
 
@@ -99,7 +111,7 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageCredentials credentials,
-            String uri, String dir) throws URISyntaxException, StorageException {
+                                                            String uri, String dir) throws URISyntaxException, StorageException {
         StorageUri storageUri = new StorageUri(new URI(uri));
         CloudBlobContainer container = new CloudBlobContainer(storageUri, credentials);
 
@@ -109,7 +121,7 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
-            String dir) throws InvalidKeyException, URISyntaxException, StorageException {
+                                                            String dir) throws InvalidKeyException, URISyntaxException, StorageException {
         CloudStorageAccount cloud = CloudStorageAccount.parse(connection);
         CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(containerName);
         container.createIfNotExists();
@@ -117,8 +129,19 @@ public final class AzureUtilities {
         return container.getDirectoryReference(dir);
     }
 
+    public static StorageCredentialsToken storageCredentialAccessTokenFrom(String accountName, String clientId, String clientSecret, String tenantId) {
+        ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .tenantId(tenantId)
+                .build();
+
+        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE)).getToken();
+        return new StorageCredentialsToken(accountName, accessToken);
+    }
+
     private static ResultSegment<ListBlobItem> listBlobsInSegments(CloudBlobDirectory directory,
-           ResultContinuation token) throws IOException {
+                                                                   ResultContinuation token) throws IOException {
         ResultSegment<ListBlobItem> result = null;
         IOException lastException = null;
         for (int sleep = 10; sleep <= 10000; sleep *= 10) {  //increment the sleep time in steps.
@@ -149,6 +172,21 @@ public final class AzureUtilities {
         }
     }
 
+    public static void deleteAllBlobs(@NotNull CloudBlobDirectory directory) throws URISyntaxException, StorageException, InterruptedException {
+        for (ListBlobItem blobItem : directory.listBlobs()) {
+            if (blobItem instanceof CloudBlob) {
+                CloudBlob cloudBlob = (CloudBlob) blobItem;
+                if (cloudBlob.getProperties().getLeaseStatus() == LeaseStatus.LOCKED) {
+                    cloudBlob.breakLease(0);
+                }
+                cloudBlob.deleteIfExists();
+            } else if (blobItem instanceof CloudBlobDirectory) {
+                CloudBlobDirectory cloudBlobDirectory = (CloudBlobDirectory) blobItem;
+                deleteAllBlobs(cloudBlobDirectory);
+            }
+        }
+    }
+
     private static class ByteBufferOutputStream extends OutputStream {
 
         @NotNull
@@ -160,7 +198,7 @@ public final class AzureUtilities {
 
         @Override
         public void write(int b) {
-            buffer.put((byte)b);
+            buffer.put((byte) b);
         }
 
         @Override

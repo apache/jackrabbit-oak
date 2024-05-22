@@ -197,5 +197,15 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
         public long getReindexCompletionTimestamp() {
             return reindexCompletionTimestamp;
         }
+
+        @Override
+        public void setActive(boolean value) {
+            // ignore
+        }
+
+        @Override
+        public boolean isActive() {
+            return true;
+        }
     }
 }

@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.function.BiConsumer;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;

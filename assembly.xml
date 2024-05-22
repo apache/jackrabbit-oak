@@ -26,6 +26,7 @@
       <excludes>
         <exclude>**/target/**</exclude>
         <exclude>**/.*/**</exclude>
+        <exclude>oak-shaded-guava/dependency-reduced-pom.xml</exclude>
       </excludes>
     </fileSet>
   </fileSets>

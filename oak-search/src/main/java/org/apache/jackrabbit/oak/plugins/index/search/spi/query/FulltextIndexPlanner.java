@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
@@ -307,13 +306,13 @@ public class FulltextIndexPlanner {
 
             if (queryFilterPattern != null) {
                 if (ft != null && !queryFilterPattern.matcher(ft.toString()).find()) {
-                    plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
+                    plan.addAdditionalMessage("WARN", "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
                             + queryFilterPattern + " to search for value '" + ft + "'");
                 }
                  for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
                 	// Ignore properties beginning with ";" like :indexTag / :indexName etx
                     if (!pr.propertyName.startsWith(":") && !queryFilterPattern.matcher(pr.toString()).find()) {
-                        plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
+                        plan.addAdditionalMessage("WARN", "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
                                 + queryFilterPattern + " to search for value '" + pr + "'");
                     }
                 }
@@ -973,7 +972,7 @@ public class FulltextIndexPlanner {
                         matchingRule = rule;
                     }
                     if (matchingRule != null){
-                        log.debug("Applicable IndexingRule found {}", matchingRule);
+                        log.trace("Applicable IndexingRule found {}", matchingRule);
                         return rule;
                     }
                 }
@@ -1163,7 +1162,7 @@ public class FulltextIndexPlanner {
             nodeNameRestriction = true;
         }
 
-        private void disableUniquePaths(){
+        public void disableUniquePaths(){
             uniquePathsRequired = false;
         }
     }

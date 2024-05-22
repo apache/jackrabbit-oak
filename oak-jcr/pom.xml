@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.53-SNAPSHOT</version>
+    <version>1.65-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -53,6 +53,7 @@
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.NamespaceRemappingTest#testPrefixRemapping                        <!-- OAK-10544 -->
       org.apache.jackrabbit.oak.jcr.ValidNamesTest#testRepNamespaceUri                                 <!-- OAK-74 -->
 
       <!-- Locking : not fully implemented -->
@@ -85,7 +86,6 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreRemovesMixin <!-- OAK-9459 -->
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest
@@ -149,6 +149,9 @@
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
       org.apache.jackrabbit.oak.jcr.query.QueryTest#fnNameEncoding                                   <!-- OAK-1000 -->
+
+      <!-- node type -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.ReadPropertyTest#testRemoveMixinType      <!-- OAK-10425 -->
     </known.issues>
   </properties>
 
@@ -189,28 +192,21 @@
   </build>
 
   <dependencies>
-    <!-- Optional OSGi dependencies, used only when running within OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
+      <artifactId>org.osgi.annotation.versioning</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
+      <artifactId>osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
-      <dependency>
-          <groupId>org.osgi</groupId>
-          <artifactId>org.osgi.annotation</artifactId>
-          <scope>provided</scope>
-      </dependency>
-      <dependency>
-          <!-- somehow the 1.6.0_65 compiler crashes on osx without this. -->
-          <groupId>org.apache.felix</groupId>
-          <artifactId>org.apache.felix.scr.annotations</artifactId>
-          <scope>provided</scope>
-      </dependency>
+    <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.component.annotations</artifactId>
+        <scope>provided</scope>
+    </dependency>
 
     <dependency>
       <groupId>javax.jcr</groupId>
@@ -373,13 +369,6 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
-    <!-- General utility libraries -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- Nullability annotations -->
     <dependency>
       <groupId>org.jetbrains</groupId>
@@ -476,8 +465,27 @@
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
-      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
-      <version>2.0.2</version>
+      <artifactId>org.apache.sling.testing.osgi-mock.junit4</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.event</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.log</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.cm</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.component</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -518,8 +526,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.arakelian</groupId>
-      <artifactId>docker-junit-rule</artifactId>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

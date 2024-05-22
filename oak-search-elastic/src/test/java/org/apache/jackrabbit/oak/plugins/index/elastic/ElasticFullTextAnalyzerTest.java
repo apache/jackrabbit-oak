@@ -78,12 +78,12 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.setProperty(FulltextIndexConstants.ANL_NAME, "german");
         });
 
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "die Füchse springen");
+        Tree content = root.getTree("/").addChild("content");
+        content.setProperty("foo", "die Füchse springen");
         root.commit();
 
         // standard german analyzer stems verbs (springen -> spring)
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", List.of("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", List.of("/content")));
     }
 
     @Test(expected = RuntimeException.class)
@@ -104,17 +104,17 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            filters.addChild("LowerCase");
-            Tree stemmer = filters.addChild("stemmer");
+            addFilter(filters, "LowerCase");
+            Tree stemmer = addFilter(filters, "stemmer");
             stemmer.setProperty("language", "dutch_kp");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("test").setProperty("foo", "edele");
-        test.addChild("baz").setProperty("foo", "other text");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "edele");
+        content.addChild("baz").setProperty("foo", "other text");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/content/bar")));
     }
 
     // these filters are only available in elastic
@@ -126,15 +126,15 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            filters.addChild("Apostrophe");
+            addFilter(filters, "Apostrophe");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("bar").setProperty("foo", "oak's");
-        test.addChild("baz").setProperty("foo", "some other content");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "oak's");
+        content.addChild("baz").setProperty("foo", "some other content");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'oak')", List.of("/bar")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'oak')", List.of("/content/bar")));
     }
 
     @Test
@@ -144,19 +144,19 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree dd = filters.addChild("dictionary_decompounder");
+            Tree dd = addFilter(filters, "dictionary_decompounder");
             dd.setProperty("word_list", "words.txt");
             dd.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
                     .setProperty(JcrConstants.JCR_DATA, "Donau\ndampf\nmeer\nschiff");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("bar").setProperty("foo", "Donaudampfschiff");
-        test.addChild("baz").setProperty("foo", "some other content");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "Donaudampfschiff");
+        content.addChild("baz").setProperty("foo", "some other content");
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'dampf')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'dampf')", List.of("/content/bar"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'damp')", List.of());
         });
     }
@@ -168,18 +168,18 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree dd = filters.addChild("fingerprint");
+            Tree dd = addFilter(filters, "fingerprint");
             dd.setProperty("max_output_size", "10");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("bar").setProperty("foo", "here here");
-        test.addChild("baz").setProperty("foo", "some other quite long content here");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "here here");
+        content.addChild("baz").setProperty("foo", "some other quite long content here");
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'here')", List.of("/bar"));
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'content')", List.of());
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'here')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'other')", List.of());
         });
     }
 
@@ -190,17 +190,17 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree kt = filters.addChild("keep_types");
+            Tree kt = addFilter(filters, "keep_types");
             kt.setProperty("types", "<NUM>");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("bar").setProperty("foo", "1 quick fox 2 lazy dogs");
-        test.addChild("baz").setProperty("foo", "some other content");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "1 quick fox 2 lazy dogs");
+        content.addChild("baz").setProperty("foo", "some other content");
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, '2')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, '2')", List.of("/content/bar"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'content')", List.of());
         });
     }
@@ -212,24 +212,24 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree mh = filters.addChild("min_hash");
+            Tree mh = addFilter(filters, "min_hash");
             mh.setProperty("hash_count", "1");
             mh.setProperty("bucket_count", "512");
             mh.setProperty("hash_set_size", "1");
             mh.setProperty("with_rotation", "true");
-            Tree shingle = filters.addChild("shingle");
+            Tree shingle = addFilter(filters, "shingle");
             shingle.setProperty("min_shingle_size", "5");
             shingle.setProperty("max_shingle_size", "5");
             shingle.setProperty("output_unigrams", "false");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("bar").setProperty("foo", "1 quick fox 2 lazy dogs");
-        test.addChild("baz").setProperty("foo", "some other content");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "1 quick fox 2 lazy dogs");
+        content.addChild("baz").setProperty("foo", "some other content");
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, '2')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, '2')", List.of("/content/bar"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'contet')", List.of());
         });
     }
@@ -241,16 +241,16 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree snowball = filters.addChild("SnowballPorter");
+            Tree snowball = addFilter(filters, "SnowballPorter");
             snowball.setProperty("language", "Italian");
         });
 
-        Tree test = root.getTree("/");
-        test.addChild("test").setProperty("foo", "mangio la mela");
-        test.addChild("baz").setProperty("foo", "altro testo");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "mangio la mela");
+        content.addChild("baz").setProperty("foo", "altro testo");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')", List.of("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')", List.of("/content/bar")));
     }
 
 }

@@ -52,11 +52,11 @@ public class LucenePropertyIndexCommonTest extends PropertyIndexCommonTest {
 
     @Override
     protected String propertyExistenceQueryWithNullCheckExpectedExplain() {
-        return "lucene:test1(/oak:index/test1) :notNullProps:propa";
+        return "/oak:index/test1";
     }
 
     @Override
     protected String propertyNonExistenceQueryExpectedExplain() {
-        return "lucene:test1(/oak:index/test1) :nullProps:propa";
+        return "/oak:index/test1";
     }
 }

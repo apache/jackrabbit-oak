@@ -203,6 +203,16 @@ public class IndexPrinterTest {
         public long getReindexCompletionTimestamp() {
             return 0;
         }
+
+        @Override
+        public void setActive(boolean value) {
+            // ignore
+        }
+
+        @Override
+        public boolean isActive() {
+            return true;
+        }
     }
 
 }

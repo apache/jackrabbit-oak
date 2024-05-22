@@ -57,7 +57,7 @@ import static org.junit.Assert.fail;
  */
 public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
-    private Tree indexDefn;
+    protected Tree indexDefn;
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
     private LogCustomizer logCustomizer;
@@ -207,7 +207,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), false));
     }
 
     // Check if this is a valid behaviour or not ?
@@ -216,7 +216,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     @Test
     public void descendantTestWithIndexTagExplainWithNoData() {
         String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), false));
     }
 
     @Test
@@ -813,7 +813,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
     public abstract String getExplainValueForDescendantTestWithIndexTagExplain();
 
-    private Runnable getAssertionForExplain(String query, String language, String expected, boolean matchComplete) {
+    protected Runnable getAssertionForExplain(String query, String language, String expected, boolean matchComplete) {
         return () -> {
             Result result = null;
             try {
@@ -823,14 +823,14 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             }
             ResultRow row = result.getRows().iterator().next();
             if (matchComplete) {
-                assertEquals(row.getValue("plan").toString(), expected);
+                assertEquals(expected, row.getValue("plan").toString());
             } else {
                 assertTrue(row.getValue("plan").toString().contains(expected));
             }
         };
     }
 
-    private static void assertEventually(Runnable r) {
+    protected static void assertEventually(Runnable r) {
         TestUtil.assertEventually(r, 3000 * 3);
     }
 }
