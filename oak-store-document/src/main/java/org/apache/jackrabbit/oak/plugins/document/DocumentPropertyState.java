@@ -57,7 +57,7 @@ final class DocumentPropertyState implements PropertyState {
 
     private final String name;
 
-    private final String value;
+    private String value;
 
     private PropertyState parsed;
     private byte[] compressedValue;
@@ -71,10 +71,17 @@ final class DocumentPropertyState implements PropertyState {
 
         int size = value.getBytes().length;
         if (size > DEFAULT_COMPRESSION_THRESHOLD) {
-            compressedValue =  compress(value.getBytes());
-            this.value = null;
+            try {
+                compressedValue = compress(value.getBytes());
+                this.value = null;
+            } catch (Exception e) {
+                // if compression fails, store the value as is
+                this.value = value;
+                this.compressedValue = null;
+            }
         } else {
             this.value = value;
+            compressedValue = null;
         }
     }
 
@@ -86,7 +93,7 @@ final class DocumentPropertyState implements PropertyState {
             compressionOutputStream.close();
             return out.toByteArray();
         } catch (IOException e) {
-            LOG.warn("Failed to compress data: ", value);
+            LOG.error("Failed to compress property {} value ", getName(), e);
             return value;
         }
     }
@@ -156,8 +163,8 @@ final class DocumentPropertyState implements PropertyState {
         try {
             return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
         } catch (IOException e) {
-            LOG.warn("Failed to decompress data.", value);
-            throw new RuntimeException("Failed to decompress data ", e);
+            LOG.error("Failed to decompress property {} value: ", getName(), e);
+            return "";
         }
     }
 
@@ -203,8 +210,9 @@ final class DocumentPropertyState implements PropertyState {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     PropertyState readProperty(String name, JsopReader reader) {
@@ -214,8 +222,8 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name the name of the property state
-     * @param store the store
+     * @param name   the name of the property state
+     * @param store  the store
      * @param reader the reader
      * @return new property state
      */
@@ -243,7 +251,7 @@ final class DocumentPropertyState implements PropertyState {
                 String value = TypeCodes.decodeName(split, jsonString);
                 if (type == PropertyType.BINARY) {
 
-                    return  BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
+                    return BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
                 } else {
                     return createProperty(name, StringCache.get(value), type);
                 }
@@ -258,7 +266,7 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name the name of the property state
+     * @param name   the name of the property state
      * @param reader the reader
      * @return new property state
      */
@@ -269,8 +277,8 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name the name of the property state
-     * @param store the store
+     * @param name   the name of the property state
+     * @param store  the store
      * @param reader the reader
      * @return new property state
      */
