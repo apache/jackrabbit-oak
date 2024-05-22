@@ -352,10 +352,10 @@ var oak = (function(global){
      * @param {string} pattern the pattern to match the nodes to be removed.
      */
     api.removeDescendantsAndSelfMatching = function(pattern) {
-        let count = 0;
+        var count = 0;
         db.nodes.find({_id: {$regex: pattern}}, {_id: 1}).forEach(function(doc) {
             print("Removing " + doc._id + " and its children");
-            const result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
+            var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
             count += result.deletedCount;
             print("nRemoved : " + result.deletedCount);
         });
