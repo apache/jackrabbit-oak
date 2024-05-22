@@ -52,6 +52,7 @@ Improvement
     [OAK-10804] - Indexing job: optimize check for hidden nodes
     [OAK-10808] - PipelinedMongoConnectionFailureIT should not fail if Mongo is not available
     [OAK-10810] - Remove redundant call to StringCache.get in Path.fromString()
+    [OAK-10813] - Improve performance of Oak-mongo.js function to remove/list nodes
 
 Task
 
