@@ -75,7 +75,7 @@ final class DocumentPropertyState implements PropertyState {
                 compressedValue = compress(value.getBytes());
                 this.value = null;
             } catch (Exception e) {
-                // if compression fails, store the value as is
+                LOG.warn("Failed to compress property {} value: ", name, e);
                 this.value = value;
                 this.compressedValue = null;
             }
@@ -210,9 +210,8 @@ final class DocumentPropertyState implements PropertyState {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     *
-     * @param name   The name of the property state
-     * @param reader The reader
+     * @param name  The name of the property state
+     * @param reader  The reader
      * @return new property state
      */
     PropertyState readProperty(String name, JsopReader reader) {
@@ -222,8 +221,8 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name   the name of the property state
-     * @param store  the store
+     * @param name the name of the property state
+     * @param store the store
      * @param reader the reader
      * @return new property state
      */
