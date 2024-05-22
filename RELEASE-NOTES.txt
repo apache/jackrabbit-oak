@@ -44,6 +44,7 @@ Improvement
 
     [OAK-10760] - oak-core should check namespace registry consistency on startup
     [OAK-10762] - oak-search-elastic: similarity queries produce not relevant results when uses similarTags
+    [OAK-10771] - Add disk cache size stats and issue warning if evicted segment has zero length
     [OAK-10778] - Indexing job: support parallel download from MongoDB with two connections in Pipelined strategy
     [OAK-10783] - VersionableEditor: misleading WARN message when creating version history
     [OAK-10784] - o.a.j.o.plugins.migration.version.VersionableEditor should create the version storage node, if needed
