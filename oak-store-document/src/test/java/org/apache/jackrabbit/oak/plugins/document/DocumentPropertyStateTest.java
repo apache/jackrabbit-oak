@@ -150,7 +150,7 @@ public class DocumentPropertyStateTest {
     @Test
     public void compressValueThrowsException() throws CommitFailedException, IOException {
         NodeBuilder builder = ns.getRoot().builder();
-        builder.child(TEST_NODE).setProperty("p", "TEST", Type.STRING);
+        builder.child(TEST_NODE).setProperty("p", STRING_HUGEVALUE, Type.STRING);
         TestUtils.merge(ns, builder);
 
         PropertyState propertyState = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
@@ -158,9 +158,8 @@ public class DocumentPropertyStateTest {
         assertEquals(1, propertyState.count());
 
         Compression mockCompression = mock(Compression.class);
-        OutputStream mockOutputStream = mock(OutputStream.class);
         when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
-        assertEquals("TEST", propertyState.getValue(Type.STRING));
+        assertEquals(STRING_HUGEVALUE, propertyState.getValue(Type.STRING));
     }
 
 
