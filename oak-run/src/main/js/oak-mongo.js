@@ -301,32 +301,32 @@ var oak = (function(global){
         var depth = pathDepth(path);
         var id = depth + ":" + path;
         // current node at path
-        var result = db.nodes.remove({_id: id});
-        count += result.nRemoved;
+        var result = db.nodes.deleteMany({_id: id});
+        count += result.deletedCount;
         // might be a long path
-        result = db.nodes.remove(longPathQuery(path));
-        count += result.nRemoved;
+        result = db.nodes.deleteMany(longPathQuery(path));
+        count += result.deletedCount;
         // descendants
         var prefix = path + "/";
         depth++;
         while (true) {
-            result = db.nodes.remove(longPathFilter(depth, prefix));
-            count += result.nRemoved;
-            result = db.nodes.remove({_id: pathFilter(depth++, prefix)});
-            count += result.nRemoved;
-            if (result.nRemoved == 0) {
+            result = db.nodes.deleteMany(longPathFilter(depth, prefix));
+            count += result.deletedCount;
+            result = db.nodes.deleteMany({_id: pathFilter(depth++, prefix)});
+            count += result.deletedCount;
+            if (result.deletedCount === 0) {
                 break;
             }
         }
         // descendants further down the hierarchy with long path
         while (true) {
-            result = db.nodes.remove(longPathFilter(depth++, prefix));
-            if (result.nRemoved == 0) {
+            result = db.nodes.deleteMany(longPathFilter(depth++, prefix));
+            if (result.deletedCount === 0) {
                 break;
             }
-            count += result.nRemoved;
+            count += result.deletedCount;
         }
-        return {nRemoved : count};
+        return {deletedCount : count};
     };
 
     /**
@@ -352,12 +352,12 @@ var oak = (function(global){
      * @param {string} pattern the pattern to match the nodes to be removed.
      */
     api.removeDescendantsAndSelfMatching = function(pattern) {
-        var count = 0;
+        let count = 0;
         db.nodes.find({_id: {$regex: pattern}}, {_id: 1}).forEach(function(doc) {
             print("Removing " + doc._id + " and its children");
-            var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
-            count += result.nRemoved;
-            print("nRemoved : " + result.nRemoved);
+            const result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
+            count += result.deletedCount;
+            print("nRemoved : " + result.deletedCount);
         });
         print("Total removed : " + count);
     }
