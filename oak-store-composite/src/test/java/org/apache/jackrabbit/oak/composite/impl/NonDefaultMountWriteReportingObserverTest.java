@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.composite.MountInfoPropsBuilder;
@@ -210,7 +211,7 @@ public class NonDefaultMountWriteReportingObserverTest {
         List<String> changes = new ArrayList<>();
         
         @Override
-        void reportChanges(Map<String, String> changes, RuntimeException ignored) {
+        void reportChanges(Map<String, String> changes, Stream<StackTraceElement> stackTrace) {
             changes.forEach( (path, type) -> this.changes.add(type + "|" + path) );
         }
     }

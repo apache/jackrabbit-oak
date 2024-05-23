@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.memory;
 
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,9 +32,11 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -40,19 +47,13 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
-import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -97,6 +98,8 @@ public class MemoryDocumentStore implements DocumentStore {
     private final boolean maintainModCount;
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
+
+    private static final long SIZE_LIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1).get();
 
     public MemoryDocumentStore() {
         this(false);
@@ -338,6 +341,7 @@ public class MemoryDocumentStore implements DocumentStore {
             // update the document
             UpdateUtils.applyChanges(doc, update);
             maintainModCount(doc);
+            checkSize(doc);
             doc.seal();
             map.put(update.getId(), doc);
             return oldDoc;
@@ -392,7 +396,7 @@ public class MemoryDocumentStore implements DocumentStore {
     public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         return null;
     }
-    
+
     @Override
     public void dispose() {
         // ignore
@@ -470,14 +474,24 @@ public class MemoryDocumentStore implements DocumentStore {
         return 0;
     }
 
+    private void checkSize(Document doc) {
+        if (SIZE_LIMIT >= 0) {
+            int size = doc.getMemory();
+            if (size >= SIZE_LIMIT) {
+                throw new DocumentStoreException(
+                        String.format("Resulting size for _id '%s' is %d, exceeding configured size limit of %d. Diagnostics: %s.",
+                                doc.getId(), size, SIZE_LIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
+            }
+        }
+    }
+
     private void maintainModCount(Document doc) {
-        if (!maintainModCount) {
-            return;
+        if (maintainModCount) {
+            Long modCount = doc.getModCount();
+            if (modCount == null) {
+                modCount = 0L;
+            }
+            doc.put(Document.MOD_COUNT, modCount + 1);
         }
-        Long modCount = doc.getModCount();
-        if (modCount == null) {
-            modCount = 0L;
-        }
-        doc.put(Document.MOD_COUNT, modCount + 1);
     }
 }

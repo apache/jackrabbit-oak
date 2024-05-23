@@ -166,6 +166,21 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertArrayEquals(new String[]{"/foo", "/bar"}, config.persistentCacheIncludes());
     }
 
+    @Test
+    public void recoveryDelayMillis() throws Exception {
+        addConfigurationEntry(preset, "recoveryDelayMillis", 0L);
+        Configuration config = createConfiguration();
+        assertEquals(0L, config.recoveryDelayMillis());
+
+        addConfigurationEntry(preset, "recoveryDelayMillis", -1L);
+        config = createConfiguration();
+        assertEquals(-1L, config.recoveryDelayMillis());
+
+        addConfigurationEntry(preset, "recoveryDelayMillis", 60000L);
+        config = createConfiguration();
+        assertEquals(60000L, config.recoveryDelayMillis());
+    }
+
     private Configuration createConfiguration() throws IOException {
         return DocumentNodeStoreServiceConfiguration.create(
                 context.componentContext(), configAdmin,

@@ -29,7 +29,9 @@ import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -208,7 +210,6 @@ public class IndexerSupport {
     }
 
     /**
-     *
      * @param indexDefinitions
      * @return set of preferred path elements referred from the given set of index definitions.
      */
@@ -221,7 +222,6 @@ public class IndexerSupport {
     }
 
     /**
-     *
      * @param indexDefinitions set of IndexDefinition to be used to calculate the Path Predicate
      * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
      * @param <T>
@@ -229,5 +229,15 @@ public class IndexerSupport {
      */
     public <T> Predicate<T> getFilterPredicate(Set<IndexDefinition> indexDefinitions, Function<T, String> typeToRepositoryPath) {
         return t -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(typeToRepositoryPath.apply(t)) != PathFilter.Result.EXCLUDE);
+    }
+
+    /**
+     * @param pattern Pattern for a custom excludes regex based on which paths would be filtered out
+     * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
+     * @param <T>
+     * @return Return a predicate that should test true for all paths that do not match the provided regex pattern.
+     */
+    public <T> Predicate<T> getFilterPredicateBasedOnCustomRegex(Pattern pattern, Function<T, String> typeToRepositoryPath) {
+        return t -> !pattern.matcher(typeToRepositoryPath.apply(t)).find();
     }
 }

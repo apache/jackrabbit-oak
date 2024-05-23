@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.StorageCredentialsToken;
@@ -46,6 +43,7 @@ import java.security.InvalidKeyException;
 import java.util.Hashtable;
 import java.util.Objects;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.storageCredentialAccessTokenFrom;
 import static org.osgi.framework.Constants.SERVICE_PID;
 
 @Component(
@@ -126,14 +124,7 @@ public class AzureSegmentStoreService {
 
     @NotNull
     private static AzurePersistence createPersistenceFromServicePrincipalCredentials(Configuration configuration) throws IOException {
-        ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
-                .clientId(configuration.clientId())
-                .clientSecret(configuration.clientSecret())
-                .tenantId(configuration.tenantId())
-                .build();
-
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes("https://storage.azure.com/.default")).getToken();
-        StorageCredentialsToken storageCredentialsToken = new StorageCredentialsToken(configuration.accountName(), accessToken);
+        StorageCredentialsToken storageCredentialsToken = storageCredentialAccessTokenFrom(configuration.accountName(), configuration.clientId(), configuration.clientSecret(), configuration.tenantId());
         
         try {
             CloudStorageAccount cloud = new CloudStorageAccount(storageCredentialsToken, true, DEFAULT_ENDPOINT_SUFFIX, configuration.accountName());

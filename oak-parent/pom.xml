@@ -30,11 +30,14 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.61-SNAPSHOT</version>
+  <version>1.65-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
-    <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
+    <!-- build time stamp: should be updated prior to a release -->
+    <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
+    <project.build.outputTimestamp>1716393921</project.build.outputTimestamp>
+    <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
@@ -45,7 +48,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.14</jackrabbit.version>
+    <jackrabbit.version>2.20.16</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -53,19 +56,19 @@
     <mongo.url />
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
-    <lucene.version>4.7.1</lucene.version>
+    <lucene.version>4.7.2</lucene.version>
     <solr.version>8.11.1</solr.version>
     <mongo.driver.version>3.12.11</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.2.10</logback.version>
+    <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.16.1</jackson.version>
-    <testcontainers.version>1.19.0</testcontainers.version>
+    <jackson.version>2.16.2</jackson.version>
+    <testcontainers.version>1.19.7</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>2.5.22</groovy.version>
+    <groovy.version>3.0.21</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -136,7 +139,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>5.1.8</version>
+          <version>5.1.9</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <dependencies>
@@ -255,7 +258,7 @@
         <plugin>
           <groupId>org.codehaus.gmavenplus</groupId>
           <artifactId>gmavenplus-plugin</artifactId>
-          <version>1.13.1</version>
+          <version>3.0.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
@@ -321,18 +324,22 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.1.2</version>
+            <version>3.3.1</version>
           </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.7.1.0</version>
+          <version>4.8.5.0</version>
         </plugin>
-        
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.5.3</version>
+        </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.14.1</version>
+          <version>2.16.2</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -387,7 +394,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.8</version>
+          <version>0.8.12</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -534,7 +541,7 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
-        <version>1.9.6</version>
+        <version>1.12.0</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>
@@ -617,17 +624,17 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.13.0</version>
+        <version>3.14.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.13.0</version>
+        <version>2.15.1</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.16.0</version>
+        <version>1.16.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -637,12 +644,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.80</version>
+        <version>9.0.87</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.80</version>
+        <version>9.0.87</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -724,27 +731,74 @@
       <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-identity</artifactId>
-        <version>1.11.1</version>
+        <version>1.11.3</version>
       </dependency>
-      <dependency>
-        <groupId>com.azure</groupId>
-        <artifactId>azure-identity-broker</artifactId>
-        <version>1.0.1</version>
-      </dependency>
+
+      <!-- Azure identity transitive dependencies  -->
       <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-core</artifactId>
-        <version>1.45.1</version>
+        <version>1.47.0</version>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-json</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams</artifactId>
+        <version>1.0.4</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>msal4j</artifactId>
+        <version>1.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-core</artifactId>
+        <version>3.4.34</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>oauth2-oidc-sdk</artifactId>
+        <version>10.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>9.30.2</version>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
-        <artifactId>azure-xml</artifactId>
-        <version>1.0.0-beta.2</version>
+        <artifactId>azure-core-http-netty</artifactId>
+        <version>1.14.1</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor.netty</groupId>
+        <artifactId>reactor-netty-http</artifactId>
+        <version>1.0.40</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor.netty</groupId>
+        <artifactId>reactor-netty-core</artifactId>
+        <version>1.0.40</version>
+      </dependency>
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>json-smart</artifactId>
+        <version>2.4.10</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>content-type</artifactId>
+        <version>2.2</version>
+      </dependency>
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>accessors-smart</artifactId>
+        <version>2.4.9</version>
       </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
@@ -1340,7 +1394,11 @@
     </profile>
   </profiles>
 
-  <scm>
-    <tag>jackrabbit-oak-1.54.0</tag>
+  <!-- using adjusted inheritance rules: https://issues.apache.org/jira/browse/MNG-6059 -->
+  <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false">
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
+    <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
+    <tag>trunk</tag>
   </scm>
 </project>

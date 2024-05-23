@@ -51,4 +51,14 @@ public class MetricsUtils {
         }
         metric.inc(value);
     }
+
+    public static void addMetric(StatisticsProvider statisticsProvider, IndexingReporter reporter, String name, long value) {
+        setCounterOnce(statisticsProvider, name, value);
+        reporter.addMetric(name, value);
+    }
+
+    public static void addMetricByteSize(StatisticsProvider statisticsProvider, IndexingReporter reporter, String name, long value) {
+        setCounterOnce(statisticsProvider, name, value);
+        reporter.addMetricByteSize(name, value);
+    }
 }

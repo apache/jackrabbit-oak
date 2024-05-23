@@ -206,24 +206,25 @@ to a dynamic external group:
 
 The default `SyncHandler` implementations are configured via [DefaultSyncConfig]:
 
-| Name                          | Property                      | Description                              |
-|-------------------------------|-------------------------------|------------------------------------------|
-| Sync Handler Name             | `handler.name`                | Name of this sync configuration. This is used to reference this handler by the login modules. |
-| User auto membership          | `user.autoMembership`         | List of groups that a synced user is added to automatically |
-| User Expiration Time          | `user.expirationTime`         | Duration until a synced user gets expired (eg. '1h 30m' or '1d'). |
-| User Membership Expiration    | `user.membershipExpTime`      | Time after which membership expires (eg. '1h 30m' or '1d'). |
-| User membership nesting depth | `user.membershipNestingDepth` | Returns the maximum depth of group nesting when membership relations are synced. A value of 0 effectively disables group membership lookup. A value of 1 only adds the direct groups of a user. This value has no effect when syncing individual groups only when syncing a users membership ancestry. |
-| User Dynamic Membership       | `user.dynamicMembership`      | Enabling dynamic membership for external users. |
-| User Enforce Dynamic Membership | `user.enforceDynamicMembership` | If enabled together with `user.dynamicMembership` previously synced membership information will be migrated to dynamic membership upon user sync. Otherwise it takes no effect. |
-| User Path Prefix              | `user.pathPrefix`             | The path prefix used when creating new users. |
-| User property mapping         | `user.propertyMapping`        | List mapping definition of local properties from external ones. eg: 'profile/email=mail'.Use double quotes for fixed values. eg: 'profile/nt:primaryType="nt:unstructured" |
-| Disable missing users         | `user.disableMissing`         | By default, users that no longer exist on the external provider will be locally removed. Set this property to `true` to [disable](https://jackrabbit.apache.org/api/2.8/org/apache/jackrabbit/api/security/user/User.html#disable(java.lang.String)) them instead and have them re-enabled if they become available again. |
-| Group auto membership         | `group.autoMembership`        | List of groups that a synced group is added to automatically |
-| Group Expiration Time         | `group.expirationTime`        | Duration until a synced group expires (eg. '1h 30m' or '1d'). |
-| Group Path Prefix             | `group.pathPrefix`            | The path prefix used when creating new groups. |
-| Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
-| Group 'Dynamic Groups'        | `group.dynamicGroups`         | Only takes effect in combination with `user.dynamicMembership` and will result in external groups being synced as dynamic groups. |
-| | | |
+| Name                          | Property                      | Default             | Description                 |
+|-------------------------------|-------------------------------|---------------------|---------------------|
+| Sync Handler Name             | `handler.name`                | "default"           | Name of this sync configuration. This is used to reference this handler by the login modules. |
+| User auto membership          | `user.autoMembership`         | []                  | List of groups that a synced user is added to automatically |
+| User Expiration Time          | `user.expirationTime`         | "1h"                | Duration until a synced user gets expired (eg. '1h 30m' or '1d'). |
+| User Membership Expiration    | `user.membershipExpTime`      | "1h"                | Time after which membership expires (eg. '1h 30m' or '1d'). |
+| User membership nesting depth | `user.membershipNestingDepth` | 0                   | Returns the maximum depth of group nesting when membership relations are synced. A value of 0 effectively disables group membership lookup. A value of 1 only adds the direct groups of a user. This value has no effect when syncing individual groups only when syncing a users membership ancestry. |
+| User Dynamic Membership       | `user.dynamicMembership`      | false               | Enabling dynamic membership for external users. |
+| User Enforce Dynamic Membership | `user.enforceDynamicMembership` | false               | If enabled together with `user.dynamicMembership` previously synced membership information will be migrated to dynamic membership upon user sync. Otherwise it takes no effect. |
+| User RFC7613 Username Normalization Profile | `user.enableRFC7613UsercaseMappedProfile` | false               | Enable the UsercaseMappedProfile defined in RFC7613 for username normalization. |
+| User Path Prefix              | `user.pathPrefix`             | ""                  | The path prefix used when creating new users. |
+| User property mapping         | `user.propertyMapping`        | ["rep:fullname=cn"] | List mapping definition of local properties from external ones. eg: 'profile/email=mail'.Use double quotes for fixed values. eg: 'profile/nt:primaryType="nt:unstructured" |
+| Disable missing users         | `user.disableMissing`         | false               | By default, users that no longer exist on the external provider will be locally removed. Set this property to `true` to [disable](https://jackrabbit.apache.org/api/2.8/org/apache/jackrabbit/api/security/user/User.html#disable(java.lang.String)) them instead and have them re-enabled if they become available again. |
+| Group auto membership         | `group.autoMembership`        | []                  | List of groups that a synced group is added to automatically |
+| Group Expiration Time         | `group.expirationTime`        | "1d"                | Duration until a synced group expires (eg. '1h 30m' or '1d'). |
+| Group RFC7613 Username Normalization Profile | `group.enableRFC7613UsercaseMappedProfile` | false               | Enable the UsercaseMappedProfile defined in RFC7613 for username normalization. |
+| Group Path Prefix             | `group.pathPrefix`            | ""                  | The path prefix used when creating new groups. |
+| Group property mapping        | `group.propertyMapping`       | []                  | List mapping definition of local properties from external ones. |
+| Group 'Dynamic Groups'        | `group.dynamicGroups`         | false               | Only takes effect in combination with `user.dynamicMembership` and will result in external groups being synced as dynamic groups. |
 
 Note, that the following options relate to the [dynamic sync](dynamic.html) feature:
 - `user.dynamicMembership` : Enabling dynamic membership for external users.

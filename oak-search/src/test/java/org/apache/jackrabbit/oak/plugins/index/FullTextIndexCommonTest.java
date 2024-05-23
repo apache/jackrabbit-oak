@@ -64,6 +64,26 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fullTextQueryRegExp() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        // test borrowed from: https://github.com/apache/lucene/issues/11537
+        StringBuilder strBuilder = new StringBuilder();
+        for (int i = 0; i < 50000; i++) {
+            strBuilder.append("b");
+        }
+
+        String query = "//*[rep:native('lucene', '/" + strBuilder + "/')]";
+
+        assertEventually(() -> {
+            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(query, XPATH, List.of());
+        });
+    }
+
+    @Test
     public void fullTextQueryWithDifferentBoosts() throws Exception {
         setup(builder -> {
                     builder.indexRule("nt:base").property("propa").analyzed().nodeScopeIndex().boost(10);

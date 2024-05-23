@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>1.61-SNAPSHOT</version>
+        <version>1.65-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -29,6 +29,10 @@
     <artifactId>oak-blob-cloud-azure</artifactId>
     <name>Oak Azure Cloud Blob Store</name>
     <packaging>bundle</packaging>
+
+    <properties>
+        <netty.version>4.1.109.Final</netty.version>
+    </properties>
 
     <build>
         <plugins>
@@ -38,10 +42,25 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
-                          !com.google.*,
-                          !org.checkerframework.*,
-                          !android.os,
-                          *
+                            com.fasterxml.jackson.annotation;resolution:=optional,
+                            com.fasterxml.jackson.databind*;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
+                            com.fasterxml.jackson.datatype*;resolution:=optional,
+                            com.azure.identity.broker.implementation;resolution:=optional,
+                            com.azure.xml;resolution:=optional,
+                            com.microsoft.aad.msal4jextensions*;resolution:=optional,
+                            com.sun.net.httpserver;resolution:=optional,
+                            sun.misc;resolution:=optional,
+                            net.jcip.annotations;resolution:=optional,
+                            org.objectweb.asm;resolution:=optional,
+                            com.nimbusds.langtag;resolution:=optional,
+                            com.sun.jna*;resolution:=optional,
+                            io.netty.channel.epoll;resolution:=optional,
+                            io.netty.handler.codec.*;resolution:=optional,
+                            !com.google.*,
+                            !org.checkerframework.*,
+                            !android.os,
+                            *
                         </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
@@ -50,8 +69,23 @@
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core,
+                            azure-core,
+                            azure-identity,
+                            azure-json,
                             guava,
-                            jsr305
+                            jsr305,
+                            reactive-streams,
+                            msal4j,
+                            reactor-core,
+                            oauth2-oidc-sdk,
+                            azure-core-http-netty,
+                            netty-*,
+                            reactor-netty-http,
+                            reactor-netty-core,
+                            json-smart,
+                            content-type,
+                            accessors-smart,
+                            nimbus-jose-jwt
                         </Embed-Dependency>
                         <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
                         <_plugin />
@@ -144,11 +178,125 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+        </dependency>
+
+        <!-- Azure identity transitive dependencies  -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>msal4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>oauth2-oidc-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core-http-netty</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http2</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler-proxy</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-unix-common</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>content-type</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>accessors-smart</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
+
         <!-- Azure Guava dependency -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.0.0-jre</version>
+            <version>33.1.0-jre</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

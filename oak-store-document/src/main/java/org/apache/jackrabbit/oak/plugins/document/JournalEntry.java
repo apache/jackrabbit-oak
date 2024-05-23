@@ -71,7 +71,7 @@ public final class JournalEntry extends Document {
 
     static final String BRANCH_COMMITS = "_bc";
 
-    private static final String INVALIDATE_ONLY = "_inv";
+    static final String INVALIDATE_ONLY = "_inv";
 
     public static final String MODIFIED = "_modified";
 
@@ -366,6 +366,29 @@ public final class JournalEntry extends Document {
     long getRevisionTimestamp() {
         final String[] parts = getId().split("-");
         return Long.parseLong(parts[1], 16);
+    }
+
+    boolean containsModified(Iterable<Path> paths) {
+        for (Path p : paths) {
+            if (!containsModified(p)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    boolean containsModified(Path path) {
+        if (path.isRoot()) {
+            return get(CHANGES) != null;
+        }
+        TreeNode node = getChanges();
+        for (String name : path.elements()) {
+            if (node.get(name) == null) {
+                return false;
+            }
+            node = node.get(name);
+        }
+        return true;
     }
 
     void modified(Path path) {

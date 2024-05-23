@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index;
 
 import com.codahale.metrics.Counter;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -45,6 +46,8 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
+import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -316,7 +319,9 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
         Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
+        wb.register(MongoClientURI.class, c1.getMongoURI(), emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
+        wb.register(IndexingReporter.class, IndexingReporter.NOOP, emptyMap());
         Registration c1Registration = wb.register(MongoDatabase.class, c1.getDatabase(), emptyMap());
 
         configureIndex(store);
@@ -397,12 +402,13 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
         Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
-
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         try {
             MetricStatisticsProvider metricsStatisticsProvider = new MetricStatisticsProvider(null, executor);
             wb.register(StatisticsProvider.class, metricsStatisticsProvider, emptyMap());
+            wb.register(IndexingReporter.class, new ConsoleIndexingReporter(), emptyMap());
             Registration c1Registration = wb.register(MongoDatabase.class, mongoConnection.getDatabase(), emptyMap());
+            wb.register(MongoClientURI.class, mongoConnection.getMongoURI(), emptyMap());
 
             configureIndex(store);
 

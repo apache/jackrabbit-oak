@@ -272,8 +272,7 @@ public class JsopBuilder implements JsopWriter {
                 return buff.append('\"').toString();
             }
         }
-        StringBuilder buff = new StringBuilder(length + 2);
-        return buff.append('\"').append(s).append('\"').toString();
+        return '\"' + s + '\"';
     }
 
     /**
@@ -332,8 +331,7 @@ public class JsopBuilder implements JsopWriter {
             default:
                 if (c < ' ') {
                     buff.append(String.format("\\u%04x", (int) c));
-                } else if (c >= 0xd800 && c <= 0xdbff) {
-                    // isSurrogate(), only available in Java 7
+                } else if (Character.isSurrogate(c)) {
                     if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
                         // ok surrogate
                         buff.append(c);

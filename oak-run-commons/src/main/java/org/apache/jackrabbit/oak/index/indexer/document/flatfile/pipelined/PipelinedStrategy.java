@@ -18,13 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -47,6 +49,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -55,8 +58,6 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -146,36 +147,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 32;
     private static final int MAX_AUTODETECT_WORKING_MEMORY_MB = 4000;
 
-
-    private static class MonitorTask<T> implements Runnable {
-        private final ArrayBlockingQueue<T[]> mongoDocQueue;
-        private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
-        private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
-        private final ArrayBlockingQueue<Path> sortedFilesQueue;
-        private final TransformStageStatistics transformStageStatistics;
-
-        public MonitorTask(ArrayBlockingQueue<T[]> mongoDocQueue,
-                           ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
-                           ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
-                           ArrayBlockingQueue<Path> sortedFilesQueue,
-                           TransformStageStatistics transformStageStatistics) {
-            this.mongoDocQueue = mongoDocQueue;
-            this.emptyBatchesQueue = emptyBatchesQueue;
-            this.nonEmptyBatchesQueue = nonEmptyBatchesQueue;
-            this.sortedFilesQueue = sortedFilesQueue;
-            this.transformStageStatistics = transformStageStatistics;
-        }
-
-        @Override
-        public void run() {
-            try {
-                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
-            } catch (Exception e) {
-                LOG.error("Error while logging queue sizes", e);
-            }
-        }
-    }
-
     private static <T> void printStatistics(ArrayBlockingQueue<T[]> mongoDocQueue,
                                             ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
                                             ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
@@ -208,13 +179,14 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     }
 
     private final MongoDocumentStore docStore;
-    private final MongoDatabase mongoDatabase;
+    private final MongoClientURI mongoClientURI;
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
     private final PathElementComparator pathComparator;
     private final List<PathFilter> pathFilters;
     private final StatisticsProvider statisticsProvider;
+    private final IndexingReporter indexingReporter;
     private final int numberOfTransformThreads;
     private final int mongoDocQueueSize;
     private final int mongoDocBatchMaxSizeMB;
@@ -225,13 +197,15 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private long nodeStateEntriesExtracted;
 
     /**
+     * @param mongoClientURI     URI of the Mongo cluster.
      * @param pathPredicate      Used by the transform stage to test if a node should be kept or discarded.
-     * @param pathFilters        If non-empty, the download stage will use these filters to try to create a query that downloads
+     * @param pathFilters        If non-empty, the download stage will use these filters to create a query that downloads
      *                           only the matching MongoDB documents.
      * @param statisticsProvider Used to collect statistics about the indexing process.
+     * @param indexingReporter   Used to collect diagnostics, metrics and statistics and report them at the end of the indexing process.
      */
-    public PipelinedStrategy(MongoDocumentStore documentStore,
-                             MongoDatabase mongoDatabase,
+    public PipelinedStrategy(MongoClientURI mongoClientURI,
+                             MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
                              Set<String> preferredPathElements,
@@ -241,37 +215,44 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters,
                              String checkpoint,
-                             StatisticsProvider statisticsProvider) {
+                             StatisticsProvider statisticsProvider,
+                             IndexingReporter indexingReporter) {
         super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
+        this.mongoClientURI = mongoClientURI;
         this.docStore = documentStore;
-        this.mongoDatabase = mongoDatabase;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
         this.pathComparator = new PathElementComparator(preferredPathElements);
         this.pathFilters = pathFilters;
         this.statisticsProvider = statisticsProvider;
+        this.indexingReporter = indexingReporter;
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
 
         int mongoDocQueueReservedMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
         Preconditions.checkArgument(mongoDocQueueReservedMemoryMB >= MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB + ": " + mongoDocQueueReservedMemoryMB + ". Must be >= " + MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, String.valueOf(mongoDocQueueReservedMemoryMB));
 
         this.mongoDocBatchMaxSizeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB);
         Preconditions.checkArgument(mongoDocBatchMaxSizeMB > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB + ": " + mongoDocBatchMaxSizeMB + ". Must be > 0");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, String.valueOf(mongoDocBatchMaxSizeMB));
 
         this.mongoDocBatchMaxNumberOfDocuments = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS);
         Preconditions.checkArgument(mongoDocBatchMaxNumberOfDocuments > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS + ": " + mongoDocBatchMaxNumberOfDocuments + ". Must be > 0");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, String.valueOf(mongoDocBatchMaxNumberOfDocuments));
 
         this.numberOfTransformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
         Preconditions.checkArgument(numberOfTransformThreads > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": " + numberOfTransformThreads + ". Must be > 0");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, String.valueOf(numberOfTransformThreads));
 
         int sortBufferMemoryPercentage = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE, DEFAULT_OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE);
         Preconditions.checkArgument(sortBufferMemoryPercentage > 0 && sortBufferMemoryPercentage <= 100,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE + ": " + numberOfTransformThreads + ". Must be between 1 and 100");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE, String.valueOf(sortBufferMemoryPercentage));
 
         // mongo-dump  <-> transform threads
         Preconditions.checkArgument(mongoDocQueueReservedMemoryMB >= 8 * mongoDocBatchMaxSizeMB,
@@ -328,6 +309,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         int workingMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB);
         Preconditions.checkArgument(workingMemoryMB >= 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": " + workingMemoryMB + ". Must be >= 0");
+        indexingReporter.addConfig(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, workingMemoryMB);
         if (workingMemoryMB == 0) {
             return autodetectWorkingMemoryMB();
         } else {
@@ -365,16 +347,13 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
-                new ThreadFactoryBuilder().setNameFormat("mongo-dump").setDaemon(true).build()
+                new ThreadFactoryBuilder().setDaemon(true).build()
         );
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
-        ExecutorCompletionService ecs = new ExecutorCompletionService(threadPool);
-        ScheduledExecutorService monitorThreadPool = Executors.newScheduledThreadPool(1,
-                new ThreadFactoryBuilder().setNameFormat("monitor").setDaemon(true).build()
-        );
+        ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
         try {
             // download -> transform thread.
             ArrayBlockingQueue<NodeDocument[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
@@ -390,10 +369,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
             TransformStageStatistics transformStageStatistics = new TransformStageStatistics();
 
-            ScheduledFuture<?> monitorFuture = monitorThreadPool.scheduleWithFixedDelay(
-                    new MonitorTask(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics),
-                    10, 30, TimeUnit.SECONDS);
-
             // Create empty buffers
             for (int i = 0; i < nseBuffersCount; i++) {
                 // No limits on the number of entries, only on their total size. This might be revised later.
@@ -402,19 +377,22 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
-            ecs.submit(new PipelinedMongoDownloadTask(
-                    mongoDatabase,
+
+            Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
+                    mongoClientURI,
                     docStore,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
                     pathFilters,
-                    statisticsProvider
+                    statisticsProvider,
+                    indexingReporter
             ));
 
+            ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                ecs.submit(new PipelinedTransformTask(
+                transformFutures.add(ecs.submit(new PipelinedTransformTask(
                         docStore,
                         documentNodeStore,
                         rootRevision,
@@ -424,117 +402,141 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         emptyBatchesQueue,
                         nonEmptyBatchesQueue,
                         transformStageStatistics
-                ));
+                )));
             }
 
-            ecs.submit(new PipelinedSortBatchTask(
+            Future<PipelinedSortBatchTask.Result> sortBatchFuture = ecs.submit(new PipelinedSortBatchTask(
                     this.getStoreDir().toPath(),
                     pathComparator,
                     this.getAlgorithm(),
                     emptyBatchesQueue,
                     nonEmptyBatchesQueue,
                     sortedFilesQueue,
-                    statisticsProvider
+                    statisticsProvider,
+                    indexingReporter
             ));
 
             PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
                     this.getStoreDir().toPath(),
                     pathComparator,
                     this.getAlgorithm(),
-                    sortedFilesQueue, statisticsProvider);
+                    sortedFilesQueue,
+                    statisticsProvider,
+                    indexingReporter);
 
-            ecs.submit(mergeSortTask);
+            Future<PipelinedMergeSortTask.Result> mergeSortFuture = ecs.submit(mergeSortTask);
 
             Path flatFileStore = null;
             try {
                 LOG.info("Waiting for tasks to complete");
                 int tasksFinished = 0;
                 int transformTasksFinished = 0;
+                boolean monitorQueues = true;
                 while (tasksFinished < numberOfThreads) {
-                    Future<?> completedTask = ecs.take();
-                    try {
-                        Object result = completedTask.get();
-                        if (result instanceof PipelinedMongoDownloadTask.Result) {
-                            PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
-                            LOG.info("Download task finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
-                            // Signal the end of documents to the transform threads.
-                            for (int i = 0; i < numberOfTransformThreads; i++) {
-                                mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
+                    // Wait with a timeout to print statistics periodically
+                    Future<?> completedTask = ecs.poll(30, TimeUnit.SECONDS);
+                    if (completedTask == null) {
+                        // Timeout waiting for a task to complete
+                        if (monitorQueues) {
+                            try {
+                                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
+                            } catch (Exception e) {
+                                LOG.warn("Error while logging queue sizes", e);
                             }
-                            mergeSortTask.stopEagerMerging();
+                        }
+                    } else {
+                        try {
+                            Object result = completedTask.get();
+                            if (result instanceof PipelinedMongoDownloadTask.Result) {
+                                PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
+                                LOG.info("Download finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
+                                // Signal the end of documents to the transform threads.
+                                for (int i = 0; i < numberOfTransformThreads; i++) {
+                                    mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
+                                }
+                                mergeSortTask.stopEagerMerging();
+                                downloadFuture = null;
 
-                        } else if (result instanceof PipelinedTransformTask.Result) {
-                            PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
-                            transformTasksFinished++;
-                            nodeStateEntriesExtracted += transformResult.getEntryCount();
-                            LOG.info("Transform task {} finished. Entries processed: {}",
-                                    transformResult.getThreadId(), transformResult.getEntryCount());
-                            if (transformTasksFinished == numberOfTransformThreads) {
-                                LOG.info("All transform tasks finished. Total entries processed: {}", nodeStateEntriesExtracted);
-                                // No need to keep monitoring the queues, the download and transform threads are done.
-                                monitorFuture.cancel(false);
-                                // Terminate the sort thread.
-                                nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
-                                transformStageStatistics.publishStatistics(statisticsProvider);
+                            } else if (result instanceof PipelinedTransformTask.Result) {
+                                PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
+                                transformTasksFinished++;
+                                nodeStateEntriesExtracted += transformResult.getEntryCount();
+                                LOG.info("Transform task {} finished. Entries processed: {}",
+                                        transformResult.getThreadId(), transformResult.getEntryCount());
+                                if (transformTasksFinished == numberOfTransformThreads) {
+                                    LOG.info("All transform tasks finished. Total entries processed: {}", nodeStateEntriesExtracted);
+                                    // No need to keep monitoring the queues, the download and transform threads are done.
+                                    monitorQueues = false;
+                                    // Terminate the sort thread.
+                                    nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
+                                    transformStageStatistics.publishStatistics(statisticsProvider, indexingReporter);
+                                    transformFutures.clear();
+                                }
+
+                            } else if (result instanceof PipelinedSortBatchTask.Result) {
+                                PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
+                                LOG.info("Sort batch task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
+                                sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
+                                // The buffers between transform and merge sort tasks are no longer needed, so remove them
+                                // from the queues so they can be garbage collected.
+                                // These buffers can be very large, so this is important to avoid running out of memory in
+                                // the merge-sort phase
+                                if (!nonEmptyBatchesQueue.isEmpty()) {
+                                    LOG.warn("emptyBatchesQueue is not empty. Size: {}", emptyBatchesQueue.size());
+                                }
+                                emptyBatchesQueue.clear();
+                                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
+                                sortBatchFuture = null;
+
+                            } else if (result instanceof PipelinedMergeSortTask.Result) {
+                                PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
+                                Path ffs = mergeSortedFilesTask.getFlatFileStoreFile();
+                                LOG.info("Merge-sort sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(Files.size(ffs)));
+                                flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
+                                mergeSortFuture = null;
+
+                            } else {
+                                throw new RuntimeException("Unknown result type: " + result);
                             }
-
-                        } else if (result instanceof PipelinedSortBatchTask.Result) {
-                            PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
-                            LOG.info("Sort batch task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
-                            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
-                            // The buffers between transform and merge sort tasks are no longer needed, so remove them
-                            // from the queues so they can be garbage collected.
-                            // These buffers can be very large, so this is important to avoid running out of memory in
-                            // the merge-sort phase
-                            if (!nonEmptyBatchesQueue.isEmpty()) {
-                                LOG.warn("emptyBatchesQueue is not empty. Size: {}", emptyBatchesQueue.size());
-                            }
-                            emptyBatchesQueue.clear();
-                            printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
-
-                        } else if (result instanceof PipelinedMergeSortTask.Result) {
-                            PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
-                            Path ffs = mergeSortedFilesTask.getFlatFileStoreFile();
-                            LOG.info("Merge-sort sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(Files.size(ffs)));
-                            flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
-
-                        } else {
-                            throw new RuntimeException("Unknown result type: " + result);
+                            tasksFinished++;
+                        } catch (ExecutionException ex) {
+                            throw new RuntimeException(ex.getCause());
+                        } catch (Throwable ex) {
+                            throw new RuntimeException(ex);
                         }
-                        tasksFinished++;
-                    } catch (ExecutionException ex) {
-                        LOG.warn("Execution error dumping from MongoDB: " + ex + ". Shutting down all threads");
-                        threadPool.shutdownNow();
-                        boolean terminated = threadPool.awaitTermination(5, TimeUnit.SECONDS);
-                        if (!terminated) {
-                            LOG.warn("Thread pool failed to terminate");
-                        }
-                        throw new RuntimeException(ex.getCause());
-                    } catch (Throwable ex) {
-                        LOG.warn("Error dumping from MongoDB: " + ex);
-                        threadPool.shutdownNow();
-                        boolean terminated = threadPool.awaitTermination(5, TimeUnit.SECONDS);
-                        if (!terminated) {
-                            LOG.warn("Thread pool failed to terminate");
-                        }
-                        throw new RuntimeException(ex);
                     }
                 }
+                long elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
                 LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
-                        .add("duration", FormattingUtils.formatToSeconds(start))
-                        .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
+                        .add("duration", FormattingUtils.formatToSeconds(elapsedSeconds))
+                        .add("durationSeconds", elapsedSeconds)
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
                         .build());
-            } catch (InterruptedException e) {
+                indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
+
+                LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
+            } catch (Throwable e) {
+                LOG.warn("Error dumping from MongoDB. Cancelling all tasks. Error: {}", e.toString());
+                // Cancel in order
+                cancelFuture(downloadFuture);
+                for (Future<?> transformTask : transformFutures) {
+                    cancelFuture(transformTask);
+                }
+                cancelFuture(sortBatchFuture);
+                cancelFuture(mergeSortFuture);
                 throw new RuntimeException(e);
-            } finally {
-                // No longer need to monitor the size of the queues,
-                monitorFuture.cancel(true);
             }
             return flatFileStore.toFile();
         } finally {
-            threadPool.shutdown();
-            monitorThreadPool.shutdown();
+            LOG.info("Shutting down build FFS thread pool");
+            new ExecutorCloser(threadPool).close();
+        }
+    }
+
+    private void cancelFuture(Future<?> future) {
+        if (future != null) {
+            LOG.info("Cancelling future: {}", future);
+            future.cancel(true);
         }
     }
 

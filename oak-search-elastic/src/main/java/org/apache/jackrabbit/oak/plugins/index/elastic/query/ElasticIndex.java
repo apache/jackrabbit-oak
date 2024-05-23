@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
@@ -63,8 +62,12 @@ class ElasticIndex extends FulltextIndex {
     @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
-            ElasticIndexStatistics indexStatistics = acquireIndexNode(plan).getIndexStatistics();
-            return indexStatistics.getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+            ElasticIndexNode indexNode = acquireIndexNode(plan);
+            try {
+                return indexNode.getIndexStatistics().getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+            } finally {
+                indexNode.release();
+            }
         };
     }
 

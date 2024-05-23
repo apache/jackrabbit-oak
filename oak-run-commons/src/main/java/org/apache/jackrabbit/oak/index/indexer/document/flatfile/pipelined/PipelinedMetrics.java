@@ -24,6 +24,7 @@ public final class PipelinedMetrics {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS = METRIC_NAME_PREFIX + "mongo_download_duration_seconds";
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE = METRIC_NAME_PREFIX + "mongo_download_enqueue_delay_percentage";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL = METRIC_NAME_PREFIX + "documents_downloaded_total";
+    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES = METRIC_NAME_PREFIX + "documents_downloaded_total_bytes";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL = METRIC_NAME_PREFIX + "documents_traversed_total";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL = METRIC_NAME_PREFIX + "documents_rejected_split_total";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL = METRIC_NAME_PREFIX + "documents_accepted_total";
