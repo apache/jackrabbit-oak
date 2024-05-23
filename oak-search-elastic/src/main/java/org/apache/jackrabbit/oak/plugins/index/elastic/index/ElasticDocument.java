@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -49,7 +51,10 @@ public class ElasticDocument {
     @JsonProperty(ElasticIndexDefinition.SIMILARITY_TAGS)
     public final Set<String> similarityTags;
     // these are dynamic properties that need to be added to the document unwrapped. See the use of @JsonAnyGetter in the getter
+    // TODO: to support strict mapping, these properties should be part of dynamicProperties
     private final Map<String, Object> properties;
+    @JsonProperty(ElasticIndexDefinition.DYNAMIC_PROPERTIES)
+    private final List<Map<String, Object>> dynamicProperties;
 
     ElasticDocument(String path) {
         this.path = path;
@@ -57,6 +62,7 @@ public class ElasticDocument {
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
         this.properties = new HashMap<>();
+        this.dynamicProperties = new ArrayList<>();
         this.dbFullText = new LinkedHashSet<>();
         this.similarityTags = new LinkedHashSet<>();
     }
@@ -66,7 +72,28 @@ public class ElasticDocument {
     }
 
     void addFulltextRelative(String path, String value) {
-        addProperty(FieldNames.createFulltextFieldName(path), value);
+        dynamicProperties.stream().filter(map -> map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME).equals(path))
+                .findFirst()
+                .ifPresentOrElse(
+                        map -> {
+                            Object existingValue = map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE);
+                            if (existingValue instanceof Set) {
+                                Set<Object> existingSet = (Set<Object>) existingValue;
+                                existingSet.add(value);
+                            } else {
+                                Set<Object> set = new LinkedHashSet<>();
+                                set.add(existingValue);
+                                set.add(value);
+                                map.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, set);
+                            }
+                        },
+                        () -> {
+                            Map<String, Object> newMap = new HashMap<>();
+                            newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME, path);
+                            newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, value);
+                            dynamicProperties.add(newMap);
+                        }
+                );
     }
 
     void addSuggest(String value) {

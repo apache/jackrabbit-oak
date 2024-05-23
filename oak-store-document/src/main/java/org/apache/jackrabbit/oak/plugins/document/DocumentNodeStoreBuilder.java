@@ -118,13 +118,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
+    private long clusterIdReuseDelayAfterRecovery = ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
     private boolean timing;
     private boolean logging;
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature noChildOrderCleanupFeature;
+    private Feature cancelInvalidationFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -315,6 +319,26 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return docStoreThrottlingFeature;
     }
 
+    public T setNoChildOrderCleanupFeature(@Nullable Feature noChildOrderCleanupFeature) {
+        this.noChildOrderCleanupFeature = noChildOrderCleanupFeature;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getNoChildOrderCleanupFeature() {
+        return noChildOrderCleanupFeature;
+    }
+
+    public T setCancelInvalidationFeature(@Nullable Feature cancelInvalidation) {
+        this.cancelInvalidationFeature = cancelInvalidation;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getCancelInvalidationFeature() {
+        return cancelInvalidationFeature;
+    }
+
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;
         return thisBuilder();
@@ -422,6 +446,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getAsyncDelay() {
         return asyncDelay;
+    }
+
+    public T setClusterIdReuseDelayAfterRecovery(long clusterIdReuseDelayAfterRecovery) {
+        this.clusterIdReuseDelayAfterRecovery = clusterIdReuseDelayAfterRecovery;
+        return thisBuilder();
+    }
+
+    public long getClusterIdReuseDelayAfterRecovery() {
+        return clusterIdReuseDelayAfterRecovery;
     }
 
     public Weigher<CacheValue, CacheValue> getWeigher() {
@@ -687,6 +720,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public long getSuspendTimeoutMillis() {
         return suspendTimeoutMillis;
+    }
+
+    public T setRecoveryDelayMillis(long recoveryDelayMillis) {
+        this.recoveryDelayMillis = recoveryDelayMillis;
+        return thisBuilder();
+    }
+
+    public long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {

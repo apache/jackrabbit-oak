@@ -301,33 +301,86 @@ var oak = (function(global){
         var depth = pathDepth(path);
         var id = depth + ":" + path;
         // current node at path
-        var result = db.nodes.remove({_id: id});
-        count += result.nRemoved;
+        var result = db.nodes.deleteMany({_id: id});
+        count += result.deletedCount;
         // might be a long path
-        result = db.nodes.remove(longPathQuery(path));
-        count += result.nRemoved;
+        result = db.nodes.deleteMany(longPathQuery(path));
+        count += result.deletedCount;
         // descendants
         var prefix = path + "/";
         depth++;
         while (true) {
-            result = db.nodes.remove(longPathFilter(depth, prefix));
-            count += result.nRemoved;
-            result = db.nodes.remove({_id: pathFilter(depth++, prefix)});
-            count += result.nRemoved;
-            if (result.nRemoved == 0) {
+            result = db.nodes.deleteMany(longPathFilter(depth, prefix));
+            count += result.deletedCount;
+            result = db.nodes.deleteMany({_id: pathFilter(depth++, prefix)});
+            count += result.deletedCount;
+            if (result.deletedCount === 0) {
                 break;
             }
         }
         // descendants further down the hierarchy with long path
         while (true) {
-            result = db.nodes.remove(longPathFilter(depth++, prefix));
-            if (result.nRemoved == 0) {
+            result = db.nodes.deleteMany(longPathFilter(depth++, prefix));
+            if (result.deletedCount === 0) {
                 break;
             }
-            count += result.nRemoved;
+            count += result.deletedCount;
         }
-        return {nRemoved : count};
+        return {deletedCount : count};
     };
+
+    /**
+     * Helper method to find nodes based on Regular Expression.
+     *
+     * @memberof oak
+     * @method regexFind
+     * @param {string} pattern the pattern to match the nodes.
+     */
+    api.regexFind = function(pattern) {
+        print(db.nodes.find({_id: {$regex: pattern}}));
+        db.nodes.find({_id: {$regex: pattern}}, {_id: 1}).forEach(function(doc) {
+            print(doc._id);
+        });
+    }
+
+    /**
+     * Remove the complete subtree of all the nodes matching a regex pattern.
+     * Use regexFind to find the nodes that match the pattern prior deletion.
+     *
+     * @memberof oak
+     * @method removeDescendantsAndSelfMatching
+     * @param {string} pattern the pattern to match the nodes to be removed.
+     */
+    api.removeDescendantsAndSelfMatching = function(pattern) {
+        var count = 0;
+        db.nodes.find({_id: {$regex: pattern}}, {_id: 1}).forEach(function(doc) {
+            print("Removing " + doc._id + " and its children");
+            var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
+            count += result.deletedCount;
+            print("nRemoved : " + result.deletedCount);
+        });
+        print("Total removed : " + count);
+    }
+
+    /**
+     * Wrapper function to clean all the /tmpXXXXXX nodes from the repository.
+     *
+     * @memberof oak
+     * @method removeRootTempNodes
+     */
+    api.removeRootTempNodes = function() {
+        this.removeDescendantsAndSelfMatching("^1:/tmp.+");
+    }
+
+    /**
+     * List all the nodes under /tmpXXXXXX.
+     *
+     * @memberof oak
+     * @method listRootTempNodes
+     */
+    api.listRootTempNodes = function() {
+        this.regexFind("^1:/tmp.+");
+    }
 
     /**
      * List all checkpoints.
@@ -669,7 +722,7 @@ var oak = (function(global){
         } else {
             prefix = path + "/";
         }
-        db.nodes.find({_id: pathFilter(pathDepth(path) + 1, prefix)}).forEach(function(doc) {
+        db.nodes.find({_id: pathFilter(pathDepth(path) + 1, prefix)}, {_id: 1}).forEach(function(doc) {
             print(api.pathFromId(doc._id));
             numChildren++;
         });

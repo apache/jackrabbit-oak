@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,8 +53,17 @@ class ElasticIndexHelper {
      * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
      * use the new feature).
      * Changes that do not affect queries should increment the patch version (eg: bug fixes).
+     * <p>
+     * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
+     * actual version needs to be set in oak-search.
      */
-    protected static final String MAPPING_VERSION = "1.0.0";
+    protected static final String MAPPING_VERSION;
+    static {
+        MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+        if (MAPPING_VERSION == null) {
+            throw new IllegalStateException("Mapping version is not set");
+        }
+    }
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
@@ -68,6 +78,10 @@ class ElasticIndexHelper {
     protected static final String DYNAMIC_BOOST_NESTED_VALUE = "value";
 
     protected static final String DYNAMIC_BOOST_NESTED_BOOST = "boost";
+
+    protected static final String DYNAMIC_PROPERTY_NAME = "name";
+
+    protected static final String DYNAMIC_PROPERTY_VALUE = "value";
 
     /**
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
@@ -108,14 +122,30 @@ class ElasticIndexHelper {
                                         .searchAnalyzer("keyword")
                                         .searchQuoteAnalyzer("keyword")))
                 .properties(FieldNames.PATH_DEPTH,
-                        b1 -> b1.integer(
-                                b2 -> b2.docValues(false)))
+                        b1 -> b1.integer(b2 -> b2.docValues(false)))
                 .properties(FieldNames.FULLTEXT,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")))
+                        b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
                 .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")));
+                        b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
+                .properties(FieldNames.SPELLCHECK,
+                        b1 -> b1.text(b2 -> b2.analyzer("trigram")))
+                .properties(FieldNames.SUGGEST,
+                        b1 -> b1.nested(
+                                // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-search-speed.html#faster-prefix-queries
+                                b2 -> b2.properties(SUGGEST_NESTED_VALUE,
+                                        b3 -> b3.text(
+                                                b4 -> b4.analyzer("oak_analyzer")
+                                        )
+                                )
+                        )
+                )
+                .properties(ElasticIndexDefinition.DYNAMIC_PROPERTIES, b1 -> b1.nested(
+                                b2 -> b2.properties(DYNAMIC_PROPERTY_NAME, b3 -> b3.keyword(b4 -> b4))
+                                        .properties(DYNAMIC_PROPERTY_VALUE,
+                                                b3 -> b3.text(b4 -> b4.analyzer("oak_analyzer"))
+                                        )
+                        )
+                );
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")
@@ -124,7 +154,6 @@ class ElasticIndexHelper {
         // .field("type", "keyword")
         // .endObject();
     }
-
 
     /**
      * Returns a {@code PutIndicesSettingsRequest} to make an index ready to be queried and updated in near real time.
@@ -144,7 +173,6 @@ class ElasticIndexHelper {
                 .index(remoteIndexName)
                 .settings(indexSettings));
     }
-
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
@@ -203,16 +231,12 @@ class ElasticIndexHelper {
     private static void mapIndexRules(@NotNull TypeMapping.Builder builder,
                                       @NotNull ElasticIndexDefinition indexDefinition) {
         checkIndexRules(indexDefinition);
-        boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
             Type<?> type = null;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
-                if (pd.useInSuggest) {
-                    useInSuggest = true;
-                }
             }
 
             Property.Builder pBuilder = new Property.Builder();
@@ -241,24 +265,6 @@ class ElasticIndexHelper {
                 }
             }
             builder.properties(name, pBuilder.build());
-
-            builder.properties(FieldNames.SPELLCHECK,
-                    b1 -> b1.text(
-                            b2 -> b2.analyzer("trigram"))
-            );
-
-            if (useInSuggest) {
-                builder.properties(FieldNames.SUGGEST,
-                        b1 -> b1.nested(
-                                // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
-                                b2 -> b2.properties(SUGGEST_NESTED_VALUE,
-                                        b3 -> b3.text(
-                                                b4 -> b4.analyzer("oak_analyzer")
-                                        )
-                                )
-                        )
-                );
-            }
 
             for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
                 builder.properties(pd.nodeName,

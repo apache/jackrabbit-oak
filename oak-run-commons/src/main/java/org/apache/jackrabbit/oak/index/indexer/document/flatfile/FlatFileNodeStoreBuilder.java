@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUti
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -102,6 +104,8 @@ public class FlatFileNodeStoreBuilder {
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+    private IndexingReporter indexingReporter = IndexingReporter.NOOP;
+    private MongoClientURI mongoClientURI;
 
     public enum SortStrategyType {
         /**
@@ -175,6 +179,11 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    public FlatFileNodeStoreBuilder withMongoClientURI(MongoClientURI mongoClientURI) {
+        this.mongoClientURI = mongoClientURI;
+        return this;
+    }
+
     public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
         this.mongoDatabase = mongoDatabase;
         return this;
@@ -182,6 +191,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withStatisticsProvider(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withIndexingReporter(IndexingReporter reporter) {
+        this.indexingReporter = reporter;
         return this;
     }
 
@@ -313,8 +327,11 @@ public class FlatFileNodeStoreBuilder {
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-                return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint, statisticsProvider);
+                List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+                indexingReporter.setIndexNames(indexNames);
+                return new PipelinedStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
+                        statisticsProvider, indexingReporter);
 
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);

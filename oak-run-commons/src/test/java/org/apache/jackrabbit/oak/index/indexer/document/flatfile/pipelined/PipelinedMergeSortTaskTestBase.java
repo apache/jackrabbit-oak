@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
@@ -108,12 +109,14 @@ public class PipelinedMergeSortTaskTestBase {
         Path sortRoot = sortFolder.getRoot().toPath();
         // +1 for the Sentinel.
         ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(files.length + 1);
+        ConsoleIndexingReporter reporter = new ConsoleIndexingReporter();
         PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
                 sortRoot,
                 pathComparator,
                 algorithm,
                 sortedFilesQueue,
-                StatisticsProvider.NOOP);
+                StatisticsProvider.NOOP,
+                reporter);
         // Enqueue all the files that are to be merged
         for (Path file : files) {
             sortedFilesQueue.put(file);

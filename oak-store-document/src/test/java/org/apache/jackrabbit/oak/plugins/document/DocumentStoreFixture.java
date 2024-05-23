@@ -121,6 +121,36 @@ public abstract class DocumentStoreFixture {
     public void dispose() throws Exception {
     }
 
+    public static class ClusterlikeMemoryFixture extends DocumentStoreFixture {
+
+        private static MemoryDocumentStore sharedStore;
+
+        @Override
+        public String getName() {
+            return "ClusterlikeMemory";
+        }
+
+        @Override
+        public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
+            if (sharedStore == null) {
+                sharedStore = new MemoryDocumentStore();
+            }
+            return new DocumentStoreWrapper(sharedStore);
+        }
+
+        @Override
+        public boolean hasSinglePersistence() {
+            return true;
+        }
+
+        @Override
+        public void dispose() throws Exception {
+            sharedStore = null;
+            super.dispose();
+        }
+
+    }
+
     public static class MemoryFixture extends DocumentStoreFixture {
 
         @Override

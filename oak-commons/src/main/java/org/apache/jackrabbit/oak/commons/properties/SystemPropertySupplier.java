@@ -98,9 +98,40 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
 
     /**
      * Specify {@link Level} to use for "success" message.
+     * @deprecated use {@link #logSuccessAs(String) instead
      */
+    @Deprecated(forRemoval = true)
     public SystemPropertySupplier<T> logSuccessAs(Level successLogLevel) {
         this.successLogLevel = Objects.requireNonNull(successLogLevel);
+        LOG.error("Use of deprecated method logSuccessAs(Level)", new Exception("call stack"));
+        return this;
+    }
+
+    /**
+     * Specify {@link Level} to use for "success" message (defaults to "INFO")
+     */
+    public SystemPropertySupplier<T> logSuccessAs(String successLogLevel) {
+        Level newLevel;
+        switch (Objects.requireNonNull(successLogLevel)) {
+            case "DEBUG":
+                newLevel = Level.DEBUG;
+                break;
+            case "ERROR":
+                newLevel = Level.ERROR;
+                break;
+            case "INFO":
+                newLevel = Level.INFO;
+                break;
+            case "TRACE":
+                newLevel = Level.TRACE;
+                break;
+            case "WARN":
+                newLevel = Level.WARN;
+                break;
+            default:
+                throw new IllegalArgumentException("unsupported log level: " + successLogLevel);
+        }
+        this.successLogLevel = newLevel;
         return this;
     }
 

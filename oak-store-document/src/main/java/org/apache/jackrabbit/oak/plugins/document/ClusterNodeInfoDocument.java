@@ -108,7 +108,7 @@ public class ClusterNodeInfoDocument extends Document {
      */
     public boolean isRecoveryNeeded(long currentTimeMillis) {
         return isActive() &&
-                (currentTimeMillis > getLeaseEndTime() ||
+                (currentTimeMillis - getLeaseEndTime() > ClusterNodeInfo.getRecoveryDelayMillis() ||
                         isBeingRecovered());
     }
 

@@ -49,8 +49,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.createVersionStorage;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryNodeState;
-import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 /**
  * The VersionablePropertiesEditor adds missing versionable properties.
@@ -76,7 +76,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     private VersionablePropertiesEditor(NodeBuilder rootBuilder) {
         this.builder = rootBuilder;
         this.rootBuilder = rootBuilder;
-        this.versionStorage = getVersionStorage(rootBuilder);
+        this.versionStorage = createVersionStorage(rootBuilder);
         this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
         this.isNtVersion = new TypePredicate(rootBuilder.getNodeState(), NT_VERSION);
         this.isFrozenNode = new TypePredicate(rootBuilder.getNodeState(), NT_FROZENNODE);

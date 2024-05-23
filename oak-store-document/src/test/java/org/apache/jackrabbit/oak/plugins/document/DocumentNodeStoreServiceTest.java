@@ -77,6 +77,7 @@ public class DocumentNodeStoreServiceTest {
     public void tearDown() throws Exception {
         MockOsgi.deactivate(service, context.bundleContext());
         MongoUtils.dropCollections(MongoUtils.DB);
+        ClusterNodeInfo.resetRecoveryDelayMillisToDefault();
     }
 
     @Test
@@ -338,6 +339,31 @@ public class DocumentNodeStoreServiceTest {
 
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
         assertEquals(suspendTimeoutMillis, dns.commitQueue.getSuspendTimeoutMillis());
+    }
+
+    @Test
+    public void recoveryDelayMillis0() {
+        doRecoveryDelayMillis(0);
+    }
+
+    @Test
+    public void recoveryDelayMillisNegative() {
+        doRecoveryDelayMillis(-1);
+    }
+
+    @Test
+    public void recoveryDelayMillisMinute() {
+        doRecoveryDelayMillis(60000);
+    }
+
+    private void doRecoveryDelayMillis(long recoveryDelayMillis) {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("recoveryDelayMillis", recoveryDelayMillis);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertEquals(recoveryDelayMillis, ClusterNodeInfo.getRecoveryDelayMillis());
     }
 
     @NotNull

@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -74,8 +73,7 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     public boolean importIndex(String indexDirPath, boolean ignoreLocalLock) throws IOException, CommitFailedException {
 
         try {
-            IndexImporter importer =
-                    new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock), StatisticsProvider.NOOP);
+            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock));
             providerTracker.getServices().forEach(importer::addImporterProvider);
             importer.importIndex();
         } catch (IOException | CommitFailedException | RuntimeException e) {

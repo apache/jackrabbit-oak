@@ -32,13 +32,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -204,6 +205,88 @@ public class Utils {
             size = Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    private static class PropertyStats {
+        public int count;
+        public int size;
+    }
+
+    /**
+     * Generates diagnostics about the structure of the entries of the document
+     * by counting properties and their lengths.
+     */
+    public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
+        Map<String, PropertyStats> stats = new TreeMap<>();
+
+        for (Map.Entry<String, Object> member : entries) {
+            String key = member.getKey();
+
+            PropertyStats stat = stats.get(key);
+            if (stat == null) {
+                stat = new PropertyStats();
+            }
+
+            Object o = member.getValue();
+            if (o instanceof String) {
+                stat.size += StringUtils.estimateMemoryUsage((String) o);
+                stat.count += 1;
+            } else if (o instanceof Long) {
+                stat.size += 16;
+                stat.count += 1;
+            } else if (o instanceof Boolean) {
+                stat.size += 8;
+                stat.count += 1;
+            } else if (o instanceof Integer) {
+                stat.size += 8;
+                stat.count += 1;
+            } else if (o instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<Object, Object> x = (Map<Object, Object>)o;
+                stat.size += 8 + Utils.estimateMemoryUsage(x);
+                stat.count += x.size();
+            } else if (o == null) {
+                // zero
+            } else {
+                throw new IllegalArgumentException("Can't estimate memory usage of " + o);
+            }
+
+            stats.put(key, stat);
+        }
+
+        // sort by estimated entry size, highest first
+        Comparator<Map.Entry<String, PropertyStats>> bySize = (Map.Entry<String, PropertyStats> o1,
+                Map.Entry<String, PropertyStats> o2) -> o2.getValue().size - o1.getValue().size;
+
+        return stats.entrySet().stream().sorted(bySize).map(e -> diagsForEntry(e)).collect(Collectors.joining(", "));
+    }
+
+    /**
+     * Stats for a single map entry.
+     */
+    private static String diagsForEntry(Map.Entry<String, PropertyStats> member) {
+        String name = member.getKey();
+        PropertyStats stat = member.getValue();
+        if (stat.count <= 1) {
+            return redactMemberName(name) + ": "+ stat.size + " bytes";
+        } else {
+            return redactMemberName(name) + ": "+ stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)";
+        }
+    }
+
+    /**
+     * List of property names that are system-defined by JCR and thus do not
+     * need to be redacted (to be expanded later)
+     */
+    private static final Set<String> POS_PROPERTY_LIST = Set.of("jcr:primaryType", "jcr:mixinTypes");
+
+    /**
+     * Redacts names for use in log entries. Attempts to hide all names that are
+     * not under system control.
+     */
+    private static String redactMemberName(String name) {
+        boolean redact = isPropertyName(name) && !name.startsWith(":") && !POS_PROPERTY_LIST.contains(name);
+        return redact ? "(name redacted)" : "'" + name + "'";
     }
 
     public static String escapePropertyName(String propertyName) {
