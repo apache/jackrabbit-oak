@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
 
 /**
@@ -51,10 +51,10 @@ final class MongoDBConnection {
                       @NotNull MongoDatabase database,
                       @NotNull MongoStatus status,
                       @NotNull MongoClock clock) {
-        this.client = checkNotNull(client);
-        this.db = checkNotNull(database);
-        this.status = checkNotNull(status);
-        this.clock = checkNotNull(clock);
+        this.client = requireNonNull(client);
+        this.db = requireNonNull(database);
+        this.status = requireNonNull(status);
+        this.clock = requireNonNull(clock);
         this.sessionFactory = new MongoSessionFactory(client, clock);
     }
 

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.ACTIVE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.NONE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState.ACQUIRED;
@@ -376,7 +376,7 @@ public class ClusterNodeInfo {
     }
 
     void setLeaseCheckMode(@NotNull LeaseCheckMode mode) {
-        this.leaseCheckMode = checkNotNull(mode);
+        this.leaseCheckMode = requireNonNull(mode);
     }
 
     LeaseCheckMode getLeaseCheckMode() {
@@ -1224,7 +1224,7 @@ public class ClusterNodeInfo {
      * <b>Only Used For Testing</b>
      */
     static void setClock(Clock c) {
-        checkNotNull(c);
+        requireNonNull(c);
         clock = c;
     }
 

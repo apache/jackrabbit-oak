@@ -67,7 +67,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.lang.String.format;
 import static org.apache.commons.io.FileUtils.ONE_MB;
@@ -1041,7 +1041,7 @@ public class DocumentBundlingTest {
 
     private static String getBundlingPath(NodeState contentNode) {
         PropertyState ps = contentNode.getProperty(DocumentBundlor.META_PROP_BUNDLING_PATH);
-        return checkNotNull(ps).getValue(Type.STRING);
+        return requireNonNull(ps).getValue(Type.STRING);
     }
 
     private static void dump(NodeState state){

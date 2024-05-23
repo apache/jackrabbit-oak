@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
 import static java.util.Comparator.comparing;
@@ -189,7 +189,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         this.blobStore = blobStore;
         this.checkConsistencyAfterGc = checkConsistencyAfterGc;
         this.sweepIfRefsPastRetention = sweepIfRefsPastRetention;
-        checkNotNull(blobStore, "BlobStore cannot be null");
+        requireNonNull(blobStore, "BlobStore cannot be null");
         this.marker = marker;
         this.batchCount = batchCount;
         this.maxLastModifiedInterval = maxLastModifiedInterval;

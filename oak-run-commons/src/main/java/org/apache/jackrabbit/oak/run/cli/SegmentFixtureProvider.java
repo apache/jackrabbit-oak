@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
@@ -40,7 +40,7 @@ class SegmentFixtureProvider {
 
     static NodeStore create(Options options, BlobStore blobStore, Whiteboard wb, Closer closer, boolean readOnly)
             throws IOException, InvalidFileStoreVersionException {
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+        StatisticsProvider statisticsProvider = requireNonNull(getService(wb, StatisticsProvider.class));
 
         String path = options.getOptionBean(CommonOptions.class).getStoreArg();
         FileStore.Builder builder = FileStore.builder(new File(path))

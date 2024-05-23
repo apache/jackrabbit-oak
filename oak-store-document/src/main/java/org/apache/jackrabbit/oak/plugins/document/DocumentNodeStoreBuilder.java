@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static java.util.Objects.isNull;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
@@ -814,7 +814,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {
-        this.gcMonitor = checkNotNull(gcMonitor);
+        this.gcMonitor = requireNonNull(gcMonitor);
         return thisBuilder();
     }
 

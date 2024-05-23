@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
@@ -117,9 +117,9 @@ public final class BufferedOakDirectory extends Directory {
                 BlobFactory.getBlobStoreBlobFactory(blobStore) :
                 BlobFactory.getNodeBuilderBlobFactory(builder);
         this.blobDeletionCallback = blobDeletionCallback;
-        this.dataNodeName = checkNotNull(dataNodeName);
-        this.definition = checkNotNull(definition);
-        this.base = new OakDirectory(checkNotNull(builder), dataNodeName,
+        this.dataNodeName = requireNonNull(dataNodeName);
+        this.definition = requireNonNull(definition);
+        this.base = new OakDirectory(requireNonNull(builder), dataNodeName,
                 definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
         reopenBuffered();
     }

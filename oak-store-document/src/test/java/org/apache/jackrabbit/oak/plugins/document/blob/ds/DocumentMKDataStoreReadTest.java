@@ -28,7 +28,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests for {@code DocumentMK#read(String, long, byte[], int, int)} using
@@ -48,7 +48,7 @@ public class DocumentMKDataStoreReadTest extends DocumentMKReadTest {
     @Before
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
-        checkNotNull(mongoConnection);
+        requireNonNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())

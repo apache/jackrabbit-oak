@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
@@ -121,7 +121,7 @@ public class MapRecord extends Record {
 
     MapRecord(@NotNull SegmentReader reader, @NotNull RecordId id) {
         super(id);
-        this.reader = checkNotNull(reader);
+        this.reader = requireNonNull(reader);
     }
 
     boolean isLeaf() {
@@ -177,7 +177,7 @@ public class MapRecord extends Record {
     }
 
     MapEntry getEntry(String name) {
-        checkNotNull(name);
+        requireNonNull(name);
         int hash = getHash(name);
         Segment segment = getSegment();
 
@@ -256,7 +256,7 @@ public class MapRecord extends Record {
     }
 
     private RecordId getValue(int hash, RecordId key) {
-        checkNotNull(key);
+        requireNonNull(key);
         Segment segment = getSegment();
 
         int head = segment.readInt(getRecordNumber());

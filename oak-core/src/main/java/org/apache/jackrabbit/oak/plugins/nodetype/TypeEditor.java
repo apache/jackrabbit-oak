@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -171,7 +171,7 @@ public class TypeEditor extends DefaultEditor {
             String primary, Iterable<String> mixins, NodeBuilder builder)
             throws CommitFailedException {
         this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
-        this.callback = checkNotNull(callback);
+        this.callback = requireNonNull(callback);
         this.typesToCheck = typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
@@ -179,9 +179,9 @@ public class TypeEditor extends DefaultEditor {
                 || any(mixins, in(typesToCheck));
         this.parent = null;
         this.nodeName = null;
-        this.types = checkNotNull(types);
+        this.types = requireNonNull(types);
         this.effective = createEffectiveType(null, null, primary, mixins);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.validate = false;
     }
 
@@ -197,11 +197,11 @@ public class TypeEditor extends DefaultEditor {
                 typesToCheck == null
                 || typesToCheck.contains(primary)
                 || any(mixins, in(typesToCheck));
-        this.parent = checkNotNull(parent);
-        this.nodeName = checkNotNull(name);
+        this.parent = requireNonNull(parent);
+        this.nodeName = requireNonNull(name);
         this.types = parent.types;
         this.effective = createEffectiveType(parent.effective, name, primary, mixins);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.validate = validate;
     }
 
@@ -216,7 +216,7 @@ public class TypeEditor extends DefaultEditor {
         this.parent = null;
         this.nodeName = null;
         this.types = EMPTY_NODE;
-        this.effective = checkNotNull(effective);
+        this.effective = requireNonNull(effective);
         this.builder = EMPTY_NODE.builder();
         this.validate = false;
     }

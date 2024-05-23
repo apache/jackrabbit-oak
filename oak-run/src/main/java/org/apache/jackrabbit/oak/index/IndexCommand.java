@@ -56,7 +56,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 
@@ -241,7 +241,7 @@ public class IndexCommand implements Command {
     }
 
     private File reindex(IndexOptions idxOpts, ExtendedIndexHelper extendedIndexHelper, String checkpoint) throws IOException, CommitFailedException {
-        checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+        requireNonNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch reindexWatch = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);

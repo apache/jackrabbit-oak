@@ -54,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
@@ -363,7 +363,7 @@ public class NRTIndex implements Closeable {
         private final Directory directory;
 
         public NRTReader(IndexReader indexReader, Directory directory) {
-            this.indexReader = checkNotNull(indexReader);
+            this.indexReader = requireNonNull(indexReader);
             this.directory = directory;
         }
 

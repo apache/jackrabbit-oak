@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
@@ -367,7 +367,7 @@ public class Oak {
     private boolean failOnMissingIndexProvider;
 
     public Oak(NodeStore store) {
-        this.store = checkNotNull(store);
+        this.store = requireNonNull(store);
     }
 
     public Oak() {
@@ -384,7 +384,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull Clusterable c) {
-        this.clusterable = checkNotNull(c);
+        this.clusterable = requireNonNull(c);
         return this;
     }
 
@@ -398,13 +398,13 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull String defaultWorkspaceName) {
-        this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
+        this.defaultWorkspaceName = requireNonNull(defaultWorkspaceName);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull RepositoryInitializer initializer) {
-        initializers.add(checkNotNull(initializer));
+        initializers.add(requireNonNull(initializer));
         return this;
     }
 
@@ -427,7 +427,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull QueryIndexProvider provider) {
-        queryIndexProviders.add(checkNotNull(provider));
+        queryIndexProviders.add(requireNonNull(provider));
         return this;
     }
 
@@ -440,7 +440,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull IndexEditorProvider provider) {
-        indexEditorProviders.add(checkNotNull(provider));
+        indexEditorProviders.add(requireNonNull(provider));
         return this;
     }
 
@@ -452,7 +452,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull CommitHook hook) {
-        checkNotNull(hook);
+        requireNonNull(hook);
         withEditorHook();
         commitHooks.add(hook);
         return this;
@@ -482,7 +482,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull EditorProvider provider) {
-        editorProviders.add(checkNotNull(provider));
+        editorProviders.add(requireNonNull(provider));
         return this;
     }
 
@@ -494,7 +494,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull final Editor editor) {
-        checkNotNull(editor);
+        requireNonNull(editor);
         return with(new EditorProvider() {
             @Override @NotNull
             public Editor getRootEditor(
@@ -507,7 +507,7 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull SecurityProvider securityProvider) {
-        this.securityProvider = checkNotNull(securityProvider);
+        this.securityProvider = requireNonNull(securityProvider);
         return this;
     }
 
@@ -526,7 +526,7 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull ThreeWayConflictHandler conflictHandler) {
-        checkNotNull(conflictHandler);
+        requireNonNull(conflictHandler);
         withEditorHook();
 
         if (this.conflictHandler == null) {
@@ -545,25 +545,25 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull ScheduledExecutorService scheduledExecutor) {
-        this.scheduledExecutor = checkNotNull(scheduledExecutor);
+        this.scheduledExecutor = requireNonNull(scheduledExecutor);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull Executor executor) {
-        this.executor = checkNotNull(executor);
+        this.executor = requireNonNull(executor);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull MBeanServer mbeanServer) {
-        this.mbeanServer = checkNotNull(mbeanServer);
+        this.mbeanServer = requireNonNull(mbeanServer);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull Whiteboard whiteboard) {
-        this.whiteboard = checkNotNull(whiteboard);
+        this.whiteboard = requireNonNull(whiteboard);
         QueryEngineSettings whiteboardSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
         if (whiteboardSettings != null) {
             queryEngineSettings = new AnnotatedQueryEngineSettings(whiteboardSettings);
@@ -591,7 +591,7 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull Observer observer) {
-        observers.add(checkNotNull(observer));
+        observers.add(requireNonNull(observer));
         return this;
     }
 

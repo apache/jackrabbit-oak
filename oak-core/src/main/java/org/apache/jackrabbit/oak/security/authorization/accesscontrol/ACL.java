@@ -43,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 abstract class ACL extends AbstractAccessControlList {
 
@@ -165,7 +165,7 @@ abstract class ACL extends AbstractAccessControlList {
         final String principalName = entry.getPrincipal().getName();
         final Set<Restriction> restrictions = entry.getRestrictions();
         List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, ace ->
-                principalName.equals(checkNotNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
+                principalName.equals(requireNonNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
 
         boolean addEntry = true;
         for (ACE existing : subList) {

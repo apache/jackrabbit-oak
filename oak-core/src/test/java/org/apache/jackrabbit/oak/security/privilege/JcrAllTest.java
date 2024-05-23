@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -69,7 +69,7 @@ public class JcrAllTest extends AbstractSecurityTest implements PrivilegeConstan
         Iterable<Privilege> declaredAggr = Arrays.asList(pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
         String[] allAggregates = Iterables.toArray(Iterables.transform(
                 declaredAggr,
-                privilege -> checkNotNull(privilege).getName()), String.class);
+                privilege -> requireNonNull(privilege).getName()), String.class);
         PrivilegeBits all2 = bitsProvider.getBits(allAggregates);
 
         assertEquals(all, all2);

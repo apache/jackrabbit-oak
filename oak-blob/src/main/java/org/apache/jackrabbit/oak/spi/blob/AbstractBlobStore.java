@@ -55,7 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
@@ -232,7 +232,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     @Override
     public String getReference(@NotNull String blobId) {
-        checkNotNull(blobId, "BlobId must be specified");
+        requireNonNull(blobId, "BlobId must be specified");
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(new SecretKeySpec(getReferenceKey(), ALGORITHM));
@@ -249,7 +249,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     @Override
     public String getBlobId(@NotNull String reference) {
-        checkNotNull(reference, "BlobId must be specified");
+        requireNonNull(reference, "BlobId must be specified");
         int colon = reference.indexOf(':');
         if (colon != -1) {
             String blobId = reference.substring(0, colon);

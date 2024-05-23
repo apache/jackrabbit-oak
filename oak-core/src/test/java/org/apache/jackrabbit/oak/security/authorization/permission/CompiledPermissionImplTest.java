@@ -57,7 +57,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -195,7 +195,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         }
 
         ReadOnlyVersionManager vm = ReadOnlyVersionManager.getInstance(root, getNamePathMapper());
-        return checkNotNull(vm.getVersionHistory(tree));
+        return requireNonNull(vm.getVersionHistory(tree));
     }
 
     @Test

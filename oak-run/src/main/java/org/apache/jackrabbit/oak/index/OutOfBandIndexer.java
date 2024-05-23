@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.asList;
 
 public class OutOfBandIndexer extends OutOfBandIndexerBase {
@@ -38,7 +38,7 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
 
     public OutOfBandIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
         super(extendedIndexHelper,indexerSupport);
-        this.extendedIndexHelper = checkNotNull(extendedIndexHelper);
+        this.extendedIndexHelper = requireNonNull(extendedIndexHelper);
     }
 
     protected IndexEditorProvider createIndexEditorProvider() throws IOException {

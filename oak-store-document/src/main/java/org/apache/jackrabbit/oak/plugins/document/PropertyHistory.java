@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.AbstractMap.SimpleImmutableEntry;
@@ -48,8 +48,8 @@ class PropertyHistory implements Iterable<NodeDocument> {
 
     public PropertyHistory(@NotNull NodeDocument doc,
                            @NotNull String property) {
-        this.doc = checkNotNull(doc);
-        this.property = checkNotNull(property);
+        this.doc = requireNonNull(doc);
+        this.property = requireNonNull(property);
         this.mainPath = doc.getMainPath();
     }
 

@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
@@ -110,10 +110,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
         super(LuceneIndexMBean.class);
-        this.indexTracker = checkNotNull(indexTracker);
-        this.nodeStore = checkNotNull(nodeStore);
+        this.indexTracker = requireNonNull(indexTracker);
+        this.nodeStore = requireNonNull(nodeStore);
         this.indexPathService = indexPathService;
-        this.workDir = checkNotNull(workDir);
+        this.workDir = requireNonNull(workDir);
         this.propertyIndexCleaner = cleaner;
     }
 
@@ -440,7 +440,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             if (indexNode != null) {
                 log.info("Dumping Lucene directory content for [{}] to [{}]", sourcePath, destPath);
                 Directory source = getDirectory(getPrimaryReader(indexNode.getPrimaryReaders()));
-                checkNotNull(source, "IndexSearcher not backed by DirectoryReader");
+                requireNonNull(source, "IndexSearcher not backed by DirectoryReader");
                 Directory dest = FSDirectory.open(new File(destPath));
                 for (String file : source.listAll()) {
                     source.copy(dest, file, file, IOContext.DEFAULT);

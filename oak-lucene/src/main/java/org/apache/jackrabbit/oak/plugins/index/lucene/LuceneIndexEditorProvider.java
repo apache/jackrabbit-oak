@@ -60,7 +60,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 /**
@@ -136,7 +136,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.augmentorFactory = augmentorFactory;
-        this.mountInfoProvider = checkNotNull(mountInfoProvider);
+        this.mountInfoProvider = requireNonNull(mountInfoProvider);
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
         this.mbean = mbean;
         this.statisticsProvider = statisticsProvider;

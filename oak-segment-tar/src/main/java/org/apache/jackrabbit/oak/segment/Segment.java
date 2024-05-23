@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
@@ -175,9 +175,9 @@ public class Segment {
         @NotNull SegmentReferences segmentReferences,
         @NotNull String info
     ) {
-        this.id = checkNotNull(id);
-        this.reader = checkNotNull(reader);
-        this.info = checkNotNull(info);
+        this.id = requireNonNull(id);
+        this.reader = requireNonNull(reader);
+        this.info = requireNonNull(info);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(Buffer.wrap(buffer));
         } else {
@@ -193,10 +193,10 @@ public class Segment {
                    @NotNull SegmentReader reader,
                    @NotNull final SegmentId id,
         @NotNull final Buffer data) {
-        this.reader = checkNotNull(reader);
-        this.id = checkNotNull(id);
+        this.reader = requireNonNull(reader);
+        this.id = requireNonNull(id);
         if (id.isDataSegmentId()) {
-            this.data = newSegmentData(checkNotNull(data).slice());
+            this.data = newSegmentData(requireNonNull(data).slice());
             byte segmentVersion = this.data.getVersion();
             checkState(this.data.getSignature().equals("0aK") && isValid(segmentVersion), new Object() {
 
@@ -210,7 +210,7 @@ public class Segment {
             this.recordNumbers = readRecordNumberOffsets();
             this.segmentReferences = readReferencedSegments(idProvider);
         } else {
-            this.data = newRawSegmentData(checkNotNull(data).slice());
+            this.data = newRawSegmentData(requireNonNull(data).slice());
             this.version = LATEST_VERSION;
             this.recordNumbers = new IdentityRecordNumbers();
             this.segmentReferences = new IllegalSegmentReferences();

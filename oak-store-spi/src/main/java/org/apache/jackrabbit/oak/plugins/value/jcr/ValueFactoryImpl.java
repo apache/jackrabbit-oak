@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,7 +69,7 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
                             @NotNull NamePathMapper namePathMapper,
                             @NotNull BlobAccessProvider blobAccessProvider) {
         super(namePathMapper, blobAccessProvider);
-        this.root = checkNotNull(root);
+        this.root = requireNonNull(root);
     }
 
     /**

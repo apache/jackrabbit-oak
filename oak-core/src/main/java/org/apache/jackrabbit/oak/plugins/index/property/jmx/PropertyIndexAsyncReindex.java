@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.lang.System.nanoTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
@@ -53,8 +53,8 @@ public class PropertyIndexAsyncReindex implements
      */
     public PropertyIndexAsyncReindex(@NotNull AsyncIndexUpdate async,
             @NotNull Executor executor) {
-        this.async = checkNotNull(async);
-        this.executor = checkNotNull(executor);
+        this.async = requireNonNull(async);
+        this.executor = requireNonNull(executor);
     }
 
     @NotNull

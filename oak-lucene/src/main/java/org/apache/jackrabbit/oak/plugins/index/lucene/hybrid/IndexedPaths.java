@@ -24,13 +24,13 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
     private final Multimap<String, String> indexedPaths;
 
     public IndexedPaths(Multimap<String, String> indexedPaths) {
-        this.indexedPaths = checkNotNull(indexedPaths);
+        this.indexedPaths = requireNonNull(indexedPaths);
     }
 
     @Override

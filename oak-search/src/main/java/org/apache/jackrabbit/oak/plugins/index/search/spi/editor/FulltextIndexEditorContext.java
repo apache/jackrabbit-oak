@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
@@ -100,7 +100,7 @@ public abstract class FulltextIndexEditorContext<D> {
                                        ExtractedTextCache extractedTextCache,
                                        IndexingContext indexingContext, boolean asyncIndexing) {
     this.root = root;
-    this.indexingContext = checkNotNull(indexingContext);
+    this.indexingContext = requireNonNull(indexingContext);
     this.definitionBuilder = definition;
     this.indexWriterFactory = indexWriterFactory;
     this.definition = indexDefinition != null ? indexDefinition :
@@ -188,7 +188,7 @@ public abstract class FulltextIndexEditorContext<D> {
 
   /** Only set for testing */
   protected static void setClock(Clock c) {
-    checkNotNull(c);
+    requireNonNull(c);
     clock = c;
   }
 

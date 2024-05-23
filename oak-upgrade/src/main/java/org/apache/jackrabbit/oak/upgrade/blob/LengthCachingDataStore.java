@@ -51,7 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -249,7 +249,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private DataStore getDelegate() {
-        return checkNotNull(delegate, "Delegate DataStore not configured");
+        return requireNonNull(delegate, "Delegate DataStore not configured");
     }
 
     private void addNewMapping(DataRecord dr) throws DataStoreException {
@@ -272,7 +272,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private void initializeDelegate(String homeDir) throws RepositoryException {
-        checkNotNull(delegateClass, "No delegate DataStore class defined via 'delegateClass' property");
+        requireNonNull(delegateClass, "No delegate DataStore class defined via 'delegateClass' property");
         try {
             delegate = (DataStore) getClass().getClassLoader().loadClass(delegateClass).newInstance();
         } catch (InstantiationException e) {

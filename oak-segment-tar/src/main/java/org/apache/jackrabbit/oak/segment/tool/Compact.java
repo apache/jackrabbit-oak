@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
@@ -96,7 +96,7 @@ public class Compact {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -122,7 +122,7 @@ public class Compact {
          * @return this builder.
          */
         public Builder withOs(String os) {
-            this.os = checkNotNull(os);
+            this.os = requireNonNull(os);
             return this;
         }
 
@@ -204,7 +204,7 @@ public class Compact {
          * @return an instance of {@link Runnable}.
          */
         public Compact build() {
-            checkNotNull(path);
+            requireNonNull(path);
             return new Compact(this);
         }
 

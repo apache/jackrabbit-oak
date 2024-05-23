@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.asList;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -37,7 +37,7 @@ public class CompositeEditor implements Editor {
 
     @Nullable
     public static Editor compose(@NotNull Collection<? extends Editor> editors) {
-        checkNotNull(editors);
+        requireNonNull(editors);
         switch (editors.size()) {
         case 0:
             return null;

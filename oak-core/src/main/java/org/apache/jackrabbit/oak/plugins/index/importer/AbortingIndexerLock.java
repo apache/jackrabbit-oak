@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Lock implementation for single node setup like for SegmentNodeStore
@@ -71,9 +71,9 @@ public class AbortingIndexerLock implements AsyncIndexerLock<SimpleToken> {
 
     private IndexStatsMBean getIndexStatsMBean(String asyncIndexerLane) {
         AsyncIndexInfo info = infoService.getInfo(asyncIndexerLane);
-        checkNotNull(info, "No AsyncIndexInfo found for lane [%s]", asyncIndexerLane);
+        requireNonNull(info, String.format("No AsyncIndexInfo found for lane [%s]", asyncIndexerLane));
         IndexStatsMBean mbean = info.getStatsMBean();
-        return checkNotNull(mbean, "No IndexStatsMBean associated with [%s]", asyncIndexerLane);
+        return requireNonNull(mbean, String.format("No IndexStatsMBean associated with [%s]", asyncIndexerLane));
     }
 
     private void retry(IndexStatsMBean mbean, int timeoutSeconds, int intervalBetweenTriesMsec) {

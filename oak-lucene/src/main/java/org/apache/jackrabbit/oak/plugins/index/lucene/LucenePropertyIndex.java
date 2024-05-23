@@ -134,7 +134,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
@@ -1024,8 +1024,8 @@ public class LucenePropertyIndex extends FulltextIndex {
      * @return true if there where at least one unwrapped NOT. false otherwise.
      */
     private static boolean unwrapMustNot(@NotNull BooleanQuery input, @NotNull BooleanQuery output) {
-        checkNotNull(input);
-        checkNotNull(output);
+        requireNonNull(input);
+        requireNonNull(output);
         boolean unwrapped = false;
         for (BooleanClause bc : input.getClauses()) {
             if (bc.getOccur() == BooleanClause.Occur.MUST_NOT) {

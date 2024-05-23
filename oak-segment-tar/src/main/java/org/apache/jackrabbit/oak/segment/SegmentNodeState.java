@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
@@ -85,8 +85,8 @@ public class SegmentNodeState extends Record implements NodeState {
         MeterStats readStats
     ) {
         super(id);
-        this.reader = checkNotNull(reader);
-        this.writer = checkNotNull(memoize(writer::get));
+        this.reader = requireNonNull(reader);
+        this.writer = requireNonNull(memoize(writer::get));
         this.blobStore = blobStore;
         this.readStats = readStats;
     }
@@ -199,7 +199,7 @@ public class SegmentNodeState extends Record implements NodeState {
     @Override
     public boolean hasProperty(@NotNull String name) {
         readStats.mark();
-        checkNotNull(name);
+        requireNonNull(name);
         Template template = getTemplate();
         switch (name) {
             case JCR_PRIMARYTYPE:
@@ -214,7 +214,7 @@ public class SegmentNodeState extends Record implements NodeState {
     @Override @Nullable
     public PropertyState getProperty(@NotNull String name) {
         readStats.mark();
-        checkNotNull(name);
+        requireNonNull(name);
         Template template = getTemplate();
         PropertyState property = null;
         if (JCR_PRIMARYTYPE.equals(name)) {

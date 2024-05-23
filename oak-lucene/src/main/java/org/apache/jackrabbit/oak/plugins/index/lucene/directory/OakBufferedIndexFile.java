@@ -33,7 +33,7 @@ import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -123,7 +123,7 @@ class OakBufferedIndexFile implements OakIndexFile {
         this.blobSize = determineBlobSize(file);
         this.uniqueKey = readUniqueKey(file);
         this.blob = new byte[blobSize];
-        this.blobFactory = checkNotNull(blobFactory);
+        this.blobFactory = requireNonNull(blobFactory);
 
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null && property.getType() == BINARIES) {
@@ -237,7 +237,7 @@ class OakBufferedIndexFile implements OakIndexFile {
     @Override
     public void readBytes(byte[] b, int offset, int len)
             throws IOException {
-        checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
+        checkPositionIndexes(offset, offset + len, requireNonNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +

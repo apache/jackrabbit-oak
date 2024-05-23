@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import java.security.Principal;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
@@ -101,7 +101,7 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
     private String getPathFromReference(@NotNull String treePath, @NotNull String refProperty) {
         Tree tree = root.getTree(treePath);
         String path = new IdentifierManager(root).getPath(tree.getProperty(refProperty));
-        checkNotNull(path);
+        requireNonNull(path);
         return path;
     }
 

@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
@@ -62,7 +62,7 @@ class DocumentFixtureProvider {
             throw new IllegalStateException("Unknown DocumentStore");
         }
 
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+        StatisticsProvider statisticsProvider = requireNonNull(getService(wb, StatisticsProvider.class));
 
         DocumentBuilderCustomizer customizer = getService(wb, DocumentBuilderCustomizer.class);
         if (customizer != null) {

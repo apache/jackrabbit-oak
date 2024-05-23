@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution.IGNORED;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
@@ -57,7 +57,7 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
      * @param handlers  the backing handlers
      */
     public CompositeConflictHandler(@NotNull Iterable<ThreeWayConflictHandler> handlers) {
-        this.handlers = newLinkedList(checkNotNull(handlers));
+        this.handlers = newLinkedList(requireNonNull(handlers));
     }
 
     /**

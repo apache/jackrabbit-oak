@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 
 import java.util.Arrays;
@@ -89,7 +89,7 @@ public class NodeStoreChecksServiceTest {
         private final String name;
 
         private FailOnTreeNameChecker(String name) {
-            this.name = checkNotNull(name, "name shold not be null");
+            this.name = requireNonNull(name, "name shold not be null");
         }
 
         @Override

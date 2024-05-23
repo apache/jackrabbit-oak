@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -170,25 +170,25 @@ public abstract class AbstractMutableTree extends AbstractTree {
 
     @Override
     public void setProperty(@NotNull PropertyState property) {
-        checkArgument(!isHidden(checkNotNull(property).getName()));
+        checkArgument(!isHidden(requireNonNull(property).getName()));
         getNodeBuilder().setProperty(property);
     }
 
     @Override
     public <T> void setProperty(@NotNull String name, @NotNull T value) throws IllegalArgumentException {
-        checkArgument(!isHidden(checkNotNull(name)));
-        getNodeBuilder().setProperty(name, checkNotNull(value));
+        checkArgument(!isHidden(requireNonNull(name)));
+        getNodeBuilder().setProperty(name, requireNonNull(value));
     }
 
     @Override
     public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type)
             throws IllegalArgumentException {
-        checkArgument(!isHidden(checkNotNull(name)));
-        getNodeBuilder().setProperty(name, checkNotNull(value), checkNotNull(type));
+        checkArgument(!isHidden(requireNonNull(name)));
+        getNodeBuilder().setProperty(name, requireNonNull(value), requireNonNull(type));
     }
 
     @Override
     public void removeProperty(@NotNull String name) {
-        getNodeBuilder().removeProperty(checkNotNull(name));
+        getNodeBuilder().removeProperty(requireNonNull(name));
     }
 }

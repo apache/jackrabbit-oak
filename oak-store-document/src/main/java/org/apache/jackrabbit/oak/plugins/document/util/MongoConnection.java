@@ -30,7 +30,7 @@ import com.mongodb.ReadConcernLevel;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -182,7 +182,7 @@ public class MongoConnection {
     public static boolean hasWriteConcern(@NotNull String uri) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         builder.writeConcern(WC_UNKNOWN);
-        WriteConcern wc = new MongoClientURI(checkNotNull(uri), builder)
+        WriteConcern wc = new MongoClientURI(requireNonNull(uri), builder)
                 .getOptions().getWriteConcern();
         return !WC_UNKNOWN.equals(wc);
     }
@@ -194,7 +194,7 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasReadConcern(@NotNull String uri) {
-        ReadConcern rc = new MongoClientURI(checkNotNull(uri))
+        ReadConcern rc = new MongoClientURI(requireNonNull(uri))
                 .getOptions().getReadConcern();
         return readConcernLevel(rc) != null;
     }
@@ -232,7 +232,7 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-        if (checkNotNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+        if (requireNonNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {
             r = ReadConcern.LOCAL;
@@ -261,7 +261,7 @@ public class MongoConnection {
      */
     public static boolean isSufficientWriteConcern(@NotNull MongoClient client,
                                                    @NotNull WriteConcern wc) {
-        Object wObj = checkNotNull(wc).getWObject();
+        Object wObj = requireNonNull(wc).getWObject();
         int w;
         if (wObj instanceof Number) {
             w = ((Number) wObj).intValue();
@@ -293,7 +293,7 @@ public class MongoConnection {
      */
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
                                                   @NotNull ReadConcern rc) {
-        ReadConcernLevel r = readConcernLevel(checkNotNull(rc));
+        ReadConcernLevel r = readConcernLevel(requireNonNull(rc));
         if (client.getReplicaSetStatus() == null) {
             return true;
         } else {

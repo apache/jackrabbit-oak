@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.function.Predicate;
 
@@ -42,8 +42,8 @@ public class PropertyPredicate implements Predicate<NodeState> {
      */
     public PropertyPredicate(
             @NotNull String name, @NotNull Predicate<PropertyState> propertyPredicate) {
-        this.name = checkNotNull(name);
-        this.propertyPredicate = checkNotNull(propertyPredicate);
+        this.name = requireNonNull(name);
+        this.propertyPredicate = requireNonNull(propertyPredicate);
     }
 
     @Override

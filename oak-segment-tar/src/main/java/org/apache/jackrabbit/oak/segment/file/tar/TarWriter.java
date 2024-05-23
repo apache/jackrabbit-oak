@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -136,7 +136,7 @@ class TarWriter implements Closeable {
     }
 
     long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
-        checkNotNull(data);
+        requireNonNull(data);
         checkPositionIndexes(offset, offset + size, data.length);
 
         synchronized (this) {

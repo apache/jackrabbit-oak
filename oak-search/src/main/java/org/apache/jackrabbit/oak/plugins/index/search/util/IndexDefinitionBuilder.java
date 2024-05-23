@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -149,17 +149,17 @@ public class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder selectionPolicy(String policy) {
-        tree.setProperty(INDEX_SELECTION_POLICY,  checkNotNull(policy));
+        tree.setProperty(INDEX_SELECTION_POLICY,  requireNonNull(policy));
         return this;
     }
 
     public IndexDefinitionBuilder codec(String codecName){
-        tree.setProperty(FulltextIndexConstants.CODEC_NAME, checkNotNull(codecName));
+        tree.setProperty(FulltextIndexConstants.CODEC_NAME, requireNonNull(codecName));
         return this;
     }
 
     public IndexDefinitionBuilder mergePolicy(String mergePolicy) {
-        tree.setProperty(FulltextIndexConstants.MERGE_POLICY_NAME, checkNotNull(mergePolicy));
+        tree.setProperty(FulltextIndexConstants.MERGE_POLICY_NAME, requireNonNull(mergePolicy));
         return this;
     }
 

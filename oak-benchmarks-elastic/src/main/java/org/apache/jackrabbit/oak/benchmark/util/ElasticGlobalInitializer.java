@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 public class ElasticGlobalInitializer implements RepositoryInitializer {
@@ -92,7 +92,7 @@ public class ElasticGlobalInitializer implements RepositoryInitializer {
      * @return
      */
     public ElasticGlobalInitializer async(@NotNull final String async) {
-        this.async = checkNotNull(async);
+        this.async = requireNonNull(async);
         return this;
     }
 

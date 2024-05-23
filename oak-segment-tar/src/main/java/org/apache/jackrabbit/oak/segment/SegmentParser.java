@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.singletonList;
@@ -263,7 +263,7 @@ public class SegmentParser {
     private final SegmentReader reader;
 
     public SegmentParser(@NotNull SegmentReader reader) {
-        this.reader = checkNotNull(reader);
+        this.reader = requireNonNull(reader);
     }
 
     /**

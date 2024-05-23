@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -53,7 +53,7 @@ public class TypePredicate implements Predicate<NodeState> {
     @NotNull
     public static TypePredicate isOrderable(@NotNull NodeState root) {
         Set<String> orderable = newHashSet();
-        NodeState types = checkNotNull(root)
+        NodeState types = requireNonNull(root)
                 .getChildNode(JCR_SYSTEM)
                 .getChildNode(JCR_NODE_TYPES);
         for (ChildNodeEntry entry : types.getChildNodeEntries()) {
@@ -146,10 +146,10 @@ public class TypePredicate implements Predicate<NodeState> {
     private void init() {
         if (!initialized) {
             // lazy initialization of the sets of matching type names
-            NodeState types = checkNotNull(root)
+            NodeState types = requireNonNull(root)
                     .getChildNode(JCR_SYSTEM)
                     .getChildNode(JCR_NODE_TYPES);
-            for (String name : checkNotNull(names)) {
+            for (String name : requireNonNull(names)) {
                 addNodeType(types, name);
             }
             initialized = true;

@@ -55,7 +55,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
@@ -384,8 +384,8 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
         private NodeStoreChecks checks;
 
         public Builder(MountInfoProvider mip, NodeStore globalStore) {
-            this.mip = checkNotNull(mip, "mountInfoProvider");
-            this.globalStore = checkNotNull(globalStore, "globalStore");
+            this.mip = requireNonNull(mip, "mountInfoProvider");
+            this.globalStore = requireNonNull(globalStore, "globalStore");
         }
         
         public Builder with(NodeStoreChecks checks) {
@@ -400,10 +400,10 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
         }
 
         public Builder addMount(String mountName, NodeStore store) {
-            checkNotNull(store, "store");
-            checkNotNull(mountName, "mountName");
+            requireNonNull(store, "store");
+            requireNonNull(mountName, "mountName");
 
-            Mount mount = checkNotNull(mip.getMountByName(mountName), "No mount with name '%s' found in %s", mountName, mip.getNonDefaultMounts());
+            Mount mount = requireNonNull(mip.getMountByName(mountName), String.format("No mount with name '%s' found in %s", mountName, mip.getNonDefaultMounts()));
             nonDefaultStores.add(new MountedNodeStore(mount, store));
             return this;
         }

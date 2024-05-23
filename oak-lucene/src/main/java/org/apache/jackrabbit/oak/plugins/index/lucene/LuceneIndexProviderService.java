@@ -95,7 +95,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -425,7 +425,7 @@ public class LuceneIndexProviderService {
     }
 
     private File getIndexCheckDir() {
-        return new File(checkNotNull(indexDir), "indexCheckDir");
+        return new File(requireNonNull(indexDir), "indexCheckDir");
     }
 
     @Deactivate
@@ -485,8 +485,8 @@ public class LuceneIndexProviderService {
             }
         }
 
-        checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
-                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
+        requireNonNull(indexDirPath, String.format("Index directory cannot be determined as neither index " +
+                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME));
 
         indexDir = new File(indexDirPath);
     }
@@ -535,7 +535,7 @@ public class LuceneIndexProviderService {
         editorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
 
         if (hybridIndex){
-            editorProvider.setIndexingQueue(checkNotNull(documentQueue));
+            editorProvider.setIndexingQueue(requireNonNull(documentQueue));
         }
 
         Dictionary<String, Object> props = new Hashtable<>();

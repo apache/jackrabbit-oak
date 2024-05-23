@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
@@ -487,9 +487,9 @@ class ChangeProcessor implements FilteringAwareObserver {
     public void contentChanged(@NotNull NodeState before, 
                                @NotNull NodeState after,
                                @NotNull CommitInfo info) {
-        checkNotNull(before); // OAK-5160 before is now guaranteed to be non-null
-        checkNotNull(after);
-        checkNotNull(info);
+        requireNonNull(before); // OAK-5160 before is now guaranteed to be non-null
+        requireNonNull(after);
+        requireNonNull(info);
         try {
             long start = PERF_LOGGER.start();
             FilterProvider provider = filterProvider.get();

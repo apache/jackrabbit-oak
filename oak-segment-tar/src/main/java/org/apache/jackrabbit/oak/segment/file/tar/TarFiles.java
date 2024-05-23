@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
@@ -143,7 +143,7 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withDirectory(File directory) {
-            this.directory = checkNotNull(directory);
+            this.directory = requireNonNull(directory);
             return this;
         }
 
@@ -158,22 +158,22 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withTarRecovery(TarRecovery tarRecovery) {
-            this.tarRecovery = checkNotNull(tarRecovery);
+            this.tarRecovery = requireNonNull(tarRecovery);
             return this;
         }
 
         public Builder withIOMonitor(IOMonitor ioMonitor) {
-            this.ioMonitor = checkNotNull(ioMonitor);
+            this.ioMonitor = requireNonNull(ioMonitor);
             return this;
         }
 
         public Builder withFileStoreMonitor(FileStoreMonitor fileStoreStats) {
-            this.fileStoreMonitor = checkNotNull(fileStoreStats);
+            this.fileStoreMonitor = requireNonNull(fileStoreStats);
             return this;
         }
 
         public Builder withRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-            this.remoteStoreMonitor = checkNotNull(remoteStoreMonitor);
+            this.remoteStoreMonitor = requireNonNull(remoteStoreMonitor);
             return this;
         }
 

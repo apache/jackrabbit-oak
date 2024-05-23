@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 
 import java.math.BigDecimal;
@@ -97,8 +97,8 @@ public class PartialValueFactory {
      */
     public PartialValueFactory(@NotNull NamePathMapper namePathMapper,
                                @NotNull BlobAccessProvider blobAccessProvider) {
-        this.namePathMapper = checkNotNull(namePathMapper);
-        this.blobAccessProvider = checkNotNull(blobAccessProvider);
+        this.namePathMapper = requireNonNull(namePathMapper);
+        this.blobAccessProvider = requireNonNull(blobAccessProvider);
     }
 
     @NotNull

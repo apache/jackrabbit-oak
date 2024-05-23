@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Test handler that does not actually perform recovery, but simply acquires the
@@ -33,8 +33,8 @@ public class SimpleRecoveryHandler implements RecoveryHandler {
 
     public SimpleRecoveryHandler(@NotNull DocumentStore store,
                                  @NotNull Clock clock) {
-        this.store = checkNotNull(store);
-        this.clock = checkNotNull(clock);
+        this.store = requireNonNull(store);
+        this.clock = requireNonNull(clock);
     }
 
     @Override
