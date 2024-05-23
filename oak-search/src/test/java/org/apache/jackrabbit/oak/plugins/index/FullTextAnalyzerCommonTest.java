@@ -760,6 +760,30 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'quick brown')", List.of("/content/bar")));
     }
 
+    @Test
+    public void fulltextSearchWithDictionaryCompounderFilter() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree dd = addFilter(filters, "DictionaryCompoundWord");
+            dd.setProperty("dictionary", "words.txt");
+            dd.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "Donau\ndampf\nmeer\nschiff");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "Donaudampfschiff");
+        content.addChild("baz").setProperty("foo", "some other content");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'dampf')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'damp')", List.of());
+        });
+    }
+
     //OAK-4805
     @Test
     public void badIndexDefinitionShouldLetQEWork() throws Exception {

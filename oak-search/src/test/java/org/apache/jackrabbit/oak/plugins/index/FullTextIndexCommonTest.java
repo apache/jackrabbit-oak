@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -65,7 +64,6 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-10777")
     public void fullTextQueryRegExp() throws Exception {
         Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
                 },

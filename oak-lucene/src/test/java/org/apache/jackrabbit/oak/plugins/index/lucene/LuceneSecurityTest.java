@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -27,7 +26,6 @@ import org.junit.Test;
 public class LuceneSecurityTest {
 
     @Test
-    @Ignore("OAK-10713")
     public void complexRegexp() throws Exception {
         // test borrowed from: https://github.com/apache/lucene/issues/11537
         StringBuilder strBuilder = new StringBuilder();
