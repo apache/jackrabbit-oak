@@ -42,6 +42,10 @@ public interface IndexingReporter {
         }
 
         @Override
+        public void addInformation(String value) {
+        }
+
+        @Override
         public void addMetricByteSize(String name, long value) {
         }
 
@@ -58,6 +62,8 @@ public interface IndexingReporter {
     void addTiming(String stage, String time);
 
     void addMetric(String name, long value);
+
+    void addInformation(String value);
 
     /**
      * Similar to {@link #addMetric(String, long)} but size should be logged in a human-friendly format, that is,

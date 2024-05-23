@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,13 +41,14 @@ public class ConsoleIndexingReporter implements IndexingReporter {
     private final Map<String, String> metrics = new TreeMap<>();
     private final List<String> envVariablesToLog;
     private List<String> indexes = List.of();
+    private final List<String> informationStrings = new ArrayList<>();
 
     public ConsoleIndexingReporter() {
         this(List.of());
     }
 
     /**
-     * @param envVariablesToLog  These environment variables and their values will be included in the final report.
+     * @param envVariablesToLog These environment variables and their values will be included in the final report.
      */
     public ConsoleIndexingReporter(@NotNull List<String> envVariablesToLog) {
         this.envVariablesToLog = List.copyOf(envVariablesToLog);
@@ -68,6 +70,11 @@ public class ConsoleIndexingReporter implements IndexingReporter {
         metrics.put(name, String.valueOf(value));
     }
 
+    @Override
+    public void addInformation(String value) {
+        informationStrings.add(value);
+    }
+
     public void addMetricByteSize(String name, long value) {
         String v = String.valueOf(value);
         if (value >= FileUtils.ONE_KB) {
@@ -82,6 +89,7 @@ public class ConsoleIndexingReporter implements IndexingReporter {
                 "OAK Version: " + OakVersion.getVersion() + "\n" +
                 "Configuration:\n" + mapToString(config) + "\n" +
                 "Environment Variables:\n" + genEnvVariables() + "\n" +
+                "Information:\n" + listToString(informationStrings) + "\n" +
                 "Timings:\n" + mapToString(timings) + "\n" +
                 "Metrics:\n" + mapToString(metrics);
     }
@@ -95,7 +103,15 @@ public class ConsoleIndexingReporter implements IndexingReporter {
 
     private String mapToString(Map<String, String> map) {
         return map.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
                 .map(entry -> "  " + entry.getKey() + ": " + entry.getValue())
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String listToString(List<String> map) {
+        return map.stream()
+                .sorted()
+                .map(entry -> "  " + entry)
                 .collect(Collectors.joining("\n"));
     }
 }

@@ -484,6 +484,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private MongoFilterPaths getPathsForRegexFiltering() {
         if (!regexPathFiltering) {
             LOG.info("Regex path filtering disabled.");
+            reporter.addInformation("Mongo regex filter paths: " + MongoFilterPaths.DOWNLOAD_ALL.prettyPrint());
             return MongoFilterPaths.DOWNLOAD_ALL;
         } else {
             LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}",
@@ -493,6 +494,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             );
             MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters, customExcludedPaths);
             LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
+            reporter.addInformation("Mongo regex filter paths: " + mongoFilterPaths.prettyPrint());
             return mongoFilterPaths;
         }
     }
