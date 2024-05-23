@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.lock.LockConstants;
+import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
@@ -160,13 +161,23 @@ class VersionEditor implements Editor {
             vMgr.restore(node, baseVersion, null);
         } else if (isVersionProperty(after)
                 //OAK-8848: moving a versionable node in the same location as a node
-                // deleted in the same session should be allowed
-                && !node.isReplaced()) {
+                // deleted in the same session should be allowed. This check works because the only way
+                // that moving a node in a location is allowed is if there is no existing (undeleted)
+                // node in that location.
+                // Property comparison should not fail for two jcr:versionHistory properties in this case.
+                && !nodeWasMovedOrCopied(node)) {
             throwProtected(after.getName());
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
             throwCheckedIn("Cannot change property " + after.getName()
                     + " on checked in node");
         }
+    }
+
+    /**
+     * Returns true if and only if the given node was moved or copied from another location.
+     */
+    private boolean nodeWasMovedOrCopied(NodeBuilder node) {
+        return node.hasProperty(MoveDetector.SOURCE_PATH);
     }
 
     @Override

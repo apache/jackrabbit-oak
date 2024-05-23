@@ -31,7 +31,6 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -76,6 +75,17 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         }
         newNode.getSession().save();
         return newNode;
+    }
+
+    /**
+     * Checks out the node, sets the property then saves the session and checks the node back in.
+     * To be used in tests where version history needs to be populated.
+     */
+    private void setNodePropertyAndCheckIn(Node node, String propertyName, String propertyValue) throws Exception {
+        node.checkout();
+        node.setProperty(propertyName, propertyValue);
+        node.getSession().save();
+        node.checkin();
     }
 
     @Test
@@ -439,45 +449,5 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         // create version
         versionManager.checkin(nodePath);
         versionManager.checkout(nodePath);
-    }
-
-    /*
-        * 1. Create a versionable unstructured node at nodeName1/nodeName2/nodeName1
-        * 2. Create a versionable unstructured node at nodeName1/nodeName3/nodeName1
-        * 3. remove nodeName1/nodeName3/nodeName1 (that's because move(src,dest) throws an exception if dest already exists)
-        * 4. move nodeName1/nodeName2/nodeName1 to nodeName1/nodeName3/nodeName1
-
-            path = nodeName1
-                - childNPath = nodeName2
-                - childNPath2 = nodeName3
-            siblingPath = nodeName2
-     */
-
-    @Ignore
-    @Test
-    public void testMoveVersionableNodeOverDeletedVersionableNode() throws Exception {
-        modify(path, REP_WRITE, true);
-        modify(path, Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
-        modify(path, Privilege.JCR_VERSION_MANAGEMENT, true);
-
-        String newNodeName = "sourceNode";
-        Node sourceParent = testSession.getNode(childNPath); // nodeName1/nodeName2
-        Node sourceNode = createVersionableNode(sourceParent, newNodeName); // nodeName1/nodeName2/sourceNode
-                Node destParent = testSession.getNode(childNPath2); // nodeName1/nodeName3
-        Node destNode = createVersionableNode(destParent, newNodeName); // nodeName1/nodeName3/sourceNode
-
-        // make source node versionable and check it out
-        sourceNode.checkin();
-        sourceNode.checkout();
-
-        // make dest node versionable and check it out
-        destNode.checkin();
-        destNode.checkout();
-
-        String destPath = destNode.getPath();
-        superuser.removeItem(destNode.getPath());
-
-        superuser.move(sourceNode.getPath(), destPath);
-        superuser.save();
     }
 }
