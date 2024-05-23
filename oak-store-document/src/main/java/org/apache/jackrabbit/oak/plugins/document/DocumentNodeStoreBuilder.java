@@ -346,11 +346,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
-    public T setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
-        this.docStoreFullGCFeature = docStoreFullGC;
-        return thisBuilder();
-    }
-
     @Nullable
     public Feature getNoChildOrderCleanupFeature() {
         return noChildOrderCleanupFeature;
@@ -364,6 +359,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getCancelInvalidationFeature() {
         return cancelInvalidationFeature;
+    }
+
+    public T setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
+        this.docStoreFullGCFeature = docStoreFullGC;
+        return thisBuilder();
     }
 
     public Feature getDocStoreFullGCFeature() {

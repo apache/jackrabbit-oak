@@ -275,6 +275,7 @@ public class DocumentNodeStoreService {
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
+        docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
 
         registerNodeStoreIfPossible();
     }
