@@ -61,20 +61,24 @@ final class DocumentPropertyState implements PropertyState {
 
     private PropertyState parsed;
     private byte[] compressedValue;
-    private final Compression compression = Compression.GZIP;
+    private final Compression compression;
 
     private static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", 1024);
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
+        this(store, name, value, Compression.GZIP);
+    }
+
+    DocumentPropertyState(DocumentNodeStore store, String name, String value, Compression compression) {
         this.store = store;
         this.name = name;
-
+        this.compression = compression;
         int size = value.getBytes().length;
-        if (size > DEFAULT_COMPRESSION_THRESHOLD) {
+        if (compression != null && size > DEFAULT_COMPRESSION_THRESHOLD ) {
             try {
                 compressedValue = compress(value.getBytes());
                 this.value = null;
-            } catch (Exception e) {
+            } catch (IOException e) {
                 LOG.warn("Failed to compress property {} value: ", name, e);
                 this.value = value;
                 this.compressedValue = null;
@@ -85,17 +89,12 @@ final class DocumentPropertyState implements PropertyState {
         }
     }
 
-    private byte[] compress(byte[] value) {
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            OutputStream compressionOutputStream = compression.getOutputStream(out);
-            compressionOutputStream.write(value);
-            compressionOutputStream.close();
-            return out.toByteArray();
-        } catch (IOException e) {
-            LOG.error("Failed to compress property {} value ", getName(), e);
-            return value;
-        }
+    private byte[] compress(byte[] value) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        OutputStream compressionOutputStream = compression.getOutputStream(out);
+        compressionOutputStream.write(value);
+        compressionOutputStream.close();
+        return out.toByteArray();
     }
 
     @NotNull
@@ -164,7 +163,7 @@ final class DocumentPropertyState implements PropertyState {
             return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
         } catch (IOException e) {
             LOG.error("Failed to decompress property {} value: ", getName(), e);
-            return "";
+            return "\"{}\"";
         }
     }
 
