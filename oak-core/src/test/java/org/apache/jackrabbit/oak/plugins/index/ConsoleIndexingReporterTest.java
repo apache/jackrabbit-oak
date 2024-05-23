@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 
 public class ConsoleIndexingReporterTest {
 
-    private static char DELIM = new DecimalFormatSymbols().getDecimalSeparator();
+    private static final char DELIM = new DecimalFormatSymbols().getDecimalSeparator();
 
     @Test
     public void emptyReport() {
@@ -37,6 +37,8 @@ public class ConsoleIndexingReporterTest {
                 "Configuration:\n" +
                 "\n" +
                 "Environment Variables:\n" +
+                "\n" +
+                "Information:\n" +
                 "\n" +
                 "Timings:\n" +
                 "\n" +
@@ -59,6 +61,9 @@ public class ConsoleIndexingReporterTest {
                 "Environment Variables:\n" +
                 "  ENV_VAR1: <value>\n" +
                 "  ENV_VAR2: <value>\n" +
+                "Information:\n" +
+                "  A message\n" +
+                "  Foo Bar\n" +
                 "Timings:\n" +
                 "  stage1: 10:23\n" +
                 "Metrics:\n" +
@@ -80,6 +85,8 @@ public class ConsoleIndexingReporterTest {
 
         consoleIndexingReporter.addConfig("config1", "value1");
         consoleIndexingReporter.addConfig("config2", 12);
+        consoleIndexingReporter.addInformation("Foo Bar");
+        consoleIndexingReporter.addInformation("A message");
 
         consoleIndexingReporter.addTiming("stage1", "10:23");
 
@@ -97,7 +104,7 @@ public class ConsoleIndexingReporterTest {
     }
 
     private String replaceVariable(String report, String varName) {
-        return report.replaceAll("  " + varName + ": .*", "  " + varName + ": <value>");
+        return report.replaceAll(" {2}" + varName + ": .*", "  " + varName + ": <value>");
     }
 
 }
