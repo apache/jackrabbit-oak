@@ -47,9 +47,8 @@ public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
 
-        externalLoginModuleFactory = new ExternalLoginModuleFactory();
+        externalLoginModuleFactory = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
 
-        context.registerInjectActivateService(externalLoginModuleFactory);
         assertSyncBeanRegistration(externalLoginModuleFactory, false);
     }
 
@@ -93,6 +92,7 @@ public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
     public void testContentRepositoryAndSecurityProviderServices() throws Exception {
         context.registerService(ContentRepository.class, getContentRepository());
         context.registerService(SecurityProvider.class, getSecurityProvider());
+        context.registerInjectActivateService(externalLoginModuleFactory);
         assertSyncBeanRegistration(externalLoginModuleFactory, true);
     }
 

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.collections4.set.ListOrderedSet;
 import org.apache.commons.io.IOUtils;
@@ -378,8 +379,8 @@ public class IncrementalStoreTest {
     private PipelinedStrategy createPipelinedStrategy(Backend backend, Predicate<String> pathPredicate, Set<String> preferredPathElements, List<PathFilter> pathFilters, String checkpoint) {
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
+                backend.mongoURI,
                 backend.mongoDocumentStore,
-                backend.mongoDatabase,
                 backend.documentNodeStore,
                 rootRevision,
                 preferredPathElements,
@@ -717,17 +718,19 @@ public class IncrementalStoreTest {
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         BlobStore blobStore = new MemoryBlobStore();
-        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase(), blobStore);
+        return new Backend(c.getMongoURI(), (MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase(), blobStore);
     }
 
 
     static class Backend {
+        private final MongoClientURI mongoURI;
         final MongoDocumentStore mongoDocumentStore;
         final DocumentNodeStore documentNodeStore;
         final MongoDatabase mongoDatabase;
         final BlobStore blobStore;
 
-        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase, BlobStore blobStore) {
+        public Backend(MongoClientURI mongoURI, MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase, BlobStore blobStore) {
+            this.mongoURI = mongoURI;
             this.mongoDocumentStore = mongoDocumentStore;
             this.documentNodeStore = documentNodeStore;
             this.mongoDatabase = mongoDatabase;
