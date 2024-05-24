@@ -71,7 +71,7 @@ public class AzureBlobContainerProvider implements Closeable {
     private final String clientId;
     private final String clientSecret;
     private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
-    private static final long TOKEN_REFRESHER_DELAY = 4L;
+    private static final long TOKEN_REFRESHER_DELAY = 1L;
     private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     private AzureBlobContainerProvider(Builder builder) {
@@ -219,8 +219,6 @@ public class AzureBlobContainerProvider implements Closeable {
         TokenRefresher tokenRefresher = new TokenRefresher(clientSecretCredential, accessToken, storageCredentialsToken);
         executorService.scheduleWithFixedDelay(tokenRefresher, TOKEN_REFRESHER_INITIAL_DELAY, TOKEN_REFRESHER_DELAY, TimeUnit.MINUTES);
         return storageCredentialsToken;
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE)).getToken();
-        return new StorageCredentialsToken(accountName, accessToken);
     }
 
     @NotNull
