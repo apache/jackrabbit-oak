@@ -199,10 +199,7 @@ public class PathParserTest {
     }
 
     @Test
-    @Ignore //OAK-10621
-    public void testExpandendName() {
-        boolean result;
-
+    public void testExpandedName() {
         final String prefix = "{http://www.jcp.org/jcr/1.0}";
         String path = prefix;
         TestListener listener = new TestListener(
@@ -235,18 +232,53 @@ public class PathParserTest {
         );
         verifyResult(path, listener, true);
 
-        path = "/{a}b";
+        path = "/{a}b[1]";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("{a}b")
-        );
-        verifyResult(path, listener, true);
-
-        path = "{a}b[1]";
-        listener = new TestListener(
                 CALLBACKRESULT_NAME("{a}b", 1)
         );
         verifyResult(path, listener, true);
+
+        path = "/" + prefix + "b[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME(prefix + "b", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "{a}b[1]/c";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{a}b", 1),
+                CALLBACKRESULT_NAME("c")
+        );
+        verifyResult(path, listener, true);
+
+        path = prefix + "b[1]/c";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME( prefix+ "b", 1),
+                CALLBACKRESULT_NAME("c")
+        );
+        verifyResult(path, listener, true);
+
+        path = "{internal}a";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{internal}a")
+        );
+        verifyResult(path, listener, true);
+
+        path = "{a}";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{a}")
+        );
+        verifyResult(path, listener, true);
+
+        //"internal" is accepted as a namespace URI for backward compatabilty reasons, so
+        //"{internal}" is not a valid local name.
+        path = "{internal}";
+        listener = new TestListener(
+                CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
+        );
+        verifyResult(path, listener, false);
     }
 
     @Test
@@ -482,21 +514,21 @@ public class PathParserTest {
         path = "/a{b}:c";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/a{b}:c' is not a valid path. Invalid name prefix: a{b}")
+                CALLBACKRESULT_ERROR("'/a{b}:c' is not a valid path. ':' not allowed in name.")
         );
         verifyResult(path, listener, false);
 
         path = "/a{b:c";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/a{b:c' is not a valid path. Invalid name prefix: a{b")
+                CALLBACKRESULT_ERROR("'/a{b:c' is not a valid path. ':' not allowed in name.")
         );
         verifyResult(path, listener, false);
 
         path = "/ab}:c";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/ab}:c' is not a valid path. Invalid name prefix: ab}")
+                CALLBACKRESULT_ERROR("'/ab}:c' is not a valid path. ':' not allowed in name.")
         );
         verifyResult(path, listener, false);
 
@@ -607,9 +639,7 @@ public class PathParserTest {
         path = "/a:/b";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                //TODO OAK-10616
-                //the error message is could be improved (Empty local name is not allowed).
-                CALLBACKRESULT_ERROR("'/a:/b' is not a valid path. '/' not allowed in name.")
+                CALLBACKRESULT_ERROR("'/a:/b' is not a valid path. Local name must not be empty.")
         );
         verifyResult(path, listener, false);
 
