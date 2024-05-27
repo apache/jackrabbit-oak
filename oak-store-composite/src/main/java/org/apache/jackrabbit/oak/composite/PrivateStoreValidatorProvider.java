@@ -56,7 +56,7 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
 
     private boolean failOnDetection;
 
-    @Reference
+    @Reference(bind = "bindMountInfoProvider", unbind = "unbindMountInfoProvider")
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     private ServiceRegistration serviceRegistration;

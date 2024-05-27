@@ -76,10 +76,10 @@ public class CompositeNodeStoreService {
 
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
     
-    @Reference
+    @Reference(bind = "bindChecks", unbind = "unbindChecks")
     private NodeStoreChecks checks;
 
-    @Reference
+    @Reference(bind = "bindStatisticsProvider", unbind = "unbindStatisticsProvider")
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     private static final String ENABLE_CHECKS = "enableChecks";
