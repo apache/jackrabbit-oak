@@ -586,7 +586,7 @@ public class Check {
     }
 
     private static boolean hasAllRevision(ConsistencyCheckResult result) {
-        return hasAnyHeadRevision(result) && hasAnyCheckpointRevision(result);
+        return hasAnyHeadRevision(result) && hasAllCheckpointRevision(result);
     }
 
     private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {
@@ -602,6 +602,14 @@ public class Check {
             .stream()
             .flatMap(m -> m.values().stream())
             .anyMatch(Objects::nonNull);
+    }
+
+    private static boolean hasAllCheckpointRevision(ConsistencyCheckResult result) {
+        return result.getCheckpointRevisions()
+                .values()
+                .stream()
+                .flatMap(m -> m.values().stream())
+                .allMatch(Objects::nonNull);
     }
 
     private void printRevision(int indent, String path, Revision revision) {
