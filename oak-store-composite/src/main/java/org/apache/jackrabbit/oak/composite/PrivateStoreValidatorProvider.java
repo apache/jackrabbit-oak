@@ -56,7 +56,6 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
 
     private boolean failOnDetection;
 
-    @Reference(bind = "bindMountInfoProvider", unbind = "unbindMountInfoProvider")
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     private ServiceRegistration serviceRegistration;
@@ -99,6 +98,7 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
     }
 
     @SuppressWarnings("unused")
+    @Reference(name = "mountInfoProvider", service = MountInfoProvider.class)
     protected void bindMountInfoProvider(MountInfoProvider mip) {
         this.mountInfoProvider = mip;
     }

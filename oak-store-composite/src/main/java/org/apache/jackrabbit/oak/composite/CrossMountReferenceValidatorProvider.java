@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ComponentPropertyType;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -50,7 +53,6 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
 
     private boolean failOnDetection;
 
-    @Reference(bind = "bindMountInfoProvider", unbind = "unbindMountInfoProvider")
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     public CrossMountReferenceValidatorProvider() {
@@ -82,6 +84,7 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
     }
 
     @SuppressWarnings("unused")
+    @Reference(name = "mountInfoProvider", service = MountInfoProvider.class)
     protected void bindMountInfoProvider(MountInfoProvider mip) {
         this.mountInfoProvider = mip;
     }

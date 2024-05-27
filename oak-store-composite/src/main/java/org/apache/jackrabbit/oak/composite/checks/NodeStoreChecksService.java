@@ -36,13 +36,8 @@ public class NodeStoreChecksService implements NodeStoreChecks {
     
     private final Logger log = LoggerFactory.getLogger(getClass());
     
-    @Reference(cardinality = ReferenceCardinality.MULTIPLE,
-            bind = "bindChecker", 
-            unbind = "unbindChecker",
-            service = MountedNodeStoreChecker.class)
     private List<MountedNodeStoreChecker<?>> checkers = new CopyOnWriteArrayList<>();
     
-    @Reference(bind = "bindMip", unbind = "unbindMip")
     private MountInfoProvider mip;
 
     // used by SCR
@@ -103,16 +98,20 @@ public class NodeStoreChecksService implements NodeStoreChecks {
     }
 
     @SuppressWarnings("unused")
-    protected void bindChecker(MountedNodeStoreChecker<?> checker) {
+    @Reference(name = "checkers",
+            cardinality = ReferenceCardinality.MULTIPLE,
+            service = MountedNodeStoreChecker.class)
+    protected void bindChecker(MountedNodeStoreChecker checker) {
         checkers.add(checker);
     }
 
     @SuppressWarnings("unused")
-    protected void unbindChecker(MountedNodeStoreChecker<?> checker) {
+    protected void unbindChecker(MountedNodeStoreChecker checker) {
         checkers.remove(checker);
     }
 
     @SuppressWarnings("unused")
+    @Reference(name = "mip", service = MountInfoProvider.class)
     protected void bindMip(MountInfoProvider mip) {
         this.mip = mip;
     }

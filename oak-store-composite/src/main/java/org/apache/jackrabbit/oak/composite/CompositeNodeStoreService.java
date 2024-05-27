@@ -67,19 +67,12 @@ public class CompositeNodeStoreService {
 
     private static final String MOUNT_ROLE_PREFIX = "composite-mount-";
 
-    @Reference(
-            cardinality = ReferenceCardinality.MANDATORY,
-            bind = "bindMountInfoProvider",
-            unbind = "unbindMountInfoProvider",
-            policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
 
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
     
-    @Reference(bind = "bindChecks", unbind = "unbindChecks")
     private NodeStoreChecks checks;
 
-    @Reference(bind = "bindStatisticsProvider", unbind = "unbindStatisticsProvider")
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     private static final String ENABLE_CHECKS = "enableChecks";
@@ -302,6 +295,11 @@ public class CompositeNodeStoreService {
     }
 
     @SuppressWarnings("unused")
+    @Reference(name = "mountInfoProvider",
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.STATIC,
+            service = MountInfoProvider.class
+            )
     protected void bindMountInfoProvider(MountInfoProvider mip) {
         this.mountInfoProvider = mip;
     }
@@ -314,6 +312,7 @@ public class CompositeNodeStoreService {
     }
 
     @SuppressWarnings("unused")
+    @Reference(name = "checks", service = NodeStoreChecks.class)
     protected void bindChecks(NodeStoreChecks checks) {
         this.checks = checks;
     }
@@ -326,6 +325,7 @@ public class CompositeNodeStoreService {
     }
 
     @SuppressWarnings("unused")
+    @Reference(name = "statisticsProvider", service = StatisticsProvider.class)
     protected void bindStatisticsProvider(StatisticsProvider sp) {
         this.statisticsProvider = sp;
     }
