@@ -50,7 +50,7 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
 
     private boolean failOnDetection;
 
-    @Reference
+    @Reference(bind = "bindMountInfoProvider", unbind = "unbindMountInfoProvider")
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     public CrossMountReferenceValidatorProvider() {
@@ -79,5 +79,18 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
     CrossMountReferenceValidatorProvider withFailOnDetection(boolean failOnDetection) {
         this.failOnDetection = failOnDetection;
         return this;
+    }
+
+    @SuppressWarnings("unused")
+    protected void bindMountInfoProvider(MountInfoProvider mip) {
+        this.mountInfoProvider = mip;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindMountInfoProvider(MountInfoProvider mip) {
+        if (this.mountInfoProvider == mip) {
+            this.mountInfoProvider = null;
+        }
+
     }
 }

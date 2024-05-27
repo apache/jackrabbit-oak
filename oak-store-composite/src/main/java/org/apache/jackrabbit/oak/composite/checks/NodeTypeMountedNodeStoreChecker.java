@@ -26,6 +26,7 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -43,7 +44,11 @@ public class NodeTypeMountedNodeStoreChecker implements
         MountedNodeStoreChecker<NodeTypeMountedNodeStoreChecker.Context>  {
     
     private final Logger log = LoggerFactory.getLogger(getClass());
-    
+
+    private static final String INVALID_NODE_TYPE = "invalidNodeType";
+    private static final String ERROR_LABEL = "errorLabel";
+    private static final String EXCLUDED_NODE_TYPES = "excludedNodeTypes";
+
     @ComponentPropertyType
     @interface Config {
         @AttributeDefinition(
@@ -79,10 +84,10 @@ public class NodeTypeMountedNodeStoreChecker implements
         this.excludedNodeTypes = ImmutableSet.copyOf(excludedNodeTypes);
     }
 
-    protected void activate(ComponentContext ctx, Config config) {
-        invalidNodeType = checkNotNull(config.invalidNodeType(), "invalidNodeType");
-        errorLabel = checkNotNull(config.errorLabel(), "errorLabel");
-        excludedNodeTypes = ImmutableSet.copyOf(config.excludedNodeTypes());
+    protected void activate(ComponentContext ctx) {
+        invalidNodeType = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
+        errorLabel = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
+        excludedNodeTypes = ImmutableSet.copyOf(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
     }
 
     @Override

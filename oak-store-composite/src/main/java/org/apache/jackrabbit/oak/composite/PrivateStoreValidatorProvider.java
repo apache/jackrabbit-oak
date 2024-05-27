@@ -98,6 +98,19 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
         return failOnDetection;
     }
 
+    @SuppressWarnings("unused")
+    protected void bindMountInfoProvider(MountInfoProvider mip) {
+        this.mountInfoProvider = mip;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindMountInfoProvider(MountInfoProvider mip) {
+        if (this.mountInfoProvider == mip) {
+            this.mountInfoProvider = null;
+        }
+
+    }
+
     private class PrivateStoreValidator extends DefaultValidator {
         private final String path;
 

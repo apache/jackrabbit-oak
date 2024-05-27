@@ -67,7 +67,11 @@ public class CompositeNodeStoreService {
 
     private static final String MOUNT_ROLE_PREFIX = "composite-mount-";
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY, policy = ReferencePolicy.STATIC)
+    @Reference(
+            cardinality = ReferenceCardinality.MANDATORY,
+            bind = "bindMountInfoProvider",
+            unbind = "unbindMountInfoProvider",
+            policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
 
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
@@ -77,6 +81,10 @@ public class CompositeNodeStoreService {
 
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+
+    private static final String ENABLE_CHECKS = "enableChecks";
+    private static final String PROP_SEED_MOUNT = "seedMount";
+    private static final String PATH_STATS = "pathStats";
 
     @ComponentPropertyType
     @interface Config {
@@ -116,11 +124,11 @@ public class CompositeNodeStoreService {
     private boolean enableChecks;
 
     @Activate
-    protected void activate(ComponentContext context, Config config) throws IOException, CommitFailedException {
+    protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
         this.context = context;
-        seedMount = config.seedMount();
-        pathStats = config.pathStats();
-        enableChecks = config.enableChecks();
+        seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
+        pathStats = PropertiesUtil.toBoolean(config.get(PATH_STATS), false);
+        enableChecks = PropertiesUtil.toBoolean(config.get(ENABLE_CHECKS), true);
         registerCompositeNodeStore();
     }
 
@@ -290,6 +298,42 @@ public class CompositeNodeStoreService {
 
         if (nsReg != null && nodeStoresInUse.contains(ns)) {
             unregisterCompositeNodeStore();
+        }
+    }
+
+    @SuppressWarnings("unused")
+    protected void bindMountInfoProvider(MountInfoProvider mip) {
+        this.mountInfoProvider = mip;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindMountInfoProvider(MountInfoProvider mip) {
+        if (this.mountInfoProvider == mip) {
+            this.mountInfoProvider = null;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    protected void bindChecks(NodeStoreChecks checks) {
+        this.checks = checks;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindChecks(NodeStoreChecks checks) {
+        if (this.checks == checks) {
+            this.checks = null;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    protected void bindStatisticsProvider(StatisticsProvider sp) {
+        this.statisticsProvider = sp;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindStatisticsProvider(StatisticsProvider sp) {
+        if (this.statisticsProvider == sp) {
+            this.statisticsProvider = null;
         }
     }
 

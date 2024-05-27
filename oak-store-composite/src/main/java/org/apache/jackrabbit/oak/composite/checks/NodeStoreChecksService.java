@@ -42,7 +42,7 @@ public class NodeStoreChecksService implements NodeStoreChecks {
             service = MountedNodeStoreChecker.class)
     private List<MountedNodeStoreChecker<?>> checkers = new CopyOnWriteArrayList<>();
     
-    @Reference
+    @Reference(bind = "bindMip", unbind = "unbindMip")
     private MountInfoProvider mip;
 
     // used by SCR
@@ -100,13 +100,27 @@ public class NodeStoreChecksService implements NodeStoreChecks {
         if ( ( mounted || under ) && keepGoing ) {
             tree.getChildren().forEach( child -> visit(child, mountedStore, errorHolder, context, c));
         }
-    }    
-    
+    }
+
+    @SuppressWarnings("unused")
     protected void bindChecker(MountedNodeStoreChecker<?> checker) {
         checkers.add(checker);
     }
-    
+
+    @SuppressWarnings("unused")
     protected void unbindChecker(MountedNodeStoreChecker<?> checker) {
         checkers.remove(checker);
+    }
+
+    @SuppressWarnings("unused")
+    protected void bindMip(MountInfoProvider mip) {
+        this.mip = mip;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindMip(MountInfoProvider mip) {
+        if (this.mip == mip) {
+            this.mip = null;
+        }
     }
 }
