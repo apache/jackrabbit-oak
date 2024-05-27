@@ -493,13 +493,10 @@ public class IndexImporter {
                 try {
                     step.execute();
                     long durationSeconds = start.elapsed(TimeUnit.SECONDS);
-                    LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
-                            MetricsFormatter.newBuilder()
-                                    .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
-                                    .add("durationSeconds", durationSeconds)
-                                    .build()
+                    LOG.info("[TASK:{}:END] Metrics: {}",
+                            indexImportPhaseName,
+                            MetricsFormatter.createMetricsWithDurationOnly(durationSeconds)
                     );
-
                     MetricsUtils.setCounterOnce(statisticsProvider,
                             "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
                             durationSeconds);
@@ -510,15 +507,18 @@ public class IndexImporter {
 
                     break;
                 } catch (CommitFailedException | IOException e) {
-                    LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
+                    LOG.warn("IndexImporterStepExecutor: {} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
                     if (count++ >= maxRetries) {
-                        LOG.warn("IndexImporterStepExecutor:{} failed after {} retries", indexImportState, maxRetries, e);
+                        LOG.warn("IndexImporterStepExecutor: {} failed after {} retries", indexImportState, maxRetries, e);
                         throw e;
                     }
                 }
             }
         } catch (Throwable t) {
-            LOG.info("[TASK:{}:FAIL] Error: {}", indexImportPhaseName, t.toString());
+            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    indexImportPhaseName,
+                    MetricsFormatter.createMetricsWithDurationOnly(start),
+                    t.toString());
             throw t;
         }
     }

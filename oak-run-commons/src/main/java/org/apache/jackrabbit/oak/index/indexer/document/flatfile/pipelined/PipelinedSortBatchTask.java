@@ -143,7 +143,10 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 emptyBuffersQueue.put(nseBuffer);
             }
         } catch (Throwable t) {
-            LOG.info("[TASK:{}:FAIL] Error: {}", THREAD_NAME.toUpperCase(Locale.ROOT), t.toString());
+            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    THREAD_NAME.toUpperCase(Locale.ROOT),
+                    MetricsFormatter.createMetricsWithDurationOnly(taskStartTime),
+                    t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {

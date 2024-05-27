@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.BsonDocument;
@@ -340,7 +341,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
                     return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
                 } catch (Throwable t) {
-                    LOG.info("[TASK:{}:FAIL] Error: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), t.toString());
+                    LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                            Thread.currentThread().getName().toUpperCase(Locale.ROOT),
+                            MetricsFormatter.createMetricsWithDurationOnly(downloadStartWatch),
+                            t.toString());
                     throw t;
                 }
             }
