@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
@@ -34,18 +35,30 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-public class AzureBlobContainerProvider {
+public class AzureBlobContainerProvider implements Closeable {
+    private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProvider.class);
     private static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
     private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
     private final String azureConnectionString;
@@ -57,6 +70,9 @@ public class AzureBlobContainerProvider {
     private final String tenantId;
     private final String clientId;
     private final String clientSecret;
+    private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
+    private static final long TOKEN_REFRESHER_DELAY = 1L;
+    private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     private AzureBlobContainerProvider(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
@@ -194,8 +210,15 @@ public class AzureBlobContainerProvider {
                 .clientSecret(clientSecret)
                 .tenantId(tenantId)
                 .build();
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE)).getToken();
-        return new StorageCredentialsToken(accountName, accessToken);
+        AccessToken accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
+        if (accessToken == null || StringUtils.isBlank(accessToken.getToken())) {
+            log.error("Access token is null or empty");
+            throw new IllegalArgumentException("Could not connect to azure storage, access token is null or empty");
+        }
+        StorageCredentialsToken storageCredentialsToken = new StorageCredentialsToken(accountName, accessToken.getToken());
+        TokenRefresher tokenRefresher = new TokenRefresher(clientSecretCredential, accessToken, storageCredentialsToken);
+        executorService.scheduleWithFixedDelay(tokenRefresher, TOKEN_REFRESHER_INITIAL_DELAY, TOKEN_REFRESHER_DELAY, TimeUnit.MINUTES);
+        return storageCredentialsToken;
     }
 
     @NotNull
@@ -267,5 +290,46 @@ public class AzureBlobContainerProvider {
     private boolean authenticateViaServicePrincipal() {
         return StringUtils.isBlank(azureConnectionString) &&
                 StringUtils.isNoneBlank(accountName, tenantId, clientId, clientSecret);
+    }
+
+    private static class TokenRefresher implements Runnable {
+
+        private final ClientSecretCredential clientSecretCredential;
+        private AccessToken accessToken;
+        private final StorageCredentialsToken storageCredentialsToken;
+
+        public TokenRefresher(ClientSecretCredential clientSecretCredential,
+                              AccessToken accessToken,
+                              StorageCredentialsToken storageCredentialsToken) {
+            this.clientSecretCredential = clientSecretCredential;
+            this.accessToken = accessToken;
+            this.storageCredentialsToken = storageCredentialsToken;
+        }
+
+        @Override
+        public void run() {
+            try {
+                log.debug("Checking for azure access token expiry at: {}", LocalDateTime.now());
+                OffsetDateTime tokenExpiryThreshold = OffsetDateTime.now().plusMinutes(5);
+                if (accessToken.getExpiresAt() != null && accessToken.getExpiresAt().isBefore(tokenExpiryThreshold)) {
+                    log.info("Access token is about to expire (5 minutes or less) at: {}. New access token will be generated",
+                            accessToken.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    AccessToken newToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
+                    if (newToken == null || StringUtils.isBlank(newToken.getToken())) {
+                        log.error("New access token is null or empty");
+                        return;
+                    }
+                    this.accessToken = newToken;
+                    this.storageCredentialsToken.updateToken(this.accessToken.getToken());
+                }
+            } catch (Exception e) {
+                log.error("Error while acquiring new access token: ", e);
+            }
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        new ExecutorCloser(executorService).close();
     }
 }
