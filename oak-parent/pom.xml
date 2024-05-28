@@ -239,6 +239,8 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.util</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.monitor</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
+                  <!-- OAK-10838: we can't control the package version for the EOLd copy of lucene-core -->
+                  <filter>!org.apache.lucene.*</filter>
                   <filter>*</filter>
                 </filters>
               </configuration>
