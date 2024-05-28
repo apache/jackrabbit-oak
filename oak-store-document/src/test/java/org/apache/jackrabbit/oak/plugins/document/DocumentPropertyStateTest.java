@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -43,6 +44,7 @@ import static org.mockito.Mockito.*;
 public class DocumentPropertyStateTest {
 
     private static final int BLOB_SIZE = 16 * 1024;
+    public static final int COMPRESSED_SIZE = 543;
     private static final String TEST_NODE = "test";
     private static final String STRING_HUGEVALUE = RandomStringUtils.random(1050, "dummytest");
 
@@ -105,6 +107,8 @@ public class DocumentPropertyStateTest {
         assertEquals(13, p.count());
 
         assertNotNull(((DocumentPropertyState) p).getCompressedValue());
+        assertNotEquals(BLOB_SIZE, ((DocumentPropertyState) p).getCompressedValue().length);
+        assertEquals(COMPRESSED_SIZE, ((DocumentPropertyState) p).getCompressedValue().length);
 
         reads.clear();
         assertEquals(BLOB_SIZE, p.size(0));
@@ -149,19 +153,21 @@ public class DocumentPropertyStateTest {
     }
 
     @Test
-    public void compressValueThrowsException() throws CommitFailedException, IOException {
+    public void compressValueThrowsException() throws IOException {
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
         Compression mockCompression = mock(Compression.class);
         when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
 
-        DocumentPropertyState documentPropertyState = new DocumentPropertyState(mockDocumentStore, "p", STRING_HUGEVALUE, mockCompression);
+        DocumentPropertyState documentPropertyState = new DocumentPropertyState(mockDocumentStore, "p", "\"" + STRING_HUGEVALUE + "\"", mockCompression);
+
+        assertEquals(documentPropertyState.getValue(Type.STRING), STRING_HUGEVALUE);
 
         verify(mockCompression, times(1)).getOutputStream(any(OutputStream.class));
 
     }
 
     @Test
-    public void uncompressValueThrowsException() throws CommitFailedException, IOException {
+    public void uncompressValueThrowsException() throws IOException {
 
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
         Compression mockCompression = mock(Compression.class);
@@ -172,7 +178,18 @@ public class DocumentPropertyStateTest {
         DocumentPropertyState documentPropertyState = new DocumentPropertyState(mockDocumentStore, "p", STRING_HUGEVALUE, mockCompression);
         documentPropertyState.getValue(Type.STRING);
 
+        assertEquals(documentPropertyState.getValue(Type.STRING), "{}");
+
         verify(mockCompression, times(1)).getInputStream(any(InputStream.class));
     }
 
+    @Test
+    public void stringAboveThresholdSizeNoCompression() {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+
+        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", "\"" + STRING_HUGEVALUE + "\"", Compression.NONE);
+
+        assertEquals(state.getCompressedValue().length, STRING_HUGEVALUE.length() + 2 );
+        assertEquals(STRING_HUGEVALUE, state.getValue(Type.STRING));
+    }
 }

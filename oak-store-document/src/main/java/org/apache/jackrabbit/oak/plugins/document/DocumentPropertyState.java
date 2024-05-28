@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import javax.jcr.PropertyType;
@@ -76,7 +77,7 @@ final class DocumentPropertyState implements PropertyState {
         int size = value.getBytes().length;
         if (compression != null && size > DEFAULT_COMPRESSION_THRESHOLD ) {
             try {
-                compressedValue = compress(value.getBytes());
+                compressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
                 this.value = null;
             } catch (IOException e) {
                 LOG.warn("Failed to compress property {} value: ", name, e);
@@ -160,14 +161,14 @@ final class DocumentPropertyState implements PropertyState {
 
     private String decompress(byte[] value) {
         try {
-            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
+            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOG.error("Failed to decompress property {} value: ", getName(), e);
             return "\"{}\"";
         }
     }
 
-    public byte[] getCompressedValue() {
+    byte[] getCompressedValue() {
         return compressedValue;
     }
 
