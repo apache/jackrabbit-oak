@@ -103,8 +103,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Stopwatch taskStartTime = Stopwatch.createStarted();
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
+        LOG.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
-            LOG.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
@@ -142,10 +142,11 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 nseBuffer.reset();
                 emptyBuffersQueue.put(nseBuffer);
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    THREAD_NAME.toUpperCase(Locale.ROOT),
+                    MetricsFormatter.createMetricsWithDurationOnly(taskStartTime),
+                    t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {

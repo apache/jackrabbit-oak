@@ -115,10 +115,10 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         String originalName = Thread.currentThread().getName();
         String threadName = THREAD_NAME_PREFIX + threadId;
         Thread.currentThread().setName(threadName);
+        Stopwatch taskStartWatch = Stopwatch.createStarted();
         try {
             LOG.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
-            Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalDocumentQueueWaitTimeMillis = 0;
             long totalEntryCount = 0;
             long mongoObjectsProcessed = 0;
@@ -215,10 +215,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     }
                 }
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    threadName.toUpperCase(Locale.ROOT), MetricsFormatter.createMetricsWithDurationOnly(taskStartWatch), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
