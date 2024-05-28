@@ -82,6 +82,8 @@ public class DocumentPropertyStateTest {
         assertEquals(Type.BINARIES, p.getType());
         assertEquals(3, p.count());
 
+        assertNull(((DocumentPropertyState) p).getCompressedValue());
+
         reads.clear();
         assertEquals(BLOB_SIZE, p.size(0));
         // must not read the blob via stream
@@ -102,6 +104,8 @@ public class DocumentPropertyStateTest {
         assertEquals(Type.BINARIES, Objects.requireNonNull(p).getType());
         assertEquals(13, p.count());
 
+        assertNotNull(((DocumentPropertyState) p).getCompressedValue());
+
         reads.clear();
         assertEquals(BLOB_SIZE, p.size(0));
         // must not read the blob via stream
@@ -118,6 +122,8 @@ public class DocumentPropertyStateTest {
         assertEquals(Type.STRING, Objects.requireNonNull(p).getType());
         assertEquals(1, p.count());
 
+        assertNull(((DocumentPropertyState) p).getCompressedValue());
+
         reads.clear();
         assertEquals(5, p.size(0));
         // must not read the string via stream
@@ -133,6 +139,8 @@ public class DocumentPropertyStateTest {
         PropertyState p = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
         assertEquals(Type.STRING, Objects.requireNonNull(p).getType());
         assertEquals(1, p.count());
+
+        assertNotNull(((DocumentPropertyState) p).getCompressedValue());
 
         reads.clear();
         assertEquals(1050, p.size(0));
