@@ -75,7 +75,7 @@ public class NodeDocumentRevisionCleaner {
      */
     public void collectOldRevisions(UpdateOp op) {
         revisionClassifier.classifyRevisionsAndProperties();
-        revisionCleaner.preserveRevisionsNewerThanThreshold(24, ChronoUnit.HOURS);
+        revisionCleaner.preserveRevisionsNewerThanThreshold(toModifiedMs);
         revisionCleaner.preserveLastRevisionForEachProperty();
         revisionCleaner.preserveRevisionsReferencedByCheckpoints();
         revisionCleaner.removeCandidatesInList();
@@ -203,7 +203,11 @@ public class NodeDocumentRevisionCleaner {
         }
 
         private void preserveRevisionsNewerThanThreshold(long amount, ChronoUnit unit) {
-            long thresholdToPreserve = toModifiedMs;//Instant.now().minus(amount, unit).toEpochMilli();
+            long thresholdToPreserve = Instant.now().minus(amount, unit).toEpochMilli();
+            preserveRevisionsNewerThanThreshold(thresholdToPreserve);
+        }
+
+        private void preserveRevisionsNewerThanThreshold(long thresholdToPreserve) {
             for (TreeSet<Revision> revisionSet : candidateRevisionsToClean.values()) {
                 for (Revision revision : revisionSet) {
                     if (revision.getTimestamp() > thresholdToPreserve) {
