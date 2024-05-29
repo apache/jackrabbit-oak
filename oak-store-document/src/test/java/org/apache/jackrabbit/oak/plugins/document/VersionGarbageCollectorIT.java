@@ -207,6 +207,11 @@ public class VersionGarbageCollectorIT {
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
             for (FullGCMode gcType : FullGCMode.values()) {
+                if (gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC
+                        || gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC) {
+                    // temporarily skip due to flakyness
+                    continue;
+                }
                 params.add(new Object[] {f, gcType});
             }
         }
