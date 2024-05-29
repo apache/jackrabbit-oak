@@ -153,19 +153,23 @@ class VersionEditor implements Editor {
                 vMgr.checkin(node);
             }
         } else if (propName.equals(JCR_BASEVERSION)) {
-            String baseVersion = after.getValue(Type.REFERENCE);
-            if (baseVersion.startsWith(RESTORE_PREFIX)) {
-                baseVersion = baseVersion.substring(RESTORE_PREFIX.length());
-                node.setProperty(JCR_BASEVERSION, baseVersion, Type.REFERENCE);
+            // OAK-8848: skip restore if this is an overwrite of a node and a restore operation is not in progress
+            if (!nodeWasMovedOrCopied() || after.getValue(Type.REFERENCE).startsWith(RESTORE_PREFIX)) {
+
+                String baseVersion = after.getValue(Type.REFERENCE);
+                if (baseVersion.startsWith(RESTORE_PREFIX)) {
+                    baseVersion = baseVersion.substring(RESTORE_PREFIX.length());
+                    node.setProperty(JCR_BASEVERSION, baseVersion, Type.REFERENCE);
+                }
+
+                vMgr.restore(node, baseVersion, null);
             }
-            vMgr.restore(node, baseVersion, null);
-        } else if (isVersionProperty(after)
-                //OAK-8848: moving a versionable node in the same location as a node
-                // deleted in the same session should be allowed. This check works because the only way
-                // that moving a node in a location is allowed is if there is no existing (undeleted)
-                // node in that location.
-                // Property comparison should not fail for two jcr:versionHistory properties in this case.
-                && !nodeWasMovedOrCopied(node)) {
+        } else if (isVersionProperty(after) && !nodeWasMovedOrCopied()) {
+            //OAK-8848: moving a versionable node in the same location as a node
+            // deleted in the same session should be allowed. This check works because the only way
+            // that moving a node in a location is allowed is if there is no existing (undeleted)
+            // node in that location.
+            // Property comparison should not fail for two jcr:versionHistory properties in this case.
             throwProtected(after.getName());
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
             throwCheckedIn("Cannot change property " + after.getName()
@@ -176,8 +180,8 @@ class VersionEditor implements Editor {
     /**
      * Returns true if and only if the given node was moved or copied from another location.
      */
-    private boolean nodeWasMovedOrCopied(NodeBuilder node) {
-        return node.hasProperty(MoveDetector.SOURCE_PATH);
+    private boolean nodeWasMovedOrCopied() {
+        return !this.before.hasProperty(MoveDetector.SOURCE_PATH) && this.after.hasProperty(MoveDetector.SOURCE_PATH);
     }
 
     @Override
