@@ -176,7 +176,6 @@ public class DocumentPropertyStateTest {
         when(mockCompression.getInputStream(any(InputStream.class))).thenThrow(new IOException("Compression failed"));
 
         DocumentPropertyState documentPropertyState = new DocumentPropertyState(mockDocumentStore, "p", STRING_HUGEVALUE, mockCompression);
-        documentPropertyState.getValue(Type.STRING);
 
         assertEquals(documentPropertyState.getValue(Type.STRING), "{}");
 
