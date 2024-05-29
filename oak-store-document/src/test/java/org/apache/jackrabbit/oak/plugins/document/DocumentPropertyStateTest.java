@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
