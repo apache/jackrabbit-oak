@@ -254,7 +254,7 @@ final class DocumentPropertyState implements PropertyState {
                 String value = TypeCodes.decodeName(split, jsonString);
                 if (type == PropertyType.BINARY) {
 
-                    return BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
+                    return  BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
                 } else {
                     return createProperty(name, StringCache.get(value), type);
                 }
