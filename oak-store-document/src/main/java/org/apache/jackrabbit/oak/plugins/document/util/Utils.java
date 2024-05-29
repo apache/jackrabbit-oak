@@ -944,13 +944,14 @@ public class Utils {
      * @param toRev the to revision.
      * @param minRevisions the minimum revisions of foreign cluster nodes. These
      *                     are derived from the startTime of a cluster node.
+     * @param readonly set to true if the DocumentNodeStore is readonly
      * @return the minimum timestamp.
      */
     public static long getMinTimestampForDiff(@NotNull RevisionVector fromRev,
                                               @NotNull RevisionVector toRev,
-                                              @NotNull RevisionVector minRevisions) {
+                                              @NotNull RevisionVector minRevisions, boolean readonly) {
         // make sure we have minimum revisions for all known cluster nodes
-        fromRev = fromRev.pmax(minRevisions);
+        fromRev = readonly ? fromRev : fromRev.pmax(minRevisions);
         toRev = toRev.pmax(minRevisions);
         // keep only revision entries that changed
         RevisionVector from = fromRev.difference(toRev);
@@ -964,6 +965,22 @@ public class Utils {
             min = Math.min(r.getTimestamp(), min);
         }
         return min;
+    }
+
+    /**
+     * Returns the minimum timestamp to use for a query for child documents that
+     * have been modified between {@code fromRev} and {@code toRev}.
+     *
+     * @param fromRev the from revision.
+     * @param toRev the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These
+     *                     are derived from the startTime of a cluster node.
+     * @return the minimum timestamp.
+     */
+    public static long getMinTimestampForDiff(@NotNull RevisionVector fromRev,
+                                              @NotNull RevisionVector toRev,
+                                              @NotNull RevisionVector minRevisions) {
+        return getMinTimestampForDiff(fromRev, toRev, minRevisions, false);
     }
 
     /**

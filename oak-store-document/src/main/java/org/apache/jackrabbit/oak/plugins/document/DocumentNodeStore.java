@@ -296,11 +296,6 @@ public final class DocumentNodeStore
     private final int clusterId;
 
     /**
-     * The configured cluster id.
-     */
-    private final int configuredClusterId;
-
-    /**
      * Map of known cluster nodes and the last known state updated
      * by {@link #updateClusterState()}.
      * Key: clusterId, value: ClusterNodeInfoDocument
@@ -621,14 +616,12 @@ public final class DocumentNodeStore
 
         int cid = builder.getClusterId();
         cid = SystemPropertySupplier.create("oak.documentMK.clusterId", cid).loggingTo(LOG).get();
-        configuredClusterId = cid;
-
         if (readOnlyMode) {
             clusterNodeInfo = ClusterNodeInfo.getReadOnlyInstance(nonLeaseCheckingStore);
         } else {
             clusterNodeInfo = ClusterNodeInfo.getInstance(nonLeaseCheckingStore,
                     new RecoveryHandlerImpl(nonLeaseCheckingStore, clock, lastRevSeeker),
-                    null, null, configuredClusterId, builder.isClusterInvisible(),
+                    null, null, cid, builder.isClusterInvisible(),
                     builder.getClusterIdReuseDelayAfterRecovery());
             checkRevisionAge(nonLeaseCheckingStore, clusterNodeInfo, clock);
         }
@@ -2277,10 +2270,6 @@ public final class DocumentNodeStore
         return clusterId;
     }
 
-    public int getConfiguredClusterId() {
-        return configuredClusterId;
-    }
-
     @Override
     @NotNull
     public RevisionVector getHeadRevision() {
@@ -2512,7 +2501,7 @@ public final class DocumentNodeStore
      */
     @NotNull
     private RevisionVector getMinExternalRevisions() {
-        return Utils.getStartRevisions(clusterNodes.values()).remove(getConfiguredClusterId());
+        return Utils.getStartRevisions(clusterNodes.values()).remove(getClusterId());
     }
 
     /**
@@ -3492,7 +3481,7 @@ public final class DocumentNodeStore
                                   RevisionVector fromRev,
                                   RevisionVector toRev) {
         long minTimestamp = Utils.getMinTimestampForDiff(
-                fromRev, toRev, getMinExternalRevisions());
+                fromRev, toRev, getMinExternalRevisions(), isReadOnlyMode());
         for (RevisionVector r : new RevisionVector[]{fromRev, toRev}) {
             if (r.isBranch()) {
                 Branch b = branches.getBranch(r);
