@@ -269,7 +269,7 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name   the name of the property state
+     * @param name the name of the property state
      * @param reader the reader
      * @return new property state
      */
@@ -280,8 +280,8 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name   the name of the property state
-     * @param store  the store
+     * @param name the name of the property state
+     * @param store the store
      * @param reader the reader
      * @return new property state
      */
