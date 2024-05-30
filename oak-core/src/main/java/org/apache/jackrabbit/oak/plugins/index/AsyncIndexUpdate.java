@@ -107,7 +107,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * Name of service property which determines the name of Async task
      */
     public static final String PROP_ASYNC_NAME = "oak.async";
-    private static final String CONCURRENT_EXCEPTION_MSG ="Another copy of the index update is already running; skipping this update. ";
+    private static final String CONCURRENT_EXCEPTION_MSG ="The index was not updated. Waiting for the lease to expire (another copy might be still running); skipping this update. ";
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
 
