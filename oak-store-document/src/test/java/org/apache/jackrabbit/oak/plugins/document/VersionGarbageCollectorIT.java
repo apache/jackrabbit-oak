@@ -1479,6 +1479,7 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
+    @Ignore(value = "OAK-10846 requires cleanup of 2nd thread")
     public void testPartialMergeRootCleanup() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
 
