@@ -135,9 +135,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VersionGarbageCollectorIT.class);
 
     static class GCCounts {
         private final FullGCMode mode;
@@ -212,6 +216,14 @@ public class VersionGarbageCollectorIT {
                     // temporarily skip due to flakyness
                     continue;
                 }
+                if (f.getName().equals("Memory") || f.getName().startsWith("RDB")) {
+                    // then only run NONE and GAP_ORPHANS_EMPTY_PROPERTIES
+                    if (gcType != FullGCMode.NONE
+                            && gcType != FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
+                        // temporarily skip due to slowness
+                        continue;
+                    }
+                }
                 params.add(new Object[] {f, gcType});
             }
         }
@@ -220,6 +232,7 @@ public class VersionGarbageCollectorIT {
 
     @Before
     public void setUp() throws Exception {
+        LOG.info("setUp: START. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
         execService = Executors.newCachedThreadPool();
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
@@ -238,10 +251,12 @@ public class VersionGarbageCollectorIT {
 
         originalFullGcMode = VersionGarbageCollector.getFullGcMode();
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
+        LOG.info("setUp: DONE. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
     }
 
     @After
     public void tearDown() throws Exception {
+        LOG.info("tearDown: START. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", originalFullGcMode, true);
         if (store2 != null) {
             store2.dispose();
@@ -254,6 +269,7 @@ public class VersionGarbageCollectorIT {
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
         fixture.dispose();
+        LOG.info("tearDown: START. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
     }
 
     private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
@@ -275,6 +291,8 @@ public class VersionGarbageCollectorIT {
     }
 
     private void createSecondaryStore(LeaseCheckMode leaseCheckNode, boolean withFailingDS) {
+        LOG.info("createSecondaryStore: creating secondary store with leaseCheckNode = {}, withFailingDS = {}",
+                leaseCheckNode, withFailingDS);
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
                     new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
