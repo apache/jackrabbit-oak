@@ -270,7 +270,7 @@ public class VersionGarbageCollectorIT {
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
         fixture.dispose();
-        LOG.info("tearDown: START. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
+        LOG.info("tearDown: DONE. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
     }
 
     private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
@@ -713,6 +713,7 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
+    @Ignore(value = "OAK-10844 ignoring due to slowness")
     public void testGC_WithNoDeletedProps_And_MoreThan_10_000_DocWithDifferentRevision() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
