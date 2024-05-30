@@ -93,6 +93,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.base.Function;
@@ -1900,6 +1901,7 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testBundledPropUnmergedBCGC() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         //0. Initialize bundling configs
         final NodeBuilder builder = store1.getRoot().builder();
         new InitialContent().initialize(builder);
