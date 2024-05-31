@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * translated tokens.
  * @deprecated see OAK-10694
  */
-@Deprecated(forRemoval = true)
+@Deprecated
 public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider {
 
     private final Logger log = LoggerFactory.getLogger(getClass());

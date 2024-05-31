@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 @Designate(
         ocd = MTFulltextQueryTermsProviderFactory.Configuration.class,
         factory = true )
-@Deprecated(forRemoval = true)
+@Deprecated
 public class MTFulltextQueryTermsProviderFactory implements FulltextQueryTermsProvider {
 
     @ObjectClassDefinition(

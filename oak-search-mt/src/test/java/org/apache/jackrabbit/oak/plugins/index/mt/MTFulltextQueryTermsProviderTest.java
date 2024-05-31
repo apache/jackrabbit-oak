@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
  * Tests for {@link MTFulltextQueryTermsProvider}
  * @deprecated see OAK-10694
  */
-@Deprecated(forRemoval = true)
+@Deprecated
 public class MTFulltextQueryTermsProviderTest {
 
     @Test
