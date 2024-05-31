@@ -42,17 +42,22 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -68,9 +73,9 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
                 new Object[] { 10000L, "Cache Max Stale = 10000" },
                 new Object[] { UserPrincipalProvider.NO_STALE_CACHE, "Cache Max Stale = 0" });
     }
-    
+
     private static final int NUM_THREADS = 100;
-    
+
     private final long cacheMaxStale;
 
     private final Logger mockedLogger = mock(Logger.class);
@@ -107,7 +112,11 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
     @Override
     @NotNull CachedPrincipalMembershipReader createPrincipalMembershipReader(@NotNull Root root) throws Exception {
-        return new CachedPrincipalMembershipReader(createMembershipProvider(root), createFactory(root), getUserConfiguration(), root);
+        return createPrincipalMembershipReader(root, getUserConfiguration());
+    }
+
+    @NotNull CachedPrincipalMembershipReader createPrincipalMembershipReader(@NotNull Root root, @NotNull UserConfiguration userConfiguration) throws Exception {
+        return new CachedPrincipalMembershipReader(createMembershipProvider(root), createFactory(root), userConfiguration, root);
     }
 
     @Override
@@ -120,7 +129,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
                 )
         );
     }
-    
+
     private Root getSystemRoot() throws Exception {
         if (systemSession == null) {
             systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
@@ -129,7 +138,6 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
     }
 
     private static void setFinalStaticField(@NotNull Class<?> clazz, @NotNull String fieldName, @NotNull Object value) throws Exception {
-
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
 
@@ -139,14 +147,14 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
         field.set(null, value);
     }
-    
+
     @Test
     public void testWritingCacheFailsWithException() throws Exception {
         CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(root);
-        
+
         Set<Principal> groupPrincipals = new HashSet<>();
         cachedGroupMembershipReader.readMembership(root.getTree(userPath), groupPrincipals);
-        
+
         Set<Principal> expected = Collections.singleton(getUserManager(root).getAuthorizable(groupId).getPrincipal());
         assertEquals(expected, groupPrincipals);
 
@@ -156,20 +164,23 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
     }
 
     /**
-     * This test checks that 'readMembership' works for objects that are not users
+     * This test checks that 'readMembership' works for objects that are not users but doesn't cache them
      * @throws Exception
      */
     @Test
-    public void testCacheGroupMembershipGetMemberNotUser() throws Exception {
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(root);
-        
+    public void testReadMembershipForNonUser() throws Exception {
+        CachedPrincipalMembershipReader cachedGroupMembershipReader = spy(createPrincipalMembershipReader(root));
+
         Set<Principal> groupPrincipals = new HashSet<>();
-        cachedGroupMembershipReader.readMembership(getTree(groupId2, root), groupPrincipals);
-        
+        Tree groupTree = getTree(groupId2, root);
+        cachedGroupMembershipReader.readMembership(groupTree, groupPrincipals);
+
         Set<Principal> expected = Collections.singleton(getUserManager(root).getAuthorizable(groupId).getPrincipal());
         assertEquals(expected, groupPrincipals);
-        
+
         verifyNoInteractions(mockedLogger);
+        verify(cachedGroupMembershipReader).readMembership(groupTree, groupPrincipals);
+        verifyNoMoreInteractions(cachedGroupMembershipReader);
     }
 
     /**
@@ -177,10 +188,10 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
      * @throws Exception
      */
     @Test
-    public void testCacheGroupMembershipGetMember() throws Exception {
+    public void testReadMembershipWithCache() throws Exception {
         Root systemRoot = getSystemRoot();
         CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(systemRoot);
-        
+
         Set<Principal> groupPrincipal = new HashSet<>();
         cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), groupPrincipal);
 
@@ -190,7 +201,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
         cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), groupPrincipal);
         //Assert that the cache was used
-        verify(mockedLogger, times(1)).debug("Reading membership from cache for {}", userPath);
+        verify(mockedLogger, times(1)).debug("Reading membership from cache for '{}'", userPath);
         assertEquals(1, groupPrincipal.size());
     }
 
@@ -220,12 +231,12 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         for (Thread getMembershipThread : getMembershipThreads) {
             getMembershipThread.join();
         }
-        
+
         verify(mockedRoot, times(1)).commit(CacheValidatorProvider.asCommitAttributes());
         if (cacheMaxStale == UserPrincipalProvider.NO_STALE_CACHE) {
             verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.");
         } else {
-            verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache, returning a stale cache.");
+            verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache, returning a stale cache for '{}'.", mockedUser.getPath());
         }
     }
 
@@ -270,6 +281,59 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         Principal groupPrincipal = mock(Principal.class);
         when(groupPrincipal.getName()).thenReturn("groupPrincipal");
         when(mockedGroupPrincipalFactory.create(mockedGroupTree)).thenReturn(groupPrincipal);
+    }
+
+    @Test
+    public void testMultipleUserConfigurations() throws Exception {
+        Root systemRoot = getSystemRoot();
+
+        List<UserConfiguration> userConfigurations = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            UserConfiguration uc = new UserConfigurationImpl(getSecurityProvider());
+            userConfigurations.add(uc);
+
+            CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(systemRoot, uc);
+            cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), new HashSet<>());
+        }
+
+        Field f = CachedPrincipalMembershipReader.class.getDeclaredField("CACHE_UPDATES");
+        f.setAccessible(true);
+
+        // verify that the size of the update-cache map is limited to the defined maxCacheTrackingEntries size
+        Map<UserConfiguration, Map<String, Long>> cacheUpdates = (Map) f.get(createPrincipalMembershipReader(systemRoot));
+        assertTrue(cacheUpdates.keySet().removeAll(userConfigurations));
+    }
+
+    @Test
+    public void testMaxCacheTrackingEntries() throws Exception {
+        UserConfiguration uc = new UserConfigurationImpl(securityProvider);
+        Map<UserConfiguration, Map<String, Long>> cacheUpdates = null;
+        try {
+            Root systemRoot = getSystemRoot();
+            CachedPrincipalMembershipReader membershipReader = createPrincipalMembershipReader(systemRoot, uc);
+            membershipReader.readMembership(systemRoot.getTree(userPath), new HashSet<>());
+
+            Field f = CachedPrincipalMembershipReader.class.getDeclaredField("CACHE_UPDATES");
+            f.setAccessible(true);
+
+            cacheUpdates = (Map) f.get(membershipReader);
+
+            Map<String, Long>  m = cacheUpdates.get(uc);
+            // since the cache entry is removed upon completion of readMembership -> expected size = 0
+            assertEquals(0, m.size());
+
+            for (int i = 0; i < 200; i++) {
+                m.computeIfAbsent("/user/path/" + i, key -> System.currentTimeMillis());
+            }
+
+            int maxCacheTrackingEntries = 100; // constant in CachedPrincipalMembershipReader
+            assertEquals(maxCacheTrackingEntries, m.size());
+
+        } finally {
+            if (cacheUpdates != null) {
+                cacheUpdates.remove(uc);
+            }
+        }
     }
 
 }
