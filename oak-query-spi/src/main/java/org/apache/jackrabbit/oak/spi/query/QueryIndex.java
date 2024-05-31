@@ -372,7 +372,7 @@ public interface QueryIndex {
          */
         @Deprecated(forRemoval = true)
         default Map<Level, List<String>> getAdditionalMessages() {
-            LOG.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+            LOG.error("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
             return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
         }
 
