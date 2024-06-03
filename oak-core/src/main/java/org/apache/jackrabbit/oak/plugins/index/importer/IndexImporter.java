@@ -58,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.mergeWithConcurrentCheck;
 
@@ -486,14 +487,14 @@ public class IndexImporter {
         String indexImportPhaseName = indexImportState == null ? "null" : indexImportState.toString();
         int count = 1;
         Stopwatch start = Stopwatch.createStarted();
-        LOG.info("[TASK:{}:START]", indexImportPhaseName);
+        INDEXING_PHASE_LOGGER.info("[TASK:{}:START]", indexImportPhaseName);
         try {
             while (count <= maxRetries) {
                 LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
                 try {
                     step.execute();
                     long durationSeconds = start.elapsed(TimeUnit.SECONDS);
-                    LOG.info("[TASK:{}:END] Metrics: {}",
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}",
                             indexImportPhaseName,
                             MetricsFormatter.createMetricsWithDurationOnly(durationSeconds)
                     );
@@ -515,7 +516,7 @@ public class IndexImporter {
                 }
             }
         } catch (Throwable t) {
-            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
                     indexImportPhaseName,
                     MetricsFormatter.createMetricsWithDurationOnly(start),
                     t.toString());
