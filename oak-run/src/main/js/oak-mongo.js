@@ -656,13 +656,20 @@ var oak = (function(global){
      * @memberof oak
      * @method findOne
      * @param {string} path the path of the document.
+     * @param {boolean} [longPaths=false] if true, it will extend the search
+     *        to look for long paths.
      * @returns {object} the document or null if it doesn't exist.
      */
-    api.findOne = function(path) {
+    api.findOne = function(path, longPaths) {
         if (path === undefined) {
             return null;
         }
-        return db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+        if (longPaths === undefined || longPaths === false) {
+            return db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+        } else {
+            var depth = pathDepth(path);
+            return db.nodes.findOne(longPathFilter(depth, path));
+        }
     };
 
     /**
