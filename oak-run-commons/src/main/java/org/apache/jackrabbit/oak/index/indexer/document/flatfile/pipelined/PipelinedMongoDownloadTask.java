@@ -74,6 +74,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
+
 public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
 
@@ -325,7 +327,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         .withCodecRegistry(nodeDocumentCodecRegistry)
                         .getCollection(Collection.NODES.toString(), NodeDocument.class);
 
-                LOG.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
+                INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
                 try {
                     downloadStartWatch.start();
                     if (retryOnConnectionErrors) {
@@ -337,11 +339,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
                     downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
                     String metrics = downloadStageStatistics.formatStats(durationMillis);
-                    LOG.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
                     reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
                     return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
                 } catch (Throwable t) {
-                    LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
                             Thread.currentThread().getName().toUpperCase(Locale.ROOT),
                             MetricsFormatter.createMetricsWithDurationOnly(downloadStartWatch),
                             t.toString());
