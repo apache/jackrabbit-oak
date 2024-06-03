@@ -64,7 +64,7 @@ public final class IndexUtils {
 
     // Logger used for START/END/FAIL messages of indexing phases. Logged in a separate logger to make them easier to
     // identify and parse by log analysis tools.
-    public static final Logger INDEXING_PHASE_LOGGER = LoggerFactory.getLogger("indexing-phase");
+    public static final Logger INDEXING_PHASE_LOGGER = LoggerFactory.getLogger("indexing-task");
 
     public static NodeBuilder getOrCreateOakIndex(NodeBuilder root) {
         NodeBuilder index;
