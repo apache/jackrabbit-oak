@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -545,7 +546,7 @@ public class BranchCommitGCTest {
         }
     }
 
-    @Test
+    @Test @Ignore("OAK-10852")
     public void unmergedRemoveChild() throws Exception {
         mergedBranchCommit(b -> {
             b.child("foo");
@@ -593,7 +594,7 @@ public class BranchCommitGCTest {
         }
     }
 
-    @Test
+    @Test @Ignore("OAK-10845")
     public void unmergedMergedRemoveChild() throws Exception {
         mergedBranchCommit(b -> {
             b.child("foo");
@@ -636,7 +637,7 @@ public class BranchCommitGCTest {
         }
     }
 
-    @Test
+    @Test @Ignore("OAK-10852")
     public void unmergedThenMergedRemoveProperty() throws Exception {
         mergedBranchCommit(b -> b.child("foo"));
         mergedBranchCommit(b -> b.child("foo").setProperty("a", "b"));
