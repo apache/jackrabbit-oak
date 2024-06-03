@@ -37,6 +37,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -546,8 +547,9 @@ public class BranchCommitGCTest {
         }
     }
 
-    @Test @Ignore("OAK-10852")
+    @Test
     public void unmergedRemoveChild() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         mergedBranchCommit(b -> {
             b.child("foo");
             b.child("bar");
