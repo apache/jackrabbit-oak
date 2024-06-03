@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Receives batches of Mongo documents, converts them to node state entries, batches them in a {@link NodeStateEntryBatch}
@@ -117,7 +118,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         Thread.currentThread().setName(threadName);
         Stopwatch taskStartWatch = Stopwatch.createStarted();
         try {
-            LOG.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
             long totalDocumentQueueWaitTimeMillis = 0;
             long totalEntryCount = 0;
@@ -148,7 +149,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
                             .add("totalEmptyBatchQueueWaitPercentage", totalEmptyBatchQueueWaitPercentage)
                             .build();
-                    LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
@@ -216,7 +217,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 }
             }
         } catch (Throwable t) {
-            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
                     threadName.toUpperCase(Locale.ROOT), MetricsFormatter.createMetricsWithDurationOnly(taskStartWatch), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
