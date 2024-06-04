@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.beust.jcommander.internal.Maps;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
+
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
@@ -43,7 +43,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +73,7 @@ public class TextPopulatorTest {
     }
 
     private void setupIndexData() throws Exception {
-        Map<String, String> dataMap = Maps.newHashMap();
+        Map<String, String> dataMap = new HashMap<>();
         dataMap.put("/sentence", "some sentence.");
         dataMap.put("/para", "some sentence.\nAnd more sentence after a new line");
         dataMap.put("/error", TextPopulator.ERROR_TEXT);
@@ -244,7 +244,7 @@ public class TextPopulatorTest {
 
     private static class FakeTextWriter implements TextWriter {
         final Set<String> processed = Sets.newHashSet();
-        final Map<String, String> data = Maps.newHashMap();
+        final Map<String, String> data = new HashMap<>();
 
         @Override
         public void write(@NotNull String blobId, @NotNull String text) {
