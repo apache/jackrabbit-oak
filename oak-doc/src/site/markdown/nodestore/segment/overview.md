@@ -803,6 +803,8 @@ The `--bin` option has no effect on binary properties stored in an external Blob
 
 The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be verified (default is `1`).
 
+The optional `--fail-fast` argument can be used to stop the check as soon as an inconsistency is found. If not specified, the tool will continue to check the entire journal.
+
 If the `--head` option is specified, the tool will scan **only** the head state, ignoring any available checkpoints.
 
 If the `--checkpoints` option is specified, the tool will scan **only** the specified checkpoints, ignoring the head state. At least one argument is expected with this option; multiple arguments need to be comma-separated.
@@ -819,6 +821,11 @@ If the option is not specified, the full traversal of the repository (rooted at 
 
 If the `--io-stats` option is specified, the tool will print some statistics about the I/O operations performed during the execution of the check command.
 This option is optional and is disabled by default.
+
+The optional `--persistent-cache-path PERSISTENT_CACHE_PATH` argument allows to specify the path for the persistent disk cache. `PERSISTENT_CACHE_PATH` must be a valid path.
+
+The optional `--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>` argument allows to limit the maximum size of the persistent disk cache to `<PERSISTENT_CACHE_SIZE_GB>`. If not specified, the default size will be limited to `50` GB.
+
 
 ### <a name="compact"/> Compact
 
