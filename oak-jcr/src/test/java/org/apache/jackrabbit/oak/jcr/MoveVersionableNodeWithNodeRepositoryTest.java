@@ -90,9 +90,74 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
      * 5. move nodeName1/nodeName2/sourceNode to nodeName1/nodeName3/sourceNode and call session.save()
      * 6. should work according to JCR specification - reproduces bug for OAK-8848: will throw ConstraintViolationException
      *  - "Property is protected: jcr:versionHistory
+     * 7. should allow the setting of a property value for the moved node after the move is complete.
+     * 8. should preserve the version history that existed previous to the move for the moved node.
      */
     @Test
-    public void testMoveNodeWithVersionHistoryOverDeletedNodeWithVersionHistory() throws Exception {
+    public void testMoveNodeWithVersionHistoryOverDeletedNodeWithVersionHistory_MultipleCheckpoints() throws Exception {
+
+        Session session = getAdminSession();
+        Node testRootNode = session.getRootNode().addNode("node1");
+
+        String newNodeName = "sourceNode";
+        Node sourceParent = testRootNode.addNode("node2"); // nodeName1/nodeName2
+        Node sourceNode = createVersionableNode(sourceParent, newNodeName); // nodeName1/nodeName2/sourceNode
+        Node destParent = testRootNode.addNode("node3"); // nodeName1/nodeName3
+        Node destNode = createVersionableNode(destParent, "destNode"); // nodeName1/nodeName3/sourceNode
+
+        String destPath = destNode.getPath();
+
+        session.save();
+
+        VersionManager versionManager = session.getWorkspace().getVersionManager();
+
+        // create versions for the source and destination paths
+        String sourceNodePath = sourceNode.getPath();
+
+        // create a specified number of versions for the source node
+        int createVersionsCount_SourceNode = 3;
+        for(int i = 0; i < createVersionsCount_SourceNode; i ++) {
+            versionManager.checkpoint(sourceNodePath);
+        }
+
+        // create a specified number of versions for the destination node
+        int createVersionsCount_DestNode = 2;
+        for(int i = 0; i < createVersionsCount_DestNode; i ++) {
+            versionManager.checkpoint(destPath);
+        }
+
+        // delete the node in the destination and move the node from source to destination
+        session.removeItem(destNode.getPath());
+        session.move(sourceNode.getPath(), destPath);
+        session.save();
+
+        // check setting property - via NodeImpl - on moved node
+        //setNodePropertyAndCheckIn(sourceNode, "testProp", "testValue");
+
+        // check that a sourceNode property can be set after it is moved
+        String testPropName = "testPropName";
+        String testPropValue = "testPropValue";
+        sourceNode.setProperty(testPropName, testPropValue);
+
+        assertEquals(sourceNode.getPath(), destPath);
+        assertEquals(sourceNode.getProperty(testPropName).getString(), testPropValue);
+
+        // moving the node creates an additional new version
+        assertEquals(retrieveVersionHistory(session, destPath).size(), createVersionsCount_SourceNode + 1);
+    }
+
+    /*
+     * 1. Create a versionable unstructured node at nodeName1/nodeName2/sourceNode
+     * 2. Create a versionable unstructured node at nodeName1/nodeName3/sourceNode
+     * 3. create version histories for both nodes
+     * 4. remove nodeName1/nodeName3/nodeName1 (that's because move(src,dest) throws an exception if dest already exists)
+     * 5. move nodeName1/nodeName2/sourceNode to nodeName1/nodeName3/sourceNode and call session.save()
+     * 6. should work according to JCR specification - reproduces bug for OAK-8848: will throw ConstraintViolationException
+     *  - "Property is protected: jcr:versionHistory
+     * 7. should allow the setting of a property value for the moved node after the move is complete.
+     */
+    @Test
+    public void testMoveNodeWithVersionHistoryOverDeletedNodeWithVersionHistory_MultiplePropertiesInVersions() throws Exception {
 
         Session session = getAdminSession();
         Node testRootNode = session.getRootNode().addNode("node1");
@@ -115,27 +180,35 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
 
         session.save();
 
-        VersionHistory delNodeVersionHistory = destNode.getVersionHistory();
-        String delNodeVHPath = delNodeVersionHistory.getPath();
-
+        // delete the node in the destination and move the node from source to destination
         session.removeItem(destNode.getPath());
-
         session.move(sourceNode.getPath(), destPath);
         session.save();
 
+        // check that a sourceNode property can be set after it is moved
+        String testPropName = "testPropName";
+        String testPropValue = "testPropValue";
+
         // check setting property - via NodeImpl - on moved node
-        setNodePropertyAndCheckIn(sourceNode, "testProp", "testValue");
+        setNodePropertyAndCheckIn(sourceNode, testPropName, testPropValue);
 
-        // check version history - TODO HORIA: should be in separate method - EXTRACT
-        VersionManager versionManager = session.getWorkspace().getVersionManager();
+        assertEquals(sourceNode.getPath(), destPath);
+        assertEquals(sourceNode.getProperty(testPropName).getString(), testPropValue);
+    }
+
+    /**
+     * Retrieves the version history for the current session for the specified nodePath.
+     * @param session
+     * @param nodePath
+     * @return
+     */
+    private List<Version> retrieveVersionHistory(Session session, String nodePath) {
         VersionIterator versionIterator;
-
-        //TODO HORIA: create submethods that get the version histories for the source and dest node and do assertions on them in ALL TESTS
         List<Version> sourceNodeVersions = new ArrayList<>();
 
         //get the version histories for the removed node and the moved node
         try {
-            VersionHistory sourceNodeHistory = (VersionHistory) session.getNode(delNodeVHPath);
+            VersionHistory sourceNodeHistory = session.getNode(nodePath).getVersionHistory();
 
             versionIterator = sourceNodeHistory.getAllVersions();
             while (versionIterator.hasNext()) {
@@ -144,16 +217,7 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
         }catch (Exception ex) {
             ex.printStackTrace();
         }
-
-        VersionHistory destNodeHistory = versionManager.getVersionHistory(destPath);
-        versionIterator = destNodeHistory.getAllVersions();
-
-        List<Version> destNodeVersions = new ArrayList<>();
-        while (versionIterator.hasNext()) {
-            destNodeVersions.add(versionIterator.nextVersion());
-        };
-
-        assertEquals(sourceNode.getPath(), destPath);
+        return sourceNodeVersions;
     }
 
     /**
@@ -179,6 +243,13 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
         session.save();
 
         assertEquals(sourceNode.getPath(), destPath);
+
+        // check that a sourceNode property can be set after it is moved
+        String testPropName = "testPropName";
+        String testPropValue = "testPropValue";
+        sourceNode.setProperty(testPropName, testPropValue);
+
+        assertEquals(sourceNode.getProperty(testPropName).getString(), testPropValue);
     }
 
     @Test
@@ -202,6 +273,13 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
         session.save();
 
         assertEquals(sourceNode.getPath(), destPath);
+
+        // check that a sourceNode property can be set after it is moved
+        String testPropName = "testPropName";
+        String testPropValue = "testPropValue";
+        sourceNode.setProperty(testPropName, testPropValue);
+
+        assertEquals(sourceNode.getProperty(testPropName).getString(), testPropValue);
     }
 
     @Test
@@ -226,5 +304,12 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
         session.save();
 
         assertEquals(sourceNode.getPath(), destPath);
+
+        // check that a sourceNode property can be set after it is moved
+        String testPropName = "testPropName";
+        String testPropValue = "testPropValue";
+        sourceNode.setProperty(testPropName, testPropValue);
+
+        assertEquals(sourceNode.getProperty(testPropName).getString(), testPropValue);
     }
 }
