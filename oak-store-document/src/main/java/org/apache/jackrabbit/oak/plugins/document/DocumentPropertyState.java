@@ -168,7 +168,7 @@ final class DocumentPropertyState implements PropertyState {
         }
     }
 
-    byte[] getCompressedValue() {
+    private byte[] getCompressedValue() {
         return compressedValue;
     }
 

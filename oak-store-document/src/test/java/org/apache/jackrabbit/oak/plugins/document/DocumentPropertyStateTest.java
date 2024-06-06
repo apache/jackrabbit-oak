@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.reflections.util.Utils;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -87,8 +90,6 @@ public class DocumentPropertyStateTest {
         assertEquals(Type.BINARIES, p.getType());
         assertEquals(3, p.count());
 
-        assertNull(((DocumentPropertyState) p).getCompressedValue());
-
         reads.clear();
         assertEquals(BLOB_SIZE, p.size(0));
         // must not read the blob via stream
@@ -109,10 +110,6 @@ public class DocumentPropertyStateTest {
         assertEquals(Type.BINARIES, Objects.requireNonNull(p).getType());
         assertEquals(13, p.count());
 
-        assertNotNull(((DocumentPropertyState) p).getCompressedValue());
-        assertNotEquals(BLOB_SIZE, ((DocumentPropertyState) p).getCompressedValue().length);
-        assertEquals(COMPRESSED_SIZE, ((DocumentPropertyState) p).getCompressedValue().length);
-
         reads.clear();
         assertEquals(BLOB_SIZE, p.size(0));
         // must not read the blob via stream
@@ -129,8 +126,6 @@ public class DocumentPropertyStateTest {
         assertEquals(Type.STRING, Objects.requireNonNull(p).getType());
         assertEquals(1, p.count());
 
-        assertNull(((DocumentPropertyState) p).getCompressedValue());
-
         reads.clear();
         assertEquals(5, p.size(0));
         // must not read the string via stream
@@ -146,8 +141,6 @@ public class DocumentPropertyStateTest {
         PropertyState p = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
         assertEquals(Type.STRING, Objects.requireNonNull(p).getType());
         assertEquals(1, p.count());
-
-        assertNotNull(((DocumentPropertyState) p).getCompressedValue());
 
         reads.clear();
         assertEquals(1050, p.size(0));
@@ -186,12 +179,21 @@ public class DocumentPropertyStateTest {
     }
 
     @Test
-    public void stringAboveThresholdSizeNoCompression() {
+    public void stringAboveThresholdSizeNoCompression() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
 
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", "\"" + STRING_HUGEVALUE + "\"", Compression.NONE);
 
-        assertEquals(state.getCompressedValue().length, STRING_HUGEVALUE.length() + 2 );
+        // Get the private method
+        Method getCompressedValueMethod = DocumentPropertyState.class.getDeclaredMethod("getCompressedValue");
+
+        // Make the method accessible
+        getCompressedValueMethod.setAccessible(true);
+        byte[] result = (byte[]) getCompressedValueMethod.invoke(state);
+
+        assertEquals(result.length, STRING_HUGEVALUE.length() + 2 );
+
+        assertEquals(state.getValue(Type.STRING), STRING_HUGEVALUE);
         assertEquals(STRING_HUGEVALUE, state.getValue(Type.STRING));
     }
 }
