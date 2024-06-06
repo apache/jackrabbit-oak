@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -41,8 +42,6 @@ import static org.junit.Assert.assertEquals;
  */
 public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositoryTest {
 
-    private static final String mixVersionable = "mix:versionable";
-
     public MoveVersionableNodeWithNodeRepositoryTest(NodeStoreFixture fixture) {
         super(fixture);
     }
@@ -62,8 +61,8 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
      */
     private Node createVersionableNode(Node parent, String nodeName) throws Exception {
         Node newNode = (parent.hasNode(nodeName)) ? parent.getNode(nodeName) : parent.addNode(nodeName);
-        if (newNode.canAddMixin(mixVersionable)) {
-            newNode.addMixin(mixVersionable);
+        if (newNode.canAddMixin(JcrConstants.MIX_VERSIONABLE)) {
+            newNode.addMixin(JcrConstants.MIX_VERSIONABLE);
         } else {
             throw new NotExecutableException();
         }
@@ -141,7 +140,7 @@ public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositor
             while (versionIterator.hasNext()) {
                 sourceNodeVersions.add(versionIterator.nextVersion());
             }
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
 

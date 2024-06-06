@@ -45,7 +45,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
 
     @Override
     @Before
-    public void setUp() throws Exception {
+    protected void setUp() throws Exception {
         super.setUp();
 
         versionPrivileges = privilegesFromName(Privilege.JCR_VERSION_MANAGEMENT);
@@ -67,25 +67,14 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      * @throws Exception
      */
     private Node createVersionableNode(Node parent, String nodeName) throws Exception {
-        Node newNode = (parent.hasNode(nodeName)) ? parent.getNode(nodeName) : parent.addNode(nodeName);
-        if (newNode.canAddMixin(mixVersionable)) {
-            newNode.addMixin(mixVersionable);
+        Node n = (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
+        if (n.canAddMixin(mixVersionable)) {
+            n.addMixin(mixVersionable);
         } else {
             throw new NotExecutableException();
         }
-        newNode.getSession().save();
-        return newNode;
-    }
-
-    /**
-     * Checks out the node, sets the property then saves the session and checks the node back in.
-     * To be used in tests where version history needs to be populated.
-     */
-    private void setNodePropertyAndCheckIn(Node node, String propertyName, String propertyValue) throws Exception {
-        node.checkout();
-        node.setProperty(propertyName, propertyValue);
-        node.getSession().save();
-        node.checkin();
+        n.getSession().save();
+        return n;
     }
 
     @Test

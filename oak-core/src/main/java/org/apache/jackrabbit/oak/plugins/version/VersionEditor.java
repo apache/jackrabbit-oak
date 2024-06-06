@@ -156,7 +156,7 @@ class VersionEditor implements Editor {
                 vMgr.checkin(node);
             }
 
-       /*Completes the restore of a version from version history.
+       /* Completes the restore of a version from version history.
 
        When the JCR_BASEVERSION property is processed, a check is made for the current base version property.
        If a restore is currently in progress for the current base version (the check for this is that the
