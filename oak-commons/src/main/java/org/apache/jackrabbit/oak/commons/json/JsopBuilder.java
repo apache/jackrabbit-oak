@@ -28,7 +28,7 @@ public class JsopBuilder implements JsopWriter {
 
     private static final boolean JSON_NEWLINES = false;
 
-    private final StringBuilder buff = new StringBuilder();
+    private StringBuilder buff = new StringBuilder();
     private boolean needComma;
     private int lineLength, previous;
 
@@ -286,7 +286,7 @@ public class JsopBuilder implements JsopWriter {
      * @param buff the target buffer
      * @return the target buffer with the encoded string appended
      */
-    public static StringBuilder encode(String s, StringBuilder buff) {
+    private static StringBuilder encode(String s, StringBuilder buff) {
         if (s == null) {
             return buff.append("null");
         }
