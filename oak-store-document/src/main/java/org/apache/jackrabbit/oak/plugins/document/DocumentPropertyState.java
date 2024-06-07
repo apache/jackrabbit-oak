@@ -58,13 +58,13 @@ final class DocumentPropertyState implements PropertyState {
 
     private final String name;
 
-    private String value;
+    private final String value;
 
     private PropertyState parsed;
-    private byte[] compressedValue;
+    private final byte[] compressedValue;
     private final Compression compression;
 
-    private static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", 1024);
+    private static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", -1);
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this(store, name, value, Compression.GZIP);
@@ -75,19 +75,18 @@ final class DocumentPropertyState implements PropertyState {
         this.name = name;
         this.compression = compression;
         int size = value.getBytes().length;
-        if (compression != null && size > DEFAULT_COMPRESSION_THRESHOLD ) {
+        String localValue = value;
+        byte[] localCompressedValue = null;
+        if (compression != null && size > DEFAULT_COMPRESSION_THRESHOLD) {
             try {
-                compressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
-                this.value = null;
+                localCompressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
+                localValue = null;
             } catch (IOException e) {
                 LOG.warn("Failed to compress property {} value: ", name, e);
-                this.value = value;
-                this.compressedValue = null;
             }
-        } else {
-            this.value = value;
-            compressedValue = null;
         }
+        this.value = localValue;
+        this.compressedValue = localCompressedValue;
     }
 
     private byte[] compress(byte[] value) throws IOException {
