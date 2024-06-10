@@ -197,6 +197,7 @@ public class JsopBuilder implements JsopWriter {
      * @param value the value
      * @return this
      */
+    @Override
     public JsopBuilder value(String value) {
         optionalCommaAndNewline(strLength(value));
         encode(value, buff);
@@ -267,7 +268,7 @@ public class JsopBuilder implements JsopWriter {
         }
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if (c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff)) {
+            if (shouldEscape(c)) {
                 StringBuilder buff = new StringBuilder(length + 2 + length / 8);
                 buff.append('\"');
                 escape(s, length, buff);
@@ -296,7 +297,7 @@ public class JsopBuilder implements JsopWriter {
         }
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if (c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff)) {
+            if (shouldEscape(c)) {
                 buff.append('\"');
                 escape(s, length, buff);
                 return buff.append('\"');
@@ -313,6 +314,10 @@ public class JsopBuilder implements JsopWriter {
      */
     public static void escape(String s, StringBuilder buff) {
         escape(s, s.length(), buff);
+    }
+
+    private static boolean shouldEscape(char c) {
+        return c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff);
     }
 
     /**
