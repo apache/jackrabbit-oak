@@ -24,7 +24,6 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.CharMatcher;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -240,9 +239,10 @@ public class JsonDeserializer {
         }
 
         private boolean hasSingleColon(String jsonString) {
-            //In case the primaryType was encoded then it would be like nam:oak:Unstructured
-            //So check if there is only one occurrence of ';'
-            return CharMatcher.is(':').countIn(jsonString) == 1;
+            // In case the primaryType was encoded then it would be like
+            // "nam:oak:Unstructured". So check if there is only one occurrence
+            // of ':'.
+            return jsonString.replace(":", "").length() == jsonString.length() - 1;
         }
     }
 
