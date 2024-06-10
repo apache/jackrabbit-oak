@@ -32,6 +32,8 @@ public final class StringValue implements CacheValue {
 
     private static final Logger log = LoggerFactory.getLogger(StringValue.class);
 
+    public static final StringValue EMPTY = new StringValue("");
+
     private final String value;
 
     public StringValue(@NotNull String value) {
