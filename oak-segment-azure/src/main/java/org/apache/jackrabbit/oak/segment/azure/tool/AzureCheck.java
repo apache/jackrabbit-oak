@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.jackrabbit.oak.segment.azure.tool;
 
-package org.apache.jackrabbit.oak.segment.tool;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.tool.Check;
+import org.apache.jackrabbit.oak.segment.tool.check.CheckHelper;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -28,23 +31,16 @@ import java.text.MessageFormat;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.JournalReader;
-import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
-import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
-import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.tool.check.CheckHelper;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
-/**
- * Perform a consistency check on an existing segment store.
- */
-public class Check {
-
+public class AzureCheck {
     /**
      * Create a builder for the {@link Check} command.
      *
-     * @return an instance of {@link Builder}.
+     * @return an instance of {@link Check.Builder}.
      */
     public static Builder builder() {
         return new Builder();
@@ -55,11 +51,9 @@ public class Check {
      */
     public static class Builder {
 
-        private File path;
+        private String path;
 
-        private boolean mmap;
-
-        private File journal;
+        private String journal;
 
         private long debugInterval = Long.MAX_VALUE;
 
@@ -75,13 +69,17 @@ public class Check {
 
         private boolean ioStatistics;
 
-        private RepositoryStatistics repoStatistics;
+        private Check.RepositoryStatistics repoStatistics;
 
         private PrintWriter outWriter;
 
         private PrintWriter errWriter;
 
         private boolean failFast;
+
+        private String persistentCachePath;
+
+        private Integer persistentCacheSizeGb;
 
         private Builder() {
             // Prevent external instantiation.
@@ -93,22 +91,8 @@ public class Check {
          * @param path the path to an existing segment store.
          * @return this builder.
          */
-        public Builder withPath(File path) {
+        public Builder withPath(String path) {
             this.path = checkNotNull(path);
-            return this;
-        }
-
-        /**
-         * Whether to use memory mapped access or file access.
-         *
-         * @param mmap {@code true} for memory mapped access, {@code false} for
-         *             file access {@code null} to determine the access mode
-         *             from the system architecture: memory mapped on 64 bit
-         *             systems, file access on  32 bit systems.
-         * @return this builder.
-         */
-        public Builder withMmap(boolean mmap) {
-            this.mmap = mmap;
             return this;
         }
 
@@ -120,7 +104,7 @@ public class Check {
          * @param journal the path to the journal of the segment store.
          * @return this builder.
          */
-        public Builder withJournal(File journal) {
+        public Builder withJournal(String journal) {
             this.journal = checkNotNull(journal);
             return this;
         }
@@ -221,7 +205,7 @@ public class Check {
          * @param repoStatistics instance to collect statistics
          * @return this builder.
          */
-        public Builder withRepositoryStatistics(RepositoryStatistics repoStatistics) {
+        public Builder withRepositoryStatistics(Check.RepositoryStatistics repoStatistics) {
             this.repoStatistics = repoStatistics;
             return this;
         }
@@ -263,13 +247,37 @@ public class Check {
         }
 
         /**
+         * The path where segments in the persistent cache will be stored.
+         *
+         * @param persistentCachePath
+         *             the path to the persistent cache.
+         * @return this builder
+         */
+        public Builder withPersistentCachePath(String persistentCachePath) {
+            this.persistentCachePath = checkNotNull(persistentCachePath);
+            return this;
+        }
+
+        /**
+         * The maximum size in GB of the persistent disk cache.
+         *
+         * @param persistentCacheSizeGb
+         *             the maximum size of the persistent cache.
+         * @return this builder
+         */
+        public Builder withPersistentCacheSizeGb(Integer persistentCacheSizeGb) {
+            this.persistentCacheSizeGb = checkNotNull(persistentCacheSizeGb);
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
          */
-        public Check build() {
+        public AzureCheck build() {
             checkNotNull(path);
-            return new Check(this);
+            return new AzureCheck(this);
         }
 
     }
@@ -291,32 +299,9 @@ public class Check {
 
     }
 
-    public static class RepositoryStatistics {
-        int headNodeCount;
-        int headPropertyCount;
+    private final String path;
 
-        public void setHeadPropertyCount(int headPropertyCount) {
-            this.headPropertyCount = headPropertyCount;
-        }
-
-        public void setHeadNodeCount(int headNodeCount) {
-            this.headNodeCount = headNodeCount;
-        }
-
-        public int getHeadNodeCount() {
-            return headNodeCount;
-        }
-
-        public int getHeadPropertyCount() {
-            return headPropertyCount;
-        }
-    }
-
-    private final File path;
-
-    private final boolean mmap;
-
-    private final File journal;
+    private final String journal;
 
     private final long debugInterval;
 
@@ -332,7 +317,7 @@ public class Check {
 
     private final boolean ioStatistics;
 
-    private RepositoryStatistics repoStatistics;
+    private Check.RepositoryStatistics repoStatistics;
 
     private final PrintWriter out;
 
@@ -340,9 +325,12 @@ public class Check {
 
     private final boolean failFast;
 
-    private Check(Builder builder) {
+    private final String persistentCachePath;
+
+    private final Integer persistentCacheSizeGb;
+
+    private AzureCheck(Builder builder) {
         this.path = builder.path;
-        this.mmap = builder.mmap;
         this.debugInterval = builder.debugInterval;
         this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
@@ -352,16 +340,11 @@ public class Check {
         this.repoStatistics = builder.repoStatistics;
         this.out = builder.outWriter;
         this.err = builder.errWriter;
-        this.journal = journalPath(builder.path, builder.journal);
+        this.journal = builder.journal;
         this.revisionsCount = revisionsToCheckCount(builder.revisionsCount);
         this.failFast = builder.failFast;
-    }
-
-    private static File journalPath(File segmentStore, File journal) {
-        if (journal == null) {
-            return new File(segmentStore, "journal.log");
-        }
-        return journal;
+        this.persistentCachePath = builder.persistentCachePath;
+        this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
     }
 
     private static Integer revisionsToCheckCount(Integer revisionsCount) {
@@ -370,10 +353,14 @@ public class Check {
 
     public int run() {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
+        SegmentNodeStorePersistence persistence;
+        if (persistentCachePath != null) {
+            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+        } else {
+            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
+        }
 
-        FileStoreBuilder builder = fileStoreBuilder(path)
-            .withMemoryMapping(mmap)
-            .withCustomPersistence(new TarPersistence(this.path, this.journal));
+        FileStoreBuilder builder = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence);
 
         if (ioStatistics) {
             builder.withIOMonitor(ioMonitor);
@@ -392,8 +379,8 @@ public class Check {
                 .build();
 
         try (
-            ReadOnlyFileStore store = builder.buildReadOnly();
-            JournalReader journal = new JournalReader(new LocalJournalFile(this.journal))
+                ReadOnlyFileStore store = builder.buildReadOnly();
+                JournalReader journal = new JournalReader(persistence.getJournalFile())
         ) {
             int result = checkHelper.run(store, journal);
 
@@ -404,8 +391,8 @@ public class Check {
             }
 
             if (repoStatistics != null) {
-                repoStatistics.headNodeCount = checkHelper.getHeadNodeCount();
-                repoStatistics.headPropertyCount = checkHelper.getHeadPropertyCount();
+                repoStatistics.setHeadNodeCount(checkHelper.getHeadNodeCount());
+                repoStatistics.setHeadPropertyCount(checkHelper.getHeadPropertyCount());
             }
 
             return result;

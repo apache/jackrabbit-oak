@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.getSortedStoreFileName;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Accumulates the intermediate sorted files and, when all files are generated, merges them into a single sorted file,
@@ -210,7 +211,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         int intermediateFilesCount = 0;
-        LOG.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
+        INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
         Stopwatch finalMergeWatch = Stopwatch.createUnstarted();
         try {
             while (true) {
@@ -236,7 +237,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                             .add("ffsSize", IOUtils.humanReadableByteCountBin(ffsSizeBytes))
                             .build();
 
-                    LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     reporter.addTiming("Merge sort", FormattingUtils.formatToSeconds(finalMergeWatch));
                     MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
                     MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
@@ -261,7 +262,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                 }
             }
         } catch (Throwable t) {
-            LOG.info("[TASK:{}:FAIL] Metrics: {}, Error: {}", THREAD_NAME.toUpperCase(Locale.ROOT),
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}", THREAD_NAME.toUpperCase(Locale.ROOT),
                     MetricsFormatter.createMetricsWithDurationOnly(finalMergeWatch),
                     t.toString());
             LOG.warn("Thread terminating with exception", t);

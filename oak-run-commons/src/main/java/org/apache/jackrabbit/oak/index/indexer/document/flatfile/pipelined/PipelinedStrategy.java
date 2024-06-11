@@ -62,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
@@ -375,7 +376,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 emptyBatchesQueue.add(NodeStateEntryBatch.createNodeStateEntryBatch(nseBuffersSizeBytes, Integer.MAX_VALUE));
             }
 
-            LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
+            INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
 
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
@@ -507,7 +508,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     }
                 }
                 long elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
-                LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
+                INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
                         .add("duration", FormattingUtils.formatToSeconds(elapsedSeconds))
                         .add("durationSeconds", elapsedSeconds)
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
@@ -516,7 +517,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (Throwable e) {
-                LOG.info("[TASK:PIPELINED-DUMP:FAIL] Metrics: {}, Error: {}",
+                INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:FAIL] Metrics: {}, Error: {}",
                         MetricsFormatter.createMetricsWithDurationOnly(start), e.toString()
                 );
                 LOG.warn("Error dumping from MongoDB. Cancelling all tasks. Error: {}", e.toString());

@@ -64,6 +64,28 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fullTextWithInvalidSyntax() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "Hello everyone. This is a fulltext test");
+        root.commit();
+
+        // fuzziness support the following syntax: <term>~[edit_distance] (eg: hello~2). The query below is invalid
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-fuzziness
+        String query = "//*[jcr:contains(@propa, 'hello e~one')]";
+
+        assertEventually(() -> {
+            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(query, XPATH, List.of());
+        });
+    }
+
+    @Test
     public void fullTextQueryRegExp() throws Exception {
         Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
                 },

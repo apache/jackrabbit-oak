@@ -89,6 +89,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 public abstract class DocumentStoreIndexerBase implements Closeable {
     public static final String INDEXER_METRICS_PREFIX = "oak_indexer_";
@@ -313,7 +314,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     public void reindex() throws CommitFailedException, IOException {
-        log.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
         Stopwatch indexJobWatch = Stopwatch.createStarted();
         try {
             IndexingProgressReporter progressReporter =
@@ -346,7 +347,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
             preIndexOperations(indexer.getIndexers());
 
-            log.info("[TASK:INDEXING:START] Starting indexing");
+            INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
             Stopwatch indexerWatch = Stopwatch.createStarted();
             try {
 
@@ -364,25 +365,25 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 progressReporter.logReport();
                 long indexingDurationSeconds = indexerWatch.elapsed(TimeUnit.SECONDS);
                 log.info("Completed indexing in {}", FormattingUtils.formatToSeconds(indexingDurationSeconds));
-                log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
+                INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
                 MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
                 indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
             } catch (Throwable t) {
-                log.info("[TASK:INDEXING:FAIL] Metrics: {}, Error: {}",
+                INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:FAIL] Metrics: {}, Error: {}",
                         MetricsFormatter.createMetricsWithDurationOnly(indexerWatch), t.toString());
                 throw t;
             }
 
-            log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
+            INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
             Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
             try {
                 copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 long mergeNodeStoreDurationSeconds = mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS);
-                log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreDurationSeconds));
+                INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreDurationSeconds));
                 MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
                 indexingReporter.addTiming("Merge node store", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds));
             } catch (Throwable t) {
-                log.info("[TASK:MERGE_NODE_STORE:FAIL] Metrics: {}, Error: {}",
+                INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:FAIL] Metrics: {}, Error: {}",
                         MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreWatch), t.toString());
                 throw t;
             }
@@ -390,11 +391,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             indexerSupport.postIndexWork(copyOnWriteStore);
 
             long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
-            log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.createMetricsWithDurationOnly(fullIndexCreationDurationSeconds));
+            INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.createMetricsWithDurationOnly(fullIndexCreationDurationSeconds));
             MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
             indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
         } catch (Throwable t) {
-            log.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
+            INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
                     MetricsFormatter.createMetricsWithDurationOnly(indexJobWatch), t.toString());
             throw t;
         }

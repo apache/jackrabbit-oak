@@ -129,6 +129,28 @@ var oak = (function(global){
     };
 
     /**
+     * Determines the number of direct child node (excluding any sub tree)
+     * for a given parent node path.
+     *
+     * @memberof oak
+     * @method countDirectChildren
+     * @param {string} path the path of a node.
+     * @returns {number} the number of children, including all descendant nodes.
+     */
+    api.countDirectChildren = function(path){
+        if (path === undefined) {
+            return 0;
+        } else if (path != "/") {
+            path = path + "/";
+        }
+        var depth = pathDepth(path);
+        var totalCount = 0;
+        var count = db.nodes.count({_id: pathFilter(depth + 1, path)});
+        totalCount += count;
+        return totalCount;
+    };
+
+    /**
      * Provides stats related to number of child nodes
      * below given path or total size taken by such nodes.
      *
@@ -574,6 +596,222 @@ var oak = (function(global){
     };
 
     /**
+     * Prtints the sizes of all revisions by property.
+     * This is useful for large documents to quickly see which property/ies are affected
+     *
+     * @memberof oak
+     * @method propertySizes
+     * @param {string} path the path of a document
+     * @param {number} sizeLargerThan only show properties larger than this, defaults to 1
+     */
+    api.propertySizes = function(path, sizeLargerThan) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        if (sizeLargerThan == undefined) {
+            sizeLargerThan = 1;
+        }
+        print("loading document at " + path);
+        var doc = this.findOne(path);
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var overall = Object.bsonsize(doc);
+        print("overall size : " + overall);
+        var prop;
+        for (prop in doc) {
+            if (prop == "_id") {
+                continue;
+            }
+            var hasown = doc.hasOwnProperty(prop)
+            var subdoc = doc[prop];
+            var thetype = Object.prototype.toString.call(subdoc);
+            var isBson = (thetype == "[object BSON]");
+            if (!isBson) {
+                //print("   (not a bson, skipping " + prop + ")");
+                continue;
+            }
+            var subdocsize = Object.bsonsize(subdoc);
+            if (subdocsize <= sizeLargerThan) {
+                //print("   (too small to report " + prop + ")");
+                continue;
+            }
+            print(" - property " + prop + " size : " + subdocsize);
+        }
+    }
+
+    /**
+     * Prints the count of property revisions by clusterId
+     * The output is using the pseudo-revision format used elsewhere already
+     * where timestamp and count are 0 - mainly to point out the clusterId it belongs to
+     * This is useful for large documents to quickly see which clusterId was the
+     * most frequent writer.
+     *
+     * @memberof oak
+     * @method propertyClusterIdCounts
+     * @param {string} path the path of a document
+     */
+    api.propertyClusterIdCounts = function(path) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        print("loading document at " + path);
+        var doc = this.findOne(path);
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var prop;
+        var stats = {};
+        for (prop in doc) {
+            if (prop == "_id") {
+                continue;
+            }
+            var subdoc = doc[prop];
+            var r;
+            var clusterIds = undefined;
+            for (r in subdoc) {
+                if (!subdoc.hasOwnProperty(r)) {
+                    continue;
+                }
+                var v = subdoc[r];
+                var clusterId = "r0-0-" + new Revision(r).getClusterId();
+                if (clusterIds === undefined) {
+                    clusterIds = {};
+                }
+                var existing = clusterIds[clusterId];
+                if (existing === undefined) {
+                    existing = 1;
+                } else {
+                    existing++;
+                }
+                clusterIds[clusterId] = existing;
+            }
+            if (clusterIds !== undefined) {
+                stats[prop] = clusterIds;
+            }
+        }
+        // pretty format the output using stringify
+        print(JSON.stringify(stats, null, 8));
+    }
+
+    /**
+     * Prtints commit value of all branch commits.
+     *
+     * @memberof oak
+     * @method branchCommitValues
+     * @param {string} path the path of a document
+     */
+    api.branchCommitValues = function(path) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        print("loading document at " + path);
+        var doc = this.findOne(path);
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var num = 0;
+        var rev;
+        var cachedRoot = this.findOne("/");
+        for (rev in doc._bc) {
+            var commitValue = this.getCommitValue("/", rev, cachedRoot)
+            if (commitValue && commitValue[rev] && commitValue[rev].startsWith("c-")) {
+                print(" - branch change " + rev + " is committed");
+                continue;
+            }
+            print(" - branch change " + rev + " is not or not yet committed");
+            num++;
+        }
+        print("Number of unmerged branch changes : " + num);
+    }
+
+    /**
+     * Approximative calculation of the size of the
+     * object passed. Typically that object is a bson,
+     * but over time more cases should be supported.
+     *
+     * @memberof oak
+     * @method sizeOf
+     * @param {object} obj the object, eg bson, string,
+     * for which to calculate the size, approximatively
+     */
+    api.sizeOf = function(obj) {
+        var thetype = Object.prototype.toString.call(obj);
+        if (thetype == "[object BSON]") {
+            return Object.bsonsize(obj);
+        } else if (thetype == "[object Null]") {
+            return 0;
+        } else if (thetype == "[object String]") {
+            return obj.length;
+        }
+        print("sizeOf: obj not a bson but : " + thetype);
+        return 42;
+    }
+
+    /**
+     * Prints the commit value of all branch commits
+     * of the provided path and property.
+     * Plus also prints a stats summary at the end.
+     * Useful to determine details of potential garbage.
+     *
+     * @memberof oak
+     * @method unmergedBranchStatsForProperty
+     * @param {string} path the path of a document
+     * @param {string} property the property to inspect
+     */
+    api.unmergedBranchStatsForProperty = function(path, property) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        print("loading document at " + path);
+        var doc = this.findOne(path);
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var subdoc = doc[property];
+        var num = 0;
+        var totalGarbage  = 0;
+        var cachedRoot = this.findOne("/");
+        var propertyGarbageSizes = {};
+        var rev, clusterId, clusterIdGarbage;
+        for (rev in doc._bc) {
+            var commitValue = this.getCommitValue("/", rev, cachedRoot)
+            if (commitValue && commitValue[rev] && commitValue[rev].startsWith("c-")) {
+                print(" - branch change " + rev + " is committed");
+                continue;
+            }
+            var garbageSize = 0;
+            var propertyValue = subdoc[rev];
+            if (propertyValue === undefined) {
+                print(" - branch change " + rev + " is unmerged but property " + property + " not affected");
+                continue;
+            }
+            garbageSize = this.sizeOf(propertyValue);
+            clusterId = new Revision(rev).getClusterId();
+            print(" - branch change " + rev + " (clusterId " + clusterId + ") is unmerged of size " + garbageSize);
+            num++;
+            totalGarbage+=garbageSize;
+            clusterIdGarbage = propertyGarbageSizes[clusterId];
+            if (clusterIdGarbage === undefined) {
+                clusterIdGarbage = 0;
+            }
+            clusterIdGarbage += garbageSize;
+            propertyGarbageSizes[clusterId] = clusterIdGarbage;
+        }
+        print("Number of unmerged branch changes : " + num + " of total size " + totalGarbage);
+        print("propertyGarbageSizes :");
+        print(JSON.stringify(propertyGarbageSizes, null, 2));
+    }
+
+    /**
      * Removes unmerged branch changes on the document with the given path
      * and clusterId. This method will only remove unmerged branch changes when
      * the clusterId is inactive.
@@ -656,13 +894,20 @@ var oak = (function(global){
      * @memberof oak
      * @method findOne
      * @param {string} path the path of the document.
+     * @param {boolean} [longPaths=false] if true, it will extend the search
+     *        to look for long paths.
      * @returns {object} the document or null if it doesn't exist.
      */
-    api.findOne = function(path) {
+    api.findOne = function(path, longPaths) {
         if (path === undefined) {
             return null;
         }
-        return db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+        if (longPaths === undefined || longPaths === false) {
+            return db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+        } else {
+            var depth = pathDepth(path);
+            return db.nodes.findOne(longPathFilter(depth, path));
+        }
     };
 
     /**
