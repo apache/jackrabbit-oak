@@ -145,7 +145,7 @@ var oak = (function(global){
         }
         var depth = pathDepth(path);
         var totalCount = 0;
-        var count = db.nodes.count({_id: pathFilter(depth++, path)});
+        var count = db.nodes.count({_id: pathFilter(depth + 1, path)});
         totalCount += count;
         return totalCount;
     };
@@ -602,7 +602,7 @@ var oak = (function(global){
      * @memberof oak
      * @method propertySizes
      * @param {string} path the path of a document
-     * @param {number} sizeLargerThan only show properteis larger than this, defaults to 1
+     * @param {number} sizeLargerThan only show properties larger than this, defaults to 1
      */
     api.propertySizes = function(path, sizeLargerThan) {
         if (path === undefined) {
@@ -620,30 +620,30 @@ var oak = (function(global){
         }
         var overall = Object.bsonsize(doc);
         print("overall size : " + overall);
-        var k;
-        for (k in doc) {
-            if (k == "_id") {
+        var prop;
+        for (prop in doc) {
+            if (prop == "_id") {
                 continue;
             }
-            var hasown = doc.hasOwnProperty(k)
-            var subdoc = doc[k];
+            var hasown = doc.hasOwnProperty(prop)
+            var subdoc = doc[prop];
             var thetype = Object.prototype.toString.call(subdoc);
             var isBson = (thetype == "[object BSON]");
             if (!isBson) {
-                //print("   (not a bson, skipping " + k + ")");
+                //print("   (not a bson, skipping " + prop + ")");
                 continue;
             }
             var subdocsize = Object.bsonsize(subdoc);
             if (subdocsize <= sizeLargerThan) {
-                //print("   (too small to report " + k + ")");
+                //print("   (too small to report " + prop + ")");
                 continue;
             }
-            print(" - property " + k + " size : " + subdocsize);
+            print(" - property " + prop + " size : " + subdocsize);
         }
     }
 
     /**
-     * Prtints the count of property revisions by clusterId
+     * Prints the count of property revisions by clusterId
      * The output is using the pseudo-revision format used elsewhere already
      * where timestamp and count are 0 - mainly to point out the clusterId it belongs to
      * This is useful for large documents to quickly see which clusterId was the
@@ -664,13 +664,13 @@ var oak = (function(global){
             print("No document for path: " + path);
             return;
         }
-        var k;
+        var prop;
         var stats = {};
-        for (k in doc) {
-            if (k == "_id") {
+        for (prop in doc) {
+            if (prop == "_id") {
                 continue;
             }
-            var subdoc = doc[k];
+            var subdoc = doc[prop];
             var r;
             var clusterIds = undefined;
             for (r in subdoc) {
@@ -691,7 +691,7 @@ var oak = (function(global){
                 clusterIds[clusterId] = existing;
             }
             if (clusterIds !== undefined) {
-                stats[k] = clusterIds;
+                stats[prop] = clusterIds;
             }
         }
         // pretty format the output using stringify
@@ -717,20 +717,30 @@ var oak = (function(global){
             return;
         }
         var num = 0;
-        var r;
+        var rev;
         var cachedRoot = this.findOne("/");
-        for (r in doc._bc) {
-            var commitValue = this.getCommitValue("/", r, cachedRoot)
-            if (commitValue && commitValue[r] && commitValue[r].startsWith("c-")) {
-                print(" - branch change " + r + " is committed");
+        for (rev in doc._bc) {
+            var commitValue = this.getCommitValue("/", rev, cachedRoot)
+            if (commitValue && commitValue[rev] && commitValue[rev].startsWith("c-")) {
+                print(" - branch change " + rev + " is committed");
                 continue;
             }
-            print(" - branch change " + r + " is not or not yet committed");
+            print(" - branch change " + rev + " is not or not yet committed");
             num++;
         }
         print("Number of unmerged branch changes : " + num);
     }
 
+    /**
+     * Approximative calculation of the size of the
+     * object passed. Typically that object is a bson,
+     * but over time more cases should be supported.
+     *
+     * @memberof oak
+     * @method sizeOf
+     * @param {object} obj the object, eg bson, string,
+     * for which to calculate the size, approximatively
+     */
     api.sizeOf = function(obj) {
         var thetype = Object.prototype.toString.call(obj);
         if (thetype == "[object BSON]") {
@@ -744,6 +754,17 @@ var oak = (function(global){
         return 42;
     }
 
+    /**
+     * Prints the commit value of all branch commits
+     * of the provided path and property.
+     * Plus also prints a stats summary at the end.
+     * Useful to determine details of potential garbage.
+     *
+     * @memberof oak
+     * @method unmergedBranchStatsForProperty
+     * @param {string} path the path of a document
+     * @param {string} property the property to inspect
+     */
     api.unmergedBranchStatsForProperty = function(path, property) {
         if (path === undefined) {
             print("No path specified");
@@ -760,22 +781,22 @@ var oak = (function(global){
         var totalGarbage  = 0;
         var cachedRoot = this.findOne("/");
         var propertyGarbageSizes = {};
-        var r, clusterId, clusterIdGarbage;
-        for (r in doc._bc) {
-            var commitValue = this.getCommitValue("/", r, cachedRoot)
-            if (commitValue && commitValue[r] && commitValue[r].startsWith("c-")) {
-                print(" - branch change " + r + " is committed");
+        var rev, clusterId, clusterIdGarbage;
+        for (rev in doc._bc) {
+            var commitValue = this.getCommitValue("/", rev, cachedRoot)
+            if (commitValue && commitValue[rev] && commitValue[rev].startsWith("c-")) {
+                print(" - branch change " + rev + " is committed");
                 continue;
             }
             var garbageSize = 0;
-            var propertyValue = subdoc[r];
+            var propertyValue = subdoc[rev];
             if (propertyValue === undefined) {
-                print(" - branch change " + r + " is unmerged but property " + property + " not affected");
+                print(" - branch change " + rev + " is unmerged but property " + property + " not affected");
                 continue;
             }
             garbageSize = this.sizeOf(propertyValue);
-            clusterId = new Revision(r).getClusterId();
-            print(" - branch change " + r + " (clusterId " + clusterId + ") is unmerged of size " + garbageSize);
+            clusterId = new Revision(rev).getClusterId();
+            print(" - branch change " + rev + " (clusterId " + clusterId + ") is unmerged of size " + garbageSize);
             num++;
             totalGarbage+=garbageSize;
             clusterIdGarbage = propertyGarbageSizes[clusterId];
