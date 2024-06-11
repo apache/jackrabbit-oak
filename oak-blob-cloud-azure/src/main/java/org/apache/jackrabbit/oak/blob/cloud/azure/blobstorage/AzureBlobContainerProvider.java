@@ -71,7 +71,7 @@ public class AzureBlobContainerProvider implements Closeable {
     private final String clientSecret;
     private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
     private static final long TOKEN_REFRESHER_DELAY = 1L;
-    private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     private AzureBlobContainerProvider(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
