@@ -27,6 +27,7 @@ package org.apache.lucene.store;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -86,7 +87,7 @@ abstract class ByteBufferIndexInput extends IndexInput {
           throw new EOFException("read past EOF: " + this);
         }
         curBuf = buffers[curBufIndex];
-        curBuf.position(0);
+        ((Buffer) curBuf).position(0);
       } while (!curBuf.hasRemaining());
       return curBuf.get();
     } catch (NullPointerException npe) {
@@ -109,7 +110,7 @@ abstract class ByteBufferIndexInput extends IndexInput {
           throw new EOFException("read past EOF: " + this);
         }
         curBuf = buffers[curBufIndex];
-        curBuf.position(0);
+        ((Buffer) curBuf).position(0);
         curAvail = curBuf.remaining();
       }
       curBuf.get(b, offset, len);
@@ -172,7 +173,7 @@ abstract class ByteBufferIndexInput extends IndexInput {
     final int bi = (int) (pos >> chunkSizePower);
     try {
       final ByteBuffer b = buffers[bi];
-      b.position((int) (pos & chunkSizeMask));
+      ((Buffer) b).position((int) (pos & chunkSizeMask));
       // write values, on exception all is unchanged
       this.curBufIndex = bi;
       this.curBuf = b;
@@ -264,7 +265,7 @@ abstract class ByteBufferIndexInput extends IndexInput {
     }
 
     // set the last buffer's limit for the sliced view.
-    slices[slices.length - 1].limit((int) (sliceEnd & chunkSizeMask));
+    ((Buffer) slices[slices.length - 1]).limit((int) (sliceEnd & chunkSizeMask));
     
     return slices;
   }

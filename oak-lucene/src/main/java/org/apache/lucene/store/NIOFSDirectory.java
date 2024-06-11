@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException; // javadoc @link
 import java.nio.channels.FileChannel;
@@ -157,7 +158,7 @@ public class NIOFSDirectory extends FSDirectory {
         // Use our own pre-wrapped byteBuf:
         assert byteBuf != null;
         bb = byteBuf;
-        byteBuf.clear().position(offset);
+        ((Buffer) byteBuf).clear().position(offset);
       } else {
         bb = ByteBuffer.wrap(b, offset, len);
       }
@@ -172,7 +173,7 @@ public class NIOFSDirectory extends FSDirectory {
         int readLength = len;
         while (readLength > 0) {
           final int toRead = Math.min(CHUNK_SIZE, readLength);
-          bb.limit(bb.position() + toRead);
+          ((Buffer) bb).limit(bb.position() + toRead);
           assert bb.remaining() == toRead;
           final int i = channel.read(bb, pos);
           if (i < 0) { // be defensive here, even though we checked before hand, something could have changed
