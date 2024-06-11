@@ -242,7 +242,13 @@ public class JsonDeserializer {
             // In case the primaryType was encoded then it would be like
             // "nam:oak:Unstructured". So check if there is only one occurrence
             // of ':'.
-            return jsonString.replace(":", "").length() == jsonString.length() - 1;
+            int colonCount = 0;
+            for (int i = 0; i < jsonString.length() && colonCount < 2; i++) {
+                if (jsonString.charAt(i) == ':') {
+                    colonCount += 1;
+                }
+            }
+            return colonCount == 1;
         }
     }
 
