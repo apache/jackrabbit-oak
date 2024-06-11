@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.Instant;
@@ -177,13 +176,17 @@ public class AzureBlobContainerProvider implements Closeable {
     public CloudBlobContainer getBlobContainer(@Nullable BlobRequestOptions blobRequestOptions) throws DataStoreException {
         // connection string will be given preference over service principals / sas / account key
         if (StringUtils.isNotBlank(azureConnectionString)) {
+            log.info("connecting to azure blob storage via azureConnectionString");
             return Utils.getBlobContainer(azureConnectionString, containerName, blobRequestOptions);
         } else if (authenticateViaServicePrincipal()) {
+            log.info("connecting to azure blob storage via service principal credentials");
             return getBlobContainerFromServicePrincipals(blobRequestOptions);
         } else if (StringUtils.isNotBlank(sasToken)) {
+            log.info("connecting to azure blob storage via sas token");
             final String connectionStringWithSasToken = Utils.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
             return Utils.getBlobContainer(connectionStringWithSasToken, containerName, blobRequestOptions);
         }
+        log.info("connecting to azure blob storage via access key");
         final String connectionStringWithAccountKey = Utils.getConnectionString(accountName, accountKey, blobEndpoint);
         return Utils.getBlobContainer(connectionStringWithAccountKey, containerName, blobRequestOptions);
     }
@@ -329,7 +332,7 @@ public class AzureBlobContainerProvider implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         new ExecutorCloser(executorService).close();
     }
 }

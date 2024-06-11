@@ -516,6 +516,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     @Override
     public void close() throws DataStoreException {
+        azureBlobContainerProvider.close();
         LOG.info("AzureBlobBackend closed.");
     }
 
