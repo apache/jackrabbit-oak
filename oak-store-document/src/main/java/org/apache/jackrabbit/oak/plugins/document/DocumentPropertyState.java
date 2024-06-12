@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
@@ -64,7 +65,9 @@ final class DocumentPropertyState implements PropertyState {
     private final byte[] compressedValue;
     private final Compression compression;
 
-    private static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", -1);
+    private static final int DEFAULT_COMPRESSION_THRESHOLD = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.DocumentPropertyState.stringCompressionThreshold", -1)
+            .loggingTo(LOG).get();
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this(store, name, value, Compression.GZIP);
