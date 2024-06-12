@@ -66,8 +66,7 @@ final class DocumentPropertyState implements PropertyState {
     private final Compression compression;
 
     private static final int DEFAULT_COMPRESSION_THRESHOLD = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.DocumentPropertyState.stringCompressionThreshold", -1)
-            .loggingTo(LOG).get();
+            .create("oak.documentMk.stringCompressionThreshold ", -1).loggingTo(LOG).get();
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this(store, name, value, Compression.GZIP);
