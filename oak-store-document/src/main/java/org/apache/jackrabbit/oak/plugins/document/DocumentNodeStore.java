@@ -3481,7 +3481,7 @@ public final class DocumentNodeStore
                                   RevisionVector fromRev,
                                   RevisionVector toRev) {
         long minTimestamp = Utils.getMinTimestampForDiff(
-                fromRev, toRev, getMinExternalRevisions(), isReadOnlyMode());
+                fromRev, toRev, getMinExternalRevisions());
         for (RevisionVector r : new RevisionVector[]{fromRev, toRev}) {
             if (r.isBranch()) {
                 Branch b = branches.getBranch(r);

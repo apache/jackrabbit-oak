@@ -355,7 +355,7 @@ public class ClusterTest {
     }
 
     @Test
-    public void diffManyChildrenReadOnlyMode() throws Exception {
+    public void diffManyChildren() throws Exception {
         DocumentMK mk1 = createMK(1, 0);
         DocumentMK mk2 = createMK(2, 0);
         NodeBuilder builder = mk1.getNodeStore().getRoot().builder();
@@ -372,13 +372,17 @@ public class ClusterTest {
         Thread.sleep(1000);
         mk1 = createMK(1, 0);
         DocumentMK mk1ro = createMK(1, 0, true);
-        DocumentNodeStore ns1ro = mk1ro.getNodeStore();
-        RevisionVector toRev = ns1ro.getRoot().getLastRevision();
+        DocumentMK mk3rw = createMK(3, 0, false);
         Thread.sleep(5000);
+        compareDiffs(mk1.getNodeStore(), mk1ro.getNodeStore(), fromRev, mk1.getNodeStore().getRoot().getLastRevision());
+        compareDiffs(mk1.getNodeStore(), mk3rw.getNodeStore(), fromRev, mk1.getNodeStore().getRoot().getLastRevision());
+    }
+
+    private void compareDiffs(DocumentNodeStore store1, DocumentNodeStore store2, RevisionVector from, RevisionVector to) {
         JsopWriter w1 = new JsopStream();
-        ns1ro.diffManyChildren(w1, ns1ro.getRoot().getPath(), fromRev, toRev);
+        store2.diffManyChildren(w1, store1.getRoot().getPath(), from, to);
         JsopWriter w2 = new JsopStream();
-        mk1.getNodeStore().diffManyChildren(w2, ns1ro.getRoot().getPath(), fromRev, toRev);
+        store1.diffManyChildren(w2, store1.getRoot().getPath(), from, to);
         assertEquals(w1.toString(), w2.toString());
     }
 
