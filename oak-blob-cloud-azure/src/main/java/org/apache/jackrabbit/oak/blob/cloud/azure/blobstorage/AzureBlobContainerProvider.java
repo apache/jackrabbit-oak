@@ -50,6 +50,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -69,6 +70,9 @@ public class AzureBlobContainerProvider implements Closeable {
     private final String tenantId;
     private final String clientId;
     private final String clientSecret;
+    private ClientSecretCredential clientSecretCredential;
+    private AccessToken accessToken;
+    private StorageCredentialsToken storageCredentialsToken;
     private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
     private static final long TOKEN_REFRESHER_DELAY = 1L;
     private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
@@ -176,17 +180,17 @@ public class AzureBlobContainerProvider implements Closeable {
     public CloudBlobContainer getBlobContainer(@Nullable BlobRequestOptions blobRequestOptions) throws DataStoreException {
         // connection string will be given preference over service principals / sas / account key
         if (StringUtils.isNotBlank(azureConnectionString)) {
-            log.info("connecting to azure blob storage via azureConnectionString");
+            log.debug("connecting to azure blob storage via azureConnectionString");
             return Utils.getBlobContainer(azureConnectionString, containerName, blobRequestOptions);
         } else if (authenticateViaServicePrincipal()) {
-            log.info("connecting to azure blob storage via service principal credentials");
+            log.debug("connecting to azure blob storage via service principal credentials");
             return getBlobContainerFromServicePrincipals(blobRequestOptions);
         } else if (StringUtils.isNotBlank(sasToken)) {
-            log.info("connecting to azure blob storage via sas token");
+            log.debug("connecting to azure blob storage via sas token");
             final String connectionStringWithSasToken = Utils.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
             return Utils.getBlobContainer(connectionStringWithSasToken, containerName, blobRequestOptions);
         }
-        log.info("connecting to azure blob storage via access key");
+        log.debug("connecting to azure blob storage via access key");
         final String connectionStringWithAccountKey = Utils.getConnectionString(accountName, accountKey, blobEndpoint);
         return Utils.getBlobContainer(connectionStringWithAccountKey, containerName, blobRequestOptions);
     }
@@ -208,19 +212,33 @@ public class AzureBlobContainerProvider implements Closeable {
 
     @NotNull
     private StorageCredentialsToken getStorageCredentials() {
-        ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .tenantId(tenantId)
-                .build();
-        AccessToken accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
-        if (accessToken == null || StringUtils.isBlank(accessToken.getToken())) {
-            log.error("Access token is null or empty");
-            throw new IllegalArgumentException("Could not connect to azure storage, access token is null or empty");
+        boolean isAccessTokenGenerated = false;
+        /* generate access token, the same token will be used for subsequent access
+         * generated token is valid for 1 hour only, the same will be refreshed in background
+         * */
+        if (accessToken == null) {
+            clientSecretCredential = new ClientSecretCredentialBuilder()
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .tenantId(tenantId)
+                    .build();
+            accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
+            if (accessToken == null || StringUtils.isBlank(accessToken.getToken())) {
+                log.error("Access token is null or empty");
+                throw new IllegalArgumentException("Could not connect to azure storage, access token is null or empty");
+            }
+            storageCredentialsToken = new StorageCredentialsToken(accountName, accessToken.getToken());
+            isAccessTokenGenerated = true;
         }
-        StorageCredentialsToken storageCredentialsToken = new StorageCredentialsToken(accountName, accessToken.getToken());
-        TokenRefresher tokenRefresher = new TokenRefresher(clientSecretCredential, accessToken, storageCredentialsToken);
-        executorService.scheduleWithFixedDelay(tokenRefresher, TOKEN_REFRESHER_INITIAL_DELAY, TOKEN_REFRESHER_DELAY, TimeUnit.MINUTES);
+
+        Objects.requireNonNull(storageCredentialsToken, "storage credentials token cannot be null");
+
+        // start refresh token executor only when the access token is first generated
+        if (isAccessTokenGenerated) {
+            log.info("starting refresh token task at: {}", OffsetDateTime.now());
+            TokenRefresher tokenRefresher = new TokenRefresher(clientSecretCredential, accessToken, storageCredentialsToken);
+            executorService.scheduleWithFixedDelay(tokenRefresher, TOKEN_REFRESHER_INITIAL_DELAY, TOKEN_REFRESHER_DELAY, TimeUnit.MINUTES);
+        }
         return storageCredentialsToken;
     }
 
@@ -295,17 +313,15 @@ public class AzureBlobContainerProvider implements Closeable {
                 StringUtils.isNoneBlank(accountName, tenantId, clientId, clientSecret);
     }
 
-    private static class TokenRefresher implements Runnable {
+    private class TokenRefresher implements Runnable {
 
         private final ClientSecretCredential clientSecretCredential;
-        private AccessToken accessToken;
         private final StorageCredentialsToken storageCredentialsToken;
 
         public TokenRefresher(ClientSecretCredential clientSecretCredential,
                               AccessToken accessToken,
                               StorageCredentialsToken storageCredentialsToken) {
             this.clientSecretCredential = clientSecretCredential;
-            this.accessToken = accessToken;
             this.storageCredentialsToken = storageCredentialsToken;
         }
 
@@ -318,12 +334,14 @@ public class AzureBlobContainerProvider implements Closeable {
                     log.info("Access token is about to expire (5 minutes or less) at: {}. New access token will be generated",
                             accessToken.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     AccessToken newToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
+                    log.info("New azure access token generated at: {}", LocalDateTime.now());
                     if (newToken == null || StringUtils.isBlank(newToken.getToken())) {
                         log.error("New access token is null or empty");
                         return;
                     }
-                    this.accessToken = newToken;
-                    this.storageCredentialsToken.updateToken(this.accessToken.getToken());
+                    // update access token with newly generated token
+                    accessToken = newToken;
+                    this.storageCredentialsToken.updateToken(accessToken.getToken());
                 }
             } catch (Exception e) {
                 log.error("Error while acquiring new access token: ", e);
@@ -334,5 +352,6 @@ public class AzureBlobContainerProvider implements Closeable {
     @Override
     public void close() {
         new ExecutorCloser(executorService).close();
+        log.info("Refresh token executor service shutdown completed");
     }
 }

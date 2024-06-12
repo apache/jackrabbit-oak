@@ -21,12 +21,15 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import java.util.Properties;
 
@@ -65,7 +68,13 @@ public class TestAzureDS extends AbstractDataStoreTest {
   @After
   public void tearDown() {
     try {
+      LogCustomizer customizer = LogCustomizer.forLogger(AzureBlobContainerProvider.class.getName())
+              .filter(Level.INFO)
+              .create();
+      customizer.starting();
       super.tearDown();
+      Assert.assertEquals(1, customizer.getLogs().size());
+      Assert.assertEquals("Refresh token executor service shutdown completed", customizer.getLogs().get(0));
       AzureDataStoreUtils.deleteContainer(container);
     } catch (Exception ignore) {
 

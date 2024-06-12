@@ -182,10 +182,12 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         Properties props = getAzureConfig();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
 
-        CloudBlobContainer container = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
-                .build().getBlobContainer();
-        boolean result = container.deleteIfExists();
-        log.info("Container deleted. containerName={} existed={}", containerName, result);
+        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
+                .build()) {
+            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
+            boolean result = container.deleteIfExists();
+            log.info("Container deleted. containerName={} existed={}", containerName, result);
+        }
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
