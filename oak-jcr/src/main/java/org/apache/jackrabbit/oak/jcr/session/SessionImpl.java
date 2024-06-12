@@ -360,6 +360,7 @@ public class SessionImpl implements JackrabbitSession {
                 try {
                     NodeDelegate nd = sd.getNodeByIdentifier(id);
                     if (nd == null) {
+                        log.warn("Node with id {} does not exist.", id);
                         throw new ItemNotFoundException("Node with id " + id + " does not exist.");
                     }
                     return NodeImpl.createNode(nd, sessionContext);

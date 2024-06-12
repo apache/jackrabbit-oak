@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
@@ -39,7 +37,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
  */
 public class ReferenceCheck extends AsyncNodeStateProcessor {
 
-    private static final Logger log = LoggerFactory.getLogger(ReferenceCheck.class);
     private final String propertyName;
 
     ReferenceCheck(String propertyName,
@@ -76,10 +73,8 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
         NodeState target = getNodeByUUID(ref, resolvedPath);
         if (target == null) {
             resultConsumer.accept(new BrokenReference(path, ref, resolvedPath.get()));
-            log.warn("Broken reference at {} to {}", path, ref);
         } else if (!isReferenceable(target, ref)) {
             resultConsumer.accept(new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID)));
-            log.warn("Reference target invalid at {} to {}", path, ref);
         }
     }
 
