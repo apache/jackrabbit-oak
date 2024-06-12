@@ -234,6 +234,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         if (SegmentId.isDataSegmentId(lsb)) {
             SegmentId segmentId = tracker.newSegmentId(msb, lsb);
             Segment segment = new Segment(tracker, segmentReader, segmentId, buffer);
+            segmentCache.putSegment(segment);
             w.addSegment(segment);
             populateTarGraph(segment, w);
             populateTarBinaryReferences(segment, w);

@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.62.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.64.0
 
 Introduction
 ------------
@@ -7,138 +7,85 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.62.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.64.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.62.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.64.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.62.0
+Changes in Oak 1.64.0
 ---------------------
 
 Technical task
 
-    [OAK-6765] - Convert oak-jcr to OSGi R7 annotations
-    [OAK-6769] - Convert oak-search-mt to OSGi R7 annotations
-    [OAK-10623] - oak-core: log a warning when it needs to remap/add a namespace
-    [OAK-10673] - DocumentStore: add test for checking of removal on non-existing map entries
-    [OAK-10708] - DocumentNodeStore: error-log failures to update the journal
-    [OAK-10709] - Deprecate oak-search-mt
+    [OAK-6768] - Convert oak-remote to OSGi R7 annotations
+    [OAK-6774] - Convert oak-upgrade to OSGi R7 annotations
+    [OAK-10786] - oak-lucene: use copy of lucene-core 4.7.2 source code
+    [OAK-10787] - oak-lucene: backport fix for lucene-core vulnerability
 
 Bug
 
-    [OAK-10500] - javadoc:aggregate build fails again
-    [OAK-10544] - oak-jcr: remapping a namespace prefix leaves namespace resolver in broken state
-    [OAK-10551] - o.a.j.o.jcr.osgi.RepositoryManager declares OSGi properties that are not used at all
-    [OAK-10576] - oak-search-elastic: dynamicBoost should match only on full text queries on all fields (* or .)
-    [OAK-10590] - Indexing job downloads and creates FFS with full node store if includedPaths is specified as a string instead of array of strings
-    [OAK-10595] - Cached data before a collision rollback can be read as committed
-    [OAK-10611] - o.a.j.o.namepath.JcrPathParser does not handle invalid characters correctly
-    [OAK-10617] - oak-search-elastic: potential deadlock with includePathRestrictions=false and multiple filtered results
-    [OAK-10636] - Tar recovery unsuccessful in oak-segment-tar during initialisation of FileStore
-    [OAK-10638] - Build fails on Java 17 due to JAR size limit
-    [OAK-10650] - MongoDocumentStore.findDocuments can fail with BSON exception
-    [OAK-10652] - Repository writes in SegmentStoreMigrator blocked when migrating to Azure segment store
-    [OAK-10653] - BasicDocumentStoreTest: handle DocumentStoreException on ds.create
-    [OAK-10717] - oak-pojosr should be updated to o.a.felix.connect-0.2.0
-    [OAK-10735] - Binary data in logs related to the haystack property
-
-Story
-
-    [OAK-10573] - Make distinction for azure timeout settings between write and read operations
-    [OAK-10604] - Azure Service Principal Support in oak-segment-azure
-    [OAK-10615] - Azure Service Principal Support in oak-run segment-copy, compact, console
+    [OAK-10647] - DocumentNodeStore: journal update needs success check
+    [OAK-10719] - oak-lucene uses Lucene version that can throw a StackOverflowException
+    [OAK-10756] - OrderableNodesTest.childOrderCleanupFeatureToggleTest fails with -Dnsfixtures=DOCUMENT_NS
+    [OAK-10767] - oak-it-osgi unnecessarily deploys commons-collections to the test environment
+    [OAK-10775] - LeaseUpdateSocketTimeoutIT still wants a mongo:4.2 image
+    [OAK-10782] - oak-search-elastic: query getSize() can lock writes when is called before an update
+    [OAK-10788] - Indexing job downloader: shutdown gracefully all threads in case of failure
+    [OAK-10800] - DictionaryCompoundWordTokenFilter not supported in Elastic
+    [OAK-10814] - Tar file recovery still fails with SNFE in some cases.
 
 Improvement
 
-    [OAK-10424] - Allow Fast Query Size and Insecure Facets to be selectively enabled with query options for permitted principals
-    [OAK-10438] - Remove MULTTHREADED_TRAVERSE_WITH_SORT download strategy
-    [OAK-10571] - Names of metrics exported by indexing logic are inconsistent
-    [OAK-10577] - Advanced repository statistics
-    [OAK-10580] - Indexing job: improve regex path filtering, support multiple includedPaths
-    [OAK-10589] - Improve regex path filtering to also handle cases where excludedPaths are defined
-    [OAK-10592] - [Indexing job] Add a regex filter to exclude matching entries from being downloaded from Mongo
-    [OAK-10607] - Rename Maven property "java.version"
-    [OAK-10608] - [Indexing job] Improve regex expression used to download from Mongo to make better used of Mongo indexes
-    [OAK-10620] - Print summary at the end of the indexing job
-    [OAK-10635] - BundledTypeRegistry's use of shaded Guava problematic when used outside Oak
-    [OAK-10637] - Indexing job/regex path filtering - when / is the only included path, do not add an explicit filter
-    [OAK-10640] - docs: fix external link on lucene multi words synonyms
-    [OAK-10643] - MongoDocumentStore: improve diagnostics for too large docs
-    [OAK-10649] - MemoryDS: add toggle to limit document size
-    [OAK-10655] - Improve warning emitted for Unexpected changes performed on a non-default mount
-    [OAK-10656] - MongoDocumentStore: keep metrics about document size related exceptions
-    [OAK-10660] - DocumentNodeStore: avoid repeated commits of :childOrder in branch commits
-    [OAK-10661] - oak-search-elastic: remove workaround for elastic/elasticsearch-java/issues/404
-    [OAK-10670] - Azure service principal support in oak-upgrade
-    [OAK-10671] - [Indexing job] - Improve Mongo regex query: remove condition on non-indexed _path field to speedup traversal
-    [OAK-10672] - Move internal index version in oak-search
-    [OAK-10681] - [indexing job] Support custom filters of paths on Mongo
-    [OAK-10682] - [Indexing job] Improve Mongo regex filter to only use positive conditions (no negations)
-
-Test
-
-    [OAK-10641] - DocumentStore: improve test coverage for large properties / documents
-    [OAK-10642] - Add tests for operations on very large ordered collections
+    [OAK-10760] - oak-core should check namespace registry consistency on startup
+    [OAK-10762] - oak-search-elastic: similarity queries produce not relevant results when uses similarTags
+    [OAK-10771] - Add disk cache size stats and issue warning if evicted segment has zero length
+    [OAK-10778] - Indexing job: support parallel download from MongoDB with two connections in Pipelined strategy
+    [OAK-10783] - VersionableEditor: misleading WARN message when creating version history
+    [OAK-10784] - o.a.j.o.plugins.migration.version.VersionableEditor should create the version storage node, if needed
+    [OAK-10795] - Indexing job: eliminate unnecessary intermediate object creation in transform stage
+    [OAK-10796] - Avoid creation of intermediate StringBuilder in JsopBuilder
+    [OAK-10804] - Indexing job: optimize check for hidden nodes
+    [OAK-10808] - PipelinedMongoConnectionFailureIT should not fail if Mongo is not available
+    [OAK-10810] - Remove redundant call to StringCache.get in Path.fromString()
+    [OAK-10813] - Improve performance of Oak-mongo.js function to remove/list nodes
 
 Task
 
-    [OAK-10281] - Introduce recoveryDelay to ClusterNodeInfo.isRecoveryNeeded
-    [OAK-10570] - oak-run support for fullgc
-    [OAK-10581] - Remove mock stubbing at the end of the test method in AzureArchiveManagerTest.testWriteAfterLosingRepoLock
-    [OAK-10584] - Checkpoints.getOldestRevisionToKeep shouldn't failed if called read-only
-    [OAK-10591] - Bump netty dependency from 4.1.96.Final to 4.1.104.Final
-    [OAK-10593] - Upgrade jackson-databind dependency to 2.16.1
-    [OAK-10594] - Deny write to Azure also for reasons other than operation timeout
-    [OAK-10598] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.14
-    [OAK-10599] - oak-search-elastic: improve aggregations support
-    [OAK-10605] - Update (shaded) Guava to 33.0.0
-    [OAK-10606] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 33.0.0
-    [OAK-10616] - Make error messages from o.a.j.o.namepath.JcrNameParser/JcrPathParser consistent and less misleading
-    [OAK-10622] - Introduce config option to delay reuse of clusterId after a recover
-    [OAK-10639] - NodeImpl: calculate mixinTypes lazy
-    [OAK-10644] - JsopBuilder: remove JDK6ism
-    [OAK-10645] - MongoDS docker container: set default Mongo version to 4.4
-    [OAK-10659] - Remove orphaned nodes/documents
-    [OAK-10663] - Upgrade maven-bundle-plugin to 5.1.9
-    [OAK-10664] - Update spotbugs plugin to 4.8.3.1
-    [OAK-10665] - Update checkstyle-plugin dependency to version 3.3.1
-    [OAK-10666] - oak-store-composite: update maven-depends plugin to 1.5.0
-    [OAK-10667] - Update jacoco plugin to 0.8.11
-    [OAK-10668] - examples: update jetty-maven-plugin to 11.0.20
-    [OAK-10669] - Upgrade maven-versions-plugin to 2.16.2
-    [OAK-10677] - examples: update build-helper-maven-plugin to 3.5.0
-    [OAK-10678] - update gmavenplus plugin to 3.0.2
-    [OAK-10683] - Update spring-boot dependency to version 2.7.18
-    [OAK-10684] - update maven-shade-plugin version to 3.5.2
-    [OAK-10686] - parent: add project.build.outputTimestamp property for Reproducable Builds
-    [OAK-10687] - Restore and cleanup SCM information
-    [OAK-10693] - Incremental FFS build should filter out paths based on mongo regex filters
-    [OAK-10695] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.26.1
-    [OAK-10696] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.15
-    [OAK-10697] - webapp: update Tomcat dependency to 9.0.86
-    [OAK-10698] - DocumentStore: max property size tests can fail with OOM
-    [OAK-10700] - update testcontainer dependency to 1.19.7
-    [OAK-10702] - oak-blob-cloud: update netty dependency to 4.1.107
-    [OAK-10703] - oak-doc: add branch history to roadmap
-    [OAK-10704] - update azure dependencies
-    [OAK-10707] - update (historic) org.apache.felix.scr.annotations plugin to version 1.12.0
-    [OAK-10712] - update groovy dependency to 2.5.23
-    [OAK-10713] - oak-lucene: add test coverage for stack overflow based on very long and complex regexp
-    [OAK-10716] - oak-lucene: update to version 4.7.2 (latest from that branch)
-    [OAK-10718] - Update (shaded) Guava to 33.1.0
-    [OAK-10720] - Update commons-io dependency to 2.15.1
-    [OAK-10721] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 33.1.0
-    [OAK-10722] - Update commons-codec dependency to 1.16.1
-    [OAK-10723] - Update commons-lang3 dependency to 3.14.0
-    [OAK-10725] - Upgrade jackson-databind dependency to 2.16.2
-    [OAK-10729] - update groovy dependency to 3.0.21
-    [OAK-10731] - oak-pojosr: remove unused gmongo dependency
+    [OAK-10579] - Bump elasticsearch version to 8.11.3
+    [OAK-10596] - Improve the test coverage of o.a.j.o.namepath.JcrPathParser
+    [OAK-10694] - Remove oak-search-mt
+    [OAK-10730] - Log MongoException previously swallowed
+    [OAK-10752] - update Tomcat JDBC dependency to 9.0.87
+    [OAK-10754] - webapp: update Tomcat dependency to 9.0.87
+    [OAK-10755] - commons: deprecate use of slf4j.event.Level in SystemPropertySupplier API (and make it 'internal')
+    [OAK-10757] - DocumentRdbFixture does not support the Feature Toggle FT_NOCOCLEANUP_OAK-10660
+    [OAK-10766] - Make lease timeout configurable for specific async lanes in indexing
+    [OAK-10768] - query-spi: deprecate use of slf4j.event.Level in QueryIndex.IndexPlan
+    [OAK-10769] - Bump elasticsearch version to 8.13.2 / lucene 9.10.0
+    [OAK-10770] - Azure identity runtime dependency resolution in oak-segment-azure
+    [OAK-10773] - LuceneIndexLookupUtil opens up index node when it's actually not needed
+    [OAK-10774] - Remove oak-search-mt module from Jenkinsfile
+    [OAK-10776] - Incremental FFS should filter out changes under paths excluded by pipelinedMongoCustomExcludedPaths
+    [OAK-10777] - oak-lucene: add test coverage for stack overflow based on very long and complex regexp using JCR lucene native query
+    [OAK-10785] - update maven-shade-plugin version to 3.5.3
+    [OAK-10793] - Update Logback version to 1.2.13
+    [OAK-10797] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.16
+    [OAK-10799] - Update (shaded) Guava to 33.2.0
+    [OAK-10815] - Update jacoco plugin to 0.8.12
+    [OAK-10816] - Update spotbugs plugin to 4.8.5.0
+    [OAK-10819] - examples: update jetty-maven-plugin to 11.0.21
+    [OAK-10820] - webapp: update Tomcat dependency to 9.0.89
+
+Documentation
+
+    [OAK-10772] - Broken links in authentication documentation
+
 
 
 In addition to the above-mentioned changes, this release contains all

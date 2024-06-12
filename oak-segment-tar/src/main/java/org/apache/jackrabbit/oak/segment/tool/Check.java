@@ -19,33 +19,22 @@ package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.text.DateFormat.getDateTimeInstance;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.PrintWriter;
 import java.text.MessageFormat;
-import java.util.Date;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.ConsistencyCheckResult;
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.Revision;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.tool.check.CheckHelper;
 
 /**
  * Perform a consistency check on an existing segment store.
@@ -259,6 +248,15 @@ public class Check {
             return this;
         }
 
+        /**
+         * Instruct the command to fail fast if the first path/revision checked
+         * is inconsistent. This parameter is not required and defaults to
+         * {@code false}.
+         *
+         * @param failFast {@code true} if the command should fail fast,
+         *                 {@code false} otherwise.
+         * @return this builder.
+         */
         public Builder withFailFast(boolean failFast) {
             this.failFast = failFast;
             return this;
@@ -297,6 +295,14 @@ public class Check {
         int headNodeCount;
         int headPropertyCount;
 
+        public void setHeadPropertyCount(int headPropertyCount) {
+            this.headPropertyCount = headPropertyCount;
+        }
+
+        public void setHeadNodeCount(int headNodeCount) {
+            this.headNodeCount = headNodeCount;
+        }
+
         public int getHeadNodeCount() {
             return headNodeCount;
         }
@@ -333,16 +339,6 @@ public class Check {
     private final PrintWriter err;
 
     private final boolean failFast;
-
-    private int currentNodeCount;
-
-    private int currentPropertyCount;
-
-    private int headNodeCount;
-
-    private int headPropertyCount;
-
-    private long lastDebugEvent;
 
     private Check(Builder builder) {
         this.path = builder.path;
@@ -383,11 +379,23 @@ public class Check {
             builder.withIOMonitor(ioMonitor);
         }
 
+        CheckHelper checkHelper = CheckHelper.builder()
+                .withCheckBinaries(checkBinaries)
+                .withCheckpoints(requestedCheckpoints)
+                .withCheckHead(checkHead)
+                .withDebugInterval(debugInterval)
+                .withFailFast(failFast)
+                .withFilterPaths(filterPaths)
+                .withRevisionsCount(revisionsCount)
+                .withErrWriter(err)
+                .withOutWriter(out)
+                .build();
+
         try (
             ReadOnlyFileStore store = builder.buildReadOnly();
             JournalReader journal = new JournalReader(new LocalJournalFile(this.journal))
         ) {
-            int result = run(store, journal);
+            int result = checkHelper.run(store, journal);
 
             if (ioStatistics) {
                 print("[I/O] Segment read: Number of operations: {0}", ioMonitor.ops.get());
@@ -396,8 +404,8 @@ public class Check {
             }
 
             if (repoStatistics != null) {
-                repoStatistics.headNodeCount = headNodeCount;
-                repoStatistics.headPropertyCount = headPropertyCount;
+                repoStatistics.headNodeCount = checkHelper.getHeadNodeCount();
+                repoStatistics.headPropertyCount = checkHelper.getHeadPropertyCount();
             }
 
             return result;
@@ -407,225 +415,7 @@ public class Check {
         }
     }
 
-    private int run(ReadOnlyFileStore store, JournalReader journal) {
-        Set<String> checkpoints = requestedCheckpoints;
-
-        if (requestedCheckpoints.contains("all")) {
-            checkpoints = Sets.newLinkedHashSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
-        }
-
-        ConsistencyCheckResult result = newConsistencyChecker().checkConsistency(
-            store,
-            journal,
-            checkHead,
-            checkpoints,
-            filterPaths,
-            checkBinaries,
-            revisionsCount,
-            failFast
-        );
-
-        print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
-
-        if (isGoodRevisionFound(result)) {
-            if (checkHead) {
-                print("\nHead");
-                for (Entry<String, Revision> e : result.getHeadRevisions().entrySet()) {
-                    printRevision(0, e.getKey(), e.getValue());
-                }
-            }
-            if (checkpoints.size() > 0) {
-                print("\nCheckpoints");
-                for (String checkpoint : result.getCheckpointRevisions().keySet()) {
-                    print("- {0}", checkpoint);
-                    for (Entry<String, Revision> e : result.getCheckpointRevisions().get(checkpoint).entrySet()) {
-                        printRevision(2, e.getKey(), e.getValue());
-                    }
-
-                }
-            }
-            print("\nOverall");
-            printOverallRevision(result.getOverallRevision());
-            return 0;
-        } else {
-            print("No good revision found");
-            return 1;
-        }
-    }
-
-    private boolean isGoodRevisionFound(ConsistencyCheckResult result) {
-        return failFast ? hasAllRevision(result) : hasAnyRevision(result);
-    }
-
-    private ConsistencyChecker newConsistencyChecker() {
-        return new ConsistencyChecker() {
-
-            @Override
-            protected void onCheckRevision(String revision) {
-                print("\nChecking revision {0}", revision);
-            }
-
-            @Override
-            protected void onCheckHead() {
-                headNodeCount = 0;
-                headPropertyCount = 0;
-                print("\nChecking head\n");
-            }
-
-            @Override
-            protected void onCheckChekpoints() {
-                print("\nChecking checkpoints");
-            }
-
-            @Override
-            protected void onCheckCheckpoint(String checkpoint) {
-                print("\nChecking checkpoint {0}", checkpoint);
-            }
-
-            @Override
-            protected void onCheckpointNotFoundInRevision(String checkpoint) {
-                printError("Checkpoint {0} not found in this revision!", checkpoint);
-            }
-
-            @Override
-            protected void onCheckRevisionError(String revision, Exception e) {
-                printError("Skipping invalid record id {0}: {1}", revision, e);
-            }
-
-            @Override
-            protected void onConsistentPath(String path) {
-                print("Path {0} is consistent", path);
-            }
-
-            @Override
-            protected void onPathNotFound(String path) {
-                printError("Path {0} not found", path);
-            }
-
-            @Override
-            protected void onCheckTree(String path, boolean head) {
-                currentNodeCount = 0;
-                currentPropertyCount = 0;
-                print("Checking {0}", path);
-            }
-
-            @Override
-            protected void onCheckTreeEnd(boolean head) {
-                if (head) {
-                    headNodeCount += currentNodeCount;
-                    headPropertyCount += currentPropertyCount;
-                }
-
-                print("Checked {0} nodes and {1} properties", currentNodeCount, currentPropertyCount);
-            }
-
-            @Override
-            protected void onCheckNode(String path) {
-                debug("Traversing {0}", path);
-                currentNodeCount++;
-            }
-
-            @Override
-            protected void onCheckProperty() {
-                currentPropertyCount++;
-            }
-
-            @Override
-            protected void onCheckPropertyEnd(String path, PropertyState property) {
-                debug("Checked {0}/{1}", path, property);
-            }
-
-            @Override
-            protected void onCheckNodeError(String path, Exception e) {
-                printError("Error while traversing {0}: {1}", path, e);
-            }
-
-            @Override
-            protected void onCheckTreeError(String path, Exception e) {
-                printError("Error while traversing {0}: {1}", path, e.getMessage());
-            }
-
-        };
-    }
-
     private void print(String format, Object... arguments) {
         out.println(MessageFormat.format(format, arguments));
     }
-
-    private void printError(String format, Object... args) {
-        err.println(MessageFormat.format(format, args));
-    }
-
-    private void debug(String format, Object... arg) {
-        if (debug()) {
-            print(format, arg);
-        }
-    }
-
-    private boolean debug() {
-        // Avoid calling System.currentTimeMillis(), which is slow on some systems.
-        if (debugInterval == Long.MAX_VALUE) {
-            return false;
-        }
-
-        if (debugInterval == 0) {
-            return true;
-        }
-
-        long t = System.currentTimeMillis();
-        if ((t - this.lastDebugEvent) / 1000 > debugInterval) {
-            this.lastDebugEvent = t;
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private static boolean hasAnyRevision(ConsistencyCheckResult result) {
-        return hasAnyHeadRevision(result) || hasAnyCheckpointRevision(result);
-    }
-
-    private static boolean hasAllRevision(ConsistencyCheckResult result) {
-        return hasAnyHeadRevision(result) && hasAnyCheckpointRevision(result);
-    }
-
-    private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {
-        return result.getHeadRevisions()
-            .values()
-            .stream()
-            .anyMatch(Objects::nonNull);
-    }
-
-    private static boolean hasAnyCheckpointRevision(ConsistencyCheckResult result) {
-        return result.getCheckpointRevisions()
-            .values()
-            .stream()
-            .flatMap(m -> m.values().stream())
-            .anyMatch(Objects::nonNull);
-    }
-
-    private void printRevision(int indent, String path, Revision revision) {
-        Optional<Revision> r = Optional.ofNullable(revision);
-        print(
-            "{0}Latest good revision for path {1} is {2} from {3}",
-            Strings.repeat(" ", indent),
-            path,
-            r.map(Revision::getRevision).orElse("none"),
-            r.map(Revision::getTimestamp).map(Check::timestampToString).orElse("unknown time")
-        );
-    }
-
-    private void printOverallRevision(Revision revision) {
-        Optional<Revision> r = Optional.ofNullable(revision);
-        print(
-            "Latest good revision for paths and checkpoints checked is {0} from {1}",
-            r.map(Revision::getRevision).orElse("none"),
-            r.map(Revision::getTimestamp).map(Check::timestampToString).orElse("unknown time")
-        );
-    }
-
-    private static String timestampToString(long timestamp) {
-        return getDateTimeInstance().format(new Date(timestamp));
-    }
-
 }

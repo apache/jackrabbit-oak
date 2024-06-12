@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -112,5 +114,50 @@ public class RDBDocumentNodeStoreBuilder
         } else {
             return super.createMissingLastRevSeeker();
         }
+    }
+
+    @Override
+    public boolean isFullGCEnabled() {
+        // fullGC is non supported for RDB
+        return false;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setFullGCEnabled(boolean b) {
+        // fullGC is non supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreFullGCFeature() {
+        return null;
+    }
+
+    @Override
+    public boolean isEmbeddedVerificationEnabled() {
+        return false;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setEmbeddedVerificationEnabled(boolean b) {
+        // embeddedVerification is non supported for RDB since fullGC is not.
+        return thisBuilder();
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreEmbeddedVerificationFeature() {
+        return null;
     }
 }

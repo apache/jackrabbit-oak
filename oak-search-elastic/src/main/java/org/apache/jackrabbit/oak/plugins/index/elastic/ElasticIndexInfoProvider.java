@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,12 +40,16 @@ import co.elastic.clients.elasticsearch.cluster.HealthResponse;
 
 class ElasticIndexInfoProvider implements IndexInfoProvider {
 
+    private final NodeStore nodeStore;
+
     private final ElasticIndexTracker indexTracker;
 
     private final AsyncIndexInfoService asyncIndexInfoService;
 
-    ElasticIndexInfoProvider(@NotNull ElasticIndexTracker indexTracker,
-                                    @NotNull AsyncIndexInfoService asyncIndexInfoService) {
+    ElasticIndexInfoProvider(@NotNull NodeStore nodeStore,
+                             @NotNull ElasticIndexTracker indexTracker,
+                             @NotNull AsyncIndexInfoService asyncIndexInfoService) {
+        this.nodeStore = nodeStore;
         this.indexTracker = indexTracker;
         this.asyncIndexInfoService = asyncIndexInfoService;
     }
@@ -57,18 +63,19 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
     public @Nullable IndexInfo getInfo(String indexPath) {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
-            String asyncName = IndexUtils.getAsyncLaneName(node.getDefinition().getDefinitionNodeState(), indexPath);
+            NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
+            String asyncName = IndexUtils.getAsyncLaneName(idxState, indexPath);
             AsyncIndexInfo asyncInfo = asyncIndexInfoService.getInfo(asyncName);
 
             return new ElasticIndexInfo(
                     indexPath,
                     asyncName,
                     asyncInfo != null ? asyncInfo.getLastIndexedTo() : -1L,
-                    getStatusTimestamp(node.getDefinition().getDefinitionNodeState(), IndexDefinition.STATUS_LAST_UPDATED),
+                    getStatusTimestamp(idxState, IndexDefinition.STATUS_LAST_UPDATED),
                     node.getIndexStatistics().numDocs(),
                     node.getIndexStatistics().primaryStoreSize(),
                     node.getIndexStatistics().creationDate(),
-                    getStatusTimestamp(node.getDefinition().getDefinitionNodeState(), IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
+                    getStatusTimestamp(idxState, IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
             );
         } finally {
             node.release();
