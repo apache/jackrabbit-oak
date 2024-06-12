@@ -214,7 +214,7 @@ public class AzureBlobContainerProvider implements Closeable {
     private StorageCredentialsToken getStorageCredentials() {
         boolean isAccessTokenGenerated = false;
         /* generate access token, the same token will be used for subsequent access
-         * generated token is valid for 1 hour only, the same will be refreshed in background
+         * generated token is valid for 1 hour only and will be refreshed in background
          * */
         if (accessToken == null) {
             clientSecretCredential = new ClientSecretCredentialBuilder()
