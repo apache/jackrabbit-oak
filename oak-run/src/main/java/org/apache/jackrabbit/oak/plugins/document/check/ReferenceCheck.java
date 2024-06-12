@@ -79,6 +79,7 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
             log.warn("Broken reference at {} to {}", path, ref);
         } else if (!isReferenceable(target, ref)) {
             resultConsumer.accept(new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID)));
+            log.warn("Reference target invalid at {} to {}", path, ref);
         }
     }
 
