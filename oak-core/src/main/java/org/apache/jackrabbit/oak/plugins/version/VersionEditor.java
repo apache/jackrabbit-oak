@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.lock.LockConstants;
+import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
@@ -146,24 +147,69 @@ class VersionEditor implements Editor {
         }
         String propName = after.getName();
         if (propName.equals(JCR_ISCHECKEDOUT)) {
+            // Updates the checked-out / checked-in state of the currently processed node
+            // when the JCR_ISCHECKEDOUT property change is processed.
             if (wasCheckedIn()) {
                 vMgr.checkout(node);
             } else {
                 vMgr.checkin(node);
             }
         } else if (propName.equals(JCR_BASEVERSION)) {
-            String baseVersion = after.getValue(Type.REFERENCE);
-            if (baseVersion.startsWith(RESTORE_PREFIX)) {
-                baseVersion = baseVersion.substring(RESTORE_PREFIX.length());
-                node.setProperty(JCR_BASEVERSION, baseVersion, Type.REFERENCE);
+            // Completes the restore of a version from version history.
+            //
+            // When the JCR_BASEVERSION property is processed, a check is made for the
+            // current base version property.
+            // If a restore is currently in progress for the current base version (the
+            // check for this is that the current base version name has the format
+            // "restore-[UUID of the version to restore to]"), then the restore is
+            // completed for the current node to the version specified by the UUID.
+            //
+            // If a node that was moved or copied to the location of a deleted node is
+            // currently being processed (see OAK-8848 for context), the restore operation
+            // must NOT be performed when the JCR_BASEVERSION property change is processed
+            // for the node.
+            if (!nodeWasMovedOrCopied()) {
+
+                String baseVersion = after.getValue(Type.REFERENCE);
+                if (baseVersion.startsWith(RESTORE_PREFIX)) {
+                    baseVersion = baseVersion.substring(RESTORE_PREFIX.length());
+                    node.setProperty(JCR_BASEVERSION, baseVersion, Type.REFERENCE);
+                }
+
+                vMgr.restore(node, baseVersion, null);
             }
-            vMgr.restore(node, baseVersion, null);
         } else if (isVersionProperty(after)) {
-            throwProtected(after.getName());
+            // Checks if a version property is being changed and throws a
+            // CommitFailedException with the message "Constraint Violation Exception" if
+            // this is not allowed. JCR_ISCHECKEDOUT and JCR_BASEVERSION properties should
+            // be ignored, since changes to them are allowed for specific use cases (for
+            // example, completing the check-in / check-out for a node or completing a
+            // node restore).
+            //
+            // The only situation when the update of a version property is allowed is when
+            // this occurs as a result of the current node being moved over a previously
+            // deleted node - see OAK-8848 for context.
+            //
+            // OAK-8848: moving a versionable node in the same location as a node deleted
+            // in the same session should be allowed.
+            // This check works because the only way that moving a node in a location is
+            // allowed is if there is no existing (undeleted) node in that location.
+            // Property comparison should not fail for two jcr:versionHistory properties
+            // in this case.
+            if (!nodeWasMovedOrCopied()) {
+                throwProtected(after.getName());
+            }
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
             throwCheckedIn("Cannot change property " + after.getName()
                     + " on checked in node");
         }
+    }
+
+    /**
+     * Returns true if and only if the given node was moved or copied from another location.
+     */
+    private boolean nodeWasMovedOrCopied() {
+        return !this.before.hasProperty(MoveDetector.SOURCE_PATH) && this.after.hasProperty(MoveDetector.SOURCE_PATH);
     }
 
     @Override
