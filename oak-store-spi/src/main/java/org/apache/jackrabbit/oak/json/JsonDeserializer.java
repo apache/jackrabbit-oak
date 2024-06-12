@@ -243,7 +243,7 @@ public class JsonDeserializer {
             // "nam:oak:Unstructured". So check if there is only one occurrence
             // of ':'.
             int colonCount = 0;
-            for (int i = 0; i < jsonString.length() && colonCount <= 2; i++) {
+            for (int i = 0; i < jsonString.length() && colonCount < 2; i++) {
                 if (jsonString.charAt(i) == ':') {
                     colonCount += 1;
                 }
