@@ -1252,7 +1252,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             if (!this.isFailing()) {
-                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catch up on it's own.";
+                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catch up on its own.";
                 log.warn(msg);
                 return msg;
             }
