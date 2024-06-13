@@ -590,7 +590,7 @@ public class AsyncIndexUpdateTest {
     }
 
     @Test
-    public void testForceModifyReferenceCheckpoint() throws CommitFailedException {
+    public void testForceUpdateAsyncLane() throws CommitFailedException {
         NodeStore store = new MemoryNodeStore();
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
