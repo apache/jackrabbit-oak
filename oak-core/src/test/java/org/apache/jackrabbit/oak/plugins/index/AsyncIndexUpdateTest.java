@@ -610,7 +610,7 @@ public class AsyncIndexUpdateTest {
         builder.child("testRoot1").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // Run pretend index catchup with an incorrect confirm message
+        // Run force index catchup with an incorrect confirm message
         // This will skip the operation and testRoot1 should be indexed in the next async run.
         async.getIndexStats().forceIndexLaneCatchup("ok");
         async.run();
@@ -624,14 +624,13 @@ public class AsyncIndexUpdateTest {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(ImmutableSet.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
 
-        // Run pretend index catchup with correct confirm message
-        // Due to this the new node testRoot2 will not be indexed, because the reference checkpoint will point to a state after this node was created.
-        // testRoot3 should be in the result set since it's created after the pretend index catchup is called.
+        // Run force index catchup with correct confirm message
+        // But the async lane is NOT failing
+        // Due to this the force update should be skipped and the
+        // new node testRoot2 will  be indexed.
         builder.child("testRoot2").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
-        builder.child("testRoot3").setProperty("foo", "abc");
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         async.run();
         root = store.getRoot();
 
@@ -640,9 +639,31 @@ public class AsyncIndexUpdateTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
                 ":conflict"));
         lookup = new PropertyIndexLookup(root);
-        assertEquals(ImmutableSet.of("testRoot", "testRoot1", "testRoot3"), find(lookup, "foo", "abc"));
+        assertEquals(ImmutableSet.of("testRoot", "testRoot1", "testRoot2"), find(lookup, "foo", "abc"));
 
 
+        // Now run force index update on a failing lane with correct confirm message
+        builder.child("testRoot3").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.getIndexStats().failed(new Exception("Mock index update failure"));
+        assertTrue(async.isFailing());
+        async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
+        builder.child("testRoot4").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+        root = store.getRoot();
+
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+        lookup = new PropertyIndexLookup(root);
+        // testRoot3 will not be indexed, because it was created after the last successfully run index update and before the forceUpdate was called.
+        // So it lands in the missing content diff that needs to be reindexed.
+        assertEquals(ImmutableSet.of("testRoot", "testRoot1", "testRoot2", "testRoot4"), find(lookup, "foo", "abc"));
+        // Check if failing index update is fixed
+        assertFalse(async.isFailing());
     }
 
     private void assertNoConflictMarker(NodeBuilder builder) {
