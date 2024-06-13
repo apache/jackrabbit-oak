@@ -1246,33 +1246,33 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         public String forceIndexLaneCatchup(String confirmMessage) throws CommitFailedException {
 
             if (!"CONFIRM".equals(confirmMessage)) {
-                String msg = "Please confirm that you want to force the lane catchup by passing 'CONFIRM' as argument";
+                String msg = "Please confirm that you want to force the lane catch-up by passing 'CONFIRM' as argument";
                 log.warn(msg);
                 return msg;
             }
 
             if (!this.isFailing()) {
-                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catchup on it's own.";
+                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catch up on it's own.";
                 log.warn(msg);
                 return msg;
             }
 
-            log.info("Running a forced catchup for indexing lane [{}]. ", name);
+            log.info("Running a forced catch-up for indexing lane [{}]. ", name);
             // First we need to abort and pause the running indexing task
             this.abortAndPause();
             log.info("Aborted and paused async indexing for lane [{}]", name);
             // Release lease for the paused lane
             this.releaseLeaseForPausedLane();
             log.info("Released lease for paused lane [{}]", name);
-            String newReferenceCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
+            String newReferenceCheckpoint = store.checkpoint(lifetime, Map.of(
                     "creator", AsyncIndexUpdate.class.getSimpleName(),
                     "created", now(),
                     "thread", Thread.currentThread().getName(),
                     "name", name + "-forceModified"));
             String existingReferenceCheckpoint = this.referenceCp;
             log.info("Modifying the referred checkpoint for lane [{}] from {} to {}." +
-                    " This means that any content modifications b/w these checkpoints will not reflect in the indexes on this lane." +
-                    " Reindexing would be needed to get this content indexed.", name, existingReferenceCheckpoint, newReferenceCheckpoint);
+                    " This means that any content modifications between these checkpoints will not reflect in the indexes on this lane." +
+                    " Reindexing is needed to get this content indexed.", name, existingReferenceCheckpoint, newReferenceCheckpoint);
             NodeBuilder builder = store.getRoot().builder();
             builder.child(ASYNC).setProperty(name, newReferenceCheckpoint);
             this.referenceCp = newReferenceCheckpoint;
@@ -1287,7 +1287,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             // Resume the paused lane;
             this.resume();
             log.info("Resumed async indexing for lane [{}]", name);
-            return ("Lane successfully forced to catchup. New reference checkpoint is " + newReferenceCheckpoint + " . Please make sure to perform reindexing to get the diff content indexed.");
+            return "Lane successfully forced to catch-up. New reference checkpoint is " + newReferenceCheckpoint + " . Please make sure to perform reindexing to get the diff content indexed.";
         }
 
         void setProcessedCheckpoint(String checkpoint) {

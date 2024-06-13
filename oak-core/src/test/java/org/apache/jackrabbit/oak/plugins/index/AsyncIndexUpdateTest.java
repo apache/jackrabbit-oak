@@ -596,7 +596,7 @@ public class AsyncIndexUpdateTest {
 
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("testRoot").setProperty("foo", "abc");
 
@@ -622,7 +622,7 @@ public class AsyncIndexUpdateTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
                 ":conflict"));
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
-        assertEquals(ImmutableSet.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
 
         // Run force index catchup with correct confirm message
         // But the async lane is NOT failing
@@ -639,7 +639,7 @@ public class AsyncIndexUpdateTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
                 ":conflict"));
         lookup = new PropertyIndexLookup(root);
-        assertEquals(ImmutableSet.of("testRoot", "testRoot1", "testRoot2"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot", "testRoot1", "testRoot2"), find(lookup, "foo", "abc"));
 
 
         // Now run force index update on a failing lane with correct confirm message
@@ -661,7 +661,7 @@ public class AsyncIndexUpdateTest {
         lookup = new PropertyIndexLookup(root);
         // testRoot3 will not be indexed, because it was created after the last successfully run index update and before the forceUpdate was called.
         // So it lands in the missing content diff that needs to be reindexed.
-        assertEquals(ImmutableSet.of("testRoot", "testRoot1", "testRoot2", "testRoot4"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot", "testRoot1", "testRoot2", "testRoot4"), find(lookup, "foo", "abc"));
         // Check if failing index update is fixed
         assertFalse(async.isFailing());
     }
