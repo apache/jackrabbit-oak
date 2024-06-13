@@ -261,6 +261,7 @@ as of OAK 1.0:
 | `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        ||
 | `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            ||
 | `PARAM_CACHE_EXPIRATION`            | long    | 0                                           | Number of milliseconds until the internal [principal cache](../principal/cache.html) expires. If not set or equal/lower than zero no cache is created/evaluated. |
+| `PARAM_CACHE_MAX_STALE`             | long    | 0                                           | Optional configuration defining the number of milliseconds for which a stale principal cache can be served if another thread is already writing the cache. If not set or zero no stale cache is returned and group principals are read from the persistence without being cached. This configuration option only takes effect if the principal cache is enabled with a 'Principal Cache Expiration' value greater than zero. | 
 | `PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE`| boolean | false                              ||
 | `PARAM_IMPERSONATOR_PRINCIPAL_NAMES` | String | {}                                          | List of users who can impersonate and groups whose members can impersonate any user (since Oak 1.54.0, [OAK-10173]).                                             |
 

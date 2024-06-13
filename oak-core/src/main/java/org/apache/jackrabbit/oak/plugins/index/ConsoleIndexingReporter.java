@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ConsoleIndexingReporter implements IndexingReporter {
     // Print configuration in alphabetical order
@@ -87,11 +88,11 @@ public class ConsoleIndexingReporter implements IndexingReporter {
         return "Indexes: " + String.join(", ", indexes) + "\n" +
                 "Date: " + DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now()) + "\n" +
                 "OAK Version: " + OakVersion.getVersion() + "\n" +
-                "Configuration:\n" + mapToString(config) + "\n" +
+                "Configuration:\n" + mapToString(config, true) + "\n" +
                 "Environment Variables:\n" + genEnvVariables() + "\n" +
                 "Information:\n" + listToString(informationStrings) + "\n" +
-                "Timings:\n" + mapToString(timings) + "\n" +
-                "Metrics:\n" + mapToString(metrics);
+                "Timings:\n" + mapToString(timings, false) + "\n" +
+                "Metrics:\n" + mapToString(metrics, true);
     }
 
     private String genEnvVariables() {
@@ -101,10 +102,12 @@ public class ConsoleIndexingReporter implements IndexingReporter {
                 .collect(Collectors.joining("\n"));
     }
 
-    private String mapToString(Map<String, String> map) {
-        return map.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> "  " + entry.getKey() + ": " + entry.getValue())
+    private String mapToString(Map<String, String> map, boolean sortKeys) {
+        Stream<Map.Entry<String, String>> stream = map.entrySet().stream();
+        if (sortKeys) {
+            stream = stream.sorted(Map.Entry.comparingByKey());
+        }
+        return stream.map(entry -> "  " + entry.getKey() + ": " + entry.getValue())
                 .collect(Collectors.joining("\n"));
     }
 
