@@ -1905,6 +1905,8 @@ public class VersionGarbageCollectorIT {
     @Test
     public void testBundledPropUnmergedBCGC() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC);
+
         //0. Initialize bundling configs
         final NodeBuilder builder = store1.getRoot().builder();
         new InitialContent().initialize(builder);
