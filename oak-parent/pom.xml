@@ -75,7 +75,7 @@
     <javaTargetVersion>8</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
     <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
-    <minimalJavaBuildVersion>${javaTargetVersion}</minimalJavaBuildVersion>
+    <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
 
     <!-- specifies on which fixture to run the integration testing tests.
       override in profiles or provide from command line to change behaviour. Provide
