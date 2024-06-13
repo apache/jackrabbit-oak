@@ -38,22 +38,11 @@ import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
-import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
-import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
-import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
-import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.*;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.bson.Document;
@@ -69,11 +58,7 @@ import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.*;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 import static org.apache.jackrabbit.oak.run.Utils.getMongoConnection;
@@ -319,7 +304,8 @@ public class RevisionsCommand implements Command {
         System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
-                isEmbeddedVerificationEnabled(builder));
+                isEmbeddedVerificationEnabled(builder),
+                new FullGCOptions(isFullGCModeGapOrphansEnabled(builder), isFullGCModeEmptyPropertiesEnabled(builder)));
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());

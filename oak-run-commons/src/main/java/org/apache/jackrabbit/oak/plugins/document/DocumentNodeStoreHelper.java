@@ -74,7 +74,13 @@ public class DocumentNodeStoreHelper {
     public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
                                                           boolean fullGCEnabled, boolean isFullGCDryRun,
                                                           boolean embeddedVerification) {
-        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification);
+        return createVersionGC(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, new FullGCOptions());
+    }
+
+    public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
+                                                          boolean fullGCEnabled, boolean isFullGCDryRun,
+                                                          boolean embeddedVerification, FullGCOptions gcOptions) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, gcOptions);
     }
 
     private static Iterable<BlobReferences> scan(DocumentNodeStore store,

@@ -34,9 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.*;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -324,4 +322,20 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.embeddedVerificationEnabled'")
     boolean embeddedVerificationEnabled() default DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC Mode Gap Orphan Enabled",
+            description = "Boolean value indicating whether Gap Orphan nodes Full GC mode should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_FULL_GC_MODE_GAP_ORPHANS_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCModeGapOrphansEnabled'")
+    boolean fullGCModeGapOrphansEnabled() default DEFAULT_FULL_GC_MODE_GAP_ORPHANS_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC Mode Empty Properties Enabled",
+            description = "Boolean value indicating whether Empty Properties Full GC mode should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_FULL_GC_EMPTY_PROPERTIES_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCModeGapOrphansEnabled'")
+    boolean fullGCModeEmptyPropertiesEnabled() default DEFAULT_FULL_GC_EMPTY_PROPERTIES_ENABLED;
 }

@@ -1010,6 +1010,28 @@ public class Utils {
     }
 
     /**
+     * Check whether full GC mode gap orphans is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if full GC is enabled else false
+     */
+    public static boolean isFullGCModeGapOrphansEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreFullGCModeGapOrphansFeature = builder.getDocStoreFullGCModeGapOrphansFeature();
+        return builder.isFullGCModeGapOrphansEnabled() || (docStoreFullGCModeGapOrphansFeature != null && docStoreFullGCModeGapOrphansFeature.isEnabled());
+    }
+
+    /**
+     * Check whether full GC mode gap orphans is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if full GC is enabled else false
+     */
+    public static boolean isFullGCModeEmptyPropertiesEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreFullGCModeEmptyPropertiesFeature = builder.getDocStoreFullGCModeEmptyPropertiesFeature();
+        return builder.isFullGCModeEmptyPropertiesEnabled() || (docStoreFullGCModeEmptyPropertiesFeature != null && docStoreFullGCModeEmptyPropertiesFeature.isEnabled());
+    }
+
+    /**
      * Returns true if all the revisions in the {@code a} greater or equals
      * to their counterparts in {@code b}. If {@code b} contains revisions
      * for cluster nodes that are not present in {@code a}, return false.

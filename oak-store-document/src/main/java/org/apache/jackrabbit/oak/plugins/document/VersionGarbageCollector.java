@@ -219,6 +219,7 @@ public class VersionGarbageCollector {
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
+    private FullGCOptions fullGCOptions;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
     private FullGCStatsCollector fullGCStats = new FullGCStatsCollectorImpl(NOOP);
@@ -228,6 +229,15 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
+        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, new FullGCOptions());
+    }
+
+    VersionGarbageCollector(DocumentNodeStore nodeStore,
+                            VersionGCSupport gcSupport,
+                            final boolean fullGCEnabled,
+                            final boolean isFullGCDryRun,
+                            final boolean embeddedVerification,
+                            FullGCOptions fullGarbageCollectionOptions) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
@@ -235,6 +245,7 @@ public class VersionGarbageCollector {
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
+        this.fullGCOptions = fullGarbageCollectionOptions;
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
     }
 
