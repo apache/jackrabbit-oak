@@ -1282,7 +1282,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             } else {
                 log.warn("Unable to remove old reference checkpoint {}. This can result in orphaned checkpoints and would need to be removed manually.", existingReferenceCheckpoint);
             }
-            mergeWithConcurrencyCheck(store, validatorProviders, builder, null, null, name);
+            mergeWithConcurrencyCheck(store, validatorProviders, builder, existingReferenceCheckpoint, null, name);
 
             // Resume the paused lane;
             this.resume();
