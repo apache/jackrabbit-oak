@@ -75,6 +75,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
       super.tearDown();
       Assert.assertEquals(1, customizer.getLogs().size());
       Assert.assertEquals("Refresh token executor service shutdown completed", customizer.getLogs().get(0));
+      customizer.finished();
       AzureDataStoreUtils.deleteContainer(container);
     } catch (Exception ignore) {
 
