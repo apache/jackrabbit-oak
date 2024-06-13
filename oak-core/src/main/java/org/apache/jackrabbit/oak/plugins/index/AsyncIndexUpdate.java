@@ -1242,6 +1242,41 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return referenceCp;
         }
 
+        @Override
+        public void pretendIndexLaneCatchup(String confirmMessage) throws CommitFailedException {
+
+            if (!"CONFIRM".equals(confirmMessage)) {
+                log.warn("Please confirm that you want to pretend the lane catchup by passing 'CONFIRM' as argument");
+                return;
+            }
+            log.info("Running a pretend catchup for indexing lane [{}]. ", name);
+            // First we need to abort and pause the running indexing task
+            this.abortAndPause();
+            log.info("Aborted and paused async indexing for lane [{}]", name);
+            // Release lease for the paused lane
+            this.releaseLeaseForPausedLane();
+            log.info("Released lease for paused lane [{}]", name);
+            String newReferenceCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
+                    "creator", AsyncIndexUpdate.class.getSimpleName(),
+                    "created", now(),
+                    "thread", Thread.currentThread().getName(),
+                    "name", name + "-forceModified"));
+            String existingReferenceCheckpoint = referenceCp;
+            log.info("Modifying the referred checkpoint for lane [{}] from {} to {}." +
+                    " This means that any content modifications b/w these checkpoints will not reflect in the indexes on this lane." +
+                    " Reindexing would be needed to get this content indexed.", name, existingReferenceCheckpoint, newReferenceCheckpoint);
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child(ASYNC).setProperty(name, newReferenceCheckpoint);
+            this.referenceCp = newReferenceCheckpoint;
+            // Remove the existing reference checkpoint
+            store.release(existingReferenceCheckpoint);
+            mergeWithConcurrencyCheck(store, validatorProviders, builder, null, null, name);
+
+            // Resume the paused lane;
+            this.resume();
+            log.info("Resumed async indexing for lane [{}]", name);
+        }
+
         void setProcessedCheckpoint(String checkpoint) {
             this.processedCp = checkpoint;
         }

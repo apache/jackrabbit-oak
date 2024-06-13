@@ -589,6 +589,62 @@ public class AsyncIndexUpdateTest {
         assertNoConflictMarker(builder);
     }
 
+    @Test
+    public void testForceModifyReferenceCheckpoint() throws CommitFailedException {
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        NodeState root = store.getRoot();
+        builder = root.builder();
+        builder.child("testRoot1").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Run pretend index catchup with an incorrect confirm message
+        // This will skip the operation and testRoot1 should be indexed in the next async run.
+        async.getIndexStats().pretendIndexLaneCatchup("ok");
+        async.run();
+        root = store.getRoot();
+
+        // first check that the index content nodes exist
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        assertEquals(ImmutableSet.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
+
+        // Run pretend index catchup with correct confirm message
+        // Due to this the new node testRoot2 will not be indexed, because the reference checkpoint will point to a state after this node was created.
+        // testRoot3 should be in the result set since it's created after the pretend index catchup is called.
+        builder.child("testRoot2").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.getIndexStats().pretendIndexLaneCatchup("CONFIRM");
+        builder.child("testRoot3").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.run();
+        root = store.getRoot();
+
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+        lookup = new PropertyIndexLookup(root);
+        assertEquals(ImmutableSet.of("testRoot", "testRoot1", "testRoot3"), find(lookup, "foo", "abc"));
+
+
+    }
+
     private void assertNoConflictMarker(NodeBuilder builder) {
         for (String name : builder.getChildNodeNames()) {
             if (name.equals(ConflictAnnotatingRebaseDiff.CONFLICT)) {
