@@ -1261,7 +1261,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     "created", now(),
                     "thread", Thread.currentThread().getName(),
                     "name", name + "-forceModified"));
-            String existingReferenceCheckpoint = referenceCp;
+            String existingReferenceCheckpoint = this.referenceCp;
             log.info("Modifying the referred checkpoint for lane [{}] from {} to {}." +
                     " This means that any content modifications b/w these checkpoints will not reflect in the indexes on this lane." +
                     " Reindexing would be needed to get this content indexed.", name, existingReferenceCheckpoint, newReferenceCheckpoint);
@@ -1269,7 +1269,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             builder.child(ASYNC).setProperty(name, newReferenceCheckpoint);
             this.referenceCp = newReferenceCheckpoint;
             // Remove the existing reference checkpoint
-            store.release(existingReferenceCheckpoint);
+            if (store.release(existingReferenceCheckpoint)) {
+                log.info("Old reference checkpoint {} removed or didn't exist", existingReferenceCheckpoint);
+            } else {
+                log.warn("Unable to remove old reference checkpoint {}. This can result in orphaned checkpoints and would need to be removed manually.", existingReferenceCheckpoint);
+            }
             mergeWithConcurrencyCheck(store, validatorProviders, builder, null, null, name);
 
             // Resume the paused lane;
