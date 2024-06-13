@@ -12,9 +12,11 @@ Getting Started
 ---------------
 
 To get started with Oak, build the latest sources with
-Maven 3 and Java 8 (or higher) like this:
+Maven 3 and Java 11 (or higher) like this:
 
     mvn clean install
+
+Note that build *target* is still Java 8.
 
 To enable all integration tests, including the JCR TCK, use:
 
@@ -62,7 +64,7 @@ The build consists of the following main components:
   - oak-segment-tar   - TarMK API and implementation
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
-    - oak-it/osgi     - integration tests for OSGi
+  - oak-it/osgi     - integration tests for OSGi
   - [oak-exercise][2] - Oak training material
 
   [1]: oak-core/README.md
