@@ -1243,13 +1243,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
-        public void pretendIndexLaneCatchup(String confirmMessage) throws CommitFailedException {
+        public String forceIndexLaneCatchup(String confirmMessage) throws CommitFailedException {
 
             if (!"CONFIRM".equals(confirmMessage)) {
-                log.warn("Please confirm that you want to pretend the lane catchup by passing 'CONFIRM' as argument");
-                return;
+                String msg = "Please confirm that you want to force the lane catchup by passing 'CONFIRM' as argument";
+                log.warn(msg);
+                return msg;
             }
-            log.info("Running a pretend catchup for indexing lane [{}]. ", name);
+
+            if (!this.isFailing()) {
+                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catchup on it's own.";
+                log.warn(msg);
+                return msg;
+            }
+
+            log.info("Running a forced catchup for indexing lane [{}]. ", name);
             // First we need to abort and pause the running indexing task
             this.abortAndPause();
             log.info("Aborted and paused async indexing for lane [{}]", name);
@@ -1279,6 +1287,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             // Resume the paused lane;
             this.resume();
             log.info("Resumed async indexing for lane [{}]", name);
+            return ("Lane successfully forced to catchup. New reference checkpoint is " + newReferenceCheckpoint + " . Please make sure to perform reindexing to get the diff content indexed.");
         }
 
         void setProcessedCheckpoint(String checkpoint) {

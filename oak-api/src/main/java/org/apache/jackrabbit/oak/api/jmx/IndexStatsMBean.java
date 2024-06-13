@@ -128,14 +128,11 @@ public interface IndexStatsMBean {
      */
     String getReferenceCheckpoint();
 
-    /**
-     * Used to set the reference checkpoint for the async indexer to the provided checkpoint value.
-     */
     @Description("Force update the indexing lane to a latest checkpoint. This will abort and pause the running lane, release it's lease and set the reference checkpoint to a latest one." +
             "Any content changes b/w the old reference checkpoint and the new one will be not be indexed and a reindexing would be required." +
             "Only use this operation if you are sure that the lane is stuck and not updated since many days and cannot catchup on it's own." +
             "Once this operation is completed, reindexing for all indexes on the lane is required.")
-    void pretendIndexLaneCatchup(
+    String forceIndexLaneCatchup(
             @Name("Confirmation Message")
             @Description("Enter 'CONFIRM' to confirm the operation")
             String confirmationMessage) throws CommitFailedException;

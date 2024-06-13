@@ -612,7 +612,7 @@ public class AsyncIndexUpdateTest {
 
         // Run pretend index catchup with an incorrect confirm message
         // This will skip the operation and testRoot1 should be indexed in the next async run.
-        async.getIndexStats().pretendIndexLaneCatchup("ok");
+        async.getIndexStats().forceIndexLaneCatchup("ok");
         async.run();
         root = store.getRoot();
 
@@ -629,7 +629,7 @@ public class AsyncIndexUpdateTest {
         // testRoot3 should be in the result set since it's created after the pretend index catchup is called.
         builder.child("testRoot2").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        async.getIndexStats().pretendIndexLaneCatchup("CONFIRM");
+        async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
         builder.child("testRoot3").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         async.run();
