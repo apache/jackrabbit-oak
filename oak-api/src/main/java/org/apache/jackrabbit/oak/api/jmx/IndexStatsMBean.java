@@ -128,9 +128,9 @@ public interface IndexStatsMBean {
      */
     String getReferenceCheckpoint();
 
-    @Description("Force update the indexing lane to a latest checkpoint. This will abort and pause the running lane, release it's lease and set the reference checkpoint to a latest one." +
+    @Description("Force update the indexing lane to a latest checkpoint. This will abort and pause the running lane, release its lease and set the reference checkpoint to a latest one." +
             "Any content changes b/w the old reference checkpoint and the new one will be not be indexed and a reindexing would be required." +
-            "Only use this operation if you are sure that the lane is stuck and not updated since many days and cannot catchup on it's own." +
+            "Only use this operation if you are sure that the lane is stuck and not updated for many days and cannot catch up on its own." +
             "Once this operation is completed, reindexing for all indexes on the lane is required.")
     String forceIndexLaneCatchup(
             @Name("Confirmation Message")
