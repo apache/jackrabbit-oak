@@ -236,7 +236,7 @@ public class AzureBlobContainerProvider implements Closeable {
         // start refresh token executor only when the access token is first generated
         if (isAccessTokenGenerated) {
             log.info("starting refresh token task at: {}", OffsetDateTime.now());
-            TokenRefresher tokenRefresher = new TokenRefresher(clientSecretCredential, accessToken, storageCredentialsToken);
+            TokenRefresher tokenRefresher = new TokenRefresher();
             executorService.scheduleWithFixedDelay(tokenRefresher, TOKEN_REFRESHER_INITIAL_DELAY, TOKEN_REFRESHER_DELAY, TimeUnit.MINUTES);
         }
         return storageCredentialsToken;
@@ -314,17 +314,6 @@ public class AzureBlobContainerProvider implements Closeable {
     }
 
     private class TokenRefresher implements Runnable {
-
-        private final ClientSecretCredential clientSecretCredential;
-        private final StorageCredentialsToken storageCredentialsToken;
-
-        public TokenRefresher(ClientSecretCredential clientSecretCredential,
-                              AccessToken accessToken,
-                              StorageCredentialsToken storageCredentialsToken) {
-            this.clientSecretCredential = clientSecretCredential;
-            this.storageCredentialsToken = storageCredentialsToken;
-        }
-
         @Override
         public void run() {
             try {
@@ -341,7 +330,7 @@ public class AzureBlobContainerProvider implements Closeable {
                     }
                     // update access token with newly generated token
                     accessToken = newToken;
-                    this.storageCredentialsToken.updateToken(accessToken.getToken());
+                    storageCredentialsToken.updateToken(accessToken.getToken());
                 }
             } catch (Exception e) {
                 log.error("Error while acquiring new access token: ", e);
