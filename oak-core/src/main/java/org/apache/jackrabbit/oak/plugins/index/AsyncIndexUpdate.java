@@ -1291,9 +1291,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             } catch (Exception e) {
                 log.error("Exception while trying to force update the indexing lane [{}]", name, e);
                 if (this.isPaused()) {
+                    this.resume();
                     log.info("Resuming the lane [{}] as it was paused during the operation", name);
                 }
-                return "Unable to complete the force update due to" + e.getMessage() + "Please check logs for more details";
+                return "Unable to complete the force update due to " + e.getMessage() + ".Please check logs for more details";
             }
         }
 
