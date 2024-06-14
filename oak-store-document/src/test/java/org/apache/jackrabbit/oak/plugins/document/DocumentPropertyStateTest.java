@@ -40,8 +40,7 @@ import org.junit.runners.MethodSorters;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -54,7 +53,7 @@ public class DocumentPropertyStateTest {
     private static final int BLOB_SIZE = 16 * 1024;
     public static final int COMPRESSED_SIZE = 543;
     private static final String TEST_NODE = "test";
-    private static final String STRING_HUGEVALUE = RandomStringUtils.random(1050, "dummytest");
+    private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
     private static final int DEFAULT_COMPRESSION_THRESHOLD = 1024;
 
     @Rule
@@ -146,7 +145,7 @@ public class DocumentPropertyStateTest {
         assertEquals(1, p.count());
 
         reads.clear();
-        assertEquals(1050, p.size(0));
+        assertEquals(10050, p.size(0));
         // must not read the string via streams
         assertEquals(0, reads.size());
     }
@@ -247,5 +246,31 @@ public class DocumentPropertyStateTest {
 
         // Reset the value of the field
         compressionThreshold.set(null, -1);
+    }
+
+    @Test
+    public void performanceTest() {
+        String testString = RandomStringUtils.random(10050, "dummytest");
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", "\"" + testString + "\"", Compression.GZIP);
+
+        Runtime runtime = Runtime.getRuntime();
+
+        long startMemory = runtime.totalMemory() - runtime.freeMemory(); // Get initial memory usage
+        long startTime = System.nanoTime();
+
+        String compressedValue = state.getValue(Type.STRING);
+
+        long endTime = System.nanoTime();
+        long endMemory = runtime.totalMemory() - runtime.freeMemory(); // Get final memory usage
+
+        long duration = (endTime - startTime);  // divide by 1000000 to get milliseconds.
+        long usedMemory = endMemory - startMemory; // Calculate the used memory during the operation
+
+        System.out.println("Time taken for compression: " + duration + " nanoseconds");
+        System.out.println("Memory used for compression: " + usedMemory + " bytes");
+
+        // Assert that the compressed value is not null or empty
+        assertTrue(compressedValue != null && !compressedValue.isEmpty());
     }
 }
