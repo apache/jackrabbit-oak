@@ -17,33 +17,49 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.io.File;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
+
 import org.jetbrains.annotations.NotNull;
-import org.osgi.service.component.ComponentContext;
 
 /**
  * An OSGi service {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider}
  */
-@Component(metatype = true, immediate = true,
-        label = "Apache Jackrabbit Oak Solr embedded server configuration")
-@Service(value = SolrServerConfigurationProvider.class)
-@Property(name = "name", value = "embedded", propertyPrivate = true)
+@Component(
+        immediate = true,
+        service = { SolrServerConfigurationProvider.class }
+)
+@Designate( ocd = EmbeddedSolrServerConfigurationProvider.Configuration.class )
 public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
 
-    @Property(value = SolrServerConfigurationDefaults.SOLR_HOME_PATH, label = "Solr home directory")
-    private static final String SOLR_HOME_PATH = "solr.home.path";
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.plugins.index.solr.osgi.EmbeddedSolrServerConfigurationProvider",
+            name = "Apache Jackrabbit Oak Solr embedded server configuration"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Solr home directory"
+        )
+        String solr_home_path() default SolrServerConfigurationDefaults.SOLR_HOME_PATH;
 
-    @Property(value = SolrServerConfigurationDefaults.CORE_NAME, label = "Solr Core name")
-    private static final String SOLR_CORE_NAME = "solr.core.name";
+        @AttributeDefinition(
+                name = "Solr Core name"
+        )
+        String solr_core_name() default SolrServerConfigurationDefaults.CORE_NAME;
+
+        String name() default "embedded";
+    }
 
     private String solrHome;
     private String solrCoreName;
@@ -52,13 +68,13 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
 
 
     @Activate
-    protected void activate(ComponentContext componentContext) throws Exception {
-        solrHome = String.valueOf(componentContext.getProperties().get(SOLR_HOME_PATH));
+    protected void activate(Configuration configuration) throws Exception {
+        solrHome = configuration.solr_home_path();
         File file = new File(solrHome);
         if (!file.exists()) {
             assert file.createNewFile();
         }
-        solrCoreName = String.valueOf(componentContext.getProperties().get(SOLR_CORE_NAME));
+        solrCoreName = configuration.solr_core_name();
 
         solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrCoreName);
     }
