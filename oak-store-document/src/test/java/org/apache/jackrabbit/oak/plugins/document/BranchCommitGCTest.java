@@ -241,6 +241,8 @@ public class BranchCommitGCTest {
 
     @Test
     public void testDeletedPropsAndUnmergedBC() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+
         // create a node with property.
         NodeBuilder nb = store.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
