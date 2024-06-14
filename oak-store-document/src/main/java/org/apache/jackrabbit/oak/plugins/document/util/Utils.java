@@ -950,6 +950,7 @@ public class Utils {
                                               @NotNull RevisionVector toRev,
                                               @NotNull RevisionVector minRevisions) {
         // make sure we have minimum revisions for all known cluster nodes
+        fromRev = fromRev.pmin(minRevisions);
         toRev = toRev.pmax(minRevisions);
         // keep only revision entries that changed
         RevisionVector from = fromRev.difference(toRev);
