@@ -73,17 +73,14 @@ final class DocumentPropertyState implements PropertyState {
     }
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value, Compression compression) {
+        this.store = store;
+        this.name = name;
         if (DEFAULT_COMPRESSION_THRESHOLD == -1) {
-            this.store = store;
-            this.name = name;
             this.value = value;
             this.compression = null;
             this.compressedValue = null;
         } else {
-            this.store = store;
-            this.name = name;
             this.compression = compression;
-
             int size = value.length();
             String localValue = value;
             byte[] localCompressedValue = null;
