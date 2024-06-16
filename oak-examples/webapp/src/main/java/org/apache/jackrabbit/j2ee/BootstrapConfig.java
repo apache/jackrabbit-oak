@@ -56,18 +56,14 @@ public class BootstrapConfig extends AbstractConfig {
 
     private JNDIConfig jndiConfig = new JNDIConfig(this);
 
-    private RMIConfig rmiConfig = new RMIConfig(this);
-
     public void init(Properties props) throws ServletException {
         super.init(props);
         jndiConfig.init(props);
-        rmiConfig.init(props);
     }
 
     public void init(ServletConfig ctx) throws ServletException {
         super.init(ctx);
         jndiConfig.init(ctx);
-        rmiConfig.init(ctx);
     }
 
     public String getRepositoryHome() {
@@ -106,10 +102,6 @@ public class BootstrapConfig extends AbstractConfig {
         return jndiConfig;
     }
 
-    public RMIConfig getRmiConfig() {
-        return rmiConfig;
-    }
-
     public boolean isShutdownOnTimeout() {
         return shutdownOnTimeout;
     }
@@ -137,7 +129,6 @@ public class BootstrapConfig extends AbstractConfig {
     public void validate() {
         valid = repositoryName != null;
         jndiConfig.validate();
-        rmiConfig.validate();
     }
 
 
@@ -145,9 +136,6 @@ public class BootstrapConfig extends AbstractConfig {
         super.logInfos();
         if (jndiConfig.isValid()) {
             jndiConfig.logInfos();
-        }
-        if (rmiConfig.isValid()) {
-            rmiConfig.logInfos();
         }
     }
 }

@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.tika.exception.WriteLimitReachedException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
@@ -311,7 +312,7 @@ class SolrIndexEditor implements IndexEditor {
         } catch (Throwable t) {
             // Capture and report any other full text extraction problems.
             // The special STOP exception is used for normal termination.
-            if (!handler.isWriteLimitReached(t)) {
+            if (!WriteLimitReachedException.isWriteLimitReached(t)) {
                 log.debug("Failed to extract text from a binary property: "
                         + " This is a fairly common case, and nothing to"
                         + " worry about. The stack trace is included to"

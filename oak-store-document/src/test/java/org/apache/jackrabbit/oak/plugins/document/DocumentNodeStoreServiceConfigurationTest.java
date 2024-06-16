@@ -33,6 +33,8 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -84,6 +86,8 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
+        assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
+        assertEquals(DEFAULT_EMBEDDED_VERIFICATION_ENABLED, config.embeddedVerificationEnabled());
         assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
     }
 
@@ -101,6 +105,22 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "throttlingEnabled", throttleDocStore);
         Configuration config = createConfiguration();
         assertEquals(throttleDocStore, config.throttlingEnabled());
+    }
+
+    @Test
+    public void fullGCEnabled() throws Exception {
+        boolean fullGCDocStore = true;
+        addConfigurationEntry(preset, "fullGCEnabled", fullGCDocStore);
+        Configuration config = createConfiguration();
+        assertEquals(fullGCDocStore, config.fullGCEnabled());
+    }
+
+    @Test
+    public void embeddedVerificationEnabled() throws Exception {
+        boolean embeddedVerificationEnabled = false;
+        addConfigurationEntry(preset, "embeddedVerificationEnabled", embeddedVerificationEnabled);
+        Configuration config = createConfiguration();
+        assertEquals(embeddedVerificationEnabled, config.embeddedVerificationEnabled());
     }
 
     @Test

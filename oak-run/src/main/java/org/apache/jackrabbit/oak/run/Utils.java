@@ -17,8 +17,13 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import static com.mongodb.MongoURI.MONGODB_PREFIX;
 import static java.util.Arrays.asList;
+import static java.util.Objects.isNull;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
+import static org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode.DISABLED;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -33,6 +38,7 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import javax.jcr.RepositoryException;
@@ -210,6 +216,15 @@ class Utils {
         return createDocumentMKBuilder(new NodeStoreOptions(h).parse(args), closer);
     }
 
+    static Optional<MongoConnection> getMongoConnection(final NodeStoreOptions options, final Closer closer) {
+        String src = options.getStoreArg();
+        if (isNull(src) || !src.startsWith(MONGODB_PREFIX)) {
+            return empty();
+        }
+
+        return of(getMongoConnection(closer, src));
+    }
+
     @Nullable
     static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(NodeStoreOptions options,
                                                                Closer closer)
@@ -220,17 +235,9 @@ class Utils {
             System.exit(1);
         }
         DocumentNodeStoreBuilder<?> builder;
-        if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
-            MongoClientURI uri = new MongoClientURI(src);
-            if (uri.getDatabase() == null) {
-                System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
-                System.exit(1);
-            }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
-            closer.register(asCloseable(mongo));
-            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(
-                    mongo.getMongoClient(), mongo.getDBName());
+        if (src.startsWith(MONGODB_PREFIX)) {
+            MongoConnection mongo = getMongoConnection(closer, src);
+            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(mongo.getMongoClient(), mongo.getDBName());
         } else if (src.startsWith("jdbc")) {
             RDBOptions opts = new RDBOptions();
             if (options.getRDBTablePrefix() != null) {
@@ -252,6 +259,17 @@ class Utils {
             builder.memoryCacheSize(cacheSize * MB);
         }
         return builder;
+    }
+
+    private static MongoConnection getMongoConnection(Closer closer, String src) {
+        MongoClientURI uri = new MongoClientURI(src);
+        if (uri.getDatabase() == null) {
+            System.err.println("Database missing in MongoDB URI: " + uri.getURI());
+            System.exit(1);
+        }
+        MongoConnection mongo = new MongoConnection(uri.getURI());
+        closer.register(asCloseable(mongo));
+        return mongo;
     }
 
     @Nullable

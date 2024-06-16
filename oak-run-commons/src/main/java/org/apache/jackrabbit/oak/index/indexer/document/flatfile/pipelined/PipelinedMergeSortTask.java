@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.getSortedStoreFileName;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Accumulates the intermediate sorted files and, when all files are generated, merges them into a single sorted file,
@@ -210,23 +211,24 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         int intermediateFilesCount = 0;
+        INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
+        Stopwatch finalMergeWatch = Stopwatch.createUnstarted();
         try {
-            LOG.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.debug("Waiting for next intermediate sorted file");
                 Path sortedIntermediateFile = sortedFilesQueue.take();
                 if (sortedIntermediateFile == SENTINEL_SORTED_FILES_QUEUE) {
                     long sortedFilesSizeBytes = sizeOf(sortedFiles);
                     LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), IOUtils.humanReadableByteCountBin(sortedFilesSizeBytes));
-                    Stopwatch w = Stopwatch.createStarted();
+                    finalMergeWatch.start();
                     List<Path> simpleFileList = sortedFiles.stream().map(f -> f.file).collect(Collectors.toList());
                     Path flatFileStore = sortStoreFile(simpleFileList);
 
-                    LOG.info("Final merge completed in {}. Created file: {}", FormattingUtils.formatToSeconds(w), flatFileStore.toAbsolutePath());
+                    LOG.info("Final merge completed in {}. Created file: {}", FormattingUtils.formatToSeconds(finalMergeWatch), flatFileStore.toAbsolutePath());
                     long ffsSizeBytes = Files.size(flatFileStore);
-                    long durationSeconds = w.elapsed(TimeUnit.SECONDS);
+                    long durationSeconds = finalMergeWatch.elapsed(TimeUnit.SECONDS);
                     String metrics = MetricsFormatter.newBuilder()
-                            .add("duration", FormattingUtils.formatToSeconds(w))
+                            .add("duration", FormattingUtils.formatToSeconds(finalMergeWatch))
                             .add("durationSeconds", durationSeconds)
                             .add("intermediateFilesCount", intermediateFilesCount)
                             .add("eagerMergesRuns", eagerMergeRuns)
@@ -235,8 +237,8 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                             .add("ffsSize", IOUtils.humanReadableByteCountBin(ffsSizeBytes))
                             .build();
 
-                    LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
-                    reporter.addTiming("Merge sort", FormattingUtils.formatToSeconds(w));
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
+                    reporter.addTiming("Merge sort", FormattingUtils.formatToSeconds(finalMergeWatch));
                     MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
                     MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
                     MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
@@ -259,10 +261,10 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     }
                 }
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}", THREAD_NAME.toUpperCase(Locale.ROOT),
+                    MetricsFormatter.createMetricsWithDurationOnly(finalMergeWatch),
+                    t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {

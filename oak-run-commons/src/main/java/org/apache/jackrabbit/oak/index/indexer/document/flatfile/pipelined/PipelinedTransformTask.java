@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -47,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Receives batches of Mongo documents, converts them to node state entries, batches them in a {@link NodeStateEntryBatch}
@@ -116,10 +116,10 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         String originalName = Thread.currentThread().getName();
         String threadName = THREAD_NAME_PREFIX + threadId;
         Thread.currentThread().setName(threadName);
+        Stopwatch taskStartWatch = Stopwatch.createStarted();
         try {
-            LOG.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
-            Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalDocumentQueueWaitTimeMillis = 0;
             long totalEntryCount = 0;
             long mongoObjectsProcessed = 0;
@@ -127,7 +127,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
             LOG.debug("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
 
-            ArrayList<NodeStateEntry> nodeStateEntries = new ArrayList<>();
+            ArrayList<DocumentNodeState> nodeStateEntries = new ArrayList<>();
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
@@ -149,7 +149,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
                             .add("totalEmptyBatchQueueWaitPercentage", totalEmptyBatchQueueWaitPercentage)
                             .build();
-                    LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
@@ -176,13 +176,13 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             if (nodeStateEntries.isEmpty()) {
                                 statistics.addEmptyNodeStateEntry(nodeDoc.getId());
                             } else {
-                                for (NodeStateEntry nse : nodeStateEntries) {
-                                    String path = nse.getPath();
+                                for (DocumentNodeState nse : nodeStateEntries) {
+                                    String path = nse.getPath().toString();
                                     if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
                                         statistics.incrementEntriesAccepted();
                                         totalEntryCount++;
                                         // Serialize entry
-                                        byte[] jsonBytes = entryWriter.asJson(nse.getNodeState()).getBytes(StandardCharsets.UTF_8);
+                                        byte[] jsonBytes = entryWriter.asJson(nse).getBytes(StandardCharsets.UTF_8);
                                         int entrySize;
                                         try {
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
@@ -216,10 +216,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     }
                 }
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    threadName.toUpperCase(Locale.ROOT), MetricsFormatter.createMetricsWithDurationOnly(taskStartWatch), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
@@ -238,25 +237,16 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         }
     }
 
-    private void extractNodeStateEntries(NodeDocument doc, ArrayList<NodeStateEntry> nodeStateEntries) {
+    private void extractNodeStateEntries(NodeDocument doc, ArrayList<DocumentNodeState> nodeStateEntries) {
         Path path = doc.getPath();
         DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {
             return;
         }
-        nodeStateEntries.add(toNodeStateEntry(doc, nodeState));
+        nodeStateEntries.add(nodeState);
         for (DocumentNodeState dns : nodeState.getAllBundledNodesStates()) {
-            nodeStateEntries.add(toNodeStateEntry(doc, dns));
+            nodeStateEntries.add(dns);
         }
-    }
-
-    private NodeStateEntry toNodeStateEntry(NodeDocument doc, DocumentNodeState dns) {
-        NodeStateEntry.NodeStateEntryBuilder builder = new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
-        if (doc.getModified() != null) {
-            builder.withLastModified(doc.getModified());
-        }
-        builder.withID(doc.getId());
-        return builder.build();
     }
 }
