@@ -264,10 +264,8 @@ public class DocumentPropertyStateTest {
 
     }
 
-
-
     @Test
-    public void performanceTest() {
+    public void performanceTest() throws NoSuchFieldException, IllegalAccessException {
         String testString = RandomStringUtils.random(10050, "dummytest");
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", "\"" + testString + "\"", Compression.GZIP);
@@ -277,7 +275,7 @@ public class DocumentPropertyStateTest {
         long startMemory = runtime.totalMemory() - runtime.freeMemory(); // Get initial memory usage
         long startTime = System.nanoTime();
 
-        String compressedValue = state.getValue(Type.STRING);
+        String value = state.getValue(Type.STRING);
 
         long endTime = System.nanoTime();
         long endMemory = runtime.totalMemory() - runtime.freeMemory(); // Get final memory usage
@@ -285,8 +283,31 @@ public class DocumentPropertyStateTest {
         long duration = (endTime - startTime);  // divide by 1000000 to get milliseconds.
         long usedMemory = endMemory - startMemory; // Calculate the used memory during the operation
 
-        System.out.println("Time taken for compression: " + duration + " nanoseconds");
-        System.out.println("Memory used for compression: " + usedMemory + " bytes");
+        System.out.println("Time taken without compression: " + duration + " nanoseconds");
+        System.out.println("Memory used without compression: " + usedMemory + " bytes");
+
+        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
+        compressionThreshold.setAccessible(true);
+        Field modifiersField = Field.class.getDeclaredField("modifiers");
+        modifiersField.setAccessible(true);
+        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
+
+        compressionThreshold.set(null, DEFAULT_COMPRESSION_THRESHOLD);
+
+        long startMemoryWithCompression = runtime.totalMemory() - runtime.freeMemory(); // Get initial memory usage
+        long startTimeWithCompression = System.nanoTime();
+
+        String compressedValue = state.getValue(Type.STRING);
+
+        long endTimeWithCompression  = System.nanoTime();
+        long endMemoryWithCompression  = runtime.totalMemory() - runtime.freeMemory(); // Get final memory usage
+
+        long durationWithCompression  = (endTimeWithCompression - startTimeWithCompression);  // divide by 1000000 to get milliseconds.
+        long usedMemoryWithCompression = endMemoryWithCompression - startMemoryWithCompression; // Calculate the used memory during the operation
+
+        System.out.println("Time taken with compression: " + durationWithCompression + " nanoseconds");
+        System.out.println("Memory used with compression: " + usedMemoryWithCompression + " bytes");
+
 
         // Assert that the compressed value is not null or empty
         assertTrue(compressedValue != null && !compressedValue.isEmpty());
