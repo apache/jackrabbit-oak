@@ -15,7 +15,7 @@
 
 # https://cwiki.apache.org/confluence/x/7guYBw
 notifications:
-  commits: oak-dev@jackrabbit.apache.org
+  commits: oak-commits@jackrabbit.apache.org
   issues: oak-dev@jackrabbit.apache.org
   pullrequests: oak-dev@jackrabbit.apache.org
   jobs: oak-dev@jackrabbit.apache.org
