@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -25,7 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
@@ -147,6 +147,6 @@ class BinaryReferencesIndexLoaderV2 {
     private static String parseString(int length, Buffer buffer) {
         byte[] data = new byte[length];
         buffer.get(data);
-        return new String(data, Charsets.UTF_8);
+        return new String(data, StandardCharsets.UTF_8);
     }
 }

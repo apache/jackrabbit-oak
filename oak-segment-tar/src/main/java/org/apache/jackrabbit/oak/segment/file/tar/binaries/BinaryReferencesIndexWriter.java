@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +28,6 @@ import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 /**
  * Maintains the transient state of a binary references index, formats it and
@@ -125,7 +125,7 @@ public class BinaryReferencesIndexWriter {
                     binaryReferenceSize += 4;
 
                     // A variable amount of bytes, depending on the reference itself.
-                    binaryReferenceSize += reference.getBytes(Charsets.UTF_8).length;
+                    binaryReferenceSize += reference.getBytes(StandardCharsets.UTF_8).length;
                 }
             }
         }
@@ -150,7 +150,7 @@ public class BinaryReferencesIndexWriter {
                 buffer.putInt(references.size());
 
                 for (String reference : references) {
-                    byte[] bytes = reference.getBytes(Charsets.UTF_8);
+                    byte[] bytes = reference.getBytes(StandardCharsets.UTF_8);
 
                     buffer.putInt(bytes.length);
                     buffer.put(bytes);

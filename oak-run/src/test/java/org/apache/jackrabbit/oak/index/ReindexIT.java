@@ -52,11 +52,11 @@ import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -339,7 +339,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 "}";
 
         File jsonFile = temporaryFolder.newFile();
-        Files.write(json, jsonFile, UTF_8);
+        Files.write(json, jsonFile, StandardCharsets.UTF_8);
 
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();

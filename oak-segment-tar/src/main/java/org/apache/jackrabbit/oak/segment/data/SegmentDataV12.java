@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.segment.data;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 class SegmentDataV12 implements SegmentData {
 
@@ -85,7 +85,7 @@ class SegmentDataV12 implements SegmentData {
             signature[i] = buffer.get(SIGNATURE_OFFSET + i);
         }
 
-        return new String(signature, Charsets.UTF_8);
+        return new String(signature, StandardCharsets.UTF_8);
     }
 
     @Override
@@ -197,7 +197,7 @@ class SegmentDataV12 implements SegmentData {
         Buffer duplicate = buffer.duplicate();
         duplicate.position(index);
         duplicate.limit(index + length);
-        String string = duplicate.decode(Charsets.UTF_8).toString();
+        String string = duplicate.decode(StandardCharsets.UTF_8).toString();
         return new StringData(string, length);
     }
 
