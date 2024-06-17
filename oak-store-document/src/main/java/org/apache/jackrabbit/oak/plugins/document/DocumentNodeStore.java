@@ -1664,7 +1664,7 @@ public final class DocumentNodeStore
     }
 
     @Nullable
-    private DocumentNodeState readNode(Path path, RevisionVector readRevision) {
+    DocumentNodeState readNode(Path path, RevisionVector readRevision) {
         final long start = PERFLOG.start();
         String id = Utils.getIdFromPath(path);
         Revision lastRevision = getPendingModifications().get(path);

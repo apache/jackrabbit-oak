@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -239,7 +240,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private void extractNodeStateEntries(NodeDocument doc, ArrayList<DocumentNodeState> nodeStateEntries) {
         Path path = doc.getPath();
-        DocumentNodeState nodeState = documentNodeStore.getNodeUncached(path, rootRevision);
+        DocumentNodeState nodeState = DocumentNodeStoreHelper.readNode(documentNodeStore, path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {
             return;
