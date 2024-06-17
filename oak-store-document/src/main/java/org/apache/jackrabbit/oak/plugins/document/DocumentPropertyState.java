@@ -65,8 +65,8 @@ final class DocumentPropertyState implements PropertyState {
     private final byte[] compressedValue;
     private final Compression compression;
 
-    private static final int DEFAULT_COMPRESSION_THRESHOLD =
-            SystemPropertySupplier.create("oak.mongo.compressionThreshold", -1).get();
+    private static final int DEFAULT_COMPRESSION_THRESHOLD = SystemPropertySupplier
+            .create("oak.documentMK.stringCompressionThreshold ", -1).loggingTo(LOG).get();
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this(store, name, value, Compression.GZIP);
@@ -75,7 +75,7 @@ final class DocumentPropertyState implements PropertyState {
     DocumentPropertyState(DocumentNodeStore store, String name, String value, Compression compression) {
         this.store = store;
         this.name = name;
-        if (DEFAULT_COMPRESSION_THRESHOLD == -1) {
+        if (compression != null && DEFAULT_COMPRESSION_THRESHOLD == -1) {
             this.value = value;
             this.compression = null;
             this.compressedValue = null;
@@ -84,7 +84,7 @@ final class DocumentPropertyState implements PropertyState {
             int size = value.length();
             String localValue = value;
             byte[] localCompressedValue = null;
-            if (compression != null && size > DEFAULT_COMPRESSION_THRESHOLD) {
+            if (size > DEFAULT_COMPRESSION_THRESHOLD) {
                 try {
                     localCompressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
                     localValue = null;
