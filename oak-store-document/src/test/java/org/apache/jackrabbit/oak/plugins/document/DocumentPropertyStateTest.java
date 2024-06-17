@@ -250,6 +250,22 @@ public class DocumentPropertyStateTest {
         compressionThreshold.set(null, -1);
     }
 
+    @Test(expected = ComparisonFailure.class)
+    public void testInterestingStrings() {
+
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String testString = "\"\"simple:foo\", \"cr:a\\n\\b\", \"dquote:a\\\"b\", \"bs:a\\\\b\", \"euro:a\\u201c\", \"gclef:\\uD834\\uDD1E\",\n" +
+                "                \"tab:a\\tb\", \"nul:a\\u0000b\", \"brokensurrogate:\\ud800\"";
+        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", testString, Compression.GZIP);
+
+        String value = state.getValue(Type.STRING);
+
+        assertEquals(testString, value);
+
+    }
+
+
+
     @Test
     public void performanceTest() {
         String testString = RandomStringUtils.random(10050, "dummytest");
