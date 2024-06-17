@@ -332,7 +332,7 @@ class PropertyIndexEditor implements IndexEditor {
                     String msg = String.format(
                             "Uniqueness constraint violated property %s having value %s",
                             propertyNames, failed);
-                    log.warn(msg);
+                    log.warn("checkUniquenessConstraints: {}", msg);
                     throw new CommitFailedException(CONSTRAINT, 30, msg);
                 }
             }
