@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -48,9 +46,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
-import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
@@ -290,11 +290,11 @@ public class PropertyIndexCleanerTest {
         assertEquals(expected, stats.cleanupPerformed);
     }
 
-    private void assertJsonInfo(String indexPath, String expectedJson) throws ParseException {
+    private void assertJsonInfo(String indexPath, String expectedJson) {
         NodeState idx = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
         String json = new HybridPropertyIndexInfo(idx).getInfoAsJson();
-        JsonObject j1 = (JsonObject) new JsonParser().parse(json);
-        JsonObject j2 = (JsonObject) new JsonParser().parse(expectedJson);
+        JsonObject j1 = (JsonObject) JsonParser.parseString(json);
+        JsonObject j2 = (JsonObject) JsonParser.parseString(expectedJson);
 
         if (!j1.equals(j2)){
             assertEquals(j1, j2);

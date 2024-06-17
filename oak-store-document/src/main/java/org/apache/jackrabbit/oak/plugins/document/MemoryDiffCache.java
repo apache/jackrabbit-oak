@@ -72,7 +72,7 @@ public class MemoryDiffCache extends DiffCache {
         if (loader == null) {
             diff = diffCache.getIfPresent(key);
             if (diff == null && isUnchanged(from, to, path)) {
-                diff = new StringValue("");
+                diff = StringValue.EMPTY;
             }
         } else {
             try {
@@ -80,7 +80,7 @@ public class MemoryDiffCache extends DiffCache {
                     @Override
                     public StringValue call() throws Exception {
                         if (isUnchanged(from, to, path)) {
-                            return new StringValue("");
+                            return StringValue.EMPTY;
                         } else {
                             return new StringValue(loader.call());
                         }

@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.63-SNAPSHOT</version>
+    <version>1.65-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-webapp</artifactId>
@@ -251,7 +251,7 @@
         <!-- add the jar created by maven-antrun-plugin in our artifacts -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <id>attach-artifacts</id>

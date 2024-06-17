@@ -163,7 +163,7 @@ public class JsopBuilder implements JsopWriter {
         if (JSON_NEWLINES) {
             buff.append('\n');
         }
-        buff.append(encode(name)).append(':');
+        encode(name, buff).append(':');
         needComma = false;
         return this;
     }
@@ -199,7 +199,10 @@ public class JsopBuilder implements JsopWriter {
      */
     @Override
     public JsopBuilder value(String value) {
-        return encodedValue(encode(value));
+        optionalCommaAndNewline(strLength(value));
+        encode(value, buff);
+        needComma = true;
+        return this;
     }
 
     /**
@@ -265,7 +268,7 @@ public class JsopBuilder implements JsopWriter {
         }
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if (c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff)) {
+            if (shouldEscape(c)) {
                 StringBuilder buff = new StringBuilder(length + 2 + length / 8);
                 buff.append('\"');
                 escape(s, length, buff);
@@ -276,6 +279,34 @@ public class JsopBuilder implements JsopWriter {
     }
 
     /**
+     * Similar to #encode(String) but appends the result to the given buffer. This method exists to avoid the allocation
+     * of intermediate objects to represent the encoded String when the caller already has a buffer where the result
+     * should be appended.
+     *
+     * @param s the text to convert
+     * @param buff the target buffer
+     * @return the target buffer with the encoded string appended
+     */
+    private static StringBuilder encode(String s, StringBuilder buff) {
+        if (s == null) {
+            return buff.append("null");
+        }
+        int length = s.length();
+        if (length == 0) {
+            return buff.append("\"\"");
+        }
+        for (int i = 0; i < length; i++) {
+            char c = s.charAt(i);
+            if (shouldEscape(c)) {
+                buff.append('\"');
+                escape(s, length, buff);
+                return buff.append('\"');
+            }
+        }
+        return buff.append('\"').append(s).append('\"');
+    }
+
+    /**
      * Escape a string into the target buffer.
      *
      * @param s      the string to escape
@@ -283,6 +314,10 @@ public class JsopBuilder implements JsopWriter {
      */
     public static void escape(String s, StringBuilder buff) {
         escape(s, s.length(), buff);
+    }
+
+    private static boolean shouldEscape(char c) {
+        return c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff);
     }
 
     /**

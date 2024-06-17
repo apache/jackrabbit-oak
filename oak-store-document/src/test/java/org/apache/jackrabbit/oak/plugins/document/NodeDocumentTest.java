@@ -450,6 +450,38 @@ public class NodeDocumentTest {
     }
 
     @Test
+    public void getPropertyNames() throws CommitFailedException {
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        // add properties
+        for (int i = 0; i < 10; i++) {
+            NodeBuilder nb = ns.getRoot().builder();
+            nb.child("x").setProperty("p"+i, i);
+            merge(ns, nb);
+        }
+
+        final NodeDocument nodeDocument = store.find(NODES, "1:/x");
+        assert nodeDocument != null;
+        assertEquals(10, nodeDocument.getPropertyNames().size());
+    }
+
+    @Test
+    public void getNoPropertyNames() throws CommitFailedException {
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        // add no property
+        NodeBuilder nb = ns.getRoot().builder();
+        nb.child("x");
+        merge(ns, nb);
+
+        final NodeDocument nodeDocument = store.find(NODES, "1:/x");
+        assert nodeDocument != null;
+        assertEquals(0, nodeDocument.getPropertyNames().size());
+    }
+
+    @Test
     public void getNewestRevisionTooExpensive() throws Exception {
         final int NUM_CHANGES = 200;
         final Set<String> prevDocCalls = newHashSet();
