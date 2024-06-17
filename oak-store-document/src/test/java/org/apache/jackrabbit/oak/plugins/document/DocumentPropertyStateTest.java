@@ -251,11 +251,20 @@ public class DocumentPropertyStateTest {
     }
 
     @Test(expected = ComparisonFailure.class)
-    public void testInterestingStrings() {
+    public void testInterestingStrings() throws NoSuchFieldException, IllegalAccessException {
 
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         String testString = "\"\"simple:foo\", \"cr:a\\n\\b\", \"dquote:a\\\"b\", \"bs:a\\\\b\", \"euro:a\\u201c\", \"gclef:\\uD834\\uDD1E\",\n" +
                 "                \"tab:a\\tb\", \"nul:a\\u0000b\", \"brokensurrogate:\\ud800\"";
+
+        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
+        compressionThreshold.setAccessible(true);
+        Field modifiersField = Field.class.getDeclaredField("modifiers");
+        modifiersField.setAccessible(true);
+        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
+
+        compressionThreshold.set(null, 10);
+
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", testString, Compression.GZIP);
 
         String value = state.getValue(Type.STRING);
