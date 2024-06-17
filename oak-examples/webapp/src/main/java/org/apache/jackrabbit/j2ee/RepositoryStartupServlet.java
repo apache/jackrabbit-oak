@@ -16,40 +16,12 @@
  */
 package org.apache.jackrabbit.j2ee;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.felix.connect.launch.PojoServiceRegistry;
-import org.apache.felix.webconsole.WebConsoleSecurityProvider;
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.repository.RepositoryFactory;
-import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
-import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
-import org.apache.jackrabbit.rmi.server.RemoteAdapterFactory;
-import org.apache.jackrabbit.rmi.server.ServerAdapterFactory;
-import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.UnknownHostException;
-import java.rmi.AlreadyBoundException;
-import java.rmi.Naming;
-import java.rmi.NoSuchObjectException;
-import java.rmi.Remote;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.RMIServerSocketFactory;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -63,79 +35,24 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
+import org.apache.felix.webconsole.WebConsoleSecurityProvider;
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.repository.RepositoryFactory;
+import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
+import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
+import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The RepositoryStartupServlet starts a jackrabbit repository and registers it
- * to the JNDI environment and optional to the RMI registry.
+ * to the JNDI environment.
  * <p id="registerAlgo">
- * <b>Registration with RMI</b>
- * <p>
- * Upon successfull creation of the repository in the {@link #init()} method,
- * the repository is registered with an RMI registry if the web application is
- * so configured. To register with RMI, the following web application
- * <code>init-params</code> are considered: <code>rmi-port</code> designating
- * the port on which the RMI registry is listening, <code>rmi-host</code>
- * designating the interface on the local host on which the RMI registry is
- * active, <code>repository-name</code> designating the name to which the
- * repository is to be bound in the registry, and <code>rmi-uri</code>
- * designating an RMI URI complete with host, optional port and name to which
- * the object is bound.
- * <p>
- * If the <code>rmi-uri</code> parameter is configured with a non-empty value,
- * the <code>rmi-port</code> and <code>rmi-host</code> parameters are ignored.
- * The <code>repository-name</code> parameter is only considered if a non-empty
- * <code>rmi-uri</code> parameter is configured if the latter does not contain
- * a name to which to bind the repository.
- * <p>
- * This is the algorithm used to find out the host, port and name for RMI
- * registration:
- * <ol>
- * <li>If neither a <code>rmi-uri</code> nor a <code>rmi-host</code> nor a
- * <code>rmi-port</code> parameter is configured, the repository is not
- * registered with any RMI registry.
- * <li>If a non-empty <code>rmi-uri</code> parameter is configured extract the
- * host name (or IP address), port number and name to bind to from the
- * URI. If the URI is not valid, host defaults to <code>0.0.0.0</code>
- * meaning all interfaces on the local host, port defaults to the RMI
- * default port (<code>1099</code>) and the name defaults to the value
- * of the <code>repository-name</code> parameter.
- * <li>If a non-empty <code>rmi-uri</code> is not configured, the host is taken
- * from the <code>rmi-host</code> parameter, the port from the
- * <code>rmi-port</code> parameter and the name to bind the repository to
- * from the <code>repository-name</code> parameter. If the
- * <code>rmi-host</code> parameter is empty or not configured, the host
- * defaults to <code>0.0.0.0</code> meaning all interfaces on the local
- * host. If the <code>rmi-port</code> parameter is empty, not configured,
- * zero or a negative value, the default port for the RMI registry
- * (<code>1099</code>) is used.
- * </ol>
- * <p>
- * After finding the host and port of the registry, the RMI registry itself
- * is acquired. It is assumed, that host and port primarily designate an RMI
- * registry, which should be active on the local host but has not been started
- * yet. In this case, the <code>LocateRegistry.createRegistry</code> method is
- * called to create a registry on the local host listening on the host and port
- * configured. If creation fails, the <code>LocateRegistry.getRegistry</code>
- * method is called to get a remote instance of the registry. Note, that
- * <code>getRegistry</code> does not create an actual registry on the given
- * host/port nor does it check, whether an RMI registry is active.
- * <p>
- * When the registry has been retrieved, either by creation or by just creating
- * a remote instance, the repository is bound to the configured name in the
- * registry.
- * <p>
- * Possible causes for registration failures include:
- * <ul>
- * <li>The web application is not configured to register with an RMI registry at
- * all.
- * <li>The registry is expected to be running on a remote host but does not.
- * <li>The registry is expected to be running on the local host but cannot be
- * accessed. Reasons include another application which does not act as an
- * RMI registry is running on the configured port and thus blocks creation
- * of a new RMI registry.
- * <li>An object may already be bound to the same name as is configured to be
- * used for the repository.
- * </ul>
- * <p>
  * <b>Note:</b> if a <code>bootstrap-config</code> init parameter is specified the
  * servlet tries to read the respective resource, either as context resource or
  * as file. The properties specified in this file override the init params
@@ -185,21 +102,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      */
     private InitialContext jndiContext;
 
-    private Registry rmiRegistry = null;
-
-    /**
-     * Keeps a strong reference to the server side RMI repository instance to
-     * prevent the RMI distributed Garbage Collector from collecting the
-     * instance making the repository unaccessible though it should still be.
-     * This field is only set to a non-<code>null</code> value, if registration
-     * of the repository to an RMI registry succeeded in the
-     * {@link #registerRMI()} method.
-     *
-     * @see #registerRMI()
-     * @see #unregisterRMI()
-     */
-    private Remote rmiRepository;
-
     /**
      * the file to the bootstrap config
      */
@@ -239,8 +141,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Configures and starts the repository. It registers it then to the
-     * RMI registry and bind is to the JNDI context if so configured.
+     * Configures and starts the repository.
      * @throws ServletException if an error occurs.
      */
     public void startup() throws ServletException {
@@ -252,7 +153,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
         try {
             if (configure()) {
                 initRepository();
-                registerRMI();
                 registerJNDI();
             }
 
@@ -271,8 +171,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Does a shutdown of the repository and deregisters it from the RMI
-     * registry and unbinds if from the JNDI context if so configured.
+     * Does a shutdown of the repository and unbinds if from the JNDI context if
+     * so configured.
      */
     public void shutdown() {
         if (repository == null) {
@@ -281,7 +181,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             log.info("RepositoryStartupServlet shutting down...");
             unregisterOSGi();
             shutdownRepository();
-            unregisterRMI();
             unregisterJNDI();
             log.info("RepositoryStartupServlet shut down.");
         }
@@ -545,139 +444,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Registers the repository to an RMI registry configured in the web
-     * application. See <a href="#registerAlgo">Registration with RMI</a> in the
-     * class documentation for a description of the algorithms used to register
-     * the repository with an RMI registry.
-     * @throws ServletException if an error occurs.
-     */
-    private void registerRMI() {
-        RMIConfig rc = config.getRmiConfig();
-        if (!rc.isValid() || !rc.enabled()) {
-            return;
-        }
-
-        // try to create remote repository
-        Remote remote;
-        try {
-            Class<?> clazz = Class.forName(getRemoteFactoryDelegaterClass());
-            RemoteFactoryDelegater rmf = (RemoteFactoryDelegater) clazz.newInstance();
-            remote = rmf.createRemoteRepository(repository);
-        } catch (RemoteException e) {
-            log.warn("Unable to create RMI repository.", e);
-            return;
-        } catch (Throwable t) {
-            log.warn("Unable to create RMI repository."
-                    + " The jcr-rmi jar might be missing.", t);
-            return;
-        }
-
-        try {
-            System.setProperty("java.rmi.server.useCodebaseOnly", "true");
-            Registry reg = null;
-
-            // first try to create the registry, which will fail if another
-            // application is already running on the configured host/port
-            // or if the rmiHost is not local
-            try {
-                // find the server socket factory: use the default if the
-                // rmiHost is not configured
-                RMIServerSocketFactory sf;
-                if (rc.getRmiHost().length() > 0) {
-                    log.debug("Creating RMIServerSocketFactory for host " + rc.getRmiHost());
-                    InetAddress hostAddress = InetAddress.getByName(rc.getRmiHost());
-                    sf = getRMIServerSocketFactory(hostAddress);
-                } else {
-                    // have the RMI implementation decide which factory is the
-                    // default actually
-                    log.debug("Using default RMIServerSocketFactory");
-                    sf = null;
-                }
-
-                // create a registry using the default client socket factory
-                // and the server socket factory retrieved above. This also
-                // binds to the server socket to the rmiHost:rmiPort.
-                reg = LocateRegistry.createRegistry(rc.rmiPort(), null, sf);
-                rmiRegistry = reg;
-            } catch (UnknownHostException uhe) {
-                // thrown if the rmiHost cannot be resolved into an IP-Address
-                // by getRMIServerSocketFactory
-                log.info("Cannot create Registry", uhe);
-            } catch (RemoteException e) {
-                // thrown by createRegistry if binding to the rmiHost:rmiPort
-                // fails, for example due to rmiHost being remote or another
-                // application already being bound to the port
-                log.info("Cannot create Registry", e);
-            }
-
-            // if creation of the registry failed, we try to access an
-            // potentially active registry. We do not check yet, whether the
-            // registry is actually accessible.
-            if (reg == null) {
-                log.debug("Trying to access existing registry at " + rc.getRmiHost()
-                        + ":" + rc.getRmiPort());
-                try {
-                    reg = LocateRegistry.getRegistry(rc.getRmiHost(), rc.rmiPort());
-                } catch (RemoteException re) {
-                    log.warn("Cannot create the reference to the registry at "
-                            + rc.getRmiHost() + ":" + rc.getRmiPort(), re);
-                }
-            }
-
-            // if we finally have a registry, register the repository with the
-            // rmiName
-            if (reg != null) {
-                log.debug("Registering repository as " + rc.getRmiName()
-                        + " to registry " + reg);
-                reg.bind(rc.getRmiName(), remote);
-
-                // when successfull, keep references
-                this.rmiRepository = remote;
-                log.info("Repository bound via RMI with name: " + rc.getRmiUri());
-            } else {
-                log.info("RMI registry missing, cannot bind repository via RMI");
-            }
-        } catch (RemoteException e) {
-            log.warn("Unable to bind repository via RMI: " + rc.getRmiUri(), e);
-        } catch (AlreadyBoundException e) {
-            log.warn("Unable to bind repository via RMI: " + rc.getRmiUri(), e);
-        }
-    }
-
-    /**
-     * Unregisters the repository from the RMI registry, if it has previously
-     * been registered.
-     */
-    private void unregisterRMI() {
-        if (rmiRepository != null) {
-            // Forcibly unexport the repository;
-            try {
-                UnicastRemoteObject.unexportObject(rmiRepository, true);
-            } catch (NoSuchObjectException e) {
-                log.warn("Odd, the RMI repository was not exported", e);
-            }
-            // drop strong reference to remote repository
-            rmiRepository = null;
-
-            // unregister repository
-            try {
-                Naming.unbind(config.getRmiConfig().getRmiUri());
-            } catch (Exception e) {
-                log("Error while unbinding repository from JNDI: " + e);
-            }
-        }
-
-        if (rmiRegistry != null) {
-            try {
-                UnicastRemoteObject.unexportObject(rmiRegistry, true);
-            } catch (NoSuchObjectException e) {
-                log.warn("Odd, the RMI registry was not exported", e);
-            }
-            rmiRegistry = null;
-        }
-    }
-
-    /**
      * Set the BundleContext reference with ServletContext. This is then used by
      * Felix Proxy Servlet. Kept the type as object to allow logic to work in
      * absence of OSGi classes also.
@@ -697,71 +463,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      */
     public BootstrapConfig getBootstrapConfig() {
         return config;
-    }
-
-    /**
-     * Return the fully qualified name of the class providing the remote
-     * repository. The class whose name is returned must implement the
-     * {@link RemoteFactoryDelegater} interface.
-     * <p>
-     * Subclasses may override this method for providing a name of a own
-     * implementation.
-     *
-     * @return getClass().getName() + "$RMIRemoteFactoryDelegater"
-     */
-    protected String getRemoteFactoryDelegaterClass() {
-        return getClass().getName() + "$RMIRemoteFactoryDelegater";
-    }
-
-    /**
-     * Returns an <code>RMIServerSocketFactory</code> used to create the server
-     * socket for a locally created RMI registry.
-     * <p>
-     * This implementation returns a new instance of a simple
-     * <code>RMIServerSocketFactory</code> which just creates instances of
-     * the <code>java.net.ServerSocket</code> class bound to the given
-     * <code>hostAddress</code>. Implementations may overwrite this method to
-     * provide factory instances, which provide more elaborate server socket
-     * creation, such as SSL server sockets.
-     *
-     * @param hostAddress The <code>InetAddress</code> instance representing the
-     *                    the interface on the local host to which the server sockets are
-     *                    bound.
-     * @return A new instance of a simple <code>RMIServerSocketFactory</code>
-     *         creating <code>java.net.ServerSocket</code> instances bound to
-     *         the <code>rmiHost</code>.
-     */
-    protected RMIServerSocketFactory getRMIServerSocketFactory(
-            final InetAddress hostAddress) {
-        return new RMIServerSocketFactory() {
-            public ServerSocket createServerSocket(int port) throws IOException {
-                return new ServerSocket(port, -1, hostAddress);
-            }
-        };
-    }
-
-    /**
-     * optional class for RMI, will only be used, if RMI server is present
-     */
-    protected static abstract class RemoteFactoryDelegater {
-
-        public abstract Remote createRemoteRepository(Repository repository)
-                throws RemoteException;
-    }
-
-    /**
-     * optional class for RMI, will only be used, if RMI server is present
-     */
-    protected static class RMIRemoteFactoryDelegater extends RemoteFactoryDelegater {
-
-        private static final RemoteAdapterFactory FACTORY =
-            new ServerAdapterFactory();
-
-        public Remote createRemoteRepository(Repository repository)
-                throws RemoteException {
-            return FACTORY.getRemoteRepository(repository);
-        }
-
     }
 
     //-------------------------------------------------< Installer Routines >---
