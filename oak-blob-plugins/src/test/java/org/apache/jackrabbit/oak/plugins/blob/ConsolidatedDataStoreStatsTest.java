@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.List;
@@ -30,7 +31,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -501,6 +501,6 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
     }
 
     private static InputStream getStream(String str) {
-        return new ByteArrayInputStream(str.getBytes(Charsets.UTF_8));
+        return new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -36,11 +36,11 @@ import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGener
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
@@ -221,7 +221,7 @@ public class Segment {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             HexDump.dump(bytes, 0, out, 0);
-            return out.toString(Charsets.UTF_8.name());
+            return out.toString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             return "Error dumping segment: " + e.getMessage();
         } finally {

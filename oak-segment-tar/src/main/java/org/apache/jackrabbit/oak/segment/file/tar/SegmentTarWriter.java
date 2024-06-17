@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
@@ -27,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -250,34 +250,34 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         byte[] header = new byte[BLOCK_SIZE];
 
         // File name
-        byte[] nameBytes = name.getBytes(UTF_8);
+        byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
         System.arraycopy(
                 nameBytes, 0, header, 0, Math.min(nameBytes.length, 100));
 
         // File mode
         System.arraycopy(
-                String.format("%07o", 0400).getBytes(UTF_8), 0,
+                String.format("%07o", 0400).getBytes(StandardCharsets.UTF_8), 0,
                 header, 100, 7);
 
         // User's numeric user ID
         System.arraycopy(
-                String.format("%07o", 0).getBytes(UTF_8), 0,
+                String.format("%07o", 0).getBytes(StandardCharsets.UTF_8), 0,
                 header, 108, 7);
 
         // Group's numeric user ID
         System.arraycopy(
-                String.format("%07o", 0).getBytes(UTF_8), 0,
+                String.format("%07o", 0).getBytes(StandardCharsets.UTF_8), 0,
                 header, 116, 7);
 
         // File size in bytes (octal basis)
         System.arraycopy(
-                String.format("%011o", size).getBytes(UTF_8), 0,
+                String.format("%011o", size).getBytes(StandardCharsets.UTF_8), 0,
                 header, 124, 11);
 
         // Last modification time in numeric Unix time format (octal)
         long time = System.currentTimeMillis() / 1000;
         System.arraycopy(
-                String.format("%011o", time).getBytes(UTF_8), 0,
+                String.format("%011o", time).getBytes(StandardCharsets.UTF_8), 0,
                 header, 136, 11);
 
         // Checksum for header record
@@ -294,7 +294,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
             checksum += aHeader & 0xff;
         }
         System.arraycopy(
-                String.format("%06o\0 ", checksum).getBytes(UTF_8), 0,
+                String.format("%06o\0 ", checksum).getBytes(StandardCharsets.UTF_8), 0,
                 header, 148, 8);
 
         return header;

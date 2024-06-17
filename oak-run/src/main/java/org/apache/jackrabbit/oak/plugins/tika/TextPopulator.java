@@ -37,8 +37,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.FULLTEXT;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
@@ -66,7 +66,7 @@ class TextPopulator {
 
     void populate(File dataFile, File indexDir) throws IOException {
         try (Closer closer = Closer.create()) {
-            Iterable<CSVRecord> csvRecords = closer.register(CSVParser.parse(dataFile, UTF_8, FORMAT));
+            Iterable<CSVRecord> csvRecords = closer.register(CSVParser.parse(dataFile, StandardCharsets.UTF_8, FORMAT));
 
             final FSDirectory dir = closer.register(FSDirectory.open(indexDir));
             final DirectoryReader reader = closer.register(DirectoryReader.open(dir));

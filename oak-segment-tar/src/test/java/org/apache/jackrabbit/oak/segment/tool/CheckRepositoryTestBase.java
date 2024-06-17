@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -29,6 +28,7 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
@@ -156,7 +156,7 @@ public class CheckRepositoryTestBase {
             // read entry size from header
             byte[] crtEntryNameBytes = new byte[100];
             System.arraycopy(entryHeader.array(), 0, crtEntryNameBytes, 0, 100);
-            crtEntryName = new String(crtEntryNameBytes, 0, 100, UTF_8);
+            crtEntryName = new String(crtEntryNameBytes, 0, 100, StandardCharsets.UTF_8);
             crtEntryName = crtEntryName.substring(0, crtEntryName.indexOf('.'));
 
             byte[] entrySizeBytes = new byte[11];

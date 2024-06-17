@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -32,7 +33,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -48,7 +48,7 @@ public class FSBlobSerializerTest {
         FSBlobSerializer serializer = new FSBlobSerializer(folder.getRoot(), maxInlineSize);
         String data = Strings.repeat("x", maxInlineSize * 10);
 
-        Blob b = new ArrayBasedBlob(data.getBytes(UTF_8));
+        Blob b = new ArrayBasedBlob(data.getBytes(StandardCharsets.UTF_8));
 
         String id = serializer.serialize(b);
         Blob b2 = serializer.deserialize(id);

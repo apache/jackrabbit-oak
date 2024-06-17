@@ -31,9 +31,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -109,7 +109,7 @@ public class ResponseDecoderTest {
         byte[] blobData = new byte[] {1, 2, 3};
 
         String blobId = "blobId";
-        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        byte[] blobIdBytes = blobId.getBytes(StandardCharsets.UTF_8);
         byte mask = createMask(1, 1);
 
         ByteBuf buf = Unpooled.buffer();
@@ -130,7 +130,7 @@ public class ResponseDecoderTest {
     @Test
     public void shouldDecodeValidGetHeadResponses() throws Exception {
         String recordId = "recordId";
-        byte[] recordIdBytes = recordId.getBytes(Charsets.UTF_8);
+        byte[] recordIdBytes = recordId.getBytes(StandardCharsets.UTF_8);
 
         ByteBuf in = Unpooled.buffer();
         in.writeInt(recordIdBytes.length + 1);
@@ -165,7 +165,7 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDecodeValidGetReferencesResponses() throws Exception {
-        byte[] data = "a:b,c".getBytes(Charsets.UTF_8);
+        byte[] data = "a:b,c".getBytes(StandardCharsets.UTF_8);
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(data.length + 1);
@@ -181,7 +181,7 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDropGetReferencesResponsesWithoutDelimiter() throws Exception {
-        byte[] data = "a".getBytes(Charsets.UTF_8);
+        byte[] data = "a".getBytes(StandardCharsets.UTF_8);
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(data.length + 1);
@@ -195,7 +195,7 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDecodeValidSingleElementGetReferencesResponses() throws Exception {
-        byte[] data = "a:b".getBytes(Charsets.UTF_8);
+        byte[] data = "a:b".getBytes(StandardCharsets.UTF_8);
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(data.length + 1);
@@ -211,7 +211,7 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDecodeValidZeroElementsGetReferencesResponses() throws Exception {
-        byte[] data = "a:".getBytes(Charsets.UTF_8);
+        byte[] data = "a:".getBytes(StandardCharsets.UTF_8);
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(data.length + 1);
