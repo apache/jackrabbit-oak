@@ -1383,27 +1383,29 @@ public final class DocumentNodeStore
         final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
-            DocumentNodeState node = nodeCache.get(key, () -> getNodeInternal(path, rev));
+            DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
+                @Override
+                public DocumentNodeState call() throws Exception {
+                    boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
+                    if (nodeDoesNotExist){
+                        return missing;
+                    }
+                    DocumentNodeState n = readNode(path, rev);
+                    if (n == null) {
+                        n = missing;
+                    }
+                    return n;
+                }
+            });
             final DocumentNodeState result = node == missing
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (UncheckedExecutionException | ExecutionException e) {
+        } catch (UncheckedExecutionException e) {
+            throw DocumentStoreException.convert(e.getCause());
+        } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
-    }
-
-    private DocumentNodeState getNodeInternal(@NotNull final Path path,
-                                              @NotNull final RevisionVector rev) {
-        boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
-        if (nodeDoesNotExist) {
-            return missing;
-        }
-        DocumentNodeState n = readNode(path, rev);
-        if (n == null) {
-            n = missing;
-        }
-        return n;
     }
 
     /**
