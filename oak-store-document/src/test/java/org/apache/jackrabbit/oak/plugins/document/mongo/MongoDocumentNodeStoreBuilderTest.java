@@ -77,4 +77,16 @@ public class MongoDocumentNodeStoreBuilderTest {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());
     }
+
+    @Test
+    public void fullGCModeGapOrphansDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreFullGCModeGapOrphansFeature());
+    }
+
+    @Test
+    public void fullGCModeEmptyPropertiesDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreFullGCModeEmptyPropertiesFeature());
+    }
 }

@@ -83,8 +83,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.build(null);
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -119,8 +119,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.addNode((Path) null);
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -130,8 +130,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.addNode((DocumentNodeState) null);
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -211,8 +211,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.removeNode(null, bar);
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -222,8 +222,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.removeNode(Path.fromString("/bar"), null);
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -257,8 +257,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.updateProperty((Path) null, "p", "v");
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -268,8 +268,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.updateProperty(Path.fromString("/foo"), null, "v");
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -279,8 +279,8 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, null);
         try {
             builder.withStartRevisions(null);
-            expectNPE();
-        } catch (NullPointerException e) {
+            expectIllegalArgumentException();
+        } catch (IllegalArgumentException e) {
             // expected
         }
     }
@@ -300,6 +300,10 @@ public class CommitBuilderTest {
         CommitBuilder builder = new CommitBuilder(ns, head);
         Commit c = builder.build(ns.newRevision());
         assertEquals(new RevisionVector(), c.getStartRevisions());
+    }
+
+    private static void expectIllegalArgumentException() {
+        fail("IllegalArgumentException expected");
     }
 
     private static void expectNPE() {

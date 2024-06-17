@@ -129,6 +129,30 @@ public class RDBDocumentNodeStoreBuilder
     }
 
     @Override
+    public RDBDocumentNodeStoreBuilder setFullGCModeGapOrphansEnabled(boolean b) {
+        // fullGC modes are not supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    public boolean isFullGCModeGapOrphansEnabled() {
+        // fullGC modes are not supported for RDB
+        return false;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setFullGCModeEmptyPropertiesEnabled(boolean b) {
+        // fullGC modes are not supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    public boolean isFullGCModeEmptyPropertiesEnabled() {
+        // fullGC modes are not supported for RDB
+        return false;
+    }
+
+    @Override
     public RDBDocumentNodeStoreBuilder setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
         return thisBuilder();
     }
@@ -138,6 +162,25 @@ public class RDBDocumentNodeStoreBuilder
     public Feature getDocStoreFullGCFeature() {
         return null;
     }
+
+    public RDBDocumentNodeStoreBuilder setDocStoreFullGCModeGapOrphansFeature(@Nullable Feature docStoreFullGCModeGapOrphans) {
+        // fullGC modes are not supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreFullGCModeGapOrphansFeature() { return null; }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDocStoreFullGCModeEmptyPropertiesFeature(@Nullable Feature docStoreFullGCModeEmptyProperties) {
+        // fullGC modes are not supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreFullGCModeEmptyPropertiesFeature() { return null; };
 
     @Override
     public boolean isEmbeddedVerificationEnabled() {
