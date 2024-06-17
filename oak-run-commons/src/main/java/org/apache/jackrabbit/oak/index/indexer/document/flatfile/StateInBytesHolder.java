@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
@@ -33,7 +33,7 @@ class StateInBytesHolder implements NodeStateHolder {
 
     public StateInBytesHolder(String path, String line) {
         this.pathElements = copyOf(elements(path));
-        this.content = line.getBytes(UTF_8);
+        this.content = line.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -46,7 +46,7 @@ class StateInBytesHolder implements NodeStateHolder {
      */
     @Override
     public String getLine() {
-        return new String(content, UTF_8);
+        return new String(content, StandardCharsets.UTF_8);
     }
 
     @Override

@@ -25,12 +25,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.hash.BloomFilter;
@@ -48,7 +48,7 @@ class BlobIdSet {
 
     BlobIdSet(String repositoryDir, String filename) {
         store = new File(new File(repositoryDir), filename);
-        bloomFilter = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), 9000000); // about 8MB
+        bloomFilter = BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), 9000000); // about 8MB
         cache = CacheBuilder.newBuilder().maximumSize(1000).build();
         fillBloomFilter();
     }

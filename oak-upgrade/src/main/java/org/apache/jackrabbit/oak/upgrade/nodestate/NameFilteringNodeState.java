@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -26,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 public class NameFilteringNodeState extends AbstractDecoratedNodeState {
@@ -80,14 +80,14 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
         if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
+        if (name.getBytes(StandardCharsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
             return false;
         }
         String path = getPath();
         if (path.length() <= Utils.PATH_SHORT) {
             return false;
         }
-        if (path.getBytes(Charsets.UTF_8).length < Utils.PATH_LONG) {
+        if (path.getBytes(StandardCharsets.UTF_8).length < Utils.PATH_LONG) {
             return false;
         }
         return true;

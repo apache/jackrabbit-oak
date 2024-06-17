@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -264,8 +264,8 @@ public class DataRecordDownloadOptionsTest {
     public void testGetContentDispositionWithSpecialCharacterFilenames() {
         String umlautFilename = "Uml\u00e4utfile.jpg";
         String umlautFilename_ISO_8859_1 = new String(
-                Charsets.ISO_8859_1.encode(umlautFilename).array(),
-                Charsets.ISO_8859_1
+                StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
+                StandardCharsets.ISO_8859_1
         );
         List<String> filenames = Lists.newArrayList(
                 "image.png",
