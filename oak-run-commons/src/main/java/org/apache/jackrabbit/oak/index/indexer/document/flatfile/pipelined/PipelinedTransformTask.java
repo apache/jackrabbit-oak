@@ -239,7 +239,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private void extractNodeStateEntries(NodeDocument doc, ArrayList<DocumentNodeState> nodeStateEntries) {
         Path path = doc.getPath();
-        DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
+        DocumentNodeState nodeState = documentNodeStore.getNodeUncached(path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {
             return;

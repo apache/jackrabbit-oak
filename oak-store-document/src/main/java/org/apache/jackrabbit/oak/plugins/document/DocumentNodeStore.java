@@ -1383,29 +1383,62 @@ public final class DocumentNodeStore
         final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
-            DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
-                @Override
-                public DocumentNodeState call() throws Exception {
-                    boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
-                    if (nodeDoesNotExist){
-                        return missing;
-                    }
-                    DocumentNodeState n = readNode(path, rev);
-                    if (n == null) {
-                        n = missing;
-                    }
-                    return n;
-                }
-            });
+            DocumentNodeState node = nodeCache.get(key, () -> getNodeInternal(path, rev));
             final DocumentNodeState result = node == missing
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (UncheckedExecutionException e) {
-            throw DocumentStoreException.convert(e.getCause());
-        } catch (ExecutionException e) {
+        } catch (UncheckedExecutionException | ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
+    }
+
+    /**
+     * Get the node for the given path and revision. The returned object might
+     * not be modified directly.
+     *
+     * This is a variant of {@link #getNode(Path, RevisionVector)} that bypasses
+     * the DocumentNodeState cache, that is, it does not search for the node in the cache
+     * and after retrieving the node, does not update the cache with the node.
+     * This method is intended for use when retrieving nodes that will for sure not be
+     * in the DocumentNodeState cache and will not be retrieved again. In these conditions,
+     * this method avoids the overhead of creating a cache key, checking the cache for
+     * the node and of estimating the memory usage of the object, which can be very
+     * significant.
+     *
+     * @param path the path of the node.
+     * @param rev the read revision.
+     * @return the node or <code>null</code> if the node does not exist at the
+     *          given revision.
+     */
+    @Nullable
+    public DocumentNodeState getNodeUncached(@NotNull final Path path,
+                                             @NotNull final RevisionVector rev) {
+        checkNotNull(rev);
+        checkNotNull(path);
+        final long start = PERFLOG.start();
+        try {
+            DocumentNodeState node = getNodeInternal(path, rev);
+            final DocumentNodeState result = node == missing
+                    || node.equals(missing) ? null : node;
+            PERFLOG.end(start, 1, "getNodeUncached: path={}, rev={}", path, rev);
+            return result;
+        } catch (UncheckedExecutionException e) {
+            throw DocumentStoreException.convert(e.getCause());
+        }
+    }
+
+    private DocumentNodeState getNodeInternal(@NotNull final Path path,
+                                              @NotNull final RevisionVector rev) {
+        boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
+        if (nodeDoesNotExist) {
+            return missing;
+        }
+        DocumentNodeState n = readNode(path, rev);
+        if (n == null) {
+            n = missing;
+        }
+        return n;
     }
 
     /**
