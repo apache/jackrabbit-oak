@@ -117,7 +117,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      */
     static final String ASYNC = ":async";
 
-    private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(1000);
+    private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(100);
 
     private static final CommitFailedException INTERRUPTED = new CommitFailedException(
             "Async", 1, "Indexing stopped forcefully");
