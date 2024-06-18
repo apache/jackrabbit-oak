@@ -40,9 +40,9 @@ import static org.junit.Assert.assertEquals;
 /**
  * Test for moving versionable nodes over deleted versionable nodes using the DOCUMENT_NS fixture.
  */
-public class MoveVersionableNodeWithNodeRepositoryTest extends AbstractRepositoryTest {
+public class MoveVersionableNodeRepositoryTest extends AbstractRepositoryTest {
 
-    public MoveVersionableNodeWithNodeRepositoryTest(NodeStoreFixture fixture) {
+    public MoveVersionableNodeRepositoryTest(NodeStoreFixture fixture) {
         super(fixture);
     }
 
