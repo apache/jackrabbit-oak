@@ -670,7 +670,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         batch[nextIndex] = next;
                         nextIndex++;
                         // The NodeDocumentCodec always adds this field.
-                        int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
+                        int docSize = (int) next.get(NodeDocumentCodec.SIZE_FIELD);
                         batchSize += docSize;
                         documentsDownloadedTotalBytes += docSize;
                         downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
