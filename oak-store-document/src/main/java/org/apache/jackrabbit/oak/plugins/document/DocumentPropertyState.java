@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.jcr.PropertyType;
@@ -65,7 +66,7 @@ final class DocumentPropertyState implements PropertyState {
     private final byte[] compressedValue;
     private final Compression compression;
 
-    private static final int DEFAULT_COMPRESSION_THRESHOLD = SystemPropertySupplier
+    private static int COMPRESSION_THRESHOLD = SystemPropertySupplier
             .create("oak.documentMK.stringCompressionThreshold ", -1).loggingTo(LOG).get();
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
@@ -75,7 +76,7 @@ final class DocumentPropertyState implements PropertyState {
     DocumentPropertyState(DocumentNodeStore store, String name, String value, Compression compression) {
         this.store = store;
         this.name = name;
-        if (compression != null && DEFAULT_COMPRESSION_THRESHOLD == -1) {
+        if (compression == null || COMPRESSION_THRESHOLD == -1) {
             this.value = value;
             this.compression = null;
             this.compressedValue = null;
@@ -84,7 +85,7 @@ final class DocumentPropertyState implements PropertyState {
             int size = value.length();
             String localValue = value;
             byte[] localCompressedValue = null;
-            if (size > DEFAULT_COMPRESSION_THRESHOLD) {
+            if (size > COMPRESSION_THRESHOLD) {
                 try {
                     localCompressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
                     localValue = null;
@@ -175,7 +176,7 @@ final class DocumentPropertyState implements PropertyState {
         }
     }
 
-    private byte[] getCompressedValue() {
+    byte[] getCompressedValue() {
         return compressedValue;
     }
 
@@ -187,8 +188,25 @@ final class DocumentPropertyState implements PropertyState {
             return true;
         } else if (object instanceof DocumentPropertyState) {
             DocumentPropertyState other = (DocumentPropertyState) object;
-            return this.name.equals(other.name)
-                    && this.getValue().equals(other.getValue());
+            // Compare names and raw un-parsed values
+            if (!this.name.equals(other.name) || !this.getValue().equals(other.getValue())) {
+                return false;
+            }
+            // Compare compressed values
+            if (this.compressedValue == null && other.compressedValue == null) {
+                return true;
+            } else if (this.compressedValue == null || other.compressedValue == null) {
+                return false;
+            } else {
+                // Compare length, hashcode and content of compressed values
+                if (this.compressedValue.length != other.compressedValue.length) {
+                    return false;
+                }
+                if (Arrays.hashCode(this.compressedValue) != Arrays.hashCode(other.compressedValue)) {
+                    return false;
+                }
+                return Arrays.equals(this.compressedValue, other.compressedValue);
+            }
         }
         // fall back to default equality check in AbstractPropertyState
         return object instanceof PropertyState
@@ -203,6 +221,10 @@ final class DocumentPropertyState implements PropertyState {
     @Override
     public String toString() {
         return AbstractPropertyState.toString(this);
+    }
+
+    static void setCompressionThreshold(int compressionThreshold) {
+        COMPRESSION_THRESHOLD = compressionThreshold;
     }
 
     //----------------------------< internal >----------------------------------

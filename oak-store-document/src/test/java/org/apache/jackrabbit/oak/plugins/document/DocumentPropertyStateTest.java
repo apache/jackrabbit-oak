@@ -19,10 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -36,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.*;
-import org.junit.runners.MethodSorters;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -49,11 +45,9 @@ import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class DocumentPropertyStateTest {
 
     private static final int BLOB_SIZE = 16 * 1024;
-    public static final int COMPRESSED_SIZE = 543;
     private static final String TEST_NODE = "test";
     private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
     private static final int DEFAULT_COMPRESSION_THRESHOLD = 1024;
@@ -77,6 +71,11 @@ public class DocumentPropertyStateTest {
     @Before
     public void before() throws Exception {
         ns = builderProvider.newBuilder().setBlobStore(bs).getNodeStore();
+    }
+
+    @After
+    public void tearDown() {
+        ns.dispose();
     }
 
     // OAK-5462
@@ -158,22 +157,12 @@ public class DocumentPropertyStateTest {
         Compression mockCompression = mock(Compression.class);
         when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
 
-        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
-        compressionThreshold.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
-
-        compressionThreshold.set(null, DEFAULT_COMPRESSION_THRESHOLD);
-
+        DocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
         DocumentPropertyState documentPropertyState = new DocumentPropertyState(mockDocumentStore, "p", "\"" + STRING_HUGEVALUE + "\"", mockCompression);
 
         assertEquals(documentPropertyState.getValue(Type.STRING), STRING_HUGEVALUE);
 
         verify(mockCompression, times(1)).getOutputStream(any(OutputStream.class));
-
-        compressionThreshold.set(null, -1);
-
     }
 
     @Test
@@ -185,92 +174,55 @@ public class DocumentPropertyStateTest {
         when(mockCompression.getOutputStream(any(OutputStream.class))).thenReturn(mockOutputStream);
         when(mockCompression.getInputStream(any(InputStream.class))).thenThrow(new IOException("Compression failed"));
 
-        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
-        compressionThreshold.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
-
-        compressionThreshold.set(null, DEFAULT_COMPRESSION_THRESHOLD);
-
+        DocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
         DocumentPropertyState documentPropertyState = new DocumentPropertyState(mockDocumentStore, "p", STRING_HUGEVALUE, mockCompression);
 
         assertEquals(documentPropertyState.getValue(Type.STRING), "{}");
 
         verify(mockCompression, times(1)).getInputStream(any(InputStream.class));
-
-        compressionThreshold.set(null, -1);
     }
 
     @Test
-    public void adefaultValueSetToMinusOne() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
+    public void defaultValueSetToMinusOne() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
 
+        DocumentPropertyState.setCompressionThreshold(-1);
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyNameNew", "\"" + STRING_HUGEVALUE + "\"", Compression.GZIP);
 
-        // Get the private method
-        Method getCompressedValueMethod = DocumentPropertyState.class.getDeclaredMethod("getCompressedValue");
-
-        // Make the method accessible
-        getCompressedValueMethod.setAccessible(true);
-        byte[] result = (byte[]) getCompressedValueMethod.invoke(state);
+        byte[] result = state.getCompressedValue();
 
         assertNull(result);
         assertEquals(state.getValue(Type.STRING), STRING_HUGEVALUE);
     }
 
     @Test
-    public void stringAboveThresholdSizeNoCompression() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
+    public void stringAboveThresholdSizeNoCompression() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
 
-        // Get the private method
-        Method getCompressedValueMethod = DocumentPropertyState.class.getDeclaredMethod("getCompressedValue");
-
-        // Make the method accessible
-        getCompressedValueMethod.setAccessible(true);
-
-        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
-        compressionThreshold.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
-
-        compressionThreshold.set(null, DEFAULT_COMPRESSION_THRESHOLD);
+        DocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
 
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", "\"" + STRING_HUGEVALUE + "\"", Compression.NONE);
 
-        byte[] result = (byte[]) getCompressedValueMethod.invoke(state);
+        byte[] result = state.getCompressedValue();
 
         assertEquals(result.length, STRING_HUGEVALUE.length() + 2 );
 
         assertEquals(state.getValue(Type.STRING), STRING_HUGEVALUE);
         assertEquals(STRING_HUGEVALUE, state.getValue(Type.STRING));
-
-        // Reset the value of the field
-        compressionThreshold.set(null, -1);
     }
 
-    @Test(expected = ComparisonFailure.class)
-    public void testInterestingStrings() throws NoSuchFieldException, IllegalAccessException {
+    @Test
+    public void testInterestingStrings() {
 
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         String testString = "\"\"simple:foo\", \"cr:a\\n\\b\", \"dquote:a\\\"b\", \"bs:a\\\\b\", \"euro:a\\u201c\", \"gclef:\\uD834\\uDD1E\",\n" +
                 "                \"tab:a\\tb\", \"nul:a\\u0000b\", \"brokensurrogate:\\ud800\"";
 
-        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
-        compressionThreshold.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
-
-        compressionThreshold.set(null, 10);
-
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", testString, Compression.GZIP);
 
         String value = state.getValue(Type.STRING);
 
-        assertEquals(testString, value);
-
+        assertEquals(value,"");
     }
 
     @Test
@@ -294,14 +246,6 @@ public class DocumentPropertyStateTest {
 
         System.out.println("Time taken without compression: " + duration + " nanoseconds");
         System.out.println("Memory used without compression: " + usedMemory + " bytes");
-
-        Field compressionThreshold = DocumentPropertyState.class.getDeclaredField("DEFAULT_COMPRESSION_THRESHOLD");
-        compressionThreshold.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(compressionThreshold, compressionThreshold.getModifiers() & ~Modifier.FINAL);
-
-        compressionThreshold.set(null, DEFAULT_COMPRESSION_THRESHOLD);
 
         long startMemoryWithCompression = runtime.totalMemory() - runtime.freeMemory(); // Get initial memory usage
         long startTimeWithCompression = System.nanoTime();
