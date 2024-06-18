@@ -125,11 +125,10 @@ public class MoveVersionableNodeRepositoryTest extends AbstractRepositoryTest {
         // check setting property - via NodeImpl - on moved node
         setNodePropertyAndCheckIn(sourceNode, "testProp", "testValue");
 
-        // check version history - TODO HORIA: should be in separate method - EXTRACT
+        // check version history
         VersionManager versionManager = session.getWorkspace().getVersionManager();
         VersionIterator versionIterator;
 
-        //TODO HORIA: create submethods that get the version histories for the source and dest node and do assertions on them in ALL TESTS
         List<Version> sourceNodeVersions = new ArrayList<>();
 
         //get the version histories for the removed node and the moved node
