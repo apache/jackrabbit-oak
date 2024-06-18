@@ -22,6 +22,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -718,7 +718,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     private void createGibberishLoad(File home, File pendingUploadFile) throws IOException {
         BufferedWriter writer = null;
         try {
-            writer = Files.newWriter(pendingUploadFile, Charsets.UTF_8);
+            writer = Files.newWriter(pendingUploadFile, StandardCharsets.UTF_8);
             FileIOUtils.writeAsLine(writer, "jerhgiuheirghoeoorqehgsjlwjpfkkwpkf", false);
         } finally {
             Closeables.close(writer, true);

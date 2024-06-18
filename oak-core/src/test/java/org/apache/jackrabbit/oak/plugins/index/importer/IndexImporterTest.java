@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Set;
@@ -68,7 +69,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -311,7 +311,7 @@ public class IndexImporterTest {
         info.save();
 
         //Create index definitions json
-        Files.write(json, new File(indexFolder, INDEX_DEFINITIONS_JSON), UTF_8);
+        Files.write(json, new File(indexFolder, INDEX_DEFINITIONS_JSON), StandardCharsets.UTF_8);
 
         createIndexFolder(indexFolder, "/oak:index/fooIndex");
 
@@ -555,7 +555,7 @@ public class IndexImporterTest {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         printer.print(pw, Format.JSON, false);
-        Files.write(sw.toString(), file, UTF_8);
+        Files.write(sw.toString(), file, StandardCharsets.UTF_8);
     }
 
     private String importDataIncrementalUpdateBeforeSetupMethod() throws IOException, CommitFailedException {

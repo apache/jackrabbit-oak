@@ -33,6 +33,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.util.Collection;
@@ -46,7 +47,6 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
@@ -1180,9 +1180,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 StringBuilder builder = new StringBuilder();
                 for (Map.Entry<String, String> e : additionalQueryParams.entrySet()) {
                     builder.append("&");
-                    builder.append(URLEncoder.encode(e.getKey(), Charsets.UTF_8.name()));
+                    builder.append(URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8));
                     builder.append("=");
-                    builder.append(URLEncoder.encode(e.getValue(), Charsets.UTF_8.name()));
+                    builder.append(URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
                 }
                 uriString += builder.toString();
             }
@@ -1192,7 +1192,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         catch (DataStoreException e) {
             LOG.error("No connection to Azure Blob Storage", e);
         }
-        catch (URISyntaxException | InvalidKeyException | UnsupportedEncodingException e) {
+        catch (URISyntaxException | InvalidKeyException e) {
             LOG.error("Can't generate a presigned URI for key {}", key, e);
         }
         catch (StorageException e) {

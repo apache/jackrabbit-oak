@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,7 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 import org.apache.jackrabbit.guava.common.io.Closeables;
@@ -111,7 +111,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
      * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
-        this.referenceKey = textKey.getBytes(Charsets.UTF_8);
+        this.referenceKey = textKey.getBytes(StandardCharsets.UTF_8);
     }
 
     public void setReferenceKey(byte[] referenceKey) {

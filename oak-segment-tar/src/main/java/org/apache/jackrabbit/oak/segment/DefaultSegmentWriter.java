@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -53,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -519,7 +519,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return id; // shortcut if the same string was recently stored
             }
 
-            byte[] data = string.getBytes(UTF_8);
+            byte[] data = string.getBytes(StandardCharsets.UTF_8);
 
             if (data.length < Segment.MEDIUM_LIMIT) {
                 // only cache short strings to avoid excessive memory use
@@ -607,7 +607,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
          * @see Segment#BLOB_ID_SMALL_LIMIT
          */
         private RecordId writeBlobId(String blobId) throws IOException {
-            byte[] data = blobId.getBytes(UTF_8);
+            byte[] data = blobId.getBytes(StandardCharsets.UTF_8);
 
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
                 return writeOperationHandler.execute(gcGeneration, newWriteOperation(

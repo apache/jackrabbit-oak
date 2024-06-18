@@ -42,12 +42,12 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -301,7 +301,7 @@ public class TextPopulatorTest {
 
         @Override
         public InputStream openStream() {
-            return new ByteArrayInputStream(data.getBytes(UTF_8));
+            return new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         }
     }
 }

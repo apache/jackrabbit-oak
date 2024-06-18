@@ -35,6 +35,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -56,7 +57,6 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
@@ -70,7 +70,7 @@ public class DefaultSegmentWriterTest {
 
     private static final String HELLO_WORLD = "Hello, World!";
 
-    private final byte[] bytes = HELLO_WORLD.getBytes(Charsets.UTF_8);
+    private final byte[] bytes = HELLO_WORLD.getBytes(StandardCharsets.UTF_8);
 
     private static final int SMALL_BINARIES_INLINE_THRESHOLD = 4;
 
@@ -104,7 +104,7 @@ public class DefaultSegmentWriterTest {
         InputStream stream = new ByteArrayInputStream(bytes);
         RecordId valueId = writer.writeStream(stream);
         SegmentBlob blob = new SegmentBlob(null, valueId);
-        assertEquals(HELLO_WORLD, IOUtils.toString(blob.getNewStream(), Charsets.UTF_8));
+        assertEquals(HELLO_WORLD, IOUtils.toString(blob.getNewStream(), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -117,14 +117,14 @@ public class DefaultSegmentWriterTest {
             for (int i = 0; i + n <= bytes.length; i++) {
                 Arrays.fill(bytes, i, i + n, (byte) '.');
                 assertEquals(n, block.read(i, bytes, i, n));
-                assertEquals(HELLO_WORLD, new String(bytes, Charsets.UTF_8));
+                assertEquals(HELLO_WORLD, new String(bytes, StandardCharsets.UTF_8));
             }
         }
 
         // Check reading with a too long length
         byte[] large = new byte[bytes.length * 2];
         assertEquals(bytes.length, block.read(0, large, 0, large.length));
-        assertEquals(HELLO_WORLD, new String(large, 0, bytes.length, Charsets.UTF_8));
+        assertEquals(HELLO_WORLD, new String(large, 0, bytes.length, StandardCharsets.UTF_8));
     }
 
     @Test
