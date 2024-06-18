@@ -40,11 +40,6 @@ public class ElasticIndexNode implements IndexNode {
         // do nothing
     }
 
-    /**
-     * Returns the index definition for this index node. This method ensures that the index definition is always
-     * up-to-date with the latest changes in the repository, except for the :status node.
-     * For latest changes in the :status node, the node api should be used.
-     */
     @Override
     public ElasticIndexDefinition getDefinition() {
         return indexDefinition;

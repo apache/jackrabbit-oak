@@ -44,7 +44,6 @@ import java.util.concurrent.Callable;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsPercentage;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
@@ -104,8 +103,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Stopwatch taskStartTime = Stopwatch.createStarted();
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
-        INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
+            LOG.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
@@ -127,7 +126,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                             .add("timeWritingPercentage", timeWritingPercentage)
                             .add("totalTimeSeconds", totalTimeMillis / 1000)
                             .build();
-                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
+                    LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     MetricsUtils.addMetric(statisticsProvider, reporter,
                             PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_CREATE_SORT_ARRAY_PERCENTAGE,
                             PipelinedUtils.toPercentage(timeCreatingSortArrayMillis, totalTimeMillis));
@@ -143,11 +142,10 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 nseBuffer.reset();
                 emptyBuffersQueue.put(nseBuffer);
             }
+        } catch (InterruptedException t) {
+            LOG.warn("Thread interrupted", t);
+            throw t;
         } catch (Throwable t) {
-            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
-                    THREAD_NAME.toUpperCase(Locale.ROOT),
-                    MetricsFormatter.createMetricsWithDurationOnly(taskStartTime),
-                    t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {

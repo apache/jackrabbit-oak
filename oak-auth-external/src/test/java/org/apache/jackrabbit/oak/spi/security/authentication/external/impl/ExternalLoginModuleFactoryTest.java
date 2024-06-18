@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -37,6 +37,7 @@ import javax.jcr.Repository;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
+import java.lang.reflect.Field;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -108,23 +109,23 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
 
-        final LoginModuleFactory lmf = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
+        final LoginModuleFactory lmf = context.registerInjectActivateService(new ExternalLoginModuleFactory());
         options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, (ProxyLoginModule.BootLoginModuleFactory) lmf::createLoginModule);
     }
 
     @Test
     public void testMissingBundleContext() throws Exception {
-        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory(null, null, null);
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
 
         factory.bindContentRepository(getContentRepository());
         factory.bindSecurityProvider(getSecurityProvider());
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
 
         factory.unbindContentRepository(getContentRepository());
         factory.unbindSecurityProvider(getSecurityProvider());
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
     }
 
     @Test
@@ -132,20 +133,20 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         context.registerService(SyncManager.class, mock(SyncManager.class));
         context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
 
-        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory(null, null, null);
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
         context.registerInjectActivateService(factory);
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
 
         factory.bindContentRepository(null);
         factory.bindSecurityProvider(getSecurityProvider());
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
 
         factory.unbindContentRepository(null);
         factory.unbindSecurityProvider(getSecurityProvider());
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
     }
 
     @Test
@@ -153,67 +154,95 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         context.registerService(SyncManager.class, mock(SyncManager.class));
         context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
 
-        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory(null, null, null);
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
         context.registerInjectActivateService(factory);
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
 
         factory.bindContentRepository(getContentRepository());
         factory.bindSecurityProvider(null);
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
 
         factory.unbindContentRepository(getContentRepository());
         factory.unbindSecurityProvider(getSecurityProvider());
 
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
+    }
+
+    @Test
+    public void testUnbindSyncManager() throws Exception {
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        factory.bindSyncManager(syncManager);
+
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("syncManager");
+        f.setAccessible(true);
+        assertSame(syncManager, f.get(factory));
+
+        factory.unbindSyncManager(syncManager);
+        assertNull(f.get(factory));
+    }
+
+    @Test
+    public void testUnbindIdpManager() throws Exception {
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        factory.bindIdpManager(idpManager);
+
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("idpManager");
+        f.setAccessible(true);
+        assertSame(idpManager, f.get(factory));
+
+        factory.unbindIdpManager(idpManager);
+        assertNull(f.get(factory));
     }
 
     @Test
     public void testMbeanRegistration() throws Exception {
-        final ExternalLoginModuleFactory factory = registerAndGetExternalLoginModuleFactoryWithMocks();
+        context.registerService(SyncManager.class, mock(SyncManager.class));
+        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
 
-        assertNull(getMBeanRegistration());
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        context.registerInjectActivateService(factory);
+
+        assertNull(getMBeanRegistration(factory));
 
         factory.bindSecurityProvider(getSecurityProvider());
         factory.bindContentRepository(getContentRepository());
 
-        SynchronizationMBean mbeanregistration = getMBeanRegistration();
+        Registration mbeanregistration = getMBeanRegistration(factory);
         assertNotNull(mbeanregistration);
 
         factory.unbindContentRepository(getContentRepository());
-        assertNull(getMBeanRegistration());
+        assertNull(getMBeanRegistration(factory));
 
         factory.unbindSecurityProvider(getSecurityProvider());
-        assertNull(getMBeanRegistration());
-    }
-
-    @NotNull
-    private ExternalLoginModuleFactory registerAndGetExternalLoginModuleFactoryWithMocks() {
-        context.registerService(SyncManager.class, mock(SyncManager.class));
-        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
-
-        ExternalLoginModuleFactory factory = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
-        return factory;
+        assertNull(getMBeanRegistration(factory));
     }
 
     @Test
     public void testMBeanRegistrationAlreadyPresent() throws Exception {
-        final ExternalLoginModuleFactory factory = registerAndGetExternalLoginModuleFactoryWithMocks();
+        context.registerService(SyncManager.class, mock(SyncManager.class));
+        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
 
-        assertNull(getMBeanRegistration());
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        context.registerInjectActivateService(factory);
+
+        assertNull(getMBeanRegistration(factory));
 
         factory.bindSecurityProvider(getSecurityProvider());
         factory.bindContentRepository(getContentRepository());
 
-        SynchronizationMBean mbeanregistration = getMBeanRegistration();
+        Registration mbeanregistration = getMBeanRegistration(factory);
         assertNotNull(mbeanregistration);
 
         factory.bindContentRepository(getContentRepository());
-        assertSame(mbeanregistration, getMBeanRegistration());
+        assertSame(mbeanregistration, getMBeanRegistration(factory));
     }
 
-    private SynchronizationMBean getMBeanRegistration() throws Exception {
-        return context.getService(SynchronizationMBean.class);
+    private static Registration getMBeanRegistration(@NotNull ExternalLoginModuleFactory factory) throws Exception {
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("mbeanRegistration");
+        f.setAccessible(true);
+
+        return (Registration) f.get(factory);
     }
 }

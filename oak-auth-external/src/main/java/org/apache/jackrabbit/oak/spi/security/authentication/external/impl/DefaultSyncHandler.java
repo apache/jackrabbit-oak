@@ -17,10 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
-import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,16 +59,9 @@ import java.util.Set;
  */
 @Component(
         // note that the metatype information is generated from DefaultSyncConfig
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = {
-                SyncHandler.class,
-                AutoMembershipAware.class
-        }
+        policy = ConfigurationPolicy.REQUIRE
 )
-@Designate(
-        ocd = DefaultSyncConfigImpl.Configuration.class,
-        factory = true
-)
+@Service
 public class DefaultSyncHandler implements SyncHandler, AutoMembershipAware {
 
     /**

@@ -150,12 +150,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private void saveMetrics() {
         ElasticIndexNode indexNode = indexTracker.acquireIndexNode(indexDefinition.getIndexPath());
         if (indexNode != null) {
+            ElasticIndexStatistics stats = indexNode.getIndexStatistics();
             try {
-                ElasticIndexStatistics stats = indexNode.getIndexStatistics();
-                indexTracker.getElasticMetricHandler().markDocuments(indexName, stats.numDocs());
+                indexTracker.getElasticMetricHandler().markDocuments(indexName, indexNode.getIndexStatistics().numDocs());
                 indexTracker.getElasticMetricHandler().markSize(indexName, stats.primaryStoreSize(), stats.storeSize());
             } catch (Exception e) {
-                LOG.warn("Unable to store metrics for {}", indexDefinition.getIndexPath(), e);
+                LOG.warn("Unable to store metrics for {}", indexNode.getDefinition().getIndexPath(), e);
             } finally {
                 indexNode.release();
             }

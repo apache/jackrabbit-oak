@@ -58,7 +58,6 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.mergeWithConcurrentCheck;
 
@@ -487,40 +486,35 @@ public class IndexImporter {
         String indexImportPhaseName = indexImportState == null ? "null" : indexImportState.toString();
         int count = 1;
         Stopwatch start = Stopwatch.createStarted();
-        INDEXING_PHASE_LOGGER.info("[TASK:{}:START]", indexImportPhaseName);
-        try {
-            while (count <= maxRetries) {
-                LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
-                try {
-                    step.execute();
-                    long durationSeconds = start.elapsed(TimeUnit.SECONDS);
-                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}",
-                            indexImportPhaseName,
-                            MetricsFormatter.createMetricsWithDurationOnly(durationSeconds)
-                    );
-                    MetricsUtils.setCounterOnce(statisticsProvider,
-                            "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
-                            durationSeconds);
-                    indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
-                            FormattingUtils.formatToSeconds(durationSeconds));
-                    indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
-                            durationSeconds);
+        while (count <= maxRetries) {
+            LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
+            LOG.info("[TASK:{}:START]", indexImportPhaseName);
+            try {
+                step.execute();
+                long durationSeconds = start.elapsed(TimeUnit.SECONDS);
+                LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
+                        MetricsFormatter.newBuilder()
+                                .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
+                                .add("durationSeconds", durationSeconds)
+                                .build()
+                );
 
-                    break;
-                } catch (CommitFailedException | IOException e) {
-                    LOG.warn("IndexImporterStepExecutor: {} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
-                    if (count++ >= maxRetries) {
-                        LOG.warn("IndexImporterStepExecutor: {} failed after {} retries", indexImportState, maxRetries, e);
-                        throw e;
-                    }
+                MetricsUtils.setCounterOnce(statisticsProvider,
+                        "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                        durationSeconds);
+                indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
+                        FormattingUtils.formatToSeconds(durationSeconds));
+                indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                        durationSeconds);
+
+                break;
+            } catch (CommitFailedException | IOException e) {
+                LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
+                if (count++ >= maxRetries) {
+                    LOG.warn("IndexImporterStepExecutor:{} failed after {} retries", indexImportState, maxRetries, e);
+                    throw e;
                 }
             }
-        } catch (Throwable t) {
-            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
-                    indexImportPhaseName,
-                    MetricsFormatter.createMetricsWithDurationOnly(start),
-                    t.toString());
-            throw t;
         }
     }
 

@@ -548,7 +548,7 @@ public class IndexImporterTest {
         PropUtils.writeTo(p, indexMeta, "index info");
     }
 
-    private void dumpIndexDefinitions(String... indexPaths) throws IOException {
+    private void dumpIndexDefinitions(String... indexPaths) throws IOException, CommitFailedException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store, () -> asList(indexPaths));
         printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
         File file = new File(temporaryFolder.getRoot(), INDEX_DEFINITIONS_JSON);
@@ -639,7 +639,7 @@ public class IndexImporterTest {
                     store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
 
             // Test retry logic
-            String failureLog = MessageFormat.format("IndexImporterStepExecutor: {0} failed after {1} retries",
+            String failureLog = MessageFormat.format("IndexImporterStepExecutor:{0} failed after {1} retries",
                     IndexImporter.IndexImportState.SWITCH_LANE, IndexImporter.RETRIES);
             boolean failureLogPresent = false;
             for (String log : customizer.getLogs()) {

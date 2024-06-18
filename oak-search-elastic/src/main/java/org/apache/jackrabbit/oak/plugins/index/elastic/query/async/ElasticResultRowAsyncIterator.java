@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.SortOptions;
@@ -378,13 +377,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
             }
 
-            if (t instanceof ElasticsearchException) {
-                LOG.error("Elastic could not process the request for jcr query [{}] :: Corresponding ES query {} :: ES Response {} : closing scanner, notifying listeners",
-                        indexPlan.getFilter(), query, ((ElasticsearchException) t).error(), t);
-            } else {
-                LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners",
-                        indexPlan.getFilter(), query, t);
-            }
+            LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners",
+                indexPlan.getFilter(), query, t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }

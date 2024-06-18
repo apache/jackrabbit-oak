@@ -31,6 +31,7 @@ public final class JcrPathParser {
     private static final int STATE_DOT = 6;
     private static final int STATE_DOTDOT = 7;
     private static final int STATE_URI = 8;
+    private static final int STATE_URI_END = 9;
 
     private static final char EOF = (char) -1;
 
@@ -127,7 +128,8 @@ public final class JcrPathParser {
                     }
                     if (state == STATE_PREFIX
                             || state == STATE_NAME
-                            || state == STATE_INDEX_END) {
+                            || state == STATE_INDEX_END
+                            || state == STATE_URI_END) {
 
                         // eof path element
                         if (name == null) {
@@ -157,16 +159,13 @@ public final class JcrPathParser {
                         }
                         lastPos = pos;
                         state = STATE_PREFIX_START;
-                    } else if (state == STATE_NAME_START) {
-                        pathAwareListener.error("Local name must not be empty.");
+                    } else if (state != STATE_URI
+                            && !(state == STATE_PREFIX_START && c == EOF)) { // ignore trailing slash
+                        pathAwareListener.error("'" + c + "' not allowed in name.");
                         return false;
                     } else if (state == STATE_URI && c == EOF) {
                         // we reached EOF without finding the closing curly brace '}'
                         pathAwareListener.error("Missing '}'.");
-                        return false;
-                    } else if (state != STATE_URI
-                            && !(state == STATE_PREFIX_START && c == EOF)) { // ignore trailing slash
-                        pathAwareListener.error("'" + c + "' not allowed in name.");
                         return false;
                     }
                     break;
@@ -229,9 +228,9 @@ public final class JcrPathParser {
                     if (state == STATE_PREFIX_START && lastPos == pos-1) {
                         // '{' marks the start of a uri enclosed in an expanded name
                         // instead of the usual namespace prefix, if it is
-                        // located at the beginning of a new segment and a '}' will follow.
-                        state = jcrPath.indexOf('}', pos) == -1 ? STATE_NAME : STATE_URI;
-                    } else if (state == STATE_PREFIX || state == STATE_NAME_START || state == STATE_DOT || state == STATE_DOTDOT) {
+                        // located at the beginning of a new segment.
+                        state = STATE_URI;
+                    } else if (state == STATE_NAME_START || state == STATE_DOT || state == STATE_DOTDOT) {
                         // otherwise it's part of the local name
                         state = STATE_NAME;
                     }
@@ -239,15 +238,7 @@ public final class JcrPathParser {
 
                 case '}':
                     if (state == STATE_URI) {
-                        state = jcrPath.indexOf(':', jcrPath.lastIndexOf('{', pos)) == -1 ?
-                                STATE_NAME : STATE_NAME_START;
-                    } else if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
-                        state = STATE_PREFIX;
-                    } else if (state == STATE_NAME_START || state == STATE_PREFIX) {
-                        state = STATE_NAME;
-                    } else if (state == STATE_INDEX_END) {
-                        pathAwareListener.error("'" + c + "' not valid after index. '/' expected.");
-                        return false;
+                        state = STATE_URI_END;
                     }
                     break;
 
@@ -260,16 +251,9 @@ public final class JcrPathParser {
                         state = STATE_INDEX;
                         name = jcrPath.substring(lastPos, pos - 1);
                         lastPos = pos;
+                        break;
                     }
-                    else if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
-                        state = STATE_PREFIX;
-                    } else if (state == STATE_NAME_START) {
-                        state = STATE_NAME;
-                    } else if (state == STATE_INDEX_END) {
-                        pathAwareListener.error("'" + c + "' not valid after index. '/' expected.");
-                        return false;
-                    }
-                    break;
+                    // intentionally no break, so we get the default treatment for all other states
 
                 default:
                     if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {

@@ -16,18 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.Test;
 
 public class RDBDocumentNodeStoreBuilderTest {
@@ -58,37 +53,5 @@ public class RDBDocumentNodeStoreBuilderTest {
             fail("should not get here");
         } catch (DocumentStoreException expected) {
         }
-    }
-
-    @Test
-    public void fullGCDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        builder.setFullGCEnabled(true);
-        assertFalse(builder.isFullGCEnabled());
-    }
-
-    @Test
-    public void fullFGCFeatureToggleDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature docStoreFullGCFeature = mock(Feature.class);
-        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
-        assertNull(builder.getDocStoreFullGCFeature());
-    }
-
-    @Test
-    public void embeddedVerificationDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        builder.setEmbeddedVerificationEnabled(true);
-        assertFalse(builder.isEmbeddedVerificationEnabled());
-    }
-
-    @Test
-    public void embeddedVerificationFeatureToggleDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature embeddedVerificationFeature = mock(Feature.class);
-        when(embeddedVerificationFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreEmbeddedVerificationFeature(embeddedVerificationFeature);
-        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
     }
 }

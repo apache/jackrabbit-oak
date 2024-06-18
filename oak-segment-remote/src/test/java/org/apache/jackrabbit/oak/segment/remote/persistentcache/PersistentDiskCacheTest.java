@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,13 +49,13 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
 
     @Before
     public void setUp() throws Exception {
-        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 10 * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
+        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 10 * 1024, new IOMonitorAdapter());
     }
 
     @Test
     public void cleanupTest() throws Exception {
         persistentCache.close();
-        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0, new DiskCacheIOMonitor(StatisticsProvider.NOOP), 500);
+        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0, new IOMonitorAdapter(), 500);
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
         final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);
 
@@ -128,7 +127,7 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
 
     @Test
     public void testIOMonitor() throws IOException {
-        DiskCacheIOMonitor ioMonitorAdapter = Mockito.mock(DiskCacheIOMonitor.class);
+        IOMonitorAdapter ioMonitorAdapter = Mockito.mock(IOMonitorAdapter.class);
 
         persistentCache.close();
         File cacheFolder = temporaryFolder.newFolder();

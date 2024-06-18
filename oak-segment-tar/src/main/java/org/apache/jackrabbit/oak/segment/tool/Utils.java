@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 
-public final class Utils {
+final class Utils {
 
     private static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 
@@ -64,15 +64,11 @@ public final class Utils {
                 .buildReadOnly();
     }
 
-    public static BlobStore newBasicReadOnlyBlobStore() {
+    static BlobStore newBasicReadOnlyBlobStore() {
         return new BasicReadOnlyBlobStore();
     }
 
-    public static List<String> readRevisions(String path) {
-        return readRevisions(new File(path));
-    }
-
-    public static List<String> readRevisions(File store) {
+    static List<String> readRevisions(File store) {
         JournalFile journal = new LocalJournalFile(store, "journal.log");
 
         if (journal.exists()) {

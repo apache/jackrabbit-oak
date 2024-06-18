@@ -49,30 +49,6 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void fullGCDisabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertFalse(builder.isFullGCEnabled());
-    }
-
-    @Test
-    public void fullGCFeatureToggleDisabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreFullGCFeature());
-    }
-
-    @Test
-    public void embeddedVerificationEnabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertTrue(builder.isEmbeddedVerificationEnabled());
-    }
-
-    @Test
-    public void embeddedVerificationFeatureToggleEnabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
-    }
-
-    @Test
     public void collectionCompressionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());

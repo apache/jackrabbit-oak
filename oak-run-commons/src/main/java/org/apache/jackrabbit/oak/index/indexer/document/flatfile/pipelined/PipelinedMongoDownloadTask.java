@@ -46,7 +46,6 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
-import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.BsonDocument;
@@ -73,8 +72,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
@@ -327,28 +324,20 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         .withCodecRegistry(nodeDocumentCodecRegistry)
                         .getCollection(Collection.NODES.toString(), NodeDocument.class);
 
-                INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
-                try {
-                    downloadStartWatch.start();
-                    if (retryOnConnectionErrors) {
-                        downloadWithRetryOnConnectionErrors();
-                    } else {
-                        downloadWithNaturalOrdering();
-                    }
-                    downloadStartWatch.stop();
-                    long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
-                    downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
-                    String metrics = downloadStageStatistics.formatStats(durationMillis);
-                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
-                    reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
-                    return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
-                } catch (Throwable t) {
-                    INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
-                            Thread.currentThread().getName().toUpperCase(Locale.ROOT),
-                            MetricsFormatter.createMetricsWithDurationOnly(downloadStartWatch),
-                            t.toString());
-                    throw t;
+                LOG.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
+                downloadStartWatch.start();
+                if (retryOnConnectionErrors) {
+                    downloadWithRetryOnConnectionErrors();
+                } else {
+                    downloadWithNaturalOrdering();
                 }
+                downloadStartWatch.stop();
+                long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
+                downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
+                String metrics = downloadStageStatistics.formatStats(durationMillis);
+                LOG.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
+                reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
+                return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
             }
         } finally {
             Thread.currentThread().setName(originalName);
@@ -495,7 +484,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private MongoFilterPaths getPathsForRegexFiltering() {
         if (!regexPathFiltering) {
             LOG.info("Regex path filtering disabled.");
-            reporter.addInformation("Mongo regex filter paths: " + MongoFilterPaths.DOWNLOAD_ALL.prettyPrint());
             return MongoFilterPaths.DOWNLOAD_ALL;
         } else {
             LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}",
@@ -505,7 +493,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             );
             MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters, customExcludedPaths);
             LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
-            reporter.addInformation("Mongo regex filter paths: " + mongoFilterPaths.prettyPrint());
             return mongoFilterPaths;
         }
     }

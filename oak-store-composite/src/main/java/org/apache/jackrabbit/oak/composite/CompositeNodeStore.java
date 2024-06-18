@@ -245,7 +245,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
         if (!checkpointExists(ctx.getGlobalStore().getNodeStore(), checkpoint)) {
-            LOG.debug("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception("call stack"));
+            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return Collections.emptyMap();
         }
         return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint), new Predicate<String>() {

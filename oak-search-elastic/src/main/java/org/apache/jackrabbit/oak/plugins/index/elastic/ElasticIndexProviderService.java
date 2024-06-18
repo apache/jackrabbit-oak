@@ -181,7 +181,7 @@ public class ElasticIndexProviderService {
 
         // register info provider for oak index stats
         regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(),
-                new ElasticIndexInfoProvider(nodeStore, indexTracker, asyncIndexInfoService), null));
+                new ElasticIndexInfoProvider(indexTracker, asyncIndexInfoService), null));
 
         // register mbean for detailed elastic stats and utility actions
         ElasticIndexMBean mBean = new ElasticIndexMBean(indexTracker);

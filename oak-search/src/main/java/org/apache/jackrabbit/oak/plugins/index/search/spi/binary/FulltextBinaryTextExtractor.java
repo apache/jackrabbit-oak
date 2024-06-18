@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
-import org.apache.tika.exception.WriteLimitReachedException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -193,7 +192,7 @@ public class FulltextBinaryTextExtractor {
     } catch (Throwable t) {
       // Capture and report any other full text extraction problems.
       // The special STOP exception is used for normal termination.
-      if (!WriteLimitReachedException.isWriteLimitReached(t)) {
+      if (!handler.isWriteLimitReached(t)) {
         String format = "[{}] Failed to extract text from a binary property: {}. "
                   + "This is quite common, and usually nothing to worry about.";
         String indexName = getIndexName();

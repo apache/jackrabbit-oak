@@ -51,8 +51,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
@@ -61,10 +59,6 @@ public final class IndexUtils {
 
     private IndexUtils() {
     }
-
-    // Logger used for START/END/FAIL messages of indexing phases. Logged in a separate logger to make them easier to
-    // identify and parse by log analysis tools.
-    public static final Logger INDEXING_PHASE_LOGGER = LoggerFactory.getLogger("indexing-task");
 
     public static NodeBuilder getOrCreateOakIndex(NodeBuilder root) {
         NodeBuilder index;

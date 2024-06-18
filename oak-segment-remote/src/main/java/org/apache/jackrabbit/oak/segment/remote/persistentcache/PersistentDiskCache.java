@@ -61,7 +61,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     private final File directory;
     private final long maxCacheSizeBytes;
-    private final DiskCacheIOMonitor diskCacheIOMonitor;
+    private final IOMonitor diskCacheIOMonitor;
     /**
      * Wait time before attempting to clean up orphaned temp files
      */
@@ -71,11 +71,11 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     final AtomicLong evictionCount = new AtomicLong();
 
-    public PersistentDiskCache(File directory, int cacheMaxSizeMB, DiskCacheIOMonitor diskCacheIOMonitor) {
+    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor) {
         this(directory, cacheMaxSizeMB, diskCacheIOMonitor, DEFAULT_TEMP_FILES_CLEANUP_WAIT_TIME_MS);
     }
 
-    public PersistentDiskCache(File directory, int cacheMaxSizeMB, DiskCacheIOMonitor diskCacheIOMonitor, long tempFilesCleanupWaitTimeMs) {
+    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor, long tempFilesCleanupWaitTimeMs) {
         this.directory = directory;
         this.maxCacheSizeBytes = cacheMaxSizeMB * 1024L * 1024L;
         this.diskCacheIOMonitor = diskCacheIOMonitor;
@@ -158,8 +158,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     } catch (AtomicMoveNotSupportedException e) {
                         Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
                     }
-                    long cacheSizeAfter = cacheSize.addAndGet(fileSize);
-                    diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, fileSize);
+                    cacheSize.addAndGet(fileSize);
                 } catch (Exception e) {
                     logger.error("Error writing segment {} to cache", segmentId, e);
                     try {
@@ -205,17 +204,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     }
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
                         File segment = segmentCacheEntry.getPath().toFile();
-                        long length = segment.length();
-                        if (length == 0) {
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("Avoiding removal of zero-sized file {}", segmentCacheEntry.getPath());
-                            } else {
-                                logger.warn("Avoiding removal of zero-sized file.");
-                            }
-                            return;
-                        }
-                        long cacheSizeAfter = cacheSize.addAndGet(-length);
-                        diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, -length);
+                        cacheSize.addAndGet(-segment.length());
                         segment.delete();
                         evictionCount.incrementAndGet();
                     } else {

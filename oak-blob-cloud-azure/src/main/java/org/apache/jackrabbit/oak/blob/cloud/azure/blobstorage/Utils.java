@@ -145,7 +145,7 @@ public final class Utils {
                 blobEndpoint);
     }
 
-    public static String getConnectionStringForSas(String sasUri, String blobEndpoint, String accountName) {
+    private static String getConnectionStringForSas(String sasUri, String blobEndpoint, String accountName) {
         if (StringUtils.isEmpty(blobEndpoint)) {
             return String.format("AccountName=%s;SharedAccessSignature=%s", accountName, sasUri);
         } else {

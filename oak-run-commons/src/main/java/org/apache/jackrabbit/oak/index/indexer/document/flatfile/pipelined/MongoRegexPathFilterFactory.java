@@ -55,10 +55,6 @@ public class MongoRegexPathFilterFactory {
                     '}';
         }
 
-        public String prettyPrint() {
-            return "{included=" + included + ", excluded=" + excluded + "}";
-        }
-
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -140,7 +136,7 @@ public class MongoRegexPathFilterFactory {
         }
 
         if (customExcludedPaths.stream().anyMatch(PathUtils::denotesRoot)) {
-            LOG.warn("Ignoring custom excluded paths setting, root cannot be excluded: {}", customExcludedPaths);
+            LOG.warn("Ignoring custom excluded paths setting, root cannot be excluded: {}",  customExcludedPaths);
         } else if (!isRootPath(finalIncludedPathsRoots)) {
             LOG.info("Ignoring custom excluded paths because included paths did not resolve to root. Mongo filters: {}", finalIncludedPathsRoots);
         } else {

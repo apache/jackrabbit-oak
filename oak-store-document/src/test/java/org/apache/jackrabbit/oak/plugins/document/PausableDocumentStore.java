@@ -153,8 +153,4 @@ public class PausableDocumentStore extends DocumentStoreWrapper {
             pauseWith(nextCallback);
         } // else continue using the same pauseCallback
     }
-
-    public void noDispose() {
-        getFailingDocumentStore().noDispose();
-    }
 }

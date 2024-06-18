@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -44,39 +44,25 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
 import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-import static java.lang.System.currentTimeMillis;
-import static java.util.List.of;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.commons.lang3.StringUtils.isNotEmpty;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
-import static org.apache.jackrabbit.oak.run.Utils.getMongoConnection;
 
 /**
  * Gives information about current node revisions state.
@@ -88,22 +74,16 @@ public class RevisionsCommand implements Command {
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
             "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
             "where sub-command is one of",
-            "  info           give information about the revisions state without performing",
-            "                 any modifications",
-            "  collect        perform garbage collection",
-            "  reset          clear all persisted metadata",
-            "  sweep          clean up uncommitted changes",
-            "  fullGC         perform full garbage collection i.e. remove unmerged branch commits, old ",
-            "                 revisions, deleted properties etc. Use the --entireRepo to run it on the entire",
-            "                 repository, or --path argument to perform the fullGC only on the specific document"
+            "  info     give information about the revisions state without performing",
+            "           any modifications",
+            "  collect  perform garbage collection",
+            "  reset    clear all persisted metadata",
+            "  sweep    clean up uncommitted changes"
     );
 
-    private static final List<String> LOGGER_NAMES = of(
+    private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
             "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
-            "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper",
-            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditDGC",
-            "org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport",
-            "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
+            "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper"
     );
 
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
@@ -112,7 +92,6 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
-        static final String CMD_FULL_GC = "fullGC";
 
         final OptionSpec<?> once;
         final OptionSpec<Integer> limit;
@@ -120,14 +99,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
         final OptionSpec<?> continuous;
-        final OptionSpec<?> fullGCOnly;
-        final OptionSpec<Boolean> resetFullGC;
         final OptionSpec<?> verbose;
-        final OptionSpec<String> path;
-        final OptionSpec<?> entireRepo;
-        final OptionSpec<?> compact;
-        final OptionSpec<Boolean> dryRun;
-        final OptionSpec<Boolean> embeddedVerification;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -144,27 +116,10 @@ public class RevisionsCommand implements Command {
             timeLimit = parser
                     .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
                     .ofType(Long.class).defaultsTo(-1L);
-            dryRun = parser.accepts("dryRun", "dryRun of fullGC i.e. only print what would be deleted")
-                    .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
-            embeddedVerification = parser.accepts("verify", "enable embedded verification of fullGC " +
-                            "during dryRun mode i.e. will verify the effect of fullGC operation on each document after " +
-                            "applying the changes in memory and will raise flag if it can cause issues")
-                    .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
-            fullGCOnly = parser
-                    .accepts("fullGCOnly", "apply only to fullGC (reset only)");
             verbose = parser
                     .accepts("verbose", "print INFO messages to the console");
-            path = parser
-                    .accepts("path", "path to the document to be cleaned up").withRequiredArg();
-            entireRepo = parser
-                    .accepts("entireRepo", "run fullGC on the entire repository");
-            compact = parser
-                    .accepts("compact", "run compaction on document store (only mongo) after running fullGC");
-            resetFullGC = parser
-                    .accepts("resetFullGC", "reset fullGC after running FullGC")
-                    .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -188,14 +143,6 @@ public class RevisionsCommand implements Command {
             return limit.value(options);
         }
 
-        boolean isDryRun() {
-            return dryRun.value(options);
-        }
-
-        boolean isEmbeddedVerificationEnabled() {
-            return embeddedVerification.value(options);
-        }
-
         long getOlderThan() {
             return olderThan.value(options);
         }
@@ -212,28 +159,8 @@ public class RevisionsCommand implements Command {
             return options.has(continuous);
         }
 
-        String getPath() {
-            return path.value(options);
-        }
-
-        boolean isResetFullGCOnly() {
-            return options.has(fullGCOnly);
-        }
-
-        boolean resetFullGC() {
-            return resetFullGC.value(options);
-        }
-
         boolean isVerbose() {
             return options.has(verbose);
-        }
-
-        boolean isEntireRepo() {
-            return options.has(entireRepo);
-        }
-
-        boolean doCompaction() {
-            return options.has(compact);
         }
     }
 
@@ -248,22 +175,11 @@ public class RevisionsCommand implements Command {
             if (RevisionsOptions.CMD_INFO.equals(subCmd)) {
                 info(options, closer);
             } else if (RevisionsOptions.CMD_COLLECT.equals(subCmd)) {
-                collect(options, closer, false);
+                collect(options, closer);
             } else if (RevisionsOptions.CMD_RESET.equals(subCmd)) {
                 reset(options, closer);
             } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
                 sweep(options, closer);
-            } else if (RevisionsOptions.CMD_FULL_GC.equals(subCmd)) {
-                boolean entireRepo = options.isEntireRepo();
-                String path = options.getPath();
-                if (entireRepo) {
-                    collect(options, closer, true);
-                } else if (isNotEmpty(path)) {
-                    collectDocument(options, closer, path);
-                } else {
-                    System.err.println("--path or --entireRepo option is required for " +
-                        RevisionsOptions.CMD_FULL_GC + " command");
-                }
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
             }
@@ -285,15 +201,14 @@ public class RevisionsCommand implements Command {
         }
     }
 
-    private VersionGarbageCollector bootstrapVGC(RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
+    private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
+                                                 Closer closer)
+            throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             System.exit(1);
         }
-        // set fullGC
-        builder.setFullGCEnabled(fullGCEnabled);
-
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
         // check for matching format version
@@ -304,9 +219,6 @@ public class RevisionsCommand implements Command {
                     version);
             System.exit(1);
         }
-        if (options.isEmbeddedVerificationEnabled()) {
-            builder.setEmbeddedVerificationEnabled(true);
-        }
         // set it read-only before the DocumentNodeStore is created
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
@@ -314,12 +226,7 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        System.out.println("DryRun is enabled : " + options.isDryRun());
-        System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
-        System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
-        System.out.println("Compaction is enabled : " + options.doCompaction());
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
-                isEmbeddedVerificationEnabled(builder));
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport);
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -333,13 +240,10 @@ public class RevisionsCommand implements Command {
         return gc;
     }
 
-    private void info(RevisionsOptions options, Closer closer) throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
+    private void info(RevisionsOptions options, Closer closer)
+            throws IOException {
+        VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("retrieving gc info");
-        printInfo(gc, options);
-    }
-
-    private void printInfo(VersionGarbageCollector gc, RevisionsOptions options) throws IOException {
         VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
         System.out.printf(Locale.US, "%21s  %s%n", "Last Successful Run:",
@@ -356,26 +260,27 @@ public class RevisionsCommand implements Command {
                 fmtTimestamp(info.recommendedCleanupTimestamp));
         System.out.printf(Locale.US, "%21s  %d%n", "Iterations Estimate:",
                 info.estimatedIterations);
-        System.out.printf(Locale.US, "%21s  %s%n", "Oldest FullGC:",
-                fmtTimestamp(info.oldestFullGCRevisionEstimate));
     }
 
-    private void collect(final RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer, fullGCEnabled);
+    private void collect(final RevisionsOptions options, Closer closer)
+            throws IOException {
+        VersionGarbageCollector gc = bootstrapVGC(options, closer);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
-            // collect until shutdown hook is called
-            final AtomicBoolean running = new AtomicBoolean(true);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("Detected QUIT signal.");
-                System.out.println("Stopping Revision GC...");
-                running.set(false);
-                gc.cancel();
-                finished.acquireUninterruptibly();
-                System.out.println("Stopped Revision GC.");
-            }));
             if (options.isContinuous()) {
+                // collect until shutdown hook is called
+                final AtomicBoolean running = new AtomicBoolean(true);
+                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        System.out.println("Detected QUIT signal.");
+                        System.out.println("Stopping Revision GC...");
+                        running.set(false);
+                        finished.acquireUninterruptibly();
+                        System.out.println("Stopped Revision GC.");
+                    }
+                }));
                 while (running.get()) {
                     long lastRun = System.currentTimeMillis();
                     collectOnce(gc, options, executor);
@@ -384,26 +289,8 @@ public class RevisionsCommand implements Command {
             } else {
                 collectOnce(gc, options, executor);
             }
-            System.out.println("retrieving gc info");
-            printInfo(gc, options);
         } finally {
             finished.release();
-            if (options.isDryRun()) {
-                gc.resetDryRun();
-            }
-            if (options.resetFullGC()) {
-                gc.resetFullGC();
-            }
-            if (options.doCompaction()) {
-                Optional<MongoConnection> mongoClient = getMongoConnection(options, closer);
-                final long start = currentTimeMillis();
-                mongoClient.ifPresentOrElse(
-                        con -> {
-                            Document compact = con.getDatabase().runCommand(new Document("compact", NODES.toString()));
-                            System.out.format("Compact done in %s ms, Output is %s", (currentTimeMillis() - start),  compact);
-                        },
-                        () -> System.err.println("Database is null"));
-            }
             executor.shutdownNow();
         }
     }
@@ -462,13 +349,9 @@ public class RevisionsCommand implements Command {
 
     private void reset(RevisionsOptions options, Closer closer)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("resetting recommendations and statistics");
-        if (options.isResetFullGCOnly()) {
-            gc.resetFullGC();
-        } else {
-            gc.reset();
-        }
+        gc.reset();
     }
 
     private void sweep(RevisionsOptions options, Closer closer)
@@ -509,34 +392,6 @@ public class RevisionsCommand implements Command {
         closer.register(asCloseable(ns));
         MissingLastRevSeeker seeker = builder.createMissingLastRevSeeker();
         SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
-    }
-
-    private void collectDocument(RevisionsOptions options, Closer closer, String path) throws IOException {
-        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
-        if (builder == null) {
-            System.err.println("revisions mode only available for DocumentNodeStore");
-            return;
-        }
-
-        System.out.println("running fullGC on the document: " + path);
-        DocumentStore documentStore = builder.getDocumentStore();
-        builder.setReadOnlyMode();
-        useMemoryBlobStore(builder);
-        DocumentNodeStore documentNodeStore = builder.build();
-
-        VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
-        // Set a LoggingGC monitor that will output the fullGC operations
-        gc.setGCMonitor(new LoggingGCMonitor(LOG));
-        // Run fullGC on the given document
-        NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
-        if (workingDocument == null) {
-            System.err.println("Document not found: " + path);
-            return;
-        }
-        gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
-
-        //TODO: Probably we should output some details of fullGCStats. Could be done after OAK-10378
-        //gc.getFullGCStats();
     }
 
     private String fmtTimestamp(long ts) {

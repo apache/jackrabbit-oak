@@ -89,7 +89,6 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 public abstract class DocumentStoreIndexerBase implements Closeable {
     public static final String INDEXER_METRICS_PREFIX = "oak_indexer_";
@@ -314,91 +313,83 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     public void reindex() throws CommitFailedException, IOException {
-        INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        log.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
         Stopwatch indexJobWatch = Stopwatch.createStarted();
-        try {
-            IndexingProgressReporter progressReporter =
-                    new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
-            configureEstimators(progressReporter);
+        IndexingProgressReporter progressReporter =
+                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+        configureEstimators(progressReporter);
 
-            NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-            NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-            indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-            NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-            CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
-            if (indexer.isEmpty()) {
-                return;
-            }
-
-            closer.register(indexer);
-
-            List<FlatFileStore> flatFileStores = buildFlatFileStoreList(
-                    checkpointedState,
-                    indexer,
-                    indexer::shouldInclude,
-                    null,
-                    IndexerConfiguration.parallelIndexEnabled(),
-                    indexerSupport.getIndexDefinitions(),
-                    indexingReporter);
-
-            progressReporter.reset();
-
-            progressReporter.reindexingTraversalStart("/");
-
-            preIndexOperations(indexer.getIndexers());
-
-            INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
-            Stopwatch indexerWatch = Stopwatch.createStarted();
-            try {
-
-                if (flatFileStores.size() > 1) {
-                    indexParallel(flatFileStores, indexer, progressReporter);
-                } else if (flatFileStores.size() == 1) {
-                    FlatFileStore flatFileStore = flatFileStores.get(0);
-                    for (NodeStateEntry entry : flatFileStore) {
-                        reportDocumentRead(entry.getPath(), progressReporter);
-                        indexer.index(entry);
-                    }
-                }
-
-                progressReporter.reindexingTraversalEnd();
-                progressReporter.logReport();
-                long indexingDurationSeconds = indexerWatch.elapsed(TimeUnit.SECONDS);
-                log.info("Completed indexing in {}", FormattingUtils.formatToSeconds(indexingDurationSeconds));
-                INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
-                MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
-                indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
-            } catch (Throwable t) {
-                INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:FAIL] Metrics: {}, Error: {}",
-                        MetricsFormatter.createMetricsWithDurationOnly(indexerWatch), t.toString());
-                throw t;
-            }
-
-            INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
-            Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
-            try {
-                copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-                long mergeNodeStoreDurationSeconds = mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS);
-                INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreDurationSeconds));
-                MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
-                indexingReporter.addTiming("Merge node store", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds));
-            } catch (Throwable t) {
-                INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:FAIL] Metrics: {}, Error: {}",
-                        MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreWatch), t.toString());
-                throw t;
-            }
-
-            indexerSupport.postIndexWork(copyOnWriteStore);
-
-            long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
-            INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.createMetricsWithDurationOnly(fullIndexCreationDurationSeconds));
-            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
-            indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
-        } catch (Throwable t) {
-            INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
-                    MetricsFormatter.createMetricsWithDurationOnly(indexJobWatch), t.toString());
-            throw t;
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
+        if (indexer.isEmpty()) {
+            return;
         }
+
+        closer.register(indexer);
+
+        List<FlatFileStore> flatFileStores = buildFlatFileStoreList(
+                checkpointedState,
+                indexer,
+                indexer::shouldInclude,
+                null,
+                IndexerConfiguration.parallelIndexEnabled(),
+                indexerSupport.getIndexDefinitions(),
+                indexingReporter);
+
+        progressReporter.reset();
+
+        progressReporter.reindexingTraversalStart("/");
+
+        preIndexOperations(indexer.getIndexers());
+
+        log.info("[TASK:INDEXING:START] Starting indexing");
+        Stopwatch indexerWatch = Stopwatch.createStarted();
+
+        if (flatFileStores.size() > 1) {
+            indexParallel(flatFileStores, indexer, progressReporter);
+        } else if (flatFileStores.size() == 1) {
+            FlatFileStore flatFileStore = flatFileStores.get(0);
+            for (NodeStateEntry entry : flatFileStore) {
+                reportDocumentRead(entry.getPath(), progressReporter);
+                indexer.index(entry);
+            }
+        }
+
+        progressReporter.reindexingTraversalEnd();
+        progressReporter.logReport();
+        long indexingDurationSeconds = indexerWatch.elapsed(TimeUnit.SECONDS);
+        log.info("Completed the indexing in {}", FormattingUtils.formatToSeconds(indexingDurationSeconds));
+        log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(indexingDurationSeconds))
+                .add("durationSeconds", indexingDurationSeconds)
+                .build());
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
+        indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
+
+        log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
+        Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
+        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        long mergeNodeStoreDurationSeconds = mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS);
+        log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds))
+                .add("durationSeconds", mergeNodeStoreDurationSeconds)
+                .build());
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
+        indexingReporter.addTiming("Merge node store", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds));
+
+        indexerSupport.postIndexWork(copyOnWriteStore);
+
+        long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
+        log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds))
+                .add("durationSeconds", fullIndexCreationDurationSeconds)
+                .build());
+
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
+        indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)

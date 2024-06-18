@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -36,12 +35,12 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
 
     @Override
     public boolean isUpdateNeeded(NodeState before, NodeState after) {
-        // for Elastic, we are not interested in checking for updates on :status, index definition is enough.
+        // for Elastic we are not interested in checking for updates on :status, index definition is enough.
         // The :status gets updated every time the indexed content is changed (with properties like last_update_ts),
         // removing the check on :status reduces drastically the contention between queries (that need to acquire the
         // read lock) and updates (need to acquire the write lock).
         // Moreover, we don't check diffs in stored index definitions since are not created for elastic.
-        return !IgnoreStatusDiff.equals(before, after);
+        return !EqualsDiff.equals(before, after);
     }
 
     @Override
@@ -60,37 +59,5 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
 
     public ElasticMetricHandler getElasticMetricHandler() {
         return elasticMetricHandler;
-    }
-
-    static class IgnoreStatusDiff extends EqualsDiff {
-
-        public static boolean equals(NodeState before, NodeState after) {
-            return before.exists() == after.exists()
-                    && after.compareAgainstBaseState(before, new IgnoreStatusDiff());
-        }
-
-        /**
-         * The behaviour of this method is not immediately obvious from the signature.
-         * For this reason, the javadoc from NodeStateDiff is copied below.
-         * When false is returned, the comparison is aborted because something has changed.
-         * If the changed node is the status node, the comparison is continued otherwise we call the super method.
-         * The super method will return false if the node is not the status node, and it has changed.
-         * <p>
-         * Called for all child nodes that may contain changes between the before
-         * and after states. The comparison implementation is expected to make an
-         * effort to avoid calling this method on child nodes under which nothing
-         * has changed.
-         *
-         * @param name name of the changed child node
-         * @param before child node state before the change
-         * @param after child node state after the change
-         * @return {@code true} to continue the comparison, {@code false} to abort.
-         *         Abort will stop comparing completely, that means sibling nodes
-         *         and sibling nodes of all parents are not further compared.
-         */
-        @Override
-        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-            return IndexDefinition.STATUS_NODE.equals(name) || super.childNodeChanged(name, before, after);
-        }
     }
 }

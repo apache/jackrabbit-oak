@@ -66,15 +66,12 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
-        //need either access keys or sas or service principal
+        //need either access keys or sas
         if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
                 || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
             if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
                     || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-                // service principal
-                return props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME) && props.containsKey(AzureConstants.AZURE_TENANT_ID) &&
-                        props.containsKey(AzureConstants.AZURE_CLIENT_ID) && props.containsKey(AzureConstants.AZURE_CLIENT_SECRET) &&
-                        props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
+                return false;
             }
         }
         return true;
@@ -180,10 +177,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         }
         log.info("Starting to delete container. containerName={}", containerName);
         Properties props = getAzureConfig();
-        props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
-
-        CloudBlobContainer container = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
-                .build().getBlobContainer();
+        CloudBlobContainer container = Utils.getBlobContainer(Utils.getConnectionStringFromProperties(props), containerName);
         boolean result = container.deleteIfExists();
         log.info("Container deleted. containerName={} existed={}", containerName, result);
     }

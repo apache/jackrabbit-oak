@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 
 public class ConsoleIndexingReporterTest {
 
-    private static final char DELIM = new DecimalFormatSymbols().getDecimalSeparator();
+    private static char DELIM = new DecimalFormatSymbols().getDecimalSeparator();
 
     @Test
     public void emptyReport() {
@@ -37,8 +37,6 @@ public class ConsoleIndexingReporterTest {
                 "Configuration:\n" +
                 "\n" +
                 "Environment Variables:\n" +
-                "\n" +
-                "Information:\n" +
                 "\n" +
                 "Timings:\n" +
                 "\n" +
@@ -61,16 +59,8 @@ public class ConsoleIndexingReporterTest {
                 "Environment Variables:\n" +
                 "  ENV_VAR1: <value>\n" +
                 "  ENV_VAR2: <value>\n" +
-                "Information:\n" +
-                "  A message\n" +
-                "  Foo Bar\n" +
                 "Timings:\n" +
-                "  Mongo dump: 00:02:44\n" +
-                "  Merge sort: 00:00:06\n" +
-                "  Build FFS (Dump+Merge): 00:02:59\n" +
-                "  Build Lucene Index: 00:01:14\n" +
-                "  Merge node store: 00:00:00\n" +
-                "  Total time: 00:04:15\n" +
+                "  stage1: 10:23\n" +
                 "Metrics:\n" +
                 "  metric1: 1\n" +
                 "  metric2: 123\n" +
@@ -82,26 +72,16 @@ public class ConsoleIndexingReporterTest {
 
         consoleIndexingReporter.setIndexNames(List.of("index1", "index2"));
 
-        // Should be printed in alphabetic order
         consoleIndexingReporter.addMetric("metric1", 1);
         consoleIndexingReporter.addMetricByteSize("metric2", 123);
         consoleIndexingReporter.addMetricByteSize("metric3", 123456);
         consoleIndexingReporter.addMetricByteSize("metric4", 123456789);
         consoleIndexingReporter.addMetricByteSize("metric5", 1234567890123456L);
 
-        // Should be printed in alphabetic order
         consoleIndexingReporter.addConfig("config1", "value1");
         consoleIndexingReporter.addConfig("config2", 12);
-        consoleIndexingReporter.addInformation("Foo Bar");
-        consoleIndexingReporter.addInformation("A message");
 
-        // These should be printed by the order they were added
-        consoleIndexingReporter.addTiming("Mongo dump", "00:02:44");
-        consoleIndexingReporter.addTiming("Merge sort", "00:00:06");
-        consoleIndexingReporter.addTiming("Build FFS (Dump+Merge)", "00:02:59");
-        consoleIndexingReporter.addTiming("Build Lucene Index", "00:01:14");
-        consoleIndexingReporter.addTiming("Merge node store", "00:00:00");
-        consoleIndexingReporter.addTiming("Total time", "00:04:15");
+        consoleIndexingReporter.addTiming("stage1", "10:23");
 
         String report = consoleIndexingReporter.generateReport();
 
@@ -117,7 +97,7 @@ public class ConsoleIndexingReporterTest {
     }
 
     private String replaceVariable(String report, String varName) {
-        return report.replaceAll(" {2}" + varName + ": .*", "  " + varName + ": <value>");
+        return report.replaceAll("  " + varName + ": .*", "  " + varName + ": <value>");
     }
 
 }

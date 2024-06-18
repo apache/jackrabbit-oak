@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.tool.Utils.readRevisions;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class Revisions {
      */
     public static class Builder {
 
-        private String path;
+        private File path;
 
         private File out;
 
@@ -57,7 +58,7 @@ public class Revisions {
          * @param path the path to an existing segment store.
          * @return this builder.
          */
-        public Builder withPath(String path) {
+        public Builder withPath(File path) {
             this.path = checkNotNull(path);
             return this;
         }
@@ -87,7 +88,7 @@ public class Revisions {
 
     }
 
-    private final String path;
+    private final File path;
 
     private final File out;
 
@@ -96,9 +97,9 @@ public class Revisions {
         this.out = builder.out;
     }
 
-    public int run(RevisionsProcessor p) {
+    public int run() {
         try {
-            listRevisions(p);
+            listRevisions();
             return 0;
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -106,11 +107,11 @@ public class Revisions {
         }
     }
 
-    private void listRevisions(RevisionsProcessor p) throws IOException {
+    private void listRevisions() throws IOException {
         System.out.println("Store " + path);
         System.out.println("Writing revisions to " + out);
 
-        List<String> revs = p.process(path);
+        List<String> revs = readRevisions(path);
 
         if (revs.isEmpty()) {
             System.out.println("No revisions found.");
@@ -122,11 +123,6 @@ public class Revisions {
                 pw.println(r);
             }
         }
-    }
-
-    @FunctionalInterface
-    public interface RevisionsProcessor {
-        List<String> process(String path);
     }
 
 }

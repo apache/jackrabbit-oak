@@ -59,7 +59,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
 
 /**
  * Abstract base test for external-authentication tests.
@@ -193,7 +192,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     }
 
     protected DefaultSyncHandler registerSyncHandler(@NotNull Map<String, Object> syncConfigMap, @NotNull String idpName) {
-        context.registerService(SyncHandlerMapping.class, mock(ExternalLoginModuleFactory.class), ImmutableMap.of(
+        context.registerService(SyncHandlerMapping.class, new ExternalLoginModuleFactory(), ImmutableMap.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idpName,
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfigMap.get(DefaultSyncConfigImpl.PARAM_NAME)
         ));

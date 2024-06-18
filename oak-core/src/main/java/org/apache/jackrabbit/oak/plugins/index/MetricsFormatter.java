@@ -17,30 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.guava.common.base.Preconditions;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
-import java.util.concurrent.TimeUnit;
-
 public class MetricsFormatter {
-
-    public static String createMetricsWithDurationOnly(Stopwatch taskStartWatch) {
-        return createMetricsWithDurationOnly(taskStartWatch.elapsed(TimeUnit.SECONDS));
-    }
-
-    public static String createMetricsWithDurationOnly(long totalDurationSeconds) {
-        return MetricsFormatter.newBuilder()
-                .add("duration", FormattingUtils.formatToSeconds(totalDurationSeconds))
-                .add("durationSeconds", totalDurationSeconds)
-                .build();
-    }
-
+    private final JsopBuilder jsopBuilder = new JsopBuilder();
+    private boolean isWritable = true;
     public static MetricsFormatter newBuilder() {
         return new MetricsFormatter();
     }
-
-    private final JsopBuilder jsopBuilder = new JsopBuilder();
-    private boolean isWritable = true;
 
     private MetricsFormatter() {
         jsopBuilder.object();
@@ -71,7 +55,7 @@ public class MetricsFormatter {
     }
 
     public String build() {
-        if (isWritable) {
+        if (isWritable){
             jsopBuilder.endObject();
             isWritable = false;
         }
