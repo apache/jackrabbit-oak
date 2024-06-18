@@ -169,7 +169,7 @@ class VersionEditor implements Editor {
             // If a node that was moved or copied to the location of a deleted node is currently
             // being processed (see OAK-8848 for context), the restore operation must NOT be
             // performed when the JCR_BASEVERSION property change is processed for the node.
-            if (!nodeWasMoved()) {
+            if (!nodeWasMovedOrCopied()) {
 
                 String baseVersion = after.getValue(Type.REFERENCE);
                 if (baseVersion.startsWith(RESTORE_PREFIX)) {
@@ -195,7 +195,7 @@ class VersionEditor implements Editor {
             // This check works because the only way that moving a node in a location is allowed
             // is if there is no existing (undeleted) node in that location.
             // Property comparison should not fail for two jcr:versionHistory properties in this case.
-            if (!nodeWasMoved()) {
+            if (!nodeWasMovedOrCopied()) {
                 throwProtected(after.getName());
             }
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
@@ -207,7 +207,7 @@ class VersionEditor implements Editor {
     /**
      * Returns true if and only if the given node was moved or copied from another location.
      */
-    private boolean nodeWasMoved() {
+    private boolean nodeWasMovedOrCopied() {
         return !this.before.hasProperty(MoveDetector.SOURCE_PATH) && this.after.hasProperty(MoveDetector.SOURCE_PATH);
     }
 
