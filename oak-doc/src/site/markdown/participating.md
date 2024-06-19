@@ -41,7 +41,8 @@ or patches. To subscribe to issue notifications, send a message to
   otherwise).
 - Be careful not to include sensitive information (be it in descriptions,
   attachments, or log files).
- 
+ - Feel free to comment in the ticket what is being worked on. Eg to mention work starts in a certain branch B, or that the PR is ready for review, or that it is merged. It can make it easier for others to follow.
+
 ## Source Code
 
 The latest Oak sources are available on [GitHub](https://github.com/apache/jackrabbit-oak).
