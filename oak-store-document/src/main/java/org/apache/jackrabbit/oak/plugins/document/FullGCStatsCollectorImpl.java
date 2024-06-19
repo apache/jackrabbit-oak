@@ -18,11 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.GCPhase;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
@@ -37,7 +42,9 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     static final String READ_DOC = "READ_DOC";
     static final String DELETED_ORPHAN_NODE = "DELETED_ORPHAN_NODE";
     static final String DELETED_PROPERTY = "DELETED_PROPERTY";
+    static final String DELETED_INTERNAL_PROPERTY = "DELETED_INTERNAL_PROPERTY";
     static final String DELETED_UNMERGED_BC = "DELETED_UNMERGED_BC";
+    static final String DELETED_REVISION = "DELETED_REVISION";
     static final String UPDATED_DOC = "UPDATED_DOC";
     static final String SKIPPED_DOC = "SKIPPED_DOC";
     static final String FULL_GC_ACTIVE_TIMER = "FULL_GC_ACTIVE_TIMER";
@@ -52,12 +59,20 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     static final String COUNTER = "COUNTER";
     static final String FAILURE_COUNTER = "FAILURE";
 
+    private final StatisticsProvider provider;
+
     private final MeterStats readDoc;
     private final MeterStats deletedOrphanNode;
     private final MeterStats deletedProperty;
     private final MeterStats deletedUnmergedBC;
     private final MeterStats updatedDoc;
     private final MeterStats skippedDoc;
+
+    private final Map<GCPhase, MeterStats> deletedRevisions;
+    private final Map<GCPhase, MeterStats> deletedOrphanNodeStats;
+    private final Map<GCPhase, MeterStats> deletedPropertyStats;
+    private final Map<GCPhase, MeterStats> deletedUnmergedBCStats;
+
     private final TimerStats fullGCActiveTimer;
     private final TimerStats fullGCTimer;
     private final TimerStats collectFullGCTimer;
@@ -71,6 +86,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private final CounterStats failureCounter;
 
     FullGCStatsCollectorImpl(StatisticsProvider provider) {
+        this.provider = provider;
 
         readDoc = meter(provider, READ_DOC);
         deletedOrphanNode = meter(provider, DELETED_ORPHAN_NODE);
@@ -78,6 +94,11 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         deletedUnmergedBC = meter(provider, DELETED_UNMERGED_BC);
         updatedDoc = meter(provider, UPDATED_DOC);
         skippedDoc = meter(provider, SKIPPED_DOC);
+
+        deletedRevisions = new EnumMap<>(GCPhase.class);
+        deletedOrphanNodeStats = new EnumMap<>(GCPhase.class);
+        deletedPropertyStats = new EnumMap<>(GCPhase.class);
+        deletedUnmergedBCStats = new EnumMap<>(GCPhase.class);
 
         fullGCActiveTimer = timer(provider, FULL_GC_ACTIVE_TIMER);
         fullGCTimer = timer(provider, FULL_GC_TIMER);
@@ -97,6 +118,26 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     @Override
     public void documentRead() {
         readDoc.mark();
+    }
+
+    @Override
+    public void collectedPropertiesDeleted(GCPhase phase, long numProps) {
+        getMeter(deletedPropertyStats, phase, DELETED_PROPERTY).mark(numProps);
+    }
+
+    @Override
+    public void collectedUnmergedBranchCommits(GCPhase phase, long numCommits) {
+        getMeter(deletedUnmergedBCStats, phase, DELETED_UNMERGED_BC).mark(numCommits);
+    }
+
+    @Override
+    public void collectedRevisions(GCPhase phase, long numRevs) {
+        getMeter(deletedRevisions, phase, DELETED_REVISION).mark(numRevs);
+    }
+
+    @Override
+    public void collectedInternalRevisions(GCPhase phase, long numRevs) {
+        getMeter(deletedOrphanNodeStats, phase, DELETED_INTERNAL_PROPERTY).mark(numRevs);
     }
 
     @Override
@@ -144,8 +185,40 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         }
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("FullGCStatsCollectorImpl{");
+        sb.append(", readDoc=").append(readDoc.getCount());
+        sb.append(", deletedOrphanNode=").append(deletedOrphanNode.getCount());
+        sb.append(", deletedProperty=").append(deletedProperty.getCount());
+        sb.append(", deletedUnmergedBC=").append(deletedUnmergedBC.getCount());
+        sb.append(", updatedDoc=").append(updatedDoc.getCount());
+        sb.append(", skippedDoc=").append(skippedDoc.getCount());
+        sb.append(", deletedRevisions=").append(mapToString(deletedRevisions));
+        sb.append(", deletedOrphanNodeStats=").append(mapToString(deletedOrphanNodeStats));
+        sb.append(", deletedPropertyStats=").append(mapToString(deletedPropertyStats));
+        sb.append(", deletedUnmergedBCStats=").append(mapToString(deletedUnmergedBCStats));
+        sb.append('}');
+        return sb.toString();
+    }
 
     //----------------------------< internal >----------------------------------
+
+    private String mapToString(Map<GCPhase, MeterStats> map) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        boolean isFirst = true;
+        for (Map.Entry<GCPhase, MeterStats> entry : map.entrySet()) {
+            if (!isFirst) {
+                sb.append(", ");
+            }
+            sb.append(entry.getKey()).append("=").append(entry.getValue().getCount());
+            isFirst = false;
+        }
+        sb.append("}");
+        return sb.toString();
+    }
 
     private static MeterStats meter(StatisticsProvider provider, String name) {
         return provider.getMeter(qualifiedName(name), DEFAULT);
@@ -161,6 +234,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
     private static String qualifiedName(String metricName) {
         return FULL_GC + "." + metricName;
+    }
+
+    private MeterStats getMeter(Map<GCPhase, MeterStats> map, GCPhase phase, String name) {
+        return map.computeIfAbsent(phase, p -> meter(provider, name + "." + p.name()));
     }
 
 }
