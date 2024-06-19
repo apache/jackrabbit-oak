@@ -74,7 +74,12 @@ public final class AzureUtilities {
     private static final long TOKEN_REFRESHER_DELAY = 1L;
 
     private static final Logger log = LoggerFactory.getLogger(AzureUtilities.class);
-    private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+
+    private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "Access Token Refresher");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private AzureUtilities() {
     }
