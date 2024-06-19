@@ -35,7 +35,7 @@ or patches. To subscribe to issue notifications, send a message to
   closed ticket, so we close tickets only when a public release has been made
   with that change. Until that happens, a ticket can always be re-opened
   and further work can happen.
-- On maintenance branch (currently 1.22): re-use the existing Jira ticket an
+- On maintenance branch (currently 1.22): re-use the existing Jira ticket and
   just add to "Fix Version" (unless the backport is complex).
 - Add "Affects Version" and "Fix Version" as and when applicable (but not
   otherwise).
