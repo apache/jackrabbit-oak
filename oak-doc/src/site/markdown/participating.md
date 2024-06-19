@@ -54,6 +54,16 @@ We generally follow a [CTR](https://www.apache.org/foundation/glossary.html#Comm
 However it is up to each individual committer to pro-actively ask for a review of a patch on
 oak-dev@ or to even call for a [RTC](https://www.apache.org/foundation/glossary.html#ReviewThenCommit).
 
+#### API Changes
+
+We use the Maven "baseline" plugin to maintain semantic versioning Information
+for packages. When it asks for a version bump, make sure that the implications
+are fully understood. If it asks for a *major* version bump, that implies that
+the new version is incompatible with previous releases. This should only happen
+in very rare circumstances; in doubt, it should be reviewed by experienced
+committers.
+
+
 #### Backports
 
 Special care should be taken with backports to maintenance branches, in
