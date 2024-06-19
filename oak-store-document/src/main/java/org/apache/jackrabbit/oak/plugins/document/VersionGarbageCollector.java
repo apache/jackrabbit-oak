@@ -216,6 +216,8 @@ public class VersionGarbageCollector {
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
+    private Set<String> fullGCIncludePaths;
+    private Set<String> fullGCExcludePaths;
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -236,6 +238,11 @@ public class VersionGarbageCollector {
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
+    }
+
+    void setFullGCPaths(Set<String> includes, Set<String> excludes) {
+        this.fullGCIncludePaths = includes;
+        this.fullGCExcludePaths = excludes;
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -833,7 +840,7 @@ public class VersionGarbageCollector {
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId, fullGCIncludePaths, fullGCExcludePaths);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;

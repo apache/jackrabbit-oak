@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -811,15 +812,104 @@ public class Utils {
      * a default {@code batchSize}.
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue,
+            final Set<String> includePaths, final Set<String> excludePaths) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue,
+                MIN_ID_VALUE, includePaths, excludePaths, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue, String fromId) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId, DEFAULT_BATCH_SIZE);
     }
 
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue, String fromId,
+            final Set<String> includePaths, final Set<String> excludePaths) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId,
+                includePaths, excludePaths, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Default implementation for applying include/exclude path prefixes
+     * client-side, meaning the query to the DocumentStore searches for all
+     * documents and include/excludes are then filtered after receiving that
+     * query.
+     * This variant is obviously not intended for production use, as client
+     * side filtering is slow. Hence this is only used for testing for
+     * any non-MongoDocumentStore. It should not be enabled in production,
+     * unless this performance hit here is understood and accepted.
+     * @param path the path for which to evaluate the include/excludes
+     * @param includes set of path prefixes which should only be considered
+     * @param excludes set of path prefixes which should be excluded.
+     * if these overlap with includes, then exclude has precedence.
+     * @return whether the provided path is included or not
+     */
+    private static boolean isIncluded(Path path, Set<String> includes, Set<String> excludes) {
+        // check first if includes/excludes are empty
+        if ((includes == null || includes.isEmpty())
+                && (excludes == null || excludes.isEmpty())) {
+            return true;
+        }
+        String s = path.toString();
+        // then check excludes first
+        if (excludes != null && !excludes.isEmpty()) {
+            for (String anExclude : excludes) {
+                if (s.startsWith(anExclude)) {
+                    // if there is an exclude matching the path
+                    // we need to definitely exclude it,
+                    // no matter whether there is even an include
+                    // for it or not
+                    return false;
+                }
+            }
+        }
+        // then the includes if there are any
+        if (includes != null && !includes.isEmpty()) {
+            for (String anInclude : includes) {
+                if (s.startsWith(anInclude)) {
+                    // if we have a matching include, and given
+                    // it was not excluded above, then this is
+                    // an include
+                    return true;
+                }
+            }
+            // if we have any includes defined, but none of
+            // them matched so far, then this is an exclude
+            return false;
+        }
+        // if we have no includes defined at all, and it
+        // was not excluded, then it is an include
+        return true;
+    }
+
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
             final DocumentStore store, final String indexedProperty,
-            final long startValue, String fromId, final int batchSize) {
+            final long startValue, String fromId,
+            final int batchSize) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId,
+                null, null, batchSize);
+    }
+
+    private static Iterable<NodeDocument> internalGetSelectedDocuments(
+            final DocumentStore store, final String indexedProperty,
+            final long startValue, String fromId,
+            final Set<String> includePaths, final Set<String> excludePaths,
+            final int batchSize) {
         if (batchSize < 2) {
             throw new IllegalArgumentException("batchSize must be > 1");
+        }
+        if ((store instanceof MongoDocumentStore)
+                && (includePaths != null || excludePaths != null)) {
+            throw new IllegalArgumentException("cannot use with MongoDocumentStore");
         }
         return new Iterable<NodeDocument>() {
             @Override
@@ -832,6 +922,25 @@ public class Utils {
 
                     @Override
                     protected NodeDocument computeNext() {
+                        do {
+                            final NodeDocument n = doComputeNext();
+                            if (n == null) {
+                                return null;
+                            }
+                            if (isIncluded(n.getPath(), includePaths, excludePaths)) {
+                                return n;
+                            }
+                            // else repeat
+                            // note that this loop is potentially dangerous,
+                            // depending on the include/exclude definition.
+                            // that's why currently this variant is not supported
+                            // against MongoDocumentStore. I.e. it is only used
+                            // for unit testing. FullGC for RDBDocumentStore
+                            // is not supported at all.
+                        } while(true);
+                    }
+
+                    private NodeDocument doComputeNext() {
                         // read next batch if necessary
                         if (!batch.hasNext()) {
                             batch = nextBatch();
