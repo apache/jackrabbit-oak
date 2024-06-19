@@ -36,13 +36,12 @@ import org.junit.*;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.Assert.assertNull;
 
 public class DocumentPropertyStateTest {
 
@@ -222,11 +221,14 @@ public class DocumentPropertyStateTest {
         String testString = "\"\"simple:foo\", \"cr:a\\n\\b\", \"dquote:a\\\"b\", \"bs:a\\\\b\", \"euro:a\\u201c\", \"gclef:\\uD834\\uDD1E\",\n" +
                 "                \"tab:a\\tb\", \"nul:a\\u0000b\", \"brokensurrogate:\\ud800\"";
 
+        DocumentPropertyState.setCompressionThreshold(10);
         DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", testString, Compression.GZIP);
 
-        String value = state.getValue(Type.STRING);
+        String value = state.getValue();
 
-        assertEquals(value,"");
+        assertEquals(value, testString);
+        assertEquals(testString.length(), 159);
+        assertEquals(state.getCompressedValue().length, 133);
     }
 
 }
