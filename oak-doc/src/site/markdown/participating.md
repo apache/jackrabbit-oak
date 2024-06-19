@@ -50,6 +50,20 @@ To subscribe to commit notifications, send a message to [oak-commits@](mailto:oa
 
 ### Making Changes
 
+We generally follow a [CTR](https://www.apache.org/foundation/glossary.html#CommitThenReview) policy.
+However it is up to each individual committer to pro-actively ask for a review of a patch on
+oak-dev@ or to even call for a [RTC](https://www.apache.org/foundation/glossary.html#ReviewThenCommit).
+
+#### Backports
+
+Special care should be taken with backports to maintenance branches, in
+particular when the public API is affected. Back ports bear a certain risk of
+introducing regressions to otherwise stable branches. Each back ported change
+should be carefully evaluated for its potential impact, risk and possible
+mitigation. It is the responsibility of each committer to asses these and ask
+for advice or reviewing on oak-dev@ if uncertain. Whether using RTC or CTR is
+up to the committer.
+
 #### Pull Requests (PRs)
 
 - Minimize PRs; do not modify whitespace/coding style except where needed. This
