@@ -43,7 +43,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class DocumentPropertyStateTest {
 
@@ -51,6 +50,7 @@ public class DocumentPropertyStateTest {
     private static final String TEST_NODE = "test";
     private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
     private static final int DEFAULT_COMPRESSION_THRESHOLD = 1024;
+    private static final int DISABLED_COMPRESSION = -1;
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -75,7 +75,11 @@ public class DocumentPropertyStateTest {
 
     @After
     public void tearDown() {
-        ns.dispose();
+        try {
+            ns.dispose();
+        } finally {
+            DocumentPropertyState.setCompressionThreshold(DISABLED_COMPRESSION);
+        }
     }
 
     // OAK-5462
