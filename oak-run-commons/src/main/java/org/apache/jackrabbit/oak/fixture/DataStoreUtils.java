@@ -151,14 +151,16 @@ public class DataStoreUtils {
 
     public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {
         if (config == null) {
+            log.warn("config not provided, cannot initializing blob container");
             return;
         }
         if (Strings.isNullOrEmpty(containerName)) {
+            log.warn("container name is null or blank, cannot initializing blob container");
             return;
         }
         CloudBlobContainer container = getCloudBlobContainer(config, containerName);
         if (container == null) {
-            log.info("container is not initialized");
+            log.info("cannot delete the container as it is not initialized");
             return;
         }
         log.info("deleting container [{}]", containerName);
@@ -182,6 +184,7 @@ public class DataStoreUtils {
         final String sasToken = (String) config.get(AzureConstants.AZURE_SAS);
 
         if (StringUtils.isAllBlank(azureConnectionString, clientId, clientSecret, tenantId, accountName, accountKey)) {
+            log.warn("No valid config found for initializing blob container");
             return null;
         }
 
