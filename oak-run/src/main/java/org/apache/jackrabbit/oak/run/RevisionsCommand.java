@@ -38,7 +38,18 @@ import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
-import org.apache.jackrabbit.oak.plugins.document.*;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
+import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
+import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
+import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
+import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -304,8 +315,7 @@ public class RevisionsCommand implements Command {
         System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
-                isEmbeddedVerificationEnabled(builder),
-                new FullGCOptions(isFullGCModeGapOrphansEnabled(builder), isFullGCModeEmptyPropertiesEnabled(builder)));
+                isEmbeddedVerificationEnabled(builder), getFullGCMode(builder));
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());

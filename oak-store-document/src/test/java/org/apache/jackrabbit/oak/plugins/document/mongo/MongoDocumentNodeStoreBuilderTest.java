@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -79,14 +80,9 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void fullGCModeGapOrphansDisabled() {
+    public void fullGCModeDefaultValue() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreFullGCModeGapOrphansFeature());
-    }
-
-    @Test
-    public void fullGCModeEmptyPropertiesDisabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreFullGCModeEmptyPropertiesFeature());
+        final int FULL_GC_MODE_NONE = 0;
+        assertEquals(builder.getFullGCMode(), FULL_GC_MODE_NONE);
     }
 }

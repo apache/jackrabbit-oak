@@ -531,6 +531,51 @@ public class VersionGCTest {
 
     // OAK-10370 END
 
+    // OAK-10896
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationNotApplicable() throws Exception {
+        int FULL_GC_MODE_NOT_ALLOWED_VALUE = 5;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                FULL_GC_MODE_NOT_ALLOWED_VALUE);
+
+        assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
+                "will set fullGcMode to default NONE", gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationNone() throws Exception {
+        int FULL_GC_MODE_NONE = 0;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                FULL_GC_MODE_NONE);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationGapOrphans() throws Exception {
+        int FULL_GC_MODE_GAP_ORPHANS = 2;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                FULL_GC_MODE_GAP_ORPHANS);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationGapOrphansEmptyProperties() throws Exception {
+        int FULL_GC_MODE_GAP_ORPHANS_EMPTY_PROPERTIES = 3;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                FULL_GC_MODE_GAP_ORPHANS_EMPTY_PROPERTIES);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS);
+    }
+
+    // OAK-10896 END
+
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
         return execService.submit(new Callable<VersionGCStats>() {

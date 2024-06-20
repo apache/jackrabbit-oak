@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,34 +94,9 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void fullGCModeGapOrphansFeatureDisabled() {
+    public void fullGCModeHasDefaultValue() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        builder.setFullGCModeGapOrphansEnabled(true);
-        assertFalse(builder.isFullGCModeGapOrphansEnabled());
-    }
-
-    @Test
-    public void fullGCModeGapOrphansFeatureToggleDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature fullGCModeGapOrphansFeature = mock(Feature.class);
-        when(fullGCModeGapOrphansFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreFullGCModeGapOrphansFeature(fullGCModeGapOrphansFeature);
-        assertNull(builder.getDocStoreFullGCModeGapOrphansFeature());
-    }
-
-    @Test
-    public void fullGCModeEmptyPropertiesFeatureDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        builder.setFullGCModeEmptyPropertiesEnabled(true);
-        assertFalse(builder.isFullGCModeEmptyPropertiesEnabled());
-    }
-
-    @Test
-    public void fullGCModeEmptyPropertiesFeatureToggleDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature fullGCModeEmptyPropertiesFeature = mock(Feature.class);
-        when(fullGCModeEmptyPropertiesFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreFullGCModeEmptyPropertiesFeature(fullGCModeEmptyPropertiesFeature);
-        assertNull(builder.getDocStoreFullGCModeEmptyPropertiesFeature());
+        builder.setFullGCMode(3);
+        assertEquals(0, builder.getFullGCMode());
     }
 }

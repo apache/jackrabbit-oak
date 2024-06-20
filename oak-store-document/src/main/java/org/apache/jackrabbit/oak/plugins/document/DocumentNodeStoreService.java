@@ -140,7 +140,7 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
-    static final boolean DEFAULT_FULL_GC_MODE_GAP_ORPHANS_ENABLED = false;
+    static final int DEFAULT_FULL_GC_MODE = 0;
     static final boolean DEFAULT_FULL_GC_EMPTY_PROPERTIES_ENABLED = false;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
@@ -204,12 +204,12 @@ public class DocumentNodeStoreService {
     /**
      * Feature toggle name to enable full GC mode GAP_ORPHANS cleanup for Mongo Document Store
      */
-    private static final String FT_NAME_FULL_GC_MODE_GAP_ORPHANS = "FT_FULL_GC_MODE_GAP_ORPHANS";
+    private static final String FT_NAME_FULL_GC_MODE_GAP_ORPHANS = "FT_FULL_GC_MODE_GAP_ORPHANS_OAK-10896";
 
     /**
      * Feature toggle name to enable full GC mode EMPTY_PROPERTIES cleanup for Mongo Document Store
      */
-    private static final String FT_NAME_FULL_GC_MODE_EMPTY_PROPERTIES = "FT_FULL_GC_MODE_EMPTY_PROPERTIES";
+    private static final String FT_NAME_FULL_GC_MODE_EMPTY_PROPERTIES = "FT_FULL_GC_MODE_EMPTY_PROPERTIES_OAK-10896";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -516,8 +516,7 @@ public class DocumentNodeStoreService {
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setFullGCEnabled(config.fullGCEnabled()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
-                setFullGCModeGapOrphansEnabled(config.fullGCModeGapOrphansEnabled()).
-                setFullGCModeEmptyPropertiesEnabled(config.fullGCModeEmptyPropertiesEnabled()).
+                setFullGCMode(config.fullGCMode()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).

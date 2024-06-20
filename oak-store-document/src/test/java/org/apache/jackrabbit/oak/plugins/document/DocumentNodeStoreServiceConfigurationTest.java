@@ -116,6 +116,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
+    public void fullGCModeValueSet() throws Exception {
+        int fullGCModeValue = 2;
+        addConfigurationEntry(preset, "fullGCMode", fullGCModeValue);
+        Configuration config = createConfiguration();
+        assertEquals(fullGCModeValue, config.fullGCMode());
+    }
+
+    @Test
     public void embeddedVerificationEnabled() throws Exception {
         boolean embeddedVerificationEnabled = false;
         addConfigurationEntry(preset, "embeddedVerificationEnabled", embeddedVerificationEnabled);

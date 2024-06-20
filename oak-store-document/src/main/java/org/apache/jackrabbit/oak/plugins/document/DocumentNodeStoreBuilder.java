@@ -131,8 +131,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
-    private Feature docStoreFullGCModeGapOrphansFeature;
-    private Feature docStoreFullGCModeEmptyPropertiesFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -173,8 +171,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
-    private boolean fullGCModeGapOrphansEnabled;
-    private boolean fullGCModeEmptyPropertiesEnabled;
+    private int fullGCMode;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -316,19 +313,14 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.embeddedVerificationEnabled;
     }
 
-    public T setFullGCModeGapOrphansEnabled(boolean b) {
-        this.fullGCModeGapOrphansEnabled = b;
+    public T setFullGCMode(int v) {
+        this.fullGCMode = v;
         return thisBuilder();
     }
 
-    public boolean isFullGCModeGapOrphansEnabled() { return this.fullGCModeGapOrphansEnabled; }
-
-    public T setFullGCModeEmptyPropertiesEnabled(boolean b) {
-        this.fullGCModeEmptyPropertiesEnabled = b;
-        return thisBuilder();
+    public int getFullGCMode() {
+        return this.fullGCMode;
     }
-
-    public boolean isFullGCModeEmptyPropertiesEnabled() { return this.fullGCModeEmptyPropertiesEnabled; }
 
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
@@ -397,22 +389,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     public Feature getDocStoreEmbeddedVerificationFeature() {
         return docStoreEmbeddedVerificationFeature;
     }
-
-    public T setDocStoreFullGCModeGapOrphansFeature(@Nullable Feature docStoreFullGCModeGapOrphans) {
-        this.docStoreFullGCModeGapOrphansFeature = docStoreFullGCModeGapOrphans;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getDocStoreFullGCModeGapOrphansFeature() { return this.docStoreFullGCModeGapOrphansFeature;    }
-
-    public T setDocStoreFullGCModeEmptyPropertiesFeature(@Nullable Feature docStoreFullGCModeEmptyProperties) {
-        this.docStoreFullGCModeEmptyPropertiesFeature = docStoreFullGCModeEmptyProperties;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getDocStoreFullGCModeEmptyPropertiesFeature() { return this.docStoreFullGCModeEmptyPropertiesFeature; };
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;

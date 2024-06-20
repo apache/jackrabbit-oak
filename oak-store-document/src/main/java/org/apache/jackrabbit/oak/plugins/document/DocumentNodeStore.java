@@ -656,8 +656,7 @@ public final class DocumentNodeStore
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
-                isEmbeddedVerificationEnabled(builder),
-                new FullGCOptions(isFullGCModeGapOrphansEnabled(builder), Utils.isFullGCModeEmptyPropertiesEnabled(builder)));
+                isEmbeddedVerificationEnabled(builder), getFullGCMode(builder));
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.journalGarbageCollector = new JournalGarbageCollector(

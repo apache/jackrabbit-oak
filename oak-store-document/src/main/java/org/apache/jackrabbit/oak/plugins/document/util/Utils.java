@@ -1010,25 +1010,13 @@ public class Utils {
     }
 
     /**
-     * Check whether full GC mode gap orphans is enabled or not for document store.
+     * Returns the full GC mode value for the DocumentNodeStore.
      *
      * @param builder instance for DocumentNodeStoreBuilder
      * @return true if full GC is enabled else false
      */
-    public static boolean isFullGCModeGapOrphansEnabled(final DocumentNodeStoreBuilder<?> builder) {
-        final Feature docStoreFullGCModeGapOrphansFeature = builder.getDocStoreFullGCModeGapOrphansFeature();
-        return builder.isFullGCModeGapOrphansEnabled() || (docStoreFullGCModeGapOrphansFeature != null && docStoreFullGCModeGapOrphansFeature.isEnabled());
-    }
-
-    /**
-     * Check whether full GC mode gap orphans is enabled or not for document store.
-     *
-     * @param builder instance for DocumentNodeStoreBuilder
-     * @return true if full GC is enabled else false
-     */
-    public static boolean isFullGCModeEmptyPropertiesEnabled(final DocumentNodeStoreBuilder<?> builder) {
-        final Feature docStoreFullGCModeEmptyPropertiesFeature = builder.getDocStoreFullGCModeEmptyPropertiesFeature();
-        return builder.isFullGCModeEmptyPropertiesEnabled() || (docStoreFullGCModeEmptyPropertiesFeature != null && docStoreFullGCModeEmptyPropertiesFeature.isEnabled());
+    public static int getFullGCMode(final DocumentNodeStoreBuilder<?> builder) {
+        return builder.getFullGCMode();
     }
 
     /**

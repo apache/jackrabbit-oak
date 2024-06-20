@@ -59,6 +59,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getFullGCMode;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -234,6 +235,30 @@ public class UtilsTest {
         builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
         boolean fullGCEnabled = isFullGCEnabled(builder);
         assertFalse("Full GC is disabled for RDB Document Store", fullGCEnabled);
+    }
+
+    @Test
+    public void fullGCModeDefaultValue() {
+        int fullGCModeDefaultValue = getFullGCMode(newDocumentNodeStoreBuilder());
+        final int FULL_GC_MODE_NONE = 0;
+        assertEquals("Full GC mode has NONE value by default", fullGCModeDefaultValue, FULL_GC_MODE_NONE);
+    }
+
+    @Test
+    public void fullGCModeSetViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        final int FULL_GC_MODE_GAP_ORPHANS = 2;
+        builder.setFullGCMode(FULL_GC_MODE_GAP_ORPHANS);
+        int fullGCModeValue = getFullGCMode(builder);
+        assertEquals("Full GC mode set correctly via configuration", fullGCModeValue, FULL_GC_MODE_GAP_ORPHANS);
+    }
+
+    @Test
+    public void fullGCModeHasDefaultValueForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCMode(3);
+        int fullGCModeValue = getFullGCMode(builder);
+        assertEquals("Full GC mode has default value 0 for RDB Document Store", fullGCModeValue, 0);
     }
 
     @Test
