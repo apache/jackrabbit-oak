@@ -240,6 +240,16 @@ public class VersionGarbageCollector {
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
     }
 
+    /**
+     * Please note that at the moment the include/excludes do not
+     * take long paths into account. That is, if a long path was
+     * supposed to be included via an include, it is not. And if
+     * a long path was supposed to be excluded via an exclude, it
+     * is not. Reason for this is that long paths would require
+     * the mongo query to include a '_path' condition - which disallows
+     * mongo from using the '_modified_id' index. IOW long paths
+     * would result in full scans - which results in bad performance.
+     */
     void setFullGCPaths(@NotNull Set<String> includes, @NotNull Set<String> excludes) {
         this.fullGCIncludePaths = requireNonNull(includes);
         this.fullGCExcludePaths = requireNonNull(excludes);

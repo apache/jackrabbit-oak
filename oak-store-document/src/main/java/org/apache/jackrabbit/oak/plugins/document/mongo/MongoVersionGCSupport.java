@@ -137,7 +137,15 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * Calculate the bson representing including only the provided
      * include path prefixes and/or excluding the provided
      * exclude path prefixes - if any are provided - AND the provided
-     * query
+     * query.
+     * Please note that at the moment the include/excludes do not
+     * take long paths into account. That is, if a long path was
+     * supposed to be included via an include, it is not. And if
+     * a long path was supposed to be excluded via an exclude, it
+     * is not. Reason for this is that long paths would require
+     * the mongo query to include a '_path' condition - which disallows
+     * mongo from using the '_modified_id' index. IOW long paths
+     * would result in full scans - which results in bad performance.
      * @param includes set of path prefixes which should only be considered
      * @param excludes set of path prefixes which should be excluded.
      * if these overlap with includes, then exclude has precedence.
