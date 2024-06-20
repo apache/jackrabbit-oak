@@ -96,7 +96,7 @@ public class AzureRepositoryLock implements RepositoryLock {
                 leaseId = blob.acquireLease(leaseDuration, null);
                 writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
-            } catch (StorageException | IOException e) {
+            } catch (Exception e) {
                 if (ex == null) {
                     log.info("Can't acquire the lease. Retrying every 1s. Timeout is set to {}s.", timeoutSec);
                 }
@@ -137,17 +137,23 @@ public class AzureRepositoryLock implements RepositoryLock {
                     writeAccessController.enableWriting();
                     lastUpdate = System.currentTimeMillis();
                 }
-            } catch (StorageException e) {
+            } catch (Exception e) {
                 timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
 
                 if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
                     writeAccessController.disableWriting();
                 }
 
-                if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT, StorageErrorCode.SERVICE_INTERNAL_ERROR, StorageErrorCodeStrings.SERVER_BUSY, StorageErrorCodeStrings.INTERNAL_ERROR).contains(e.getErrorCode())) {
-                    log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
-                } else if (e.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
-                    log.warn("Client side error. Retry in progress ...", e);
+                StorageException storageException = e instanceof StorageException ? (StorageException) e : null;
+
+                if (storageException != null
+                        && Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT
+                        , StorageErrorCode.SERVICE_INTERNAL_ERROR
+                        , StorageErrorCodeStrings.SERVER_BUSY
+                        , StorageErrorCodeStrings.INTERNAL_ERROR) .contains(storageException.getErrorCode())) {
+                    log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", storageException);
+                } else if (storageException != null && storageException.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
+                    log.warn("Client side error. Retry in progress ...", storageException);
                 } else {
                     log.error("Can't renew the lease", e);
                     shutdownHook.run();
