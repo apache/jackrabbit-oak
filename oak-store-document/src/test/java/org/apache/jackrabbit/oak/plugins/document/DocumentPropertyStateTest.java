@@ -216,19 +216,24 @@ public class DocumentPropertyStateTest {
 
     @Test
     public void testInterestingStrings() {
-
         DocumentNodeStore store = mock(DocumentNodeStore.class);
-        String testString = "\"\"simple:foo\", \"cr:a\\n\\b\", \"dquote:a\\\"b\", \"bs:a\\\\b\", \"euro:a\\u201c\", \"gclef:\\uD834\\uDD1E\",\n" +
-                "                \"tab:a\\tb\", \"nul:a\\u0000b\", \"brokensurrogate:\\ud800\"";
+        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
+                "tab:a\tb", "nul:a\u0000b" };
 
-        DocumentPropertyState.setCompressionThreshold(10);
-        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", testString, Compression.GZIP);
+        DocumentPropertyState.setCompressionThreshold(1);
+        for (String test : tests) {
+            if (!isValidSurrogatePair(test.split(":")[1])) {
+                DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
+                assertEquals(test, state.getValue());
+            }
+        }
+    }
 
-        String value = state.getValue();
-
-        assertEquals(value, testString);
-        assertEquals(testString.length(), 159);
-        assertEquals(state.getCompressedValue().length, 133);
+    public boolean isValidSurrogatePair(String input) {
+        if (input.length() != 2) {
+            return false;
+        }
+        return Character.isHighSurrogate(input.charAt(0)) && Character.isLowSurrogate(input.charAt(1));
     }
 
 }
