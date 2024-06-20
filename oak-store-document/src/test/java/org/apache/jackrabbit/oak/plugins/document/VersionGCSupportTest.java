@@ -337,7 +337,7 @@ public class VersionGCSupportTest {
         oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
 
         // all documents had been fetched, now we won't get any document
-        modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, null, null);
+        modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
         assertEquals(0, stream(modifiedDocs.spliterator(), false).count());
 
     }
