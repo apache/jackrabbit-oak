@@ -461,7 +461,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // from the last document that it had downloaded. The document that was modified will not be
                         // retrieved by this query. See https://issues.apache.org/jira/browse/OAK-10903 for more details.
                         long highestModifiedSeen = descendingDownloadTask.getFirstModifiedValueSeen();
-                        LOG.info("Highest modified value seen: {}", highestModifiedSeen);
                         if (highestModifiedSeen == -1) {
                             LOG.warn("No documents downloaded by descending download task.");
                         } else {
@@ -471,8 +470,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             // that were already downloaded, but this is not an issue because the merge-sort will
                             // de-duplicate the entries.
                             LOG.info("Downloading documents modified since the start of the download: _modified >= {}", highestModifiedSeen);
-                            DownloadTask finishTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics, highestModifiedSeen, Long.MAX_VALUE, null);
-                            finishTask.download(mongoFilter);
+                            DownloadTask updatedDocsTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics, highestModifiedSeen, Long.MAX_VALUE, null);
+                            Future<?> updateDocsDownloadFuture = submitDownloadTask(downloadThreadPool, updatedDocsTask, mongoFilter, THREAD_NAME_PREFIX + "-updated-docs");
+                            LOG.info("Waiting for download of updated documents to complete.");
+                            updateDocsDownloadFuture.get();
                         }
                         downloadFinished = true;
                     } catch (TimeoutException e) {
