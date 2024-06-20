@@ -218,11 +218,11 @@ public class DocumentPropertyStateTest {
     public void testInterestingStrings() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
-                "tab:a\tb", "nul:a\u0000b" };
+                "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800"};
 
         DocumentPropertyState.setCompressionThreshold(1);
         for (String test : tests) {
-            if (!isValidSurrogatePair(test.split(":")[1])) {
+            if (isValidSurrogatePair(test.split(":")[1])) {
                 DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
                 assertEquals(test, state.getValue());
             }
