@@ -151,74 +151,75 @@ public class PipelinedMongoConnectionFailureIT {
 
         try (MongoTestBackend rwBackend = PipelineITUtil.createNodeStore(false, mongoUriReliable, builderProvider)) {
             createContent(rwBackend.documentNodeStore);
+        }
 
-            Path resultWithoutInterruption;
-            LOG.info("Creating a FFS: reference run without failures.");
-            try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUriReliable, builderProvider)) {
+        Path resultWithoutInterruption;
+        LOG.info("Creating a FFS: reference run without failures.");
+        try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUriReliable, builderProvider)) {
+            PipelinedStrategy strategy = createStrategy(roBackend);
+            resultWithoutInterruption = strategy.createSortedStoreFile().toPath();
+        }
+
+        Path resultWithInterruption;
+        LOG.info("Creating a FFS: test run with disconnection to Mongo.");
+        try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUriFlaky, builderProvider)) {
+            // Closes connections after transmitting 50KB. This is per connection. The reconnect attempts by
+            // the download task will succeed, but the new connections will once again be closed after 50KB of data.
+            LimitData cutConnectionUpstream = proxy.toxics()
+                    .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 100_000L);
+
+            ScheduledExecutorService scheduleExecutor = Executors.newScheduledThreadPool(2);
+            try {
+                // Wait some time to allow the download to start and then start a task to update the content
+                // in a loop. When the download starts, the descending download thread will go down by order of
+                // _modified value, starting with the highest value at the time that the download starts. If a node
+                // that was not yet downloaded is modified and there is a connection failure, this node will not be
+                // downloaded in the reconnection attempt because the thread will continue downloading going down
+                // from the last _modified value seen. Therefore, once the downloader finishes the ascending/descending
+                // downloads, it must make one final pass to download any new nodes that were modified after the
+                // download starts.
+                ScheduledFuture<?> updateTask = null;
+                UpdateContentTask updateContentTask = null;
+                if (testUpdateContent) {
+                    updateContentTask = new UpdateContentTask();
+                    updateTask = scheduleExecutor.schedule(updateContentTask, 1, TimeUnit.SECONDS);
+                }
+
+                // Removes the connection block after some time
+                var removeToxicTask = scheduleExecutor.schedule(() -> {
+                    try {
+                        LOG.info("Removing connection block");
+                        cutConnectionUpstream.remove();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }, 3, TimeUnit.SECONDS);
+
                 PipelinedStrategy strategy = createStrategy(roBackend);
-                resultWithoutInterruption = strategy.createSortedStoreFile().toPath();
-            }
-
-            Path resultWithInterruption;
-            LOG.info("Creating a FFS: test run with disconnection to Mongo.");
-            try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUriFlaky, builderProvider)) {
-                // Closes connections after transmitting 50KB. This is per connection. The reconnect attempts by
-                // the download task will succeed, but the new connections will once again be closed after 50KB of data.
-                LimitData cutConnectionUpstream = proxy.toxics()
-                        .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 100_000L);
-
-                ScheduledExecutorService scheduleExecutor = Executors.newScheduledThreadPool(2);
-                try {
-                    // Wait some time to allow the download to start and then start a task to update the content
-                    // in a loop. When the download starts, the descending download thread will go down by order of
-                    // _modified value, starting with the highest value at the time that the download starts. If a node
-                    // that was not yet downloaded is modified and there is a connection failure, this node will not be
-                    // downloaded in the reconnection attempt because the thread will continue downloading going down
-                    // from the last _modified value seen. Therefore, once the downloader finishes the ascending/descending
-                    // downloads, it must make one final pass to download any new nodes that were modified after the
-                    // download starts.
-                    ScheduledFuture<?> updateTask = null;
-                    UpdateContentTask updateContentTask = null;
-                    if (testUpdateContent) {
-                        updateContentTask = new UpdateContentTask(rwBackend.documentNodeStore);
-                        updateTask = scheduleExecutor.schedule(updateContentTask, 1, TimeUnit.SECONDS);
-                    }
-
-                    // Removes the connection block after some time
-                    var removeToxicTask = scheduleExecutor.schedule(() -> {
-                        try {
-                            LOG.info("Removing connection block");
-                            cutConnectionUpstream.remove();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }, 3, TimeUnit.SECONDS);
-
-                    PipelinedStrategy strategy = createStrategy(roBackend);
-                    resultWithInterruption = strategy.createSortedStoreFile().toPath();
-                    // Retrieve the results to raise an exception if the tasks failed
-                    if (updateTask != null) {
-                        updateContentTask.stop();
-                        try {
-                            updateTask.get();
-                        } catch (InterruptedException e) {
-                            // Ignore, expected.
-                        }
-                    }
-                    removeToxicTask.get();
-                } finally {
-                    scheduleExecutor.shutdown();
-                    var terminated = scheduleExecutor.awaitTermination(5, TimeUnit.SECONDS);
-                    if (!terminated) {
-                        LOG.warn("Executor did not terminate in time");
+                resultWithInterruption = strategy.createSortedStoreFile().toPath();
+                // Retrieve the results to raise an exception if the tasks failed
+                if (updateTask != null) {
+                    updateContentTask.stop();
+                    try {
+                        updateTask.get();
+                    } catch (InterruptedException e) {
+                        // Ignore, expected.
                     }
                 }
+                removeToxicTask.get();
+            } finally {
+                scheduleExecutor.shutdown();
+                var terminated = scheduleExecutor.awaitTermination(5, TimeUnit.SECONDS);
+                if (!terminated) {
+                    LOG.warn("Executor did not terminate in time");
+                }
             }
-
-            LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}", resultWithoutInterruption, resultWithInterruption);
-            Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
         }
+
+        LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}", resultWithoutInterruption, resultWithInterruption);
+        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
     }
+
 
     private PipelinedStrategy createStrategy(MongoTestBackend roStore) throws IOException {
         return PipelineITUtil.createStrategy(roStore, s -> true, null, sortFolder.newFolder());
@@ -245,13 +246,8 @@ public class PipelinedMongoConnectionFailureIT {
     }
 
 
-    private static class UpdateContentTask implements Runnable {
-        private final NodeStore nodeStore;
+    private class UpdateContentTask implements Runnable {
         private volatile boolean stop = false;
-
-        public UpdateContentTask(NodeStore nodeStore) {
-            this.nodeStore = nodeStore;
-        }
 
         public void stop() {
             LOG.info("Stopping update content task");
@@ -261,22 +257,26 @@ public class PipelinedMongoConnectionFailureIT {
         @Override
         public void run() {
             try {
-                for (int loop = 0; !stop; loop++) {
-                    LOG.info("Updating content, loop {}", loop);
-                    for (int i = 0; i < N_TREES && !stop; i++) {
-                        @NotNull NodeBuilder rootBuilder = nodeStore.getRoot().builder();
-                        @NotNull NodeBuilder parent = rootBuilder.child("content").child("dam").child("parent" + i);
-                        for (int j = 0; j < N_NODES_PER_TREE; j++) {
-                            parent.child("node-" + j).setProperty("p1", "modified-" + loop);
+                try (MongoTestBackend mongoTestBackend = PipelineITUtil.createNodeStore(false, mongoUriReliable, builderProvider)) {
+                    NodeStore nodeStore = mongoTestBackend.documentNodeStore;
+                    for (int loop = 0; !stop; loop++) {
+                        LOG.info("Updating content, loop {}", loop);
+                        for (int i = 0; i < N_TREES && !stop; i++) {
+                            @NotNull NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+                            @NotNull NodeBuilder parent = rootBuilder.child("content").child("dam").child("parent" + i);
+                            for (int j = 0; j < N_NODES_PER_TREE; j++) {
+                                parent.child("node-" + j).setProperty("p1", "modified-" + loop);
+                            }
+                            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                         }
-                        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                        Thread.sleep(100);
                     }
-                    Thread.sleep(100);
+                    LOG.info("Done updating content, stop requested");
                 }
-                LOG.info("Done updating content, stop requested");
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+
         }
     }
 
