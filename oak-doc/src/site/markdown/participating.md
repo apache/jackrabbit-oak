@@ -98,7 +98,7 @@ up to the committer.
   in the correct format, e.g. "OAK-10881" instead of "Oak 10881").
 - Avoid committing unfinished stuff; in particular when a release is approaching
   (see [UNRELEASED](https://issues.apache.org/jira/projects/OAK?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased))
-
+- Force-pushing can be problematic as they can cause issues on others working on the branch and can break the review comments made on individual lines.
 ### Coding Style
 
 - Please avoid wildcard imports.
