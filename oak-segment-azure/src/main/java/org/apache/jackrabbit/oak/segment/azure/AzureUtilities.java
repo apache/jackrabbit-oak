@@ -288,6 +288,7 @@ public final class AzureUtilities {
 
     public static void shutDown() {
         new ExecutorCloser(executorService).close();
+        log.info("Access token refresh executor shutdown completed");
     }
 
 }
