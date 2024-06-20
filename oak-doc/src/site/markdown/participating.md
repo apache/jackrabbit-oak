@@ -63,6 +63,11 @@ the new version is incompatible with previous releases. This should only happen
 in very rare circumstances; in doubt, it should be reviewed by experienced
 committers.
 
+#### New Dependencies
+
+Introduction of new dependencies should be discussed on [oak-dev@](mailto:oak-dev@jackrabbit.apache.org)
+first; it is important that their license is compatible with Apache's, that
+they are stable and follow the principle of [semantic versioning](https://semver.org/).
 
 #### Backports
 
