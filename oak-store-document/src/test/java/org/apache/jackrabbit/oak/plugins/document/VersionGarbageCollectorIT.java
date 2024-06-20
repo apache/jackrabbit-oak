@@ -538,6 +538,15 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
+    public void testGCDeletedLongPathPropsInclExcl_excludes() throws Exception {
+        String longName = repeat("p", PATH_LONG + 1);
+        createEmptyProps("/a/b/" + longName + "/x", "/b/c/" + longName + "/x",
+                "/c/d/" + longName + "/x");
+        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b/c", "/c"));
+        doTestDeletedPropsGC(1, 1);
+    }
+
+    @Test
     public void testGCDeletedPropsInclExcl_oneInclude() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
         setGCIncludeExcludes(Sets.newHashSet("/a"), Sets.newHashSet());

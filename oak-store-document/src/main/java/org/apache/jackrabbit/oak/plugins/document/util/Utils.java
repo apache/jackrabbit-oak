@@ -854,7 +854,7 @@ public class Utils {
      * if these overlap with includes, then exclude has precedence.
      * @return whether the provided path is included or not
      */
-    private static boolean isIncluded(Path path, @NotNull Set<String> includes,
+    public static boolean isIncluded(Path path, @NotNull Set<String> includes,
             @NotNull Set<String> excludes) {
         // check first if includes/excludes are empty
         if (includes.isEmpty() && excludes.isEmpty()) {
