@@ -26,6 +26,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -813,7 +814,7 @@ public class Utils {
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue,
-            final Set<String> includePaths, final Set<String> excludePaths) {
+            @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue,
                 MIN_ID_VALUE, includePaths, excludePaths, DEFAULT_BATCH_SIZE);
     }
@@ -833,7 +834,7 @@ public class Utils {
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue, String fromId,
-            final Set<String> includePaths, final Set<String> excludePaths) {
+            @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId,
                 includePaths, excludePaths, DEFAULT_BATCH_SIZE);
     }
@@ -853,42 +854,40 @@ public class Utils {
      * if these overlap with includes, then exclude has precedence.
      * @return whether the provided path is included or not
      */
-    private static boolean isIncluded(Path path, Set<String> includes, Set<String> excludes) {
+    private static boolean isIncluded(Path path, @NotNull Set<String> includes,
+            @NotNull Set<String> excludes) {
         // check first if includes/excludes are empty
-        if ((includes == null || includes.isEmpty())
-                && (excludes == null || excludes.isEmpty())) {
+        if (includes.isEmpty() && excludes.isEmpty()) {
             return true;
         }
         String s = path.toString();
         // then check excludes first
-        if (excludes != null && !excludes.isEmpty()) {
-            for (String anExclude : excludes) {
-                if (s.startsWith(anExclude)) {
-                    // if there is an exclude matching the path
-                    // we need to definitely exclude it,
-                    // no matter whether there is even an include
-                    // for it or not
-                    return false;
-                }
+        for (String anExclude : excludes) {
+            if (s.startsWith(anExclude)) {
+                // if there is an exclude matching the path
+                // we need to definitely exclude it,
+                // no matter whether there is even an include
+                // for it or not
+                return false;
             }
         }
-        // then the includes if there are any
-        if (includes != null && !includes.isEmpty()) {
-            for (String anInclude : includes) {
-                if (s.startsWith(anInclude)) {
-                    // if we have a matching include, and given
-                    // it was not excluded above, then this is
-                    // an include
-                    return true;
-                }
-            }
-            // if we have any includes defined, but none of
-            // them matched so far, then this is an exclude
-            return false;
+        if (includes.isEmpty()) {
+            // if we have no includes defined at all, and it
+            // was not excluded, then it is an include
+            return true;
         }
-        // if we have no includes defined at all, and it
-        // was not excluded, then it is an include
-        return true;
+        // then the includes
+        for (String anInclude : includes) {
+            if (s.startsWith(anInclude)) {
+                // if we have a matching include, and given
+                // it was not excluded above, then this is
+                // an include
+                return true;
+            }
+        }
+        // if we have any includes defined, but none of
+        // them matched so far, then this is an exclude
+        return false;
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
@@ -896,19 +895,20 @@ public class Utils {
             final long startValue, String fromId,
             final int batchSize) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId,
-                null, null, batchSize);
+                Collections.emptySet(), Collections.emptySet(), batchSize);
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
             final DocumentStore store, final String indexedProperty,
             final long startValue, String fromId,
-            final Set<String> includePaths, final Set<String> excludePaths,
+            @NotNull final Set<String> includePaths,
+            @NotNull final Set<String> excludePaths,
             final int batchSize) {
         if (batchSize < 2) {
             throw new IllegalArgumentException("batchSize must be > 1");
         }
         if ((store instanceof MongoDocumentStore)
-                && (includePaths != null || excludePaths != null)) {
+                && (!includePaths.isEmpty() || !excludePaths.isEmpty())) {
             throw new IllegalArgumentException("cannot use with MongoDocumentStore");
         }
         return new Iterable<NodeDocument>() {

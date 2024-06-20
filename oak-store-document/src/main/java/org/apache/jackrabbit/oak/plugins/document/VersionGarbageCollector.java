@@ -216,8 +216,8 @@ public class VersionGarbageCollector {
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
-    private Set<String> fullGCIncludePaths;
-    private Set<String> fullGCExcludePaths;
+    private Set<String> fullGCIncludePaths = Collections.emptySet();
+    private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -240,9 +240,9 @@ public class VersionGarbageCollector {
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
     }
 
-    void setFullGCPaths(Set<String> includes, Set<String> excludes) {
-        this.fullGCIncludePaths = includes;
-        this.fullGCExcludePaths = excludes;
+    void setFullGCPaths(@NotNull Set<String> includes, @NotNull Set<String> excludes) {
+        this.fullGCIncludePaths = requireNonNull(includes);
+        this.fullGCExcludePaths = requireNonNull(excludes);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {

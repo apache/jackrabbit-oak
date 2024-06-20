@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -567,33 +568,12 @@ public class VersionGarbageCollectorIT {
     @Test
     public void testGCDeletedPropsInclExcl_emptyEmpty() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet());
-        doTestDeletedPropsGC(3, 3);
-    }
-
-    @Test
-    public void testGCDeletedPropsInclExcl_nullNull() throws Exception {
-        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(null, null);
-        doTestDeletedPropsGC(3, 3);
-    }
-
-    @Test
-    public void testGCDeletedPropsInclExcl_nullEmpty() throws Exception {
-        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(null, Sets.newHashSet());
-        doTestDeletedPropsGC(3, 3);
-    }
-
-    @Test
-    public void testGCDeletedPropsInclExcl_emptyNull() throws Exception {
-        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet(), null);
+        setGCIncludeExcludes(Collections.emptySet(), Collections.emptySet());
         doTestDeletedPropsGC(3, 3);
     }
 
     private void setGCIncludeExcludes(Set<String> includes, Set<String> excludes) {
-        gc.setFullGCPaths(includes, excludes);
+        gc.setFullGCPaths(requireNonNull(includes), requireNonNull(excludes));
     }
 
     private void doTestDeletedPropsGC(int deletedPropsCount, int updatedDocsCount)
@@ -1387,7 +1367,7 @@ public class VersionGarbageCollectorIT {
             @Override
             public Iterable<NodeDocument> getModifiedDocs(long fromModified,
                     long toModified, int limit, @NotNull String fromId,
-                    final Set<String> includePaths, final Set<String> excludePaths) {
+                    @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
                 Iterable<NodeDocument> modifiedDocs = super.getModifiedDocs(fromModified,
                         toModified, limit, fromId, includePaths, excludePaths);
                 List<NodeDocument> result = stream(modifiedDocs.spliterator(), false).collect(toList());
@@ -1466,7 +1446,8 @@ public class VersionGarbageCollectorIT {
             }
 
             private Iterator<NodeDocument> candidates(long fromModified, long toModified, int limit, @NotNull String fromId) {
-                return super.getModifiedDocs(fromModified, toModified, limit, fromId, null, null).iterator();
+                return super.getModifiedDocs(fromModified, toModified, limit, fromId,
+                        Collections.emptySet(), Collections.emptySet()).iterator();
             }
         };
 
