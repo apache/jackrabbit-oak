@@ -581,6 +581,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      * To download multiple ranges, create multiple instances of this class.
      */
     private class DownloadTask {
+        private final Stopwatch downloadTaskStart = Stopwatch.createUnstarted();
         private final DownloadOrder downloadOrder;
         private final DownloadStageStatistics downloadStatics;
         private final long fromModified;
@@ -635,60 +636,65 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             long retryIntervalMs = retryInitialIntervalMillis;
             boolean downloadCompleted = false;
             Map<String, Integer> exceptions = new HashMap<>();
-            while (!downloadCompleted) {
-                try {
-                    if (lastIdDownloaded == null) {
-                        // lastIdDownloaded is null only when starting the download or if there is a connection error
-                        // before anything is downloaded
-                        DownloadRange firstRange = new DownloadRange(fromModified, toModified, null, downloadOrder.downloadInAscendingOrder());
-                        downloadRange(firstRange, mongoQueryFilter, downloadOrder);
-                    } else {
-                        LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
-                        DownloadRange partialLastModifiedRange = new DownloadRange(nextLastModified, nextLastModified, lastIdDownloaded, downloadOrder.downloadInAscendingOrder());
-                        downloadRange(partialLastModifiedRange, mongoQueryFilter, downloadOrder);
-                        // Downloaded everything from _nextLastModified. Continue with the next timestamp for _modified
-                        DownloadRange nextRange = downloadOrder.downloadInAscendingOrder() ?
-                                new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null, true) :
-                                new DownloadRange(0, nextLastModified - 1, null, false);
-                        downloadRange(nextRange, mongoQueryFilter, downloadOrder);
-                    }
-                    downloadCompleted = true;
-                } catch (MongoException e) {
-                    if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
-                        // Non-recoverable exceptions
-                        throw e;
-                    }
-                    if (failuresStartTimestamp == null) {
-                        failuresStartTimestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-                    }
-                    LOG.warn("Connection error downloading from MongoDB.", e);
-                    long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
-                    if (parallelDump && parallelDumpSecondariesOnly && mongoServerSelector.atLeastOneConnectionActive()) {
-                        // Special case, the cluster is up because one of the connections is active. This happens when
-                        // there is a single secondary, maybe because of a scale-up/down. In this case, do not abort the
-                        // download, keep retrying to connect forever
-                        int retryTime = 1000;
-                        LOG.info("At least one connection is active. Retrying download in {} ms", retryTime);
-                        Thread.sleep(retryTime);
-                    } else if (secondsSinceStartOfFailures > retryDuringSeconds) {
-                        // Give up. Get a string of all exceptions that were thrown
-                        StringBuilder summary = new StringBuilder();
-                        for (Map.Entry<String, Integer> entry : exceptions.entrySet()) {
-                            summary.append("\n\t").append(entry.getValue()).append("x: ").append(entry.getKey());
+            downloadTaskStart.start();
+            try {
+                while (!downloadCompleted) {
+                    try {
+                        if (lastIdDownloaded == null) {
+                            // lastIdDownloaded is null only when starting the download or if there is a connection error
+                            // before anything is downloaded
+                            DownloadRange firstRange = new DownloadRange(fromModified, toModified, null, downloadOrder.downloadInAscendingOrder());
+                            downloadRange(firstRange, mongoQueryFilter, downloadOrder);
+                        } else {
+                            LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
+                            DownloadRange partialLastModifiedRange = new DownloadRange(nextLastModified, nextLastModified, lastIdDownloaded, downloadOrder.downloadInAscendingOrder());
+                            downloadRange(partialLastModifiedRange, mongoQueryFilter, downloadOrder);
+                            // Downloaded everything from _nextLastModified. Continue with the next timestamp for _modified
+                            DownloadRange nextRange = downloadOrder.downloadInAscendingOrder() ?
+                                    new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null, true) :
+                                    new DownloadRange(0, nextLastModified - 1, null, false);
+                            downloadRange(nextRange, mongoQueryFilter, downloadOrder);
                         }
-                        throw new RetryException(retryDuringSeconds, summary.toString(), e);
-                    } else {
-                        numberOfFailures++;
-                        LOG.warn("Retrying download in {} ms; number of times failed: {}; current series of failures started at: {} ({} seconds ago)",
-                                retryIntervalMs, numberOfFailures, failuresStartTimestamp, secondsSinceStartOfFailures);
-                        exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
-                                (key, val) -> val == null ? 1 : val + 1
-                        );
-                        Thread.sleep(retryIntervalMs);
-                        // simple exponential backoff mechanism
-                        retryIntervalMs = Math.min(retryMaxIntervalMillis, retryIntervalMs * 2);
+                        downloadCompleted = true;
+                    } catch (MongoException e) {
+                        if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
+                            // Non-recoverable exceptions
+                            throw e;
+                        }
+                        if (failuresStartTimestamp == null) {
+                            failuresStartTimestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+                        }
+                        LOG.warn("Connection error downloading from MongoDB.", e);
+                        long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
+                        if (parallelDump && parallelDumpSecondariesOnly && mongoServerSelector.atLeastOneConnectionActive()) {
+                            // Special case, the cluster is up because one of the connections is active. This happens when
+                            // there is a single secondary, maybe because of a scale-up/down. In this case, do not abort the
+                            // download, keep retrying to connect forever
+                            int retryTime = 1000;
+                            LOG.info("At least one connection is active. Retrying download in {} ms", retryTime);
+                            Thread.sleep(retryTime);
+                        } else if (secondsSinceStartOfFailures > retryDuringSeconds) {
+                            // Give up. Get a string of all exceptions that were thrown
+                            StringBuilder summary = new StringBuilder();
+                            for (Map.Entry<String, Integer> entry : exceptions.entrySet()) {
+                                summary.append("\n\t").append(entry.getValue()).append("x: ").append(entry.getKey());
+                            }
+                            throw new RetryException(retryDuringSeconds, summary.toString(), e);
+                        } else {
+                            numberOfFailures++;
+                            LOG.warn("Retrying download in {} ms; number of times failed: {}; current series of failures started at: {} ({} seconds ago)",
+                                    retryIntervalMs, numberOfFailures, failuresStartTimestamp, secondsSinceStartOfFailures);
+                            exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
+                                    (key, val) -> val == null ? 1 : val + 1
+                            );
+                            Thread.sleep(retryIntervalMs);
+                            // simple exponential backoff mechanism
+                            retryIntervalMs = Math.min(retryMaxIntervalMillis, retryIntervalMs * 2);
+                        }
                     }
                 }
+            } finally {
+                downloadTaskStart.stop();
             }
         }
 
@@ -836,7 +842,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         void reportFinalResults() {
-            long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
+            long secondsElapsed = downloadTaskStart.elapsed(TimeUnit.SECONDS);
             String formattedRate;
             if (secondsElapsed == 0) {
                 formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
@@ -847,11 +853,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
             }
             LOG.info("Finished download task. Dumped {} documents. Rate: {}. Elapsed {}.",
-                    this.documentsDownloadedTotal, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
+                    this.documentsDownloadedTotal, formattedRate, FormattingUtils.formatToSeconds(downloadTaskStart));
         }
 
         private void reportProgress(String id) {
-            long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
+            long secondsElapsed = downloadTaskStart.elapsed(TimeUnit.SECONDS);
             String formattedRate;
             if (secondsElapsed == 0) {
                 formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
