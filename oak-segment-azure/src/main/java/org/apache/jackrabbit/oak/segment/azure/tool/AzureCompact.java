@@ -234,7 +234,10 @@ public class AzureCompact {
          * @return an instance of {@link Runnable}.
          */
         public AzureCompact build() {
-            checkNotNull(path);
+            if (sourceCloudBlobDirectory == null || destinationCloudBlobDirectory == null) {
+                checkNotNull(path);
+                checkNotNull(targetPath);
+            }
             return new AzureCompact(this);
         }
     }
