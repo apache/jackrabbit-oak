@@ -178,6 +178,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public static final String OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP_SECONDARIES_ONLY = "oak.indexer.pipelined.mongoParallelDump.secondariesOnly";
     public static boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP_SECONDARIES_ONLY = true;
 
+    // For testing purposes.
+    // Set the maximum number of documents in the batches returned by Mongo while iterating over the results.
+    // The default police is fine for normal use cases (initial batch: 101, then as large as the maximum batch size in
+    // bytes), but for testing the behavior under failures it may be necessary to change the batch size
+    static final String OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE = "oak.indexer.pipelined.mongoBatchSize";
+    private final int mongoBatchSize = Integer.getInteger(OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE, -1);
+
     // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
     // replicas available so a reconnection attempt will succeed immediately.
     private static final long retryInitialIntervalMillis = 100;
@@ -216,11 +223,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final DownloadStageStatistics downloadStageStatistics = new DownloadStageStatistics();
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
-    private MongoParallelDownloadCoordinator mongoParallelDownloadCoordinator;
-
-    // For testing purposes
-    static final String OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE = "oak.indexer.pipelined.mongoBatchSize";
-    private final int mongoBatchSize = Integer.getInteger(OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE, -1);
 
     public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
                                       MongoDocumentStore docStore,
@@ -325,22 +327,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder()
                     .applyConnectionString(new ConnectionString(mongoClientURI.getURI()))
                     .readPreference(ReadPreference.secondaryPreferred());
-            if (parallelDump) {
-                // Shared object between the two download threads to store the last document download by either of them
-                // and determine when the two downloads have crossed
-                this.mongoParallelDownloadCoordinator = new MongoParallelDownloadCoordinator();
-                if (parallelDumpSecondariesOnly) {
-                    // Set a custom server selector that is able to distribute the two connections between the two secondaries.
-                    // Overrides the readPreference setting. We also need to listen for changes in the cluster to detect
-                    // when a node is promoted to primary, so we can stop downloading from that node
-                    this.mongoServerSelector = new PipelinedMongoServerSelector(THREAD_NAME_PREFIX + "-");
-                    settingsBuilder.applyToClusterSettings(builder -> builder
-                            .serverSelector(mongoServerSelector)
-                            .addClusterListener(mongoServerSelector)
-                    );
-                } // otherwise use the default server selector policy.
+            if (parallelDump && parallelDumpSecondariesOnly) {
+                // Set a custom server selector that is able to distribute the two connections between the two secondaries.
+                // Overrides the readPreference setting. We also need to listen for changes in the cluster to detect
+                // when a node is promoted to primary, so we can stop downloading from that node
+                this.mongoServerSelector = new PipelinedMongoServerSelector(THREAD_NAME_PREFIX + "-");
+                settingsBuilder.applyToClusterSettings(builder -> builder
+                        .serverSelector(mongoServerSelector)
+                        .addClusterListener(mongoServerSelector)
+                );
             } else {
-                this.mongoParallelDownloadCoordinator = null;
+                // otherwise use the default server selector policy.
                 this.mongoServerSelector = null;
             }
 
@@ -428,8 +425,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
         if (parallelDump) {
             LOG.info("Downloading in parallel with two connections, one in ascending the other in descending order");
-            DownloadTask ascendingDownloadTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics);
-            DownloadTask descendingDownloadTask = new DownloadTask(DownloadOrder.DESCENDING, downloadStageStatistics);
+            // Shared object between the two download threads to store the last document download by either of them
+            // and determine when the two downloads have crossed
+            MongoParallelDownloadCoordinator parallelDownloadCoordinator = new MongoParallelDownloadCoordinator();
+            DownloadTask ascendingDownloadTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics, parallelDownloadCoordinator);
+            DownloadTask descendingDownloadTask = new DownloadTask(DownloadOrder.DESCENDING, downloadStageStatistics, parallelDownloadCoordinator);
 
             ExecutorService downloadThreadPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder().setDaemon(true).build());
             Future<?> ascendingDownloadFuture = submitDownloadTask(downloadThreadPool, ascendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-ascending");
@@ -471,7 +471,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             // that were already downloaded, but this is not an issue because the merge-sort will
                             // de-duplicate the entries.
                             LOG.info("Downloading documents modified since the start of the download: _modified >= {}", highestModifiedSeen);
-                            DownloadTask finishTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics, highestModifiedSeen, Long.MAX_VALUE);
+                            DownloadTask finishTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics, highestModifiedSeen, Long.MAX_VALUE, null);
                             finishTask.download(mongoFilter);
                         }
                         downloadFinished = true;
@@ -584,6 +584,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private final DownloadStageStatistics downloadStatics;
         private final long fromModified;
         private final long toModified;
+        private final MongoParallelDownloadCoordinator parallelDownloadCoordinator;
         private long documentsDownloadedTotalBytes;
         private long documentsDownloadedTotal;
         private long totalEnqueueWaitTimeMillis;
@@ -592,14 +593,19 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private long firstModifiedValueSeen = -1;
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
-            this(downloadOrder, downloadStatics, 0, Long.MAX_VALUE);
+            this(downloadOrder, downloadStatics, null);
         }
 
-        DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics, long fromModified, long toModified) {
+        DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics, MongoParallelDownloadCoordinator parallelDownloadCoordinator) {
+            this(downloadOrder, downloadStatics, 0, Long.MAX_VALUE, parallelDownloadCoordinator);
+        }
+
+        DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics, long fromModified, long toModified, MongoParallelDownloadCoordinator parallelDownloadCoordinator) {
             this.downloadOrder = downloadOrder;
             this.downloadStatics = downloadStatics;
             this.fromModified = fromModified;
             this.toModified = toModified;
+            this.parallelDownloadCoordinator = parallelDownloadCoordinator;
             this.documentsDownloadedTotalBytes = 0;
             this.documentsDownloadedTotal = 0;
             this.totalEnqueueWaitTimeMillis = 0;
@@ -794,10 +800,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             // Find the first element that was not yet added
             boolean completedDownload = false;
             int effectiveSize = sizeOfBatch;
-            if (downloadOrder != DownloadOrder.UNDEFINED) {
+            if (parallelDownloadCoordinator != null) {
                 int sizeOfRangeNotAdded = downloadOrder == DownloadOrder.ASCENDING ?
-                        mongoParallelDownloadCoordinator.extendLowerRange(batch, sizeOfBatch) :
-                        mongoParallelDownloadCoordinator.extendUpperRange(batch, sizeOfBatch);
+                        parallelDownloadCoordinator.extendLowerRange(batch, sizeOfBatch) :
+                        parallelDownloadCoordinator.extendUpperRange(batch, sizeOfBatch);
                 if (sizeOfRangeNotAdded != sizeOfBatch) {
                     completedDownload = true;
                     effectiveSize = sizeOfRangeNotAdded;
