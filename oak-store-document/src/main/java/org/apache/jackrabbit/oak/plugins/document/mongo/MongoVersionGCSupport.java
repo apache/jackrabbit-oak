@@ -150,14 +150,26 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         if (includes != null && !includes.isEmpty()) {
             final List<Bson> ors = new ArrayList<>(includes.size());
             for (String incl : includes) {
-                ors.add(Filters.regex(ID, ":" + incl));
+                // add condition for: "id regex" OR "path regex"
+                ors.add(or(
+                        // regex to include "ids starting with incl path"
+                        // achieved through prefixing with ':',
+                        // but leaving out depth as any depth is included,
+                        // plus leaving out p (previous) prefix as they are
+                        // not considered in outer query condition with '_modified'
+                        Filters.regex(ID, ":" + incl),
+                        // regex for long paths to include "paths starting
+                        // with incl path"
+                        Filters.regex(PATH, "^" + incl)));
             }
             inclExcl = or(ors);
         }
         if (excludes != null && !excludes.isEmpty()) {
             final List<Bson> ands = new ArrayList<>(excludes.size());
             for (String excl : excludes) {
+                // add condition for: "id regex" AND "path regex"
                 ands.add(not(Filters.regex(ID, ":" + excl)));
+                ands.add(not(Filters.regex(PATH, "^" + excl)));
             }
             if (inclExcl != null) {
                 ands.add(inclExcl);
