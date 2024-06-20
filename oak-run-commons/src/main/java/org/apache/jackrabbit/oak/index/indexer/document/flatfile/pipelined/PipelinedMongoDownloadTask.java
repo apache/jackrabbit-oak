@@ -218,6 +218,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
     private MongoParallelDownloadCoordinator mongoParallelDownloadCoordinator;
 
+    // For testing purposes
+    static final String OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE = "oak.indexer.pipelined.mongoBatchSize";
+    private final int mongoBatchSize = Integer.getInteger(OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE, -1);
+
     public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
@@ -699,6 +703,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         void download(FindIterable<NodeDocument> mongoIterable) throws InterruptedException, TimeoutException {
+            if (mongoBatchSize != -1) {
+                LOG.info("Setting Mongo batch size to {}", mongoBatchSize);
+                mongoIterable.batchSize(mongoBatchSize);
+            }
             try (MongoCursor<NodeDocument> cursor = mongoIterable.iterator()) {
                 NodeDocument[] batch = new NodeDocument[maxBatchNumberOfDocuments];
                 int nextIndex = 0;

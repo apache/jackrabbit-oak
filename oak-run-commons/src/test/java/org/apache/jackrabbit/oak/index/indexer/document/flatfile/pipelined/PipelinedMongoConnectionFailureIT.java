@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,6 +60,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP_SECONDARIES_ONLY;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS;
@@ -126,6 +128,13 @@ public class PipelinedMongoConnectionFailureIT {
         // For the operations that prepare and update the test data.
         toxiproxyClient.createProxy("mongo-reliable", "0.0.0.0:8667", "mongo:" + MONGODB_DEFAULT_PORT);
         this.mongoUriReliable = "mongodb://" + toxiproxy.getHost() + ":" + toxiproxy.getMappedPort(8667) + "/" + MongoUtils.DB;
+
+        MongoConnection c = new MongoConnection(mongoUriReliable);
+        try {
+            c.getDatabase().drop();
+        } finally {
+            c.close();
+        }
     }
 
     @Test
@@ -138,6 +147,7 @@ public class PipelinedMongoConnectionFailureIT {
 
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, String.valueOf(parallelDump));
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, String.valueOf(100));
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE, String.valueOf(5));
 
         try (MongoTestBackend rwBackend = PipelineITUtil.createNodeStore(false, mongoUriReliable, builderProvider)) {
             createContent(rwBackend.documentNodeStore);
@@ -155,7 +165,7 @@ public class PipelinedMongoConnectionFailureIT {
                 // Closes connections after transmitting 50KB. This is per connection. The reconnect attempts by
                 // the download task will succeed, but the new connections will once again be closed after 50KB of data.
                 LimitData cutConnectionUpstream = proxy.toxics()
-                        .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 50_000L);
+                        .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 100_000L);
 
                 ScheduledExecutorService scheduleExecutor = Executors.newScheduledThreadPool(2);
                 try {
@@ -214,28 +224,33 @@ public class PipelinedMongoConnectionFailureIT {
         return PipelineITUtil.createStrategy(roStore, s -> true, null, sortFolder.newFolder());
     }
 
+    private static final int N_TREES = 10;
+    private static final int N_NODES_PER_TREE = 100;
 
     private static void createContent(NodeStore rwNodeStore) throws CommitFailedException {
         LOG.info("Creating content");
+        var payload = "0123456789".repeat(500); // 5KB per entry. 500KB per tree, 5MB per 10 trees.
         Stopwatch start = Stopwatch.createStarted();
-        @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
-        for (int i = 0; i < 100; i++) {
-            @NotNull NodeBuilder parent = rootBuilder.child("content").child("dam").child("parent" + i);
-            for (int j = 0; j < 100; j++) {
-                parent.child("node-" + j).setProperty("p1", "original-" + j);
+        for (int i = 0; i < N_TREES; i++) {
+            @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+            @NotNull NodeBuilder tree = rootBuilder.child("content").child("dam").child("parent" + i);
+            for (int j = 0; j < N_NODES_PER_TREE; j++) {
+                tree.child("node-" + j)
+                        .setProperty("payload", payload) // Just to make it big
+                        .setProperty("p1", "value-" + i + "-" + j);
             }
+            rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
-        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         LOG.info("Done creating content in {} ms", start.elapsed(TimeUnit.MILLISECONDS));
     }
 
 
     private static class UpdateContentTask implements Runnable {
-        private final NodeStore rwNodeStore;
+        private final NodeStore nodeStore;
         private volatile boolean stop = false;
 
-        public UpdateContentTask(NodeStore rwNodeStore) {
-            this.rwNodeStore = rwNodeStore;
+        public UpdateContentTask(NodeStore nodeStore) {
+            this.nodeStore = nodeStore;
         }
 
         public void stop() {
@@ -248,13 +263,13 @@ public class PipelinedMongoConnectionFailureIT {
             try {
                 for (int loop = 0; !stop; loop++) {
                     LOG.info("Updating content, loop {}", loop);
-                    for (int i = 40; i < 100 && !stop; i++) {
-                        @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+                    for (int i = 0; i < N_TREES && !stop; i++) {
+                        @NotNull NodeBuilder rootBuilder = nodeStore.getRoot().builder();
                         @NotNull NodeBuilder parent = rootBuilder.child("content").child("dam").child("parent" + i);
-                        for (int j = 0; j < 100; j++) {
+                        for (int j = 0; j < N_NODES_PER_TREE; j++) {
                             parent.child("node-" + j).setProperty("p1", "modified-" + loop);
                         }
-                        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                     }
                     Thread.sleep(100);
                 }
