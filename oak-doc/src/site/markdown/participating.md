@@ -91,7 +91,7 @@ up to the committer.
 - PRs that contain multiple commits in general should be "squashed and merged".
 - When new files are added, make sure they have the proper license on it
   (in doubt, run the build with "-Prat").
-
+- after merging a PR consider deleting the branch unless it should be kept
 #### Commits
 
 - Always reference an Oak ticket for each commit/PR (this should include the JIRA id
