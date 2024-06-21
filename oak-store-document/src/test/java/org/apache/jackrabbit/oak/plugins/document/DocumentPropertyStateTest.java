@@ -224,7 +224,6 @@ public class DocumentPropertyStateTest {
         for (String test : tests) {
             if (isValidSurrogatePair(test.split(":")[1])) {
                 DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
-                System.out.println("Test: " + test);
                 assertEquals(test, state.getValue());
             }
         }
