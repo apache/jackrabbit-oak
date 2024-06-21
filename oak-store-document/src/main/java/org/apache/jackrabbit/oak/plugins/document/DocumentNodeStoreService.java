@@ -499,6 +499,8 @@ public class DocumentNodeStoreService {
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setFullGCEnabled(config.fullGCEnabled()).
+                setFullGCIncludePaths(config.fullGCIncludes()).
+                setFullGCExcludePaths(config.fullGCExcludes()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).

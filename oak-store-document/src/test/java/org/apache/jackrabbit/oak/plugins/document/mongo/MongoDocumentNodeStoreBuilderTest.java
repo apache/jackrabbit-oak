@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.junit.Test;
 
+import static java.util.Set.of;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -58,6 +60,22 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void fullGCFeatureToggleDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getDocStoreFullGCFeature());
+    }
+
+    @Test
+    public void fullGCIncludePathsNotEmpty() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCIncludePaths(new String[] {"/foo"});
+        assertFalse(builder.getFullGCIncludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCIncludePaths());
+    }
+
+    @Test
+    public void fullGCExcludePathsNotEmpty() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCExcludePaths(new String[] {"/foo"});
+        assertFalse(builder.getFullGCExcludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCExcludePaths());
     }
 
     @Test

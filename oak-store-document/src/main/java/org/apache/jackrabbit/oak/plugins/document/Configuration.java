@@ -261,6 +261,24 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     String[] persistentCacheIncludes() default {"/"};
 
     @AttributeDefinition(
+            name = "Full GC Include Paths",
+            description = "Paths which should be included in full garbage collection." +
+                    "Empty value means all paths are included." +
+                    "This value can be overridden with a system property " +
+                    "'oak.documentstore.fullGCIncludes' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.fullGCIncludes=/content::/var")
+    String[] fullGCIncludes() default {};
+
+    @AttributeDefinition(
+            name = "Full GC Exclude Paths",
+            description = "Paths which should be excluded from full Garbage collection." +
+                    "Empty value means no paths are excluded." +
+                    "This value can be overridden with a system property " +
+                    "'oak.documentstore.fullGCExcludes' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.fullGCExcludes=/content::/var")
+    String[] fullGCExcludes() default {};
+
+    @AttributeDefinition(
             name = "Lease check mode",
             description = "The lease check mode. 'STRICT' is the default and " +
                     "will stop the DocumentNodeStore as soon as the lease " +

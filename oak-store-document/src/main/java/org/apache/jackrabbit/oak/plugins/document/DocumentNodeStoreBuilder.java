@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Set.of;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
@@ -170,6 +171,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;
+    private Set<String> fullGCIncludePaths = of();
+    private Set<String> fullGCExcludePaths = of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
@@ -301,6 +304,24 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isFullGCEnabled() {
         return this.fullGCEnabled;
+    }
+
+    public T setFullGCIncludePaths(@NotNull String[] includePaths) {
+        this.fullGCIncludePaths = of(includePaths);
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCIncludePaths() {
+        return fullGCIncludePaths;
+    }
+
+    public T setFullGCExcludePaths(@NotNull String[] excludePaths) {
+        this.fullGCExcludePaths = of(excludePaths);
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCExcludePaths() {
+        return fullGCExcludePaths;
     }
 
     public T setEmbeddedVerificationEnabled(boolean b) {

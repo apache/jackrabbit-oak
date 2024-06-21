@@ -33,6 +33,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
+import static java.util.List.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
@@ -84,6 +85,8 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentNodeStoreService.DEFAULT_BUNDLING_DISABLED, config.bundlingDisabled());
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
+        assertEquals(of(), of(config.fullGCIncludes()));
+        assertEquals(of(), of(config.fullGCExcludes()));
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
@@ -113,6 +116,22 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCEnabled", fullGCDocStore);
         Configuration config = createConfiguration();
         assertEquals(fullGCDocStore, config.fullGCEnabled());
+    }
+
+    @Test
+    public void fullGCIncludes() throws Exception {
+        final String[] includesPath = new String[]{"/foo", "/bar"};
+        addConfigurationEntry(preset, "fullGCIncludes", includesPath);
+        Configuration config = createConfiguration();
+        assertArrayEquals(includesPath, config.fullGCIncludes());
+    }
+
+    @Test
+    public void fullGCExcludes() throws Exception {
+        final String[] excludesPath = new String[]{"/foo", "/bar"};
+        addConfigurationEntry(preset, "fullGCExcludes", excludesPath);
+        Configuration config = createConfiguration();
+        assertArrayEquals(excludesPath, config.fullGCExcludes());
     }
 
     @Test
@@ -184,6 +203,32 @@ public class DocumentNodeStoreServiceConfigurationTest {
                 preset.asConfiguration(),
                 configuration.asConfiguration());
         assertArrayEquals(new String[]{"/foo", "/bar"}, config.persistentCacheIncludes());
+    }
+
+    @Test
+    public void overrideFullGCIncludes() throws Exception {
+        BundleContext bundleContext = Mockito.mock(BundleContext.class);
+        Mockito.when(bundleContext.getProperty("oak.documentstore.fullGCIncludes")).thenReturn("/foo::/bar");
+        ComponentContext componentContext = Mockito.mock(ComponentContext.class);
+        Mockito.when(componentContext.getBundleContext()).thenReturn(bundleContext);
+        Configuration config = DocumentNodeStoreServiceConfiguration.create(
+                componentContext, configAdmin,
+                preset.asConfiguration(),
+                configuration.asConfiguration());
+        assertArrayEquals(new String[]{"/foo", "/bar"}, config.fullGCIncludes());
+    }
+
+    @Test
+    public void overrideFullGCExcludes() throws Exception {
+        BundleContext bundleContext = Mockito.mock(BundleContext.class);
+        Mockito.when(bundleContext.getProperty("oak.documentstore.fullGCExcludes")).thenReturn("/foo::/bar");
+        ComponentContext componentContext = Mockito.mock(ComponentContext.class);
+        Mockito.when(componentContext.getBundleContext()).thenReturn(bundleContext);
+        Configuration config = DocumentNodeStoreServiceConfiguration.create(
+                componentContext, configAdmin,
+                preset.asConfiguration(),
+                configuration.asConfiguration());
+        assertArrayEquals(new String[]{"/foo", "/bar"}, config.fullGCExcludes());
     }
 
     @Test
