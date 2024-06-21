@@ -188,21 +188,14 @@ final class DocumentPropertyState implements PropertyState {
             return true;
         } else if (object instanceof DocumentPropertyState) {
             DocumentPropertyState other = (DocumentPropertyState) object;
-            // Compare names and raw un-parsed values
-            if (!this.name.equals(other.name) || !this.getValue().equals(other.getValue())) {
+            if (!this.name.equals(other.name) || !Arrays.equals(this.compressedValue, other.compressedValue)) {
                 return false;
             }
-            // Compare compressed values
             if (this.compressedValue == null && other.compressedValue == null) {
-                return true;
-            } else if (this.compressedValue == null || other.compressedValue == null) {
-                return false;
+                return value.equals(other.value);
             } else {
-                // Compare length, hashcode and content of compressed values
+                // Compare length and content of compressed values
                 if (this.compressedValue.length != other.compressedValue.length) {
-                    return false;
-                }
-                if (Arrays.hashCode(this.compressedValue) != Arrays.hashCode(other.compressedValue)) {
                     return false;
                 }
                 return Arrays.equals(this.compressedValue, other.compressedValue);

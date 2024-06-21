@@ -240,4 +240,75 @@ public class DocumentPropertyStateTest {
         return true;
     }
 
+    @Test
+    public void testEqualsWithoutCompression() {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String name = "propertyName";
+        String value = "testValue";
+        Compression compression = Compression.GZIP;
+
+        DocumentPropertyState state1 = new DocumentPropertyState(store, name, value, compression);
+        DocumentPropertyState state2 = new DocumentPropertyState(store, name, value, compression);
+
+        assertEquals(state1, state2);
+
+        // Test for inequality
+        DocumentPropertyState state4 = new DocumentPropertyState(store, "differentName", value, compression);
+        assertNotEquals(state1, state4);
+    }
+
+    @Test
+    public void testEqualsWithCompression() throws IOException {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String name = "propertyName";
+        String value = "testValue";
+        Compression compression = Compression.GZIP;
+
+        DocumentPropertyState.setCompressionThreshold(1);
+        // Create two DocumentPropertyState instances with the same properties
+        DocumentPropertyState state1 = new DocumentPropertyState(store, name, value, compression);
+        DocumentPropertyState state2 = new DocumentPropertyState(store, name, value, compression);
+
+        // Check that the compressed values are not null
+        assertNotNull(state1.getCompressedValue());
+        assertNotNull(state2.getCompressedValue());
+
+        // Check that the equals method returns true
+        assertEquals(state1, state2);
+
+        // Decompress the values
+        String decompressedValue1 = state1.getValue();
+        String decompressedValue2 = state2.getValue();
+
+        // Check that the decompressed values are equal to the original value
+        assertEquals(value, decompressedValue1);
+        assertEquals(value, decompressedValue2);
+
+        // Check that the equals method still returns true after decompression
+        assertEquals(state1, state2);
+    }
+
+    @Test
+    public void testOneCompressOtherUncompressInEquals() throws IOException {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String name = "propertyName";
+        String value = "testValue";
+        Compression compression = Compression.GZIP;
+
+        // Create a DocumentPropertyState instance with a compressed value
+        DocumentPropertyState.setCompressionThreshold(1);
+        DocumentPropertyState state1 = new DocumentPropertyState(store, name, value, compression);
+
+        // Create a DocumentPropertyState instance with an uncompressed value
+        DocumentPropertyState.setCompressionThreshold(-1);
+        DocumentPropertyState state2 = new DocumentPropertyState(store, name, value, compression);
+
+        assertNotEquals(state1, state2);
+
+        // Decompress the value of the first instance
+        String decompressedValue1 = state1.getValue();
+
+        // Check that the decompressed value is equal to the original value
+        assertEquals(value, decompressedValue1);
+    }
 }
