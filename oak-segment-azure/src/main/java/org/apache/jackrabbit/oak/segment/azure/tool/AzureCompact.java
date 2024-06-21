@@ -19,11 +19,7 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createArchiveManager;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createCloudBlobDirectory;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.*;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -35,6 +31,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -89,6 +86,10 @@ public class AzureCompact {
         private String persistentCachePath;
 
         private Integer persistentCacheSizeGb;
+
+        private CloudBlobDirectory sourceCloudBlobDirectory;
+
+        private CloudBlobDirectory destinationCloudBlobDirectory;
 
         private Builder() {
             // Prevent external instantiation.
@@ -217,13 +218,26 @@ public class AzureCompact {
             return this;
         }
 
+        public Builder withSourceCloudBlobDirectory(CloudBlobDirectory sourceCloudBlobDirectory) {
+            this.sourceCloudBlobDirectory = checkNotNull(sourceCloudBlobDirectory);
+            return this;
+        }
+
+        public Builder withDestinationCloudBlobDirectory(CloudBlobDirectory destinationCloudBlobDirectory) {
+            this.destinationCloudBlobDirectory = checkNotNull(destinationCloudBlobDirectory);
+            return this;
+        }
+
         /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
          */
         public AzureCompact build() {
-            checkNotNull(path);
+            if (sourceCloudBlobDirectory == null || destinationCloudBlobDirectory == null) {
+                checkNotNull(path);
+                checkNotNull(targetPath);
+            }
             return new AzureCompact(this);
         }
     }
@@ -248,6 +262,10 @@ public class AzureCompact {
 
     private Integer persistentCacheSizeGb;
 
+    private CloudBlobDirectory sourceCloudBlobDirectory;
+
+    private CloudBlobDirectory destinationCloudBlobDirectory;
+
     private AzureCompact(Builder builder) {
         this.path = builder.path;
         this.targetPath = builder.targetPath;
@@ -259,20 +277,30 @@ public class AzureCompact {
         this.concurrency = builder.concurrency;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
+        this.sourceCloudBlobDirectory = builder.sourceCloudBlobDirectory;
+        this.destinationCloudBlobDirectory = builder.destinationCloudBlobDirectory;
     }
 
     public int run() throws IOException, StorageException, URISyntaxException {
         Stopwatch watch = Stopwatch.createStarted();
-        SegmentNodeStorePersistence roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
-        SegmentNodeStorePersistence rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+
+        SegmentNodeStorePersistence roPersistence;
+        SegmentNodeStorePersistence rwPersistence;
+        if (sourceCloudBlobDirectory != null && destinationCloudBlobDirectory != null) {
+            roPersistence = decorateWithCache(new AzurePersistence(sourceCloudBlobDirectory), persistentCachePath, persistentCacheSizeGb);
+            rwPersistence = new AzurePersistence(destinationCloudBlobDirectory);
+        } else {
+            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+        }
 
         SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence, rwPersistence);
 
         SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence);
         SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence);
 
-        System.out.printf("Compacting %s\n", path);
-        System.out.printf(" to %s\n", targetPath);
+        System.out.printf("Compacting %s\n", path != null ? path : sourceCloudBlobDirectory.getUri().toString());
+        System.out.printf(" to %s\n", targetPath != null ? targetPath : destinationCloudBlobDirectory.getUri().toString());
         System.out.printf("    before\n");
         List<String> beforeArchives = Collections.emptyList();
         try {
@@ -320,8 +348,13 @@ public class AzureCompact {
         printArchives(System.out, afterArchives);
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
 
-        CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
-        CloudBlobContainer targetContainer = targetDirectory.getContainer();
+        CloudBlobContainer targetContainer = null;
+        if (targetPath != null) {
+            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
+            targetContainer = targetDirectory.getContainer();
+        } else {
+            targetContainer = destinationCloudBlobDirectory.getContainer();
+        }
         printTargetRepoSizeInfo(targetContainer);
 
         return 0;

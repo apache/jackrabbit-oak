@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import com.google.common.io.Files;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -80,6 +82,8 @@ public class AzureCheck {
         private String persistentCachePath;
 
         private Integer persistentCacheSizeGb;
+
+        private CloudBlobDirectory cloudBlobDirectory;
 
         private Builder() {
             // Prevent external instantiation.
@@ -271,12 +275,25 @@ public class AzureCheck {
         }
 
         /**
+         * The Azure blob directory to connect to.
+         * @param cloudBlobDirectory
+         *          the Azure blob directory.
+         * @return this builder
+         */
+        public Builder withCloudBlobDirectory(CloudBlobDirectory cloudBlobDirectory) {
+            this.cloudBlobDirectory = checkNotNull(cloudBlobDirectory);
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
          */
         public AzureCheck build() {
-            checkNotNull(path);
+            if (cloudBlobDirectory == null) {
+                checkNotNull(path);
+            }
             return new AzureCheck(this);
         }
 
@@ -329,6 +346,8 @@ public class AzureCheck {
 
     private final Integer persistentCacheSizeGb;
 
+    private final CloudBlobDirectory cloudBlobDirectory;
+
     private AzureCheck(Builder builder) {
         this.path = builder.path;
         this.debugInterval = builder.debugInterval;
@@ -345,6 +364,7 @@ public class AzureCheck {
         this.failFast = builder.failFast;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
+        this.cloudBlobDirectory = builder.cloudBlobDirectory;
     }
 
     private static Integer revisionsToCheckCount(Integer revisionsCount) {
@@ -354,10 +374,15 @@ public class AzureCheck {
     public int run() {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
         SegmentNodeStorePersistence persistence;
-        if (persistentCachePath != null) {
-            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+
+        if (cloudBlobDirectory != null) {
+            persistence = new AzurePersistence(cloudBlobDirectory);
         } else {
             persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
+        }
+
+        if (persistentCachePath != null) {
+            persistence = ToolUtils.decorateWithCache(persistence, persistentCachePath, persistentCacheSizeGb);
         }
 
         FileStoreBuilder builder = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence);

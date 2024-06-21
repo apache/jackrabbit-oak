@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.not;
 import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
 import static java.util.Optional.empty;
@@ -133,6 +134,56 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     /**
+     * Calculate the bson representing including only the provided
+     * include path prefixes and/or excluding the provided
+     * exclude path prefixes - if any are provided - AND the provided
+     * query.
+     * Please note that at the moment the includes do not
+     * take long paths into account. That is, if a long path was
+     * supposed to be included via an include, it is not.
+     * Reason for this is that long paths would require
+     * the mongo query to include a '_path' condition - which disallows
+     * mongo from using the '_modified_id' index. IOW long paths
+     * would result in full scans - which results in bad performance.
+     * @param includes set of path prefixes which should only be considered
+     * @param excludes set of path prefixes which should be excluded.
+     * if these overlap with includes, then exclude has precedence.
+     * @param query the query with which to do an AND
+     * @return the combined bson with include/exclude path prefixes
+     * AND the provided query
+     */
+    private Bson withIncludeExcludes(Set<String> includes, Set<String> excludes, Bson query) {
+        Bson inclExcl = null;
+        if (includes != null && !includes.isEmpty()) {
+            final List<Bson> ors = new ArrayList<>(includes.size());
+            for (String incl : includes) {
+                ors.add(Filters.regex(ID, ":" + incl));
+            }
+            inclExcl = or(ors);
+        }
+        if (excludes != null && !excludes.isEmpty()) {
+            final List<Bson> ands = new ArrayList<>(excludes.size());
+            for (String excl : excludes) {
+                ands.add(not(Filters.regex(ID, ":" + excl)));
+            }
+            if (inclExcl != null) {
+                ands.add(inclExcl);
+            }
+            inclExcl = and(ands);
+        }
+        if (inclExcl == null) {
+            // if no include or exclude path prefixes are defined,
+            // then everything is included - i.e. we fall back to
+            // just the provided query
+            return query;
+        } else {
+            // if there are include or exclude path prefixes,
+            // then add them via AND
+            return and(inclExcl, query);
+        }
+    }
+
+    /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
      * within the given range and are greater than given @{@link NodeDocument#ID}.
      * <p>
@@ -150,11 +201,14 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId) {
+                                                  @NotNull final String fromId,
+                                                  Set<String> includedPathPrefixes, Set<String> excludedPathPrefixes) {
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Bson query = or(
-                and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId)),
-                and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))));
+                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                        and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId))),
+                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                        and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
