@@ -328,9 +328,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 
     @AttributeDefinition(
             name = "Document Node Store Full GC Mode",
-            description = "Boolean value indicating which Full GC mode should be enabled for " +
-                    "document node store or not. The Default value is " + DEFAULT_FULL_GC_MODE +
+            description = "Integer value indicating which Full GC mode should be enabled for " +
+                    "document node store. The Default value is " + DEFAULT_FULL_GC_MODE +
                     ". Note that this value can be overridden via framework " +
-                    "property 'oak.documentstore.fullGCMode'")
+                    "property 'oak.documentstore.fullGCMode'." +
+                    "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled" +
+                    "is set to true, the fullGCMode will be ignored.")
     int fullGCMode() default DEFAULT_FULL_GC_MODE;
 }

@@ -141,7 +141,6 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
     static final int DEFAULT_FULL_GC_MODE = 0;
-    static final boolean DEFAULT_FULL_GC_EMPTY_PROPERTIES_ENABLED = false;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -200,16 +199,6 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
      */
     private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
-
-    /**
-     * Feature toggle name to enable full GC mode GAP_ORPHANS cleanup for Mongo Document Store
-     */
-    private static final String FT_NAME_FULL_GC_MODE_GAP_ORPHANS = "FT_FULL_GC_MODE_GAP_ORPHANS_OAK-10896";
-
-    /**
-     * Feature toggle name to enable full GC mode EMPTY_PROPERTIES cleanup for Mongo Document Store
-     */
-    private static final String FT_NAME_FULL_GC_MODE_EMPTY_PROPERTIES = "FT_FULL_GC_MODE_EMPTY_PROPERTIES_OAK-10896";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -290,8 +279,6 @@ public class DocumentNodeStoreService {
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
         docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
-        docStoreFullGCModeGapOrphansFeature = Feature.newFeature(FT_NAME_FULL_GC_MODE_GAP_ORPHANS, whiteboard);
-        docStoreFullGCModeEmptyPropertiesFeature = Feature.newFeature(FT_NAME_FULL_GC_MODE_EMPTY_PROPERTIES, whiteboard);
 
         registerNodeStoreIfPossible();
     }

@@ -28,12 +28,16 @@ import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
  */
 public class RDBDocumentNodeStoreBuilder
         extends DocumentNodeStoreBuilder<RDBDocumentNodeStoreBuilder> {
+
+    private static final Logger log = LoggerFactory.getLogger(RDBDocumentNodeStoreBuilder.class);
 
     /**
      * @return a new {@link RDBDocumentNodeStoreBuilder}.
@@ -131,6 +135,7 @@ public class RDBDocumentNodeStoreBuilder
     @Override
     public RDBDocumentNodeStoreBuilder setFullGCMode(int v) {
         // fullGC modes are not supported for RDB
+        log.warn("FullGC modes are not supported for RDB");
         return thisBuilder();
     }
 

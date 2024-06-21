@@ -213,7 +213,8 @@ public class VersionGarbageCollector {
 
     /**
      * Set the full GC mode to be used according to the provided configuration value.
-     * The configuration value will be ignored if it is set to any other values than the supported ones.
+     * The configuration value will be ignored and fullGCMode will be reset to NONE
+     * if it is set to any other values than the supported ones.
      * @param fullGcModeConfig
      */
     static void setFullGcMode(int fullGcModeConfig) {
@@ -227,6 +228,9 @@ public class VersionGarbageCollector {
             case 3:
                 fullGcMode = GAP_ORPHANS_EMPTYPROPS;
                 break;
+            default:
+                log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", fullGcModeConfig);
+                fullGcMode = NONE;
         }
     }
 
@@ -235,7 +239,6 @@ public class VersionGarbageCollector {
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
-    private final int fullGCModeConfigValue;
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -248,7 +251,8 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
-        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, 0);
+        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
+                DocumentNodeStoreService.DEFAULT_FULL_GC_MODE);
     }
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
@@ -256,17 +260,16 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification,
-                            final int fullGCModeConfigVal) {
+                            final int fullGCMode) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
         this.fullGCEnabled = fullGCEnabled;
         this.isFullGCDryRun = isFullGCDryRun;
-        this.fullGCModeConfigValue = fullGCModeConfigVal;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
 
-        setFullGcMode(fullGCModeConfigVal);
+        setFullGcMode(fullGCMode);
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
     }
 
@@ -1122,7 +1125,6 @@ public class VersionGarbageCollector {
                             greatestExistingAncestorOrSelf, name);
                 }
             }
-
             if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
 
                 // here the node is not orphaned which means that we can reach the node from root
@@ -1170,17 +1172,16 @@ public class VersionGarbageCollector {
                         break;
                     }
                 }
+                // only add if there are changes for this doc
+                if (op.hasChanges()) {
+                    op.equals(MODIFIED_IN_SECS, doc.getModified());
+                    garbageDocsCount++;
+                    totalGarbageDocsCount++;
+                    monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
+                    AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
+                    updateOpList.add(op);
+                }
             }
-            // only add if there are changes for this doc
-            if (op.hasChanges()) {
-                op.equals(MODIFIED_IN_SECS, doc.getModified());
-                garbageDocsCount++;
-                totalGarbageDocsCount++;
-                monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
-                AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
-                updateOpList.add(op);
-            }
-
             if (log.isTraceEnabled() && op.hasChanges()) {
                 // only log in case of changes & debug level enabled
                 log.trace("UpdateOp for [{}] is [{}]", doc.getId(), op);
@@ -1263,7 +1264,6 @@ public class VersionGarbageCollector {
 
             // first check if gapOrphansModeEnabled is set in fullGCOptions, then check in fullGCMode enum
             if (fullGcMode == GAP_ORPHANS || fullGcMode == GAP_ORPHANS_EMPTYPROPS) {
-
                 // check the ancestor docs for gaps
                 final Path docPath = doc.getPath();
                 final Path geaChildPath = docPath.getAncestor(docPath.getDepth() - greatestExistingAncestorOrSelf.getDepth() - 1);

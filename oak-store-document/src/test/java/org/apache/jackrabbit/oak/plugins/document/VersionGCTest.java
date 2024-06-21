@@ -535,10 +535,16 @@ public class VersionGCTest {
 
     @Test
     public void testVersionGCLoadGCModeConfigurationNotApplicable() throws Exception {
-        int FULL_GC_MODE_NOT_ALLOWED_VALUE = 5;
+        int fullGcModeNotAllowedValue = 5;
+        int fullGcModeGapOrphans = 2;
+
+        // set fullGcMode to allowed value that is different than NONE
+        VersionGarbageCollector.setFullGcMode(fullGcModeGapOrphans);
+
+        // reinitialize VersionGarbageCollector with not allowed value
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                FULL_GC_MODE_NOT_ALLOWED_VALUE);
+                fullGcModeNotAllowedValue);
 
         assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
                 "will set fullGcMode to default NONE", gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
@@ -546,30 +552,30 @@ public class VersionGCTest {
 
     @Test
     public void testVersionGCLoadGCModeConfigurationNone() throws Exception {
-        int FULL_GC_MODE_NONE = 0;
+        int fullGcModeNone = 0;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                FULL_GC_MODE_NONE);
+                fullGcModeNone);
 
         assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
     }
 
     @Test
     public void testVersionGCLoadGCModeConfigurationGapOrphans() throws Exception {
-        int FULL_GC_MODE_GAP_ORPHANS = 2;
+        int fullGcModeGapOrphans = 2;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                FULL_GC_MODE_GAP_ORPHANS);
+                fullGcModeGapOrphans);
 
         assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS);
     }
 
     @Test
     public void testVersionGCLoadGCModeConfigurationGapOrphansEmptyProperties() throws Exception {
-        int FULL_GC_MODE_GAP_ORPHANS_EMPTY_PROPERTIES = 3;
+        int fullGcModeGapOrphansEmptyProperties = 3;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                FULL_GC_MODE_GAP_ORPHANS_EMPTY_PROPERTIES);
+                fullGcModeGapOrphansEmptyProperties);
 
         assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS);
     }

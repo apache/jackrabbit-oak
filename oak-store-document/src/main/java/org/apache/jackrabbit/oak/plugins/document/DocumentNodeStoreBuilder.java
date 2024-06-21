@@ -171,7 +171,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
-    private int fullGCMode;
+    private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
