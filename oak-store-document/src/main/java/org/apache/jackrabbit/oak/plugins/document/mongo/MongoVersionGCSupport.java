@@ -205,9 +205,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                                                   Set<String> includedPathPrefixes, Set<String> excludedPathPrefixes) {
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Bson query = or(
-                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                withIncludeExcludes(includedPathPrefixes, Set.of()/*OAK-10914 : temporarily disabling excludedPathPrefixes*/,
                         and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId))),
-                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                withIncludeExcludes(includedPathPrefixes, Set.of()/*OAK-10914 : temporarily disabling excludedPathPrefixes*/,
                         and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
