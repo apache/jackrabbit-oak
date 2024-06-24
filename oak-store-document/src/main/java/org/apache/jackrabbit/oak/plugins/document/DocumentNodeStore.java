@@ -694,7 +694,7 @@ public final class DocumentNodeStore
         diffCache = builder.getDiffCache(this.clusterId);
 
         // check if root node exists
-        NodeDocument rootDoc = store.find(NODES, getIdFromPath(ROOT));
+        NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
         if (rootDoc == null) {
             if (readOnlyMode) {
                 throw new DocumentStoreException("Unable to initialize a " +
@@ -718,7 +718,7 @@ public final class DocumentNodeStore
             setRoot(head);
             // make sure _lastRev is written back to store
             backgroundWrite();
-            rootDoc = store.find(NODES, getIdFromPath(ROOT));
+            rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
             // at this point the root document must exist
             if (rootDoc == null) {
                 throw new IllegalStateException("Root document does not exist");
@@ -1559,7 +1559,7 @@ public final class DocumentNodeStore
         if (name.isEmpty()) {
             from = Utils.getKeyLowerLimit(path);
         } else {
-            from = getIdFromPath(new Path(path, name));
+            from = Utils.getIdFromPath(new Path(path, name));
         }
         return store.query(Collection.NODES, from, to, limit);
     }
@@ -1596,7 +1596,7 @@ public final class DocumentNodeStore
                     // declares the child to exist, while its node state is
                     // null. Let's put some extra effort to do some logging
                     // and invalidate the affected cache entries.
-                    String id = getIdFromPath(p);
+                    String id = Utils.getIdFromPath(p);
                     String cachedDocStr = docAsString(id, true);
                     String uncachedDocStr = docAsString(id, false);
                     nodeCache.invalidate(new PathRev(p, readRevision));
@@ -1635,7 +1635,7 @@ public final class DocumentNodeStore
     @Nullable
     private DocumentNodeState readNode(Path path, RevisionVector readRevision) {
         final long start = PERFLOG.start();
-        String id = getIdFromPath(path);
+        String id = Utils.getIdFromPath(path);
         Revision lastRevision = getPendingModifications().get(path);
         NodeDocument doc = store.find(Collection.NODES, id);
         if (doc == null) {
@@ -1715,7 +1715,7 @@ public final class DocumentNodeStore
                     // Invalidate the relevant cache entries. (OAK-6294)
                     LOG.warn("Before state is missing {}. Invalidating " +
                             "affected cache entries.", key);
-                    store.invalidateCache(NODES, getIdFromPath(p));
+                    store.invalidateCache(NODES, Utils.getIdFromPath(p));
                     nodeCache.invalidate(key);
                     nodeChildrenCache.invalidate(childNodeCacheKey(path, lastRev, ""));
                     beforeState = null;
@@ -1948,7 +1948,7 @@ public final class DocumentNodeStore
             revs.add(ancestorRev);
         }
         revs.addAll(b.getCommits().tailSet(ancestorRev));
-        UpdateOp rootOp = new UpdateOp(getIdFromPath(ROOT), false);
+        UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath(ROOT), false);
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = Maps.newHashMap();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
@@ -2002,7 +2002,7 @@ public final class DocumentNodeStore
         MergeCommit commit = newMergeCommit(base, numBranchCommits);
         try {
             // make branch commits visible
-            UpdateOp op = new UpdateOp(getIdFromPath(ROOT), false);
+            UpdateOp op = new UpdateOp(Utils.getIdFromPath(ROOT), false);
             NodeDocument.setModified(op, commit.getRevision());
             if (b != null) {
                 // check the branch age and fail the commit
@@ -2594,7 +2594,7 @@ public final class DocumentNodeStore
         while ((b = branches.pollOrphanedBranch()) != null) {
             LOG.debug("Cleaning up orphaned branch with base revision: {}, " + 
                     "commits: {}", b.getBase(), b.getCommits());
-            UpdateOp op = new UpdateOp(getIdFromPath(ROOT), false);
+            UpdateOp op = new UpdateOp(Utils.getIdFromPath(ROOT), false);
             for (Revision r : b.getCommits()) {
                 r = r.asTrunkRevision();
                 NodeDocument.removeRevision(op, r);
@@ -2605,7 +2605,7 @@ public final class DocumentNodeStore
     }
 
     private void cleanRootCollisions() {
-        String id = getIdFromPath(ROOT);
+        String id = Utils.getIdFromPath(ROOT);
         NodeDocument root = store.find(NODES, id);
         if (root != null) {
             cleanCollisions(root, Integer.MAX_VALUE);
