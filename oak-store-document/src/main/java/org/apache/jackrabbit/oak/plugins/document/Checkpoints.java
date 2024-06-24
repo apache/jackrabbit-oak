@@ -204,6 +204,10 @@ class Checkpoints {
         return rv;
     }
 
+    DocumentNodeStore getNodeStore() {
+        return nodeStore;
+    }
+
     void setInfoProperty(@NotNull String checkpoint, @NotNull String key, @Nullable String value) {
         Revision r = Revision.fromString(checkNotNull(checkpoint));
         Info info = getCheckpoints().get(r);

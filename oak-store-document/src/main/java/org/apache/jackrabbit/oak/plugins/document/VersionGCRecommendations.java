@@ -20,15 +20,18 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -223,7 +226,12 @@ public class VersionGCRecommendations {
         }
 
         //Check for any registered checkpoint which prevent the GC from running
-        Revision checkpoint = checkpoints.getOldestRevisionToKeep();
+        Revision checkpoint;
+        if (checkpoints.getNodeStore().isReadOnlyMode()) {
+            checkpoint = getLastAliveRevision(clock, checkpoints);
+        } else {
+            checkpoint = checkpoints.getOldestRevisionToKeep();
+        }
 
         final GCResult gcResult = getResult(options, checkpoint, clock, RGC, scope);
         scope = gcResult.gcScope;
@@ -319,6 +327,32 @@ public class VersionGCRecommendations {
                 stats.needRepeat |= !fullGCScopeIsComplete;
             }
         }
+    }
+
+    @Nullable
+    private Revision getLastAliveRevision(Clock clock, Checkpoints checkpoints) {
+        //Get uncached doc
+        SortedMap<Revision, Checkpoints.Info> checkpointsInfoMap = checkpoints.getCheckpoints();
+        if(checkpointsInfoMap.isEmpty()){
+            return null;
+        }
+
+        final long currentTime = clock.getTime();
+        Revision lastAliveRevision = null;
+
+        for (Map.Entry<Revision, Checkpoints.Info> e : checkpointsInfoMap.entrySet()) {
+            long expiryTime = e.getValue().getExpiryTime();
+            if (currentTime < expiryTime) {
+                Revision cpRev = e.getKey();
+                RevisionVector rv = e.getValue().getCheckpoint();
+                if (rv != null) {
+                    cpRev = rv.getRevision(cpRev.getClusterId());
+                }
+                lastAliveRevision = Utils.min(lastAliveRevision, cpRev);
+            }
+        }
+
+        return lastAliveRevision;
     }
 
     private Map<String, Object> getVGCSettings() {
