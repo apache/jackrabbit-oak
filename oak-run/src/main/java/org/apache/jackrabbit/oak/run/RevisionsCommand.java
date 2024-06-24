@@ -545,7 +545,7 @@ public class RevisionsCommand implements Command {
         gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
         System.out.println("Full GC Stats:");
-        System.out.println(gc.getFullGCStatsReport());
+        System.out.println("    " + gc.getFullGCStatsReport());
     }
 
     private String fmtTimestamp(long ts) {
