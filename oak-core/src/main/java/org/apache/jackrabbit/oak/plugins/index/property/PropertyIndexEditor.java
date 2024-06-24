@@ -53,6 +53,8 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Index editor for keeping a property index up to date.
@@ -61,6 +63,8 @@ import org.jetbrains.annotations.NotNull;
  * @see PropertyIndexLookup
  */
 class PropertyIndexEditor implements IndexEditor {
+
+    private static final Logger log = LoggerFactory.getLogger(PropertyIndexEditor.class);
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final PropertyIndexEditor parent;
@@ -328,6 +332,7 @@ class PropertyIndexEditor implements IndexEditor {
                     String msg = String.format(
                             "Uniqueness constraint violated property %s having value %s",
                             propertyNames, failed);
+                    log.warn("checkUniquenessConstraints: {}", msg);
                     throw new CommitFailedException(CONSTRAINT, 30, msg);
                 }
             }

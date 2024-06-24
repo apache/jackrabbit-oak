@@ -239,6 +239,8 @@ public class VersionGarbageCollector {
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
+    private Set<String> fullGCIncludePaths = Collections.emptySet();
+    private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -271,6 +273,20 @@ public class VersionGarbageCollector {
 
         setFullGcMode(fullGCMode);
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
+    }
+
+    /**
+     * Please note that at the moment the includes do not
+     * take long paths into account. That is, if a long path was
+     * supposed to be included via an include, it is not.
+     * Reason for this is that long paths would require
+     * the mongo query to include a '_path' condition - which disallows
+     * mongo from using the '_modified_id' index. IOW long paths
+     * would result in full scans - which results in bad performance.
+     */
+    void setFullGCPaths(@NotNull Set<String> includes, @NotNull Set<String> excludes) {
+        this.fullGCIncludePaths = requireNonNull(includes);
+        this.fullGCExcludePaths = requireNonNull(excludes);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -868,7 +884,7 @@ public class VersionGarbageCollector {
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId, fullGCIncludePaths, fullGCExcludePaths);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -886,7 +902,14 @@ public class VersionGarbageCollector {
                                 lastDoc = doc;
                                 // collect the data to delete in next step
                                 if (phases.start(GCPhase.FULL_GC_COLLECT_GARBAGE)) {
-                                    gc.collectGarbage(doc, phases);
+                                    if (Utils.isIncluded(doc.getPath(), Collections.emptySet(), fullGCExcludePaths)) {
+                                        gc.collectGarbage(doc, phases);
+                                    } else {
+                                        // MongoVersionGCSupport doesn't take long paths into consideration
+                                        // for neither includes nor excludes. If isIncluded returns false here,
+                                        // that can only be due to an excluded long path.
+                                        // in which case, we can actually honor that and skip this
+                                    }
                                     phases.stop(GCPhase.FULL_GC_COLLECT_GARBAGE);
                                 }
 

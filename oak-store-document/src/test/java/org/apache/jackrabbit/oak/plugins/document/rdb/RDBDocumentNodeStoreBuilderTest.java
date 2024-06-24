@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -66,6 +67,20 @@ public class RDBDocumentNodeStoreBuilderTest {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setFullGCEnabled(true);
         assertFalse(builder.isFullGCEnabled());
+    }
+
+    @Test
+    public void fullGCIncludePathsEmpty() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCIncludePaths(new String[] {"/foo"});
+        assertTrue(builder.getFullGCIncludePaths().isEmpty());
+    }
+
+    @Test
+    public void fullGCExcludePathsEmpty() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCExcludePaths(new String[] {"/foo"});
+        assertTrue(builder.getFullGCExcludePaths().isEmpty());
     }
 
     @Test

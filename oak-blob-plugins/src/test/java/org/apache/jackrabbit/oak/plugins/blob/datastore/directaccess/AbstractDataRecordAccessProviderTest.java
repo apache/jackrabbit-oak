@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -179,8 +179,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
         String umlautFilename = "Uml\u00e4utfile.png";
         String umlautFilename_ISO_8859_1 = new String(
-                Charsets.ISO_8859_1.encode(umlautFilename).array(),
-                Charsets.ISO_8859_1
+                StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
+                StandardCharsets.ISO_8859_1
         );
         List<String> fileNames = Lists.newArrayList(
                 "image.png",

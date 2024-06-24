@@ -78,6 +78,10 @@ public class DocumentNodeStoreHelper {
                 fullGCMode);
     }
 
+    public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {
+        return documentNodeStore.readNode(path, rootRevision);
+    }
+
     private static Iterable<BlobReferences> scan(DocumentNodeStore store,
                                                  Comparator<BlobReferences> comparator,
                                                  int num) {

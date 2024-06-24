@@ -134,17 +134,20 @@ public class ToolUtils {
         switch (storeType) {
         case AZURE:
             CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
-            SegmentNodeStorePersistence basePersistence = new AzurePersistence(cloudBlobDirectory);
-
-            PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
-                        persistentCacheSize * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
-            persistence = new CachingPersistence(persistentCache, basePersistence);
+            persistence = decorateWithCache(new AzurePersistence(cloudBlobDirectory), persistentCachePath, persistentCacheSize);
             break;
         default:
             persistence = new TarPersistence(new File(pathOrUri));
         }
 
         return persistence;
+    }
+
+    public static SegmentNodeStorePersistence decorateWithCache(SegmentNodeStorePersistence persistence,
+            String persistentCachePath, Integer persistentCacheSize) {
+        PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
+                persistentCacheSize * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
+        return new CachingPersistence(persistentCache, persistence);
     }
 
     public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
@@ -24,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUS
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +43,7 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -170,6 +173,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;
+    private Set<String> fullGCIncludePaths = Set.of();
+    private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
@@ -302,6 +307,28 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isFullGCEnabled() {
         return this.fullGCEnabled;
+    }
+
+    public T setFullGCIncludePaths(@NotNull String[] includePaths) {
+        if (Arrays.equals(includePaths, new String[]{"/"})) {
+            this.fullGCIncludePaths = Set.of();
+        } else {
+            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCIncludePaths() {
+        return fullGCIncludePaths;
+    }
+
+    public T setFullGCExcludePaths(@NotNull String[] excludePaths) {
+        this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCExcludePaths() {
+        return fullGCExcludePaths;
     }
 
     public T setEmbeddedVerificationEnabled(boolean b) {

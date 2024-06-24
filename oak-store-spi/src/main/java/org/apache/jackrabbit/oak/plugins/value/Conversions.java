@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -159,7 +159,7 @@ public final class Conversions {
                 try {
                     InputStream in = value.getNewStream();
                     try {
-                        return new String(ByteStreams.toByteArray(in), Charsets.UTF_8);
+                        return new String(ByteStreams.toByteArray(in), StandardCharsets.UTF_8);
                     }
                     finally {
                         in.close();
