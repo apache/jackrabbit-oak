@@ -151,16 +151,16 @@ public class DataStoreUtils {
 
     public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {
         if (config == null) {
-            log.warn("config not provided, cannot initializing blob container");
+            log.warn("config not provided, cannot initialize blob container");
             return;
         }
         if (Strings.isNullOrEmpty(containerName)) {
-            log.warn("container name is null or blank, cannot initializing blob container");
+            log.warn("container name is null or blank, cannot initialize blob container");
             return;
         }
         CloudBlobContainer container = getCloudBlobContainer(config, containerName);
         if (container == null) {
-            log.info("cannot delete the container as it is not initialized");
+            log.warn("cannot delete the container as it is not initialized");
             return;
         }
         log.info("deleting container [{}]", containerName);
