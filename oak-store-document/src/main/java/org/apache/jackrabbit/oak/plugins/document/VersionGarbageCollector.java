@@ -1129,44 +1129,44 @@ public class VersionGarbageCollector {
 
                 // here the node is not orphaned which means that we can reach the node from root
                 switch (fullGcMode) {
-                    case NONE: {
+                    case NONE : {
                         // shouldn't be reached
                         return;
                     }
-                    case GAP_ORPHANS: {
+                    case GAP_ORPHANS : {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
                     }
-                    case GAP_ORPHANS_EMPTYPROPS:
-                    case ALL_ORPHANS_EMPTYPROPS: {
+                    case GAP_ORPHANS_EMPTYPROPS :
+                    case ALL_ORPHANS_EMPTYPROPS : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
                     }
-                    case ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS: {
+                    case ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, false);
                         combineInternalPropRemovals(doc, op);
                         break;
                     }
-                    case ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS: {
+                    case ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, true);
                         combineInternalPropRemovals(doc, op);
                         break;
                     }
-                    case ORPHANS_EMPTYPROPS_UNMERGED_BC: {
+                    case ORPHANS_EMPTYPROPS_UNMERGED_BC : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
                         break;
                     }
-                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC: {
+                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
                         collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
                         break;
                     }
-                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC: {
+                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
                         break;
