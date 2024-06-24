@@ -291,7 +291,9 @@ public class AzureCheck {
          * @return an instance of {@link Runnable}.
          */
         public AzureCheck build() {
-            checkNotNull(path);
+            if (cloudBlobDirectory == null) {
+                checkNotNull(path);
+            }
             return new AzureCheck(this);
         }
 
