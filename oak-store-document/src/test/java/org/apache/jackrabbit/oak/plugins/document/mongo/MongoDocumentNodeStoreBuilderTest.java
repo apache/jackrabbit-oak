@@ -71,9 +71,25 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void fullGCIncludePathsWithWrongPath() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCIncludePaths(new String[] {"/foo", "wrongPath/"});
+        assertFalse(builder.getFullGCIncludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCIncludePaths());
+    }
+
+    @Test
     public void fullGCExcludePathsNotEmpty() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         builder.setFullGCExcludePaths(new String[] {"/foo"});
+        assertFalse(builder.getFullGCExcludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCExcludePaths());
+    }
+
+    @Test
+    public void fullGCExcludePathsWithWrongPath() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCExcludePaths(new String[] {"/foo", "//"});
         assertFalse(builder.getFullGCExcludePaths().isEmpty());
         assertEquals(of("/foo"), builder.getFullGCExcludePaths());
     }
