@@ -1010,16 +1010,6 @@ public class Utils {
     }
 
     /**
-     * Returns the full GC mode value for the DocumentNodeStore.
-     *
-     * @param builder instance for DocumentNodeStoreBuilder
-     * @return true if full GC is enabled else false
-     */
-    public static int getFullGCMode(final DocumentNodeStoreBuilder<?> builder) {
-        return builder.getFullGCMode();
-    }
-
-    /**
      * Returns true if all the revisions in the {@code a} greater or equals
      * to their counterparts in {@code b}. If {@code b} contains revisions
      * for cluster nodes that are not present in {@code a}, return false.

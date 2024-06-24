@@ -215,22 +215,22 @@ public class VersionGarbageCollector {
      * Set the full GC mode to be used according to the provided configuration value.
      * The configuration value will be ignored and fullGCMode will be reset to NONE
      * if it is set to any other values than the supported ones.
-     * @param fullGcModeConfig
+     * @param fullGcMode
      */
-    static void setFullGcMode(int fullGcModeConfig) {
-        switch (fullGcModeConfig) {
+    static void setFullGcMode(int fullGcMode) {
+        switch (fullGcMode) {
             case 0:
-                fullGcMode = NONE;
+                VersionGarbageCollector.fullGcMode = NONE;
                 break;
             case 2:
-                fullGcMode = GAP_ORPHANS;
+                VersionGarbageCollector.fullGcMode = GAP_ORPHANS;
                 break;
             case 3:
-                fullGcMode = GAP_ORPHANS_EMPTYPROPS;
+                VersionGarbageCollector.fullGcMode = GAP_ORPHANS_EMPTYPROPS;
                 break;
             default:
-                log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", fullGcModeConfig);
-                fullGcMode = NONE;
+                log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", fullGcMode);
+                VersionGarbageCollector.fullGcMode = NONE;
         }
     }
 
@@ -1128,7 +1128,7 @@ public class VersionGarbageCollector {
             if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
 
                 // here the node is not orphaned which means that we can reach the node from root
-                switch (fullGcMode) {
+                switch(fullGcMode) {
                     case NONE : {
                         // shouldn't be reached
                         return;
@@ -1261,7 +1261,6 @@ public class VersionGarbageCollector {
                 phases.stop(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES);
                 return false;
             }
-
             if (fullGcMode == GAP_ORPHANS || fullGcMode == GAP_ORPHANS_EMPTYPROPS) {
                 // check the ancestor docs for gaps
                 final Path docPath = doc.getPath();

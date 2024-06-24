@@ -59,7 +59,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getFullGCMode;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -239,25 +238,26 @@ public class UtilsTest {
 
     @Test
     public void fullGCModeDefaultValue() {
-        int fullGCModeDefaultValue = getFullGCMode(newDocumentNodeStoreBuilder());
-        final int FULL_GC_MODE_NONE = 0;
-        assertEquals("Full GC mode has NONE value by default", fullGCModeDefaultValue, FULL_GC_MODE_NONE);
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        int fullGCModeDefaultValue = builder.getFullGCMode();
+        final int fullGcModeNone = 0;
+        assertEquals("Full GC mode has NONE value by default", fullGCModeDefaultValue, fullGcModeNone);
     }
 
     @Test
     public void fullGCModeSetViaConfiguration() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        final int FULL_GC_MODE_GAP_ORPHANS = 2;
-        builder.setFullGCMode(FULL_GC_MODE_GAP_ORPHANS);
-        int fullGCModeValue = getFullGCMode(builder);
-        assertEquals("Full GC mode set correctly via configuration", fullGCModeValue, FULL_GC_MODE_GAP_ORPHANS);
+        final int fullGcModeGapOrphans = 2;
+        builder.setFullGCMode(fullGcModeGapOrphans);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode set correctly via configuration", fullGCModeValue, fullGcModeGapOrphans);
     }
 
     @Test
     public void fullGCModeHasDefaultValueForRDB() {
         DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
         builder.setFullGCMode(3);
-        int fullGCModeValue = getFullGCMode(builder);
+        int fullGCModeValue = builder.getFullGCMode();
         assertEquals("Full GC mode has default value 0 for RDB Document Store", fullGCModeValue, 0);
     }
 
