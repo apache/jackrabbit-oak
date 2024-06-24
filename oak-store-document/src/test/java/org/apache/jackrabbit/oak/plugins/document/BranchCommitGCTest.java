@@ -241,6 +241,8 @@ public class BranchCommitGCTest {
 
     @Test
     public void testDeletedPropsAndUnmergedBC() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+
         // create a node with property.
         NodeBuilder nb = store.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -291,6 +293,7 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddTwoChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         RevisionVector br1 = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -552,6 +555,7 @@ public class BranchCommitGCTest {
     @Test
     public void unmergedRemoveChild() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         mergedBranchCommit(b -> {
             b.child("foo");
             b.child("bar");

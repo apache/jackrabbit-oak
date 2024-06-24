@@ -36,7 +36,7 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistry;
 
-import java.util.Map;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -55,7 +55,7 @@ import java.util.TreeMap;
  */
 public class NodeDocumentCodec implements Codec<NodeDocument> {
     // The estimated size is stored in the NodeDocument itself
-    public final static String SIZE_FIELD = "__ESTIMATED_SIZE__";
+    public final static String SIZE_FIELD = "_ESTIMATED_SIZE_";
     private final MongoDocumentStore store;
     private final Collection<NodeDocument> collection;
     private final BsonTypeCodecMap bsonTypeCodecMap;
@@ -145,7 +145,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         return value;
     }
 
-    private Map<Revision, Object> readDocument(BsonReader reader, MutableInt estimatedSizeOfCurrentObject) {
+    private SortedMap<Revision, Object> readDocument(BsonReader reader, MutableInt estimatedSizeOfCurrentObject) {
         TreeMap<Revision, Object> map = new TreeMap<>(StableRevisionComparator.REVERSE);
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {

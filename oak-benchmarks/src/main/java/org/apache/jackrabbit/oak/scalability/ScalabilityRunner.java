@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.scalability;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -179,7 +179,7 @@ public class ScalabilityRunner {
             if (options.has(scalabilityOptions.getCsvFile())) {
                 out =
                     new PrintStream(FileUtils.openOutputStream(scalabilityOptions.getCsvFile().value(options), true), false,
-                                            Charsets.UTF_8.name());
+                                            StandardCharsets.UTF_8);
             }
             for (ScalabilitySuite suite : suites) {
                 if (suite instanceof CSVResultGenerator) {

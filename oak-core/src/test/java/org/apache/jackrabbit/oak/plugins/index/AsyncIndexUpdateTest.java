@@ -589,6 +589,83 @@ public class AsyncIndexUpdateTest {
         assertNoConflictMarker(builder);
     }
 
+    @Test
+    public void testForceUpdateAsyncLane() throws CommitFailedException {
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        NodeState root = store.getRoot();
+        builder = root.builder();
+        builder.child("testRoot1").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Run force index catchup with an incorrect confirm message
+        // This will skip the operation and testRoot1 should be indexed in the next async run.
+        async.getIndexStats().forceIndexLaneCatchup("ok");
+        async.run();
+        root = store.getRoot();
+
+        // first check that the index content nodes exist
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        assertEquals(Set.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
+
+        // Run force index catchup with correct confirm message
+        // But the async lane is NOT failing
+        // Due to this the force update should be skipped and the
+        // new node testRoot2 will  be indexed.
+        builder.child("testRoot2").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
+        async.run();
+        root = store.getRoot();
+
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+        lookup = new PropertyIndexLookup(root);
+        assertEquals(Set.of("testRoot", "testRoot1", "testRoot2"), find(lookup, "foo", "abc"));
+
+
+        // Now run force index update on a failing lane with correct confirm message
+        builder.child("testRoot3").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.getIndexStats().failed(new Exception("Mock index update failure"));
+        assertTrue(async.isFailing());
+        async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
+        builder.child("testRoot4").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+        root = store.getRoot();
+
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+        lookup = new PropertyIndexLookup(root);
+        // testRoot3 will not be indexed, because it was created after the last successfully run index update and before the forceUpdate was called.
+        // So it lands in the missing content diff that needs to be reindexed.
+        assertEquals(Set.of("testRoot", "testRoot1", "testRoot2", "testRoot4"), find(lookup, "foo", "abc"));
+        // Check if failing index update is fixed
+        assertFalse(async.isFailing());
+    }
+
     private void assertNoConflictMarker(NodeBuilder builder) {
         for (String name : builder.getChildNodeNames()) {
             if (name.equals(ConflictAnnotatingRebaseDiff.CONFLICT)) {

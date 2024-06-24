@@ -55,6 +55,18 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
+        return createVersionableNode(parent, nodeName1);
+    }
+
+    /**
+     * Creates a versionable node with the specified name under the given parent node, then
+     * saves the session.
+     * @param parent
+     * @param nodeName
+     * @return
+     * @throws Exception
+     */
+    private Node createVersionableNode(Node parent, String nodeName) throws Exception {
         Node n = (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
         if (n.canAddMixin(mixVersionable)) {
             n.addMixin(mixVersionable);
