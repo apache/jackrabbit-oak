@@ -254,7 +254,7 @@ public class VersionGarbageCollector {
         this.fullGCExcludePaths = requireNonNull(excludes);
     }
 
-    void setStatisticsProvider(StatisticsProvider provider) {
+    public void setStatisticsProvider(StatisticsProvider provider) {
         this.gcStats = new RevisionGCStats(provider);
         this.fullGCStats = new FullGCStatsCollectorImpl(provider);
     }
