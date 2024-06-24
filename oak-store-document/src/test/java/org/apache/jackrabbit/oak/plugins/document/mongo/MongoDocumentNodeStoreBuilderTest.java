@@ -114,7 +114,7 @@ public class MongoDocumentNodeStoreBuilderTest {
     @Test
     public void fullGCModeDefaultValue() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        final int FULL_GC_MODE_NONE = 0;
-        assertEquals(builder.getFullGCMode(), FULL_GC_MODE_NONE);
+        final int fullGcModeNone = 0;
+        assertEquals(builder.getFullGCMode(), fullGcModeNone);
     }
 }
