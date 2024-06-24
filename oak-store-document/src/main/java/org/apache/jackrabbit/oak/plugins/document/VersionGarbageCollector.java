@@ -1262,7 +1262,6 @@ public class VersionGarbageCollector {
                 return false;
             }
 
-            // first check if gapOrphansModeEnabled is set in fullGCOptions, then check in fullGCMode enum
             if (fullGcMode == GAP_ORPHANS || fullGcMode == GAP_ORPHANS_EMPTYPROPS) {
                 // check the ancestor docs for gaps
                 final Path docPath = doc.getPath();

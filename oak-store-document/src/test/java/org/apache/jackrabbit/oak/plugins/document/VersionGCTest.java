@@ -547,7 +547,7 @@ public class VersionGCTest {
                 fullGcModeNotAllowedValue);
 
         assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
-                "will set fullGcMode to default NONE", gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+                "will set fullGcMode to default NONE", VersionGarbageCollector.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
     }
 
     @Test

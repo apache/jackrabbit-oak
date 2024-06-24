@@ -239,8 +239,6 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
-    private Feature docStoreFullGCModeGapOrphansFeature;
-    private Feature docStoreFullGCModeEmptyPropertiesFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -664,14 +662,6 @@ public class DocumentNodeStoreService {
 
         if (docStoreEmbeddedVerificationFeature != null) {
             docStoreEmbeddedVerificationFeature.close();
-        }
-
-        if (docStoreFullGCModeGapOrphansFeature != null) {
-            docStoreFullGCModeGapOrphansFeature.close();
-        }
-
-        if (docStoreFullGCModeEmptyPropertiesFeature != null) {
-            docStoreFullGCModeEmptyPropertiesFeature.close();
         }
 
         unregisterNodeStore();
