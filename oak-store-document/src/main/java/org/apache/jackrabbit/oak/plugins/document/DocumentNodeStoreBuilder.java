@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static java.util.Set.of;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -174,8 +173,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;
-    private Set<String> fullGCIncludePaths = of();
-    private Set<String> fullGCExcludePaths = of();
+    private Set<String> fullGCIncludePaths = Set.of();
+    private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
@@ -310,7 +309,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setFullGCIncludePaths(@NotNull String[] includePaths) {
-        this.fullGCIncludePaths = Arrays.stream(includePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        if (Arrays.equals(includePaths, new String[]{"/"})) {
+            this.fullGCIncludePaths = Set.of();
+        } else {
+            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
         return thisBuilder();
     }
 

@@ -84,9 +84,9 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals("MONGO", config.documentStoreType());
         assertEquals(DocumentNodeStoreService.DEFAULT_BUNDLING_DISABLED, config.bundlingDisabled());
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
-        assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
-        assertEquals(of(), of(config.fullGCIncludes()));
-        assertEquals(of(), of(config.fullGCExcludes()));
+        assertEquals(of("/"), Arrays.asList(config.persistentCacheIncludes()));
+        assertEquals(of("/"), of(config.fullGCIncludePaths()));
+        assertEquals(of(), of(config.fullGCExcludePaths()));
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
@@ -119,19 +119,19 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
-    public void fullGCIncludes() throws Exception {
+    public void fullGCIncludePaths() throws Exception {
         final String[] includesPath = new String[]{"/foo", "/bar"};
-        addConfigurationEntry(preset, "fullGCIncludes", includesPath);
+        addConfigurationEntry(preset, "fullGCIncludePaths", includesPath);
         Configuration config = createConfiguration();
-        assertArrayEquals(includesPath, config.fullGCIncludes());
+        assertArrayEquals(includesPath, config.fullGCIncludePaths());
     }
 
     @Test
-    public void fullGCExcludes() throws Exception {
+    public void fullGCExcludePaths() throws Exception {
         final String[] excludesPath = new String[]{"/foo", "/bar"};
-        addConfigurationEntry(preset, "fullGCExcludes", excludesPath);
+        addConfigurationEntry(preset, "fullGCExcludePaths", excludesPath);
         Configuration config = createConfiguration();
-        assertArrayEquals(excludesPath, config.fullGCExcludes());
+        assertArrayEquals(excludesPath, config.fullGCExcludePaths());
     }
 
     @Test
@@ -206,29 +206,29 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
-    public void overrideFullGCIncludes() throws Exception {
+    public void overrideFullGCIncludePaths() throws Exception {
         BundleContext bundleContext = Mockito.mock(BundleContext.class);
-        Mockito.when(bundleContext.getProperty("oak.documentstore.fullGCIncludes")).thenReturn("/foo::/bar");
+        Mockito.when(bundleContext.getProperty("oak.documentstore.fullGCIncludePaths")).thenReturn("/foo::/bar");
         ComponentContext componentContext = Mockito.mock(ComponentContext.class);
         Mockito.when(componentContext.getBundleContext()).thenReturn(bundleContext);
         Configuration config = DocumentNodeStoreServiceConfiguration.create(
                 componentContext, configAdmin,
                 preset.asConfiguration(),
                 configuration.asConfiguration());
-        assertArrayEquals(new String[]{"/foo", "/bar"}, config.fullGCIncludes());
+        assertArrayEquals(new String[]{"/foo", "/bar"}, config.fullGCIncludePaths());
     }
 
     @Test
-    public void overrideFullGCExcludes() throws Exception {
+    public void overrideFullGCExcludePaths() throws Exception {
         BundleContext bundleContext = Mockito.mock(BundleContext.class);
-        Mockito.when(bundleContext.getProperty("oak.documentstore.fullGCExcludes")).thenReturn("/foo::/bar");
+        Mockito.when(bundleContext.getProperty("oak.documentstore.fullGCExcludePaths")).thenReturn("/foo::/bar");
         ComponentContext componentContext = Mockito.mock(ComponentContext.class);
         Mockito.when(componentContext.getBundleContext()).thenReturn(bundleContext);
         Configuration config = DocumentNodeStoreServiceConfiguration.create(
                 componentContext, configAdmin,
                 preset.asConfiguration(),
                 configuration.asConfiguration());
-        assertArrayEquals(new String[]{"/foo", "/bar"}, config.fullGCExcludes());
+        assertArrayEquals(new String[]{"/foo", "/bar"}, config.fullGCExcludePaths());
     }
 
     @Test
