@@ -377,6 +377,10 @@ public class RevisionsCommand implements Command {
                 gc.cancel();
                 finished.acquireUninterruptibly();
                 System.out.println("Stopped Revision GC.");
+                if (fullGCEnabled) {
+                    System.out.println("Full GC Stats:");
+                    System.out.println("    " + gc.getFullGCStatsReport());
+                }
             }));
             if (options.isContinuous()) {
                 while (running.get()) {
@@ -391,10 +395,6 @@ public class RevisionsCommand implements Command {
             printInfo(gc, options);
         } finally {
             finished.release();
-            if (fullGCEnabled) {
-                System.out.println("Full GC Stats:");
-                System.out.println(gc.getFullGCStatsReport());
-            }
             if (options.isDryRun()) {
                 gc.resetDryRun();
             }

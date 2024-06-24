@@ -189,7 +189,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("FullGCStatsCollectorImpl{");
-        sb.append(", readDoc=").append(readDoc.getCount());
+        sb.append("readDoc=").append(readDoc.getCount());
         sb.append(", deletedOrphanNode=").append(deletedOrphanNode.getCount());
         sb.append(", deletedProperty=").append(deletedProperty.getCount());
         sb.append(", deletedUnmergedBC=").append(deletedUnmergedBC.getCount());
