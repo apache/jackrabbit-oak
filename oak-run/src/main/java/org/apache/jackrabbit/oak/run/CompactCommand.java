@@ -99,24 +99,22 @@ class CompactCommand implements Command {
                 System.exit(-1);
             }
 
-            if (persistentCachePath.value(options) == null) {
-                System.err.println("A path for the persistent disk cache needs to be specified");
-                parser.printHelpOn(System.err);
-                System.exit(-1);
-            }
-
             AzureCompact.Builder azureBuilder = AzureCompact.builder()
                     .withPath(path)
                     .withTargetPath(targetPath.value(options))
-                    .withPersistentCachePath(persistentCachePath.value(options))
-                    .withPersistentCacheSizeGb(persistentCacheSizeGb.value(options))
                     .withForce(options.has(forceArg))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
                     .withConcurrency(nThreads.value(options));
 
+            if (options.has(persistentCachePath)) {
+                azureBuilder.withPersistentCachePath(persistentCachePath.value(options));
+                azureBuilder.withPersistentCacheSizeGb(persistentCacheSizeGb.value(options));
+            }
+
             if (options.has(tailArg)) {
                 azureBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
             }
+
             if (options.has(compactor)) {
                 azureBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }
