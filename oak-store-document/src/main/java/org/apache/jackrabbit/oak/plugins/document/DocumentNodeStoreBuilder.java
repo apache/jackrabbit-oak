@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Set.of;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
@@ -25,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUS
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -307,7 +310,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setFullGCIncludePaths(@NotNull String[] includePaths) {
-        this.fullGCIncludePaths = of(includePaths);
+        this.fullGCIncludePaths = Arrays.stream(includePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
         return thisBuilder();
     }
 
@@ -316,7 +319,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setFullGCExcludePaths(@NotNull String[] excludePaths) {
-        this.fullGCExcludePaths = of(excludePaths);
+        this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
         return thisBuilder();
     }
 

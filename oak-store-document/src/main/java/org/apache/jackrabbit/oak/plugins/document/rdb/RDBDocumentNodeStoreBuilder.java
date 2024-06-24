@@ -139,7 +139,7 @@ public class RDBDocumentNodeStoreBuilder
 
     @Override
     public RDBDocumentNodeStoreBuilder setFullGCIncludePaths(@NotNull String[] includePaths) {
-        // fullGC is non supported for RDB
+        // fullGC is not supported for RDB
         return thisBuilder();
     }
 
@@ -150,7 +150,7 @@ public class RDBDocumentNodeStoreBuilder
 
     @Override
     public RDBDocumentNodeStoreBuilder setFullGCExcludePaths(@NotNull String[] excludePaths) {
-        // fullGC is non supported for RDB
+        // fullGC is not supported for RDB
         return thisBuilder();
     }
 

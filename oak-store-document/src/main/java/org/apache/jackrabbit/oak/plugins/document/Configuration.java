@@ -263,8 +263,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     @AttributeDefinition(
             name = "Full GC Include Paths",
             description = "Paths which should be included in full garbage collection." +
-                    "Empty value means all paths are included." +
-                    "This value can be overridden with a system property " +
+                    "Empty value means all paths are included. " +
+                    "Any path which is added to both include & exclude paths, " +
+                    "would be removed from included paths." +
+                    "Note that this value can be overridden with a system property " +
                     "'oak.documentstore.fullGCIncludes' where paths " +
                     "are separated with '::'. Example: -Doak.documentstore.fullGCIncludes=/content::/var")
     String[] fullGCIncludes() default {};
@@ -273,7 +275,8 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "Full GC Exclude Paths",
             description = "Paths which should be excluded from full Garbage collection." +
                     "Empty value means no paths are excluded." +
-                    "This value can be overridden with a system property " +
+                    "Any path added to excluded list would be removed from include paths (if present)." +
+                    "Note that this value can be overridden with a system property " +
                     "'oak.documentstore.fullGCExcludes' where paths " +
                     "are separated with '::'. Example: -Doak.documentstore.fullGCExcludes=/content::/var")
     String[] fullGCExcludes() default {};
