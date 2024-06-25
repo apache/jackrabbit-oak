@@ -1316,7 +1316,7 @@ public class VersionGarbageCollector {
                         .sum();
 
                 deletedPropsCountMap.put(doc.getId(), deletedPropsCount);
-                fullGCStats.collectedPropertiesDeleted(GCPhase.FULL_GC_COLLECT_PROPS, deletedPropsCount);
+                fullGCStats.candidateProperties(GCPhase.FULL_GC_COLLECT_PROPS, deletedPropsCount);
 
                 if (AUDIT_LOG.isDebugEnabled() && deletedPropsCount > 0) {
                     AUDIT_LOG.debug("<Collected> [{}] deleted props in [{}]", deletedPropsCount, doc.getId());
@@ -1356,7 +1356,7 @@ public class VersionGarbageCollector {
             
             olderUnmergedBranchCommits.forEach(bcRevision -> removeUnmergedBCRevision(bcRevision, doc, updateOp));
             deletedUnmergedBCSet.addAll(olderUnmergedBranchCommits);
-            fullGCStats.collectedUnmergedBranchCommits(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, olderUnmergedBranchCommits.size());
+            fullGCStats.candidateDocuments(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, olderUnmergedBranchCommits.size());
 
             if (AUDIT_LOG.isDebugEnabled()) {
                 AUDIT_LOG.debug("<Collected> [{}] unmerged branch commits in [{}]", olderUnmergedBranchCommits.size(), doc.getId());
@@ -1388,7 +1388,7 @@ public class VersionGarbageCollector {
 
                 // update the deleted properties count Map to calculate the total no. of deleted properties
                 int totalDeletedSystemPropsCount = deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
-                fullGCStats.collectedInternalRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, totalDeletedSystemPropsCount);
+                fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, totalDeletedSystemPropsCount);
 
                 if (AUDIT_LOG.isDebugEnabled() && totalDeletedSystemPropsCount > 0) {
                     AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), fullGcMode);
@@ -1547,8 +1547,8 @@ public class VersionGarbageCollector {
             if (revEntriesCount > 0) {
                 deletedPropRevsCountMap.merge(doc.getId(), revEntriesCount, Integer::sum);
             }
-            fullGCStats.collectedRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, revEntriesCount);
-            fullGCStats.collectedInternalRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, internalRevEntriesCount);
+            fullGCStats.candidateRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, revEntriesCount);
+            fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, internalRevEntriesCount);
 
             if (AUDIT_LOG.isDebugEnabled() && (revEntriesCount > 0 || internalRevEntriesCount > 0)) {
                 AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", revEntriesCount, internalRevEntriesCount, doc.getId(), fullGcMode);
@@ -1574,8 +1574,8 @@ public class VersionGarbageCollector {
                 if (AUDIT_LOG.isDebugEnabled() && (revsDiff > 0 || intRevsDiff > 0)) {
                     AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", revsDiff, intRevsDiff, doc.getId(), fullGcMode);
                 }
-                fullGCStats.collectedRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, revsDiff);
-                fullGCStats.collectedInternalRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, intRevsDiff);
+                fullGCStats.candidateRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, revsDiff);
+                fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, intRevsDiff);
 
                 phases.stop(GCPhase.FULL_GC_COLLECT_OLD_REVS);
             }
@@ -1624,8 +1624,8 @@ public class VersionGarbageCollector {
             if (AUDIT_LOG.isDebugEnabled() && deletedTotalRevsCount > 0) {
                 AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedUserRevsCount, deletedInternalRevsCount, doc.getId(), fullGcMode);
             }
-            fullGCStats.collectedRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, deletedUserRevsCount);
-            fullGCStats.collectedInternalRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, deletedInternalRevsCount);
+            fullGCStats.candidateRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, deletedUserRevsCount);
+            fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, deletedInternalRevsCount);
 
             phases.stop(GCPhase.FULL_GC_COLLECT_OLD_REVS);
         }

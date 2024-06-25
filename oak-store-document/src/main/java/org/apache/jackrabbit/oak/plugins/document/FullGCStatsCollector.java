@@ -33,32 +33,32 @@ public interface FullGCStatsCollector {
     void documentRead();
 
     /**
-     * Total No. of properties deleted during a given GC phase
+     * Total No. of properties detected as garbage during a given GC phase
      * @param mode GC phase
-     * @param numProps no. of properties deleted in current cycle
+     * @param numProps no. of garbage properties found in current cycle
      */
-    void collectedPropertiesDeleted(GCPhase mode, long numProps);
+    void candidateProperties(GCPhase mode, long numProps);
 
     /**
-     * Total No. of documents updated during a given GC phase
+     * Total No. of documents detected as garbage during a given GC phase
      * @param mode GC phase
-     * @param numCommits no. of unmerged branch commits in current cycle
+     * @param numCommits no. of garbage documents found in current cycle
      */
-    void collectedUnmergedBranchCommits(GCPhase mode, long numCommits);
+    void candidateDocuments(GCPhase mode, long numCommits);
 
     /**
-     * Total No. of documents updated during a given GC phase
+     * Total No. of revisions detected as garbage during a given GC phase
      * @param mode GC phase
-     * @param numRevs no. of revisions deleted in current cycle
+     * @param numRevs no. of garbage revisions found in current cycle
      */
-    void collectedRevisions(GCPhase mode, long numRevs);
+    void candidateRevisions(GCPhase mode, long numRevs);
 
     /**
-     * Total No. of documents updated during a given GC phase
+     * Total No. of internal revisions detected as garbage during a given GC phase
      * @param mode GC phase
-     * @param numRevs no. of internal revisions deleted in current cycle
+     * @param numRevs no. of garbage internal revisions found in current cycle
      */
-    void collectedInternalRevisions(GCPhase mode, long numRevs);
+    void candidateInternalRevisions(GCPhase mode, long numRevs);
 
     /**
      * No. of orphan nodes deleted during FullGC

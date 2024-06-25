@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
@@ -68,10 +67,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private final MeterStats updatedDoc;
     private final MeterStats skippedDoc;
 
-    private final Map<GCPhase, MeterStats> deletedRevisions;
-    private final Map<GCPhase, MeterStats> deletedOrphanNodeStats;
-    private final Map<GCPhase, MeterStats> deletedPropertyStats;
-    private final Map<GCPhase, MeterStats> deletedUnmergedBCStats;
+    private final Map<GCPhase, MeterStats> foundRevisions;
+    private final Map<GCPhase, MeterStats> foundInternalRevisions;
+    private final Map<GCPhase, MeterStats> foundProperties;
+    private final Map<GCPhase, MeterStats> foundDocuments;
 
     private final TimerStats fullGCActiveTimer;
     private final TimerStats fullGCTimer;
@@ -95,10 +94,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         updatedDoc = meter(provider, UPDATED_DOC);
         skippedDoc = meter(provider, SKIPPED_DOC);
 
-        deletedRevisions = new EnumMap<>(GCPhase.class);
-        deletedOrphanNodeStats = new EnumMap<>(GCPhase.class);
-        deletedPropertyStats = new EnumMap<>(GCPhase.class);
-        deletedUnmergedBCStats = new EnumMap<>(GCPhase.class);
+        foundRevisions = new EnumMap<>(GCPhase.class);
+        foundInternalRevisions = new EnumMap<>(GCPhase.class);
+        foundProperties = new EnumMap<>(GCPhase.class);
+        foundDocuments = new EnumMap<>(GCPhase.class);
 
         fullGCActiveTimer = timer(provider, FULL_GC_ACTIVE_TIMER);
         fullGCTimer = timer(provider, FULL_GC_TIMER);
@@ -121,23 +120,23 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     }
 
     @Override
-    public void collectedPropertiesDeleted(GCPhase phase, long numProps) {
-        getMeter(deletedPropertyStats, phase, DELETED_PROPERTY).mark(numProps);
+    public void candidateProperties(GCPhase phase, long numProps) {
+        getMeter(foundProperties, phase, DELETED_PROPERTY).mark(numProps);
     }
 
     @Override
-    public void collectedUnmergedBranchCommits(GCPhase phase, long numCommits) {
-        getMeter(deletedUnmergedBCStats, phase, DELETED_UNMERGED_BC).mark(numCommits);
+    public void candidateDocuments(GCPhase phase, long numCommits) {
+        getMeter(foundDocuments, phase, DELETED_UNMERGED_BC).mark(numCommits);
     }
 
     @Override
-    public void collectedRevisions(GCPhase phase, long numRevs) {
-        getMeter(deletedRevisions, phase, DELETED_REVISION).mark(numRevs);
+    public void candidateRevisions(GCPhase phase, long numRevs) {
+        getMeter(foundRevisions, phase, DELETED_REVISION).mark(numRevs);
     }
 
     @Override
-    public void collectedInternalRevisions(GCPhase phase, long numRevs) {
-        getMeter(deletedOrphanNodeStats, phase, DELETED_INTERNAL_PROPERTY).mark(numRevs);
+    public void candidateInternalRevisions(GCPhase phase, long numRevs) {
+        getMeter(foundInternalRevisions, phase, DELETED_INTERNAL_PROPERTY).mark(numRevs);
     }
 
     @Override
@@ -195,10 +194,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         sb.append(", deletedUnmergedBC=").append(deletedUnmergedBC.getCount());
         sb.append(", updatedDoc=").append(updatedDoc.getCount());
         sb.append(", skippedDoc=").append(skippedDoc.getCount());
-        sb.append(", deletedRevisions=").append(mapToString(deletedRevisions));
-        sb.append(", deletedOrphanNodeStats=").append(mapToString(deletedOrphanNodeStats));
-        sb.append(", deletedPropertyStats=").append(mapToString(deletedPropertyStats));
-        sb.append(", deletedUnmergedBCStats=").append(mapToString(deletedUnmergedBCStats));
+        sb.append(", deletedRevisions=").append(mapToString(foundRevisions));
+        sb.append(", deletedOrphanNodeStats=").append(mapToString(foundInternalRevisions));
+        sb.append(", deletedPropertyStats=").append(mapToString(foundProperties));
+        sb.append(", deletedUnmergedBCStats=").append(mapToString(foundDocuments));
         sb.append('}');
         return sb.toString();
     }
