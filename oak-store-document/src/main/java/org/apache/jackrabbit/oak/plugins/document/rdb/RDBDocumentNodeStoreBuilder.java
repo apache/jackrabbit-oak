@@ -161,6 +161,7 @@ public class RDBDocumentNodeStoreBuilder
     public RDBDocumentNodeStoreBuilder setFullGCMode(int v) {
         // fullGC modes are not supported for RDB
         log.warn("FullGC modes are not supported for RDB");
+        return thisBuilder();
     }
   
     @Override
