@@ -147,6 +147,7 @@ public class RDBDocumentNodeStoreBuilder
         return thisBuilder();
     }
 
+    @Override
     public Set<String> getFullGCExcludePaths() {
         return of();
     }
