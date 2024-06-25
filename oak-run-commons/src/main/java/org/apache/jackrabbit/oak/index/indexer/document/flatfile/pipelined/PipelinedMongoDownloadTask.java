@@ -589,7 +589,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private final MongoParallelDownloadCoordinator parallelDownloadCoordinator;
         private long documentsDownloadedTotalBytes;
         private long documentsDownloadedTotal;
-        private long totalEnqueueWaitTimeMillis;
         private long nextLastModified;
         private String lastIdDownloaded;
         private long firstModifiedValueSeen = -1;
@@ -610,7 +609,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             this.parallelDownloadCoordinator = parallelDownloadCoordinator;
             this.documentsDownloadedTotalBytes = 0;
             this.documentsDownloadedTotal = 0;
-            this.totalEnqueueWaitTimeMillis = 0;
             this.nextLastModified = downloadOrder.downloadInAscendingOrder() ? 0 : Long.MAX_VALUE;
             this.lastIdDownloaded = null;
         }
@@ -827,7 +825,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);
                 }
                 long enqueueDelay = enqueueDelayStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                this.totalEnqueueWaitTimeMillis += enqueueDelay;
                 downloadStageStatistics.incrementTotalEnqueueWaitTimeMillis(enqueueDelay);
                 if (enqueueDelay > 1) {
                     logWithRateLimit(() ->
