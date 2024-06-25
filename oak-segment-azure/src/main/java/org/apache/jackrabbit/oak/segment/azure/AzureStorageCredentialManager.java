@@ -60,13 +60,23 @@ public class AzureStorageCredentialManager implements Closeable {
         final String tenantId = environment.getVariable(AZURE_TENANT_ID);
 
         if (StringUtils.isNoneBlank(clientId, clientSecret, tenantId)) {
-            return getStorageCredentialAccessTokenFromServicePrincipals(accountName, clientId, clientSecret, tenantId);
+            try {
+                return getStorageCredentialAccessTokenFromServicePrincipals(accountName, clientId, clientSecret, tenantId);
+            } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+                throw new IllegalArgumentException(
+                        "Could not connect to the Azure Storage. Please verify if AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables are correctly set!");
+            }
         }
 
         log.warn("AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.");
 
         String key = environment.getVariable(AZURE_SECRET_KEY);
-        return new StorageCredentialsAccountAndKey(accountName, key);
+        try {
+            return new StorageCredentialsAccountAndKey(accountName, key);
+        } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(
+                    "Could not connect to the Azure Storage. Please verify if AZURE_SECRET_KEY environment variable is correctly set!");
+        }
     }
 
     public StorageCredentials getStorageCredentialAccessTokenFromServicePrincipals(String accountName, String clientId, String clientSecret, String tenantId) {
