@@ -109,9 +109,8 @@ class Checkpoints {
     }
 
     /**
-     * Returns the oldest valid checkpoint registered.
-     *
-     * <p>It also performs cleanup of expired checkpoint
+     * Returns the oldest valid checkpoint registered
+     * @param performCleanup if true, it will perform cleanup of expired checkpoint
      *
      * @return oldest valid checkpoint registered. Might return null if no valid
      * checkpoint found
@@ -159,8 +158,9 @@ class Checkpoints {
     }
 
     /**
-     * Backwards compatible method to get the oldest revision to keep
-     * with cleanup.
+     * Returns the oldest valid checkpoint registered.
+     *
+     * <p>It also performs cleanup of expired checkpoint
      *
      * @return oldest valid checkpoint registered. Might return null if no valid
      * checkpoint found
