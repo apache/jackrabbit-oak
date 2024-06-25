@@ -258,13 +258,13 @@ public class AzureCompact {
 
     private final int concurrency;
 
-    private String persistentCachePath;
+    private final String persistentCachePath;
 
-    private Integer persistentCacheSizeGb;
+    private final Integer persistentCacheSizeGb;
 
-    private CloudBlobDirectory sourceCloudBlobDirectory;
+    private final CloudBlobDirectory sourceCloudBlobDirectory;
 
-    private CloudBlobDirectory destinationCloudBlobDirectory;
+    private final CloudBlobDirectory destinationCloudBlobDirectory;
 
     private AzureCompact(Builder builder) {
         this.path = builder.path;
@@ -287,11 +287,15 @@ public class AzureCompact {
         SegmentNodeStorePersistence roPersistence;
         SegmentNodeStorePersistence rwPersistence;
         if (sourceCloudBlobDirectory != null && destinationCloudBlobDirectory != null) {
-            roPersistence = decorateWithCache(new AzurePersistence(sourceCloudBlobDirectory), persistentCachePath, persistentCacheSizeGb);
+            roPersistence = new AzurePersistence(sourceCloudBlobDirectory);
             rwPersistence = new AzurePersistence(destinationCloudBlobDirectory);
         } else {
-            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path);
             rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+        }
+
+        if (persistentCachePath != null) {
+            roPersistence = decorateWithCache(roPersistence, persistentCachePath, persistentCacheSizeGb);
         }
 
         SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence, rwPersistence);
