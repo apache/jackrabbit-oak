@@ -28,6 +28,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -86,19 +87,21 @@ class FileStoreDiffCommand implements Command {
             }
         } else {
             if (pathOrURI.startsWith("az:")) {
-                SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI);
-                ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
-                statusCode = Diff.builder()
-                    .withPath(pathOrURI)
-                    .withReadOnlyFileStore(store)
-                    .withOutput(out)
-                    .withInterval(interval)
-                    .withIncremental(incremental)
-                    .withFilter(path)
-                    .withIgnoreMissingSegments(ignoreSNFEs)
-                    .withRevisionsProcessor(ToolUtils::readRevisions)
-                    .build()
-                    .run();
+                try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
+                    SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI, azureStorageCredentialManager);
+                    ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+                    statusCode = Diff.builder()
+                            .withPath(pathOrURI)
+                            .withReadOnlyFileStore(store)
+                            .withOutput(out)
+                            .withInterval(interval)
+                            .withIncremental(incremental)
+                            .withFilter(path)
+                            .withIgnoreMissingSegments(ignoreSNFEs)
+                            .withRevisionsProcessor(ToolUtils::readRevisions)
+                            .build()
+                            .run();
+                }
             } else {
                 ReadOnlyFileStore store = fileStoreBuilder(new File(pathOrURI)).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
                 statusCode = Diff.builder()

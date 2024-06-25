@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.Segment;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
@@ -259,6 +260,7 @@ public class SegmentCopy {
     private SegmentNodeStorePersistence destPersistence;
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
+    private final AzureStorageCredentialManager azureStorageCredentialManager;
 
     public SegmentCopy(Builder builder) {
         this.source = builder.source;
@@ -271,6 +273,7 @@ public class SegmentCopy {
         this.maxSizeGb = builder.maxSizeGb;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
+        azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     public int run() {
@@ -284,7 +287,7 @@ public class SegmentCopy {
 
         if (flat && destType == SegmentStoreType.TAR) {
             try {
-                srcPersistence = newSegmentNodeStorePersistence(srcType, source);
+                srcPersistence = newSegmentNodeStorePersistence(srcType, source, azureStorageCredentialManager);
 
                 SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false, false,
                         new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
@@ -361,12 +364,14 @@ public class SegmentCopy {
                         destination);
                 e.printStackTrace(errWriter);
                 return 1;
+            } finally {
+                azureStorageCredentialManager.close();
             }
         } else {
             try {
                 if (srcPersistence == null || destPersistence == null) {
-                    srcPersistence = newSegmentNodeStorePersistence(srcType, source);
-                    destPersistence = newSegmentNodeStorePersistence(destType, destination);
+                    srcPersistence = newSegmentNodeStorePersistence(srcType, source, azureStorageCredentialManager);
+                    destPersistence = newSegmentNodeStorePersistence(destType, destination, azureStorageCredentialManager);
                 }
 
                 printMessage(outWriter, "Started segment-copy transfer!");
@@ -390,6 +395,8 @@ public class SegmentCopy {
                         destination);
                 e.printStackTrace(errWriter);
                 return 1;
+            } finally {
+                azureStorageCredentialManager.close();
             }
 
         }
