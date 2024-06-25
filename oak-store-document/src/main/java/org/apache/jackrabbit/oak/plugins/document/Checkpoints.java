@@ -118,7 +118,7 @@ class Checkpoints {
      */
     @SuppressWarnings("unchecked")
     @Nullable
-    public Revision getOldestRevisionToKeep() {
+    public Revision getOldestRevisionToKeep(boolean performCleanup) {
         //Get uncached doc
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
@@ -145,7 +145,7 @@ class Checkpoints {
             }
         }
 
-        if (op.hasChanges()) {
+        if (performCleanup && op.hasChanges()) {
             try {
                 store.findAndUpdate(Collection.SETTINGS, op);
                 LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
@@ -156,6 +156,17 @@ class Checkpoints {
         }
 
         return lastAliveRevision;
+    }
+
+    /**
+     * Backwards compatible method to get the oldest revision to keep
+     * with cleanup.
+     *
+     * @return oldest valid checkpoint registered. Might return null if no valid
+     * checkpoint found
+     */
+    public Revision getOldestRevisionToKeep() {
+        return getOldestRevisionToKeep(true);
     }
 
     @SuppressWarnings("unchecked")
@@ -202,10 +213,6 @@ class Checkpoints {
             rv = expand(r);
         }
         return rv;
-    }
-
-    DocumentNodeStore getNodeStore() {
-        return nodeStore;
     }
 
     void setInfoProperty(@NotNull String checkpoint, @NotNull String key, @Nullable String value) {

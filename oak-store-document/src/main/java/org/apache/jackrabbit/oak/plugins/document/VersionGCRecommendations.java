@@ -109,9 +109,9 @@ public class VersionGCRecommendations {
      * @param fullGCEnabled      whether fullGC is enabled or not
      * @param isFullGCDryRun     whether fullGC is running in dryRun mode or not
      */
-    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
-                                    VersionGCOptions options, GCMonitor gcMonitor, boolean fullGCEnabled,
-                                    boolean isFullGCDryRun) {
+    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, boolean checkpointCleanup, Clock clock,
+                                    VersionGCSupport vgc, VersionGCOptions options, GCMonitor gcMonitor,
+                                    boolean fullGCEnabled, boolean isFullGCDryRun) {
         boolean ignoreDueToCheckPoint;
         boolean ignoreFullGCDueToCheckPoint;
         long deletedOnceCount = 0;
@@ -225,12 +225,7 @@ public class VersionGCRecommendations {
         }
 
         //Check for any registered checkpoint which prevent the GC from running
-        Revision checkpoint;
-        if (checkpoints.getNodeStore().isReadOnlyMode()) {
-            checkpoint = getLastAliveRevision(clock, checkpoints);
-        } else {
-            checkpoint = checkpoints.getOldestRevisionToKeep();
-        }
+        Revision checkpoint = checkpoints.getOldestRevisionToKeep(checkpointCleanup);;
 
         final GCResult gcResult = getResult(options, checkpoint, clock, RGC, scope);
         scope = gcResult.gcScope;
@@ -326,32 +321,6 @@ public class VersionGCRecommendations {
                 stats.needRepeat |= !fullGCScopeIsComplete;
             }
         }
-    }
-
-    @Nullable
-    private Revision getLastAliveRevision(Clock clock, Checkpoints checkpoints) {
-        //Get uncached doc
-        SortedMap<Revision, Checkpoints.Info> checkpointsInfoMap = checkpoints.getCheckpoints();
-        if(checkpointsInfoMap.isEmpty()){
-            return null;
-        }
-
-        final long currentTime = clock.getTime();
-        Revision lastAliveRevision = null;
-
-        for (Map.Entry<Revision, Checkpoints.Info> e : checkpointsInfoMap.entrySet()) {
-            long expiryTime = e.getValue().getExpiryTime();
-            if (currentTime < expiryTime) {
-                Revision cpRev = e.getKey();
-                RevisionVector rv = e.getValue().getCheckpoint();
-                if (rv != null) {
-                    cpRev = rv.getRevision(cpRev.getClusterId());
-                }
-                lastAliveRevision = Utils.min(lastAliveRevision, cpRev);
-            }
-        }
-
-        return lastAliveRevision;
     }
 
     private Map<String, Object> getVGCSettings() {
