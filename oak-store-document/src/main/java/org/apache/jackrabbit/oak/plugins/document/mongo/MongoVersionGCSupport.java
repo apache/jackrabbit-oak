@@ -152,16 +152,16 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * @return the combined bson with include/exclude path prefixes
      * AND the provided query
      */
-    private Bson withIncludeExcludes(Set<String> includes, Set<String> excludes, Bson query) {
+    private Bson withIncludeExcludes(@NotNull Set<String> includes, @NotNull Set<String> excludes, Bson query) {
         Bson inclExcl = null;
-        if (includes != null && !includes.isEmpty()) {
+        if (!includes.isEmpty()) {
             final List<Bson> ors = new ArrayList<>(includes.size());
             for (String incl : includes) {
                 ors.add(Filters.regex(ID, ":" + incl));
             }
             inclExcl = or(ors);
         }
-        if (excludes != null && !excludes.isEmpty()) {
+        if (!excludes.isEmpty()) {
             final List<Bson> ands = new ArrayList<>(excludes.size());
             for (String excl : excludes) {
                 ands.add(not(Filters.regex(ID, ":" + excl)));
@@ -201,13 +201,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId,
-                                                  Set<String> includedPathPrefixes, Set<String> excludedPathPrefixes) {
+                                                  @NotNull final String fromId, @NotNull Set<String> includedPathPrefixes,
+                                                  @NotNull Set<String> excludedPathPrefixes) {
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Bson query = or(
-                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                withIncludeExcludes(includedPathPrefixes, Set.of()/*OAK-10914 : temporarily disabling excludedPathPrefixes*/,
                         and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId))),
-                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                withIncludeExcludes(includedPathPrefixes, Set.of()/*OAK-10914 : temporarily disabling excludedPathPrefixes*/,
                         and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id

@@ -664,6 +664,7 @@ public final class DocumentNodeStore
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false, isEmbeddedVerificationEnabled(builder));
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
+        this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
         this.journalGarbageCollector = new JournalGarbageCollector(
                 this, builder.getJournalGCMaxAge());
         this.referencedBlobs =

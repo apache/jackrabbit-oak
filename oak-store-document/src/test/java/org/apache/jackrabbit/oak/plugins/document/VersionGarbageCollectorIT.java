@@ -1437,8 +1437,8 @@ public class VersionGarbageCollectorIT {
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
-            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId, final Set<String> includePaths,
-                    final Set<String> excludePaths) {
+            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId,
+                                                          final @NotNull Set<String> includePaths, final @NotNull Set<String> excludePaths) {
                 return () -> new AbstractIterator<>() {
                     private final Iterator<NodeDocument> it = candidates(fromModified, toModified, limit, fromId);
 
