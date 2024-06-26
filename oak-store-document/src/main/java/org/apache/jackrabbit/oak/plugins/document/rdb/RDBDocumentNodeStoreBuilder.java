@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static java.util.Set.of;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 
 import javax.sql.DataSource;
@@ -27,7 +28,10 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Set;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -125,6 +129,28 @@ public class RDBDocumentNodeStoreBuilder
     @Override
     public RDBDocumentNodeStoreBuilder setFullGCEnabled(boolean b) {
         // fullGC is non supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    public Set<String> getFullGCIncludePaths() {
+        return of();
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setFullGCIncludePaths(@NotNull String[] includePaths) {
+        // fullGC is not supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    public Set<String> getFullGCExcludePaths() {
+        return of();
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setFullGCExcludePaths(@NotNull String[] excludePaths) {
+        // fullGC is not supported for RDB
         return thisBuilder();
     }
 
