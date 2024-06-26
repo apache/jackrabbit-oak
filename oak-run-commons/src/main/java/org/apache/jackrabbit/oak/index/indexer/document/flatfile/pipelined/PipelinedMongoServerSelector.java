@@ -111,7 +111,7 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
             }
         }
         // All secondaries are already assigned to some thread
-        LOG.info("All available Mongo secondaries are assigned. Returning empty list.");
+        LOG.debug("All available Mongo secondaries are assigned. Returning empty list.");
         return List.of();
     }
 
