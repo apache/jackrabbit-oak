@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.junit.Test;
+
 import static java.util.Set.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
