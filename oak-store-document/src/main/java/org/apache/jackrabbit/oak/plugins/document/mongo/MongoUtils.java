@@ -221,7 +221,8 @@ class MongoUtils {
             @Nullable Bson hint) {
         BasicDBObject explainCommand = new BasicDBObject("explain",
                 new BasicDBObject("find", collection.getNamespace().getCollectionName())
-                        .append("filter", query).append("hint", hint));
+                        .append("filter", query)
+                        .append("hint",  hint == null ? new BasicDBObject() : hint))
         return new BasicDBObject(mongoDb.runCommand(explainCommand, BasicDBObject.class));
     }
 
