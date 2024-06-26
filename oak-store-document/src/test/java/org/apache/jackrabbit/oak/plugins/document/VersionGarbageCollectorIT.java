@@ -288,11 +288,13 @@ public class VersionGarbageCollectorIT {
         store1 = documentMKBuilder.getNodeStore();
     }
 
-    private void createSecondaryStore(LeaseCheckMode leaseCheckNode) {
+    private void createSecondaryStore(LeaseCheckMode leaseCheckNode)
+            throws IllegalAccessException {
         createSecondaryStore(leaseCheckNode, false);
     }
 
-    private void createSecondaryStore(LeaseCheckMode leaseCheckNode, boolean withFailingDS) {
+    private void createSecondaryStore(LeaseCheckMode leaseCheckNode, boolean withFailingDS)
+            throws IllegalAccessException {
         LOG.info("createSecondaryStore: creating secondary store with leaseCheckNode = {}, withFailingDS = {}",
                 leaseCheckNode, withFailingDS);
         if (fixture instanceof RDBFixture) {
@@ -309,6 +311,9 @@ public class VersionGarbageCollectorIT {
                 .setLeaseCheckMode(leaseCheckNode)
                 .setDocumentStore(ds2).setAsyncDelay(0);
         store2 = documentMKBuilder2.getNodeStore();
+        // custom fullGcMode needs to be set after each node store creation, since the VersionGarbageCollector
+        // constructor sets the fullGcMode to the value read from OSGI Configuration - method setFullGcMode
+        writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
     }
 
     private static final Set<Thread> tbefore = new HashSet<>();

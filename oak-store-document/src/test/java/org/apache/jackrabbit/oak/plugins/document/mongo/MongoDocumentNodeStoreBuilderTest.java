@@ -111,4 +111,11 @@ public class MongoDocumentNodeStoreBuilderTest {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());
     }
+
+    @Test
+    public void fullGCModeDefaultValue() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        final int fullGcModeNone = 0;
+        assertEquals(builder.getFullGCMode(), fullGcModeNone);
+    }
 }

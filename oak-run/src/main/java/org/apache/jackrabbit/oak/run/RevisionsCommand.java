@@ -319,7 +319,7 @@ public class RevisionsCommand implements Command {
         System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
-                isEmbeddedVerificationEnabled(builder));
+                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());

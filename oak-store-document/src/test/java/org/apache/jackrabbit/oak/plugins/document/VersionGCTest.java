@@ -531,6 +531,57 @@ public class VersionGCTest {
 
     // OAK-10370 END
 
+    // OAK-10896
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationNotApplicable() throws Exception {
+        int fullGcModeNotAllowedValue = 5;
+        int fullGcModeGapOrphans = 2;
+
+        // set fullGcMode to allowed value that is different than NONE
+        VersionGarbageCollector.setFullGcMode(fullGcModeGapOrphans);
+
+        // reinitialize VersionGarbageCollector with not allowed value
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeNotAllowedValue);
+
+        assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
+                "will set fullGcMode to default NONE", VersionGarbageCollector.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationNone() throws Exception {
+        int fullGcModeNone = 0;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeNone);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationGapOrphans() throws Exception {
+        int fullGcModeGapOrphans = 2;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeGapOrphans);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationGapOrphansEmptyProperties() throws Exception {
+        int fullGcModeGapOrphansEmptyProperties = 3;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeGapOrphansEmptyProperties);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS);
+    }
+
+    // OAK-10896 END
+
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
         return execService.submit(new Callable<VersionGCStats>() {

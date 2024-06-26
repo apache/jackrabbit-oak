@@ -211,6 +211,29 @@ public class VersionGarbageCollector {
         return fullGcMode;
     }
 
+    /**
+     * Set the full GC mode to be used according to the provided configuration value.
+     * The configuration value will be ignored and fullGCMode will be reset to NONE
+     * if it is set to any other values than the supported ones.
+     * @param fullGcMode
+     */
+    static void setFullGcMode(int fullGcMode) {
+        switch (fullGcMode) {
+            case 0:
+                VersionGarbageCollector.fullGcMode = NONE;
+                break;
+            case 2:
+                VersionGarbageCollector.fullGcMode = GAP_ORPHANS;
+                break;
+            case 3:
+                VersionGarbageCollector.fullGcMode = GAP_ORPHANS_EMPTYPROPS;
+                break;
+            default:
+                log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", fullGcMode);
+                VersionGarbageCollector.fullGcMode = NONE;
+        }
+    }
+
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
     private final boolean fullGCEnabled;
@@ -230,6 +253,16 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
+        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
+                DocumentNodeStoreService.DEFAULT_FULL_GC_MODE);
+    }
+
+    VersionGarbageCollector(DocumentNodeStore nodeStore,
+                            VersionGCSupport gcSupport,
+                            final boolean fullGCEnabled,
+                            final boolean isFullGCDryRun,
+                            final boolean embeddedVerification,
+                            final int fullGCMode) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
@@ -237,6 +270,8 @@ public class VersionGarbageCollector {
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
+
+        setFullGcMode(fullGCMode);
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
     }
 
