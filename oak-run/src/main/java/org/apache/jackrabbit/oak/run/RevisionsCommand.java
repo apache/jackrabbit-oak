@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -124,6 +125,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Boolean> resetFullGC;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
+        final OptionSpec<String> includePaths;
+        final OptionSpec<String> excludePaths;
         final OptionSpec<?> entireRepo;
         final OptionSpec<?> compact;
         final OptionSpec<Boolean> dryRun;
@@ -158,6 +161,14 @@ public class RevisionsCommand implements Command {
                     .accepts("verbose", "print INFO messages to the console");
             path = parser
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
+            includePaths = parser
+                    .accepts("includePaths", "Paths which should be included in fullGC. " +
+                            "Paths should be separated with '::'. Example: --includePaths=/content::/var")
+                    .withRequiredArg().ofType(String.class).defaultsTo("/");
+            excludePaths = parser
+                    .accepts("excludePaths", "Paths which should be excluded from fullGC. " +
+                            "Paths should be separated with '::'. Example: --excludePaths=/content::/var")
+                    .withRequiredArg().ofType(String.class).defaultsTo("");
             entireRepo = parser
                     .accepts("entireRepo", "run fullGC on the entire repository");
             compact = parser
@@ -214,6 +225,14 @@ public class RevisionsCommand implements Command {
 
         String getPath() {
             return path.value(options);
+        }
+
+        String[] includePaths() {
+            return includePaths.value(options).split("::");
+        }
+
+        String[] excludePaths() {
+            return excludePaths.value(options).split("::");
         }
 
         boolean isResetFullGCOnly() {
@@ -293,6 +312,8 @@ public class RevisionsCommand implements Command {
         }
         // set fullGC
         builder.setFullGCEnabled(fullGCEnabled);
+        builder.setFullGCIncludePaths(options.includePaths());
+        builder.setFullGCExcludePaths(options.excludePaths());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -318,6 +339,8 @@ public class RevisionsCommand implements Command {
         System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
+        System.out.println("IncludePaths are : " + Arrays.toString(options.includePaths()));
+        System.out.println("ExcludePaths are : " + Arrays.toString(options.excludePaths()));
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
 
