@@ -264,7 +264,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
 
-        logQueryExplain("fullGC query explain details : {}", query, modifiedIdHint);
+        logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
 
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
