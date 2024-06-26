@@ -54,6 +54,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.mongodb.client.MongoCursor;
+
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -93,9 +95,18 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoVersionGCSupport.class);
 
+    /** log the explain result on a daily cadence only - primarily for rollout-debugging */
+    private static final long EXPLAIN_LOG_INTERVAL_MS = TimeUnit.HOURS.toMillis(24);
+
     private final MongoDocumentStore store;
 
     private final BasicDBObject hint;
+
+    /** the hint representing "_modified_1__id_1" - if that index exists, null otherwise */
+    private final BasicDBObject modifiedIdHint;
+
+    /** timestamp of last time an explain of the 'getModifiedDocs' query was logged */
+    private long lastExplainLogMs = -1;
 
     /** keeps track of the sweepRev of the last (successful) deletion */
     private RevisionVector lastDefaultNoBranchDeletionRevs;
@@ -115,6 +126,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             hint.put(SD_MAX_REV_TIME_IN_SECS, 1);
         } else {
             hint = null;
+        }
+        if(hasIndex(getNodeCollection(), MODIFIED_IN_SECS, ID)) {
+            modifiedIdHint = new BasicDBObject();
+            modifiedIdHint.put(MODIFIED_IN_SECS,1);
+            modifiedIdHint.put(ID, 1);
+        } else {
+            modifiedIdHint = null;
         }
     }
 
@@ -184,6 +202,39 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     /**
+     * Logs an explain of a mongo query. If log level is INFO it does it one-lined,
+     * if log level is DEBUG it does it pretty print multi-lined.
+     *
+     * This is done once every 24h of livetime of this particular object.
+     *
+     * @param logMsg the log message to use - should contain two "{}" for the hint
+     *               and the explain json
+     * @param query  the mongo query for which to do an explain with mongo and log
+     *               the result
+     * @param hint   the hint for the query, or null
+     */
+    private void logQueryExplain(String logMsg, @NotNull Bson query, Bson hint) {
+        final long timeSinceLastLog = System.currentTimeMillis() - lastExplainLogMs;
+        if (timeSinceLastLog < EXPLAIN_LOG_INTERVAL_MS) {
+            // then don't log
+            return;
+        }
+        final BasicDBObject explainResult = MongoUtils.explain(store.getDatabase(),
+                getNodeCollection(), query, hint);
+        final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
+        final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
+        if (LOG.isDebugEnabled()) {
+            // if log level is DEBUG, let's do a pretty print
+            String prettyPrinted = JsopBuilder.prettyPrint(result.toJson());
+            LOG.debug(logMsg, hint, prettyPrinted);
+        } else {
+            // otherwise let's just do a compact print
+            LOG.info(logMsg, hint, result);
+        }
+        lastExplainLogMs = System.currentTimeMillis();
+    }
+
+    /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
      * within the given range and are greater than given @{@link NodeDocument#ID}.
      * <p>
@@ -212,6 +263,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+
+        logQueryExplain("fullGC query explain details : {}", query, modifiedIdHint);
 
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
