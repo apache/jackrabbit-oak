@@ -1148,8 +1148,8 @@ public class VersionGarbageCollector {
                             greatestExistingAncestorOrSelf, name);
                 }
             }
+            
             if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
-
                 // here the node is not orphaned which means that we can reach the node from root
                 switch(fullGcMode) {
                     case NONE : {
