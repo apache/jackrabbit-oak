@@ -205,6 +205,7 @@ public class ToolUtils {
                     });
                     return newArrayList(revisionIterator);
                 } catch (Exception e) {
+                    log.error("Error while reading from journal file");
                     e.printStackTrace();
                 }
             }

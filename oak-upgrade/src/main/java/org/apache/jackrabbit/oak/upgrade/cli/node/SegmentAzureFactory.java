@@ -163,7 +163,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             if (StringUtils.isNotBlank(sasToken)) {
                 credentials = new StorageCredentialsSharedAccessSignature(sasToken);
             } else {
-                azureStorageCredentialManager = new AzureStorageCredentialManager();
+                this.azureStorageCredentialManager = new AzureStorageCredentialManager();
                 credentials = azureStorageCredentialManager.getStorageCredentialsFromEnvironment(accountName, environment);
                 closer.register(azureStorageCredentialManager);
             }

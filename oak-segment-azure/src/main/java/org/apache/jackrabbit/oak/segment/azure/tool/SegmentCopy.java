@@ -273,7 +273,7 @@ public class SegmentCopy {
         this.maxSizeGb = builder.maxSizeGb;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
-        azureStorageCredentialManager = new AzureStorageCredentialManager();
+        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     public int run() {

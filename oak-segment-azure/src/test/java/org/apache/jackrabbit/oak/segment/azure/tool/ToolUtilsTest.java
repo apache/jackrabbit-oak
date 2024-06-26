@@ -80,12 +80,12 @@ public class ToolUtilsTest {
 
     @Before
     public void init() {
-        azureStorageCredentialManager = new AzureStorageCredentialManager();
+        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     @After
     public void clear() {
-        azureStorageCredentialManager.close();
+        this.azureStorageCredentialManager.close();
     }
 
     @Test

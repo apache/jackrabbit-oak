@@ -54,7 +54,7 @@ class SegmentTarFixtureProvider {
 
         FileStoreBuilder builder;
         if (segmentStoreType == ToolUtils.SegmentStoreType.AZURE) {
-            AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager();
+            final AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager();
             SegmentNodeStorePersistence segmentNodeStorePersistence =
                 ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri, azureStorageCredentialManager);
             File tempDir = Files.createTempDirectory("azure-segment-store").toFile();
