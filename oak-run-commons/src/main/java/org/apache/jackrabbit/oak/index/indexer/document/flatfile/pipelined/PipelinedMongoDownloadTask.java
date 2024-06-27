@@ -80,6 +80,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
 
     private static final Logger TRAVERSAL_LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
+    public static final NodeDocument[] SENTINEL_MONGO_DOCUMENT = new NodeDocument[0];
 
     public static class Result {
         private final long documentsDownloaded;
@@ -357,6 +358,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         downloadWithNaturalOrdering();
                     }
                     downloadStartWatch.stop();
+                    // Signal the end of the download
+                    mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
                     long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
                     downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
                     String metrics = downloadStageStatistics.formatStats(durationMillis);
