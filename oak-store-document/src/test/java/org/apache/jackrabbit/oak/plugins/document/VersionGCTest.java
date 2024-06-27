@@ -373,8 +373,8 @@ public class VersionGCTest {
 
         VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
 
-        VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport,
-                options, new TestGCMonitor(), false, false);
+        VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(),
+                localgcsupport, options, new TestGCMonitor(), false, false);
 
         // should select a duration of roughly one month
         long duration= rec.scope.getDurationMs();
@@ -387,8 +387,8 @@ public class VersionGCTest {
         rec.evaluate(stats);
         assertTrue(stats.needRepeat);
 
-        rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                new TestGCMonitor(), false, false);
+        rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(), localgcsupport,
+                options, new TestGCMonitor(), false, false);
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
@@ -416,8 +416,8 @@ public class VersionGCTest {
 
         // loop until the recommended interval is at 60s (precisionMS)
         do {
-            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor, false, false);
+            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(), localgcsupport,
+                    options, testmonitor, false, false);
             stats = new VersionGCStats();
             stats.limitExceeded = true;
             rec.evaluate(stats);
@@ -433,8 +433,8 @@ public class VersionGCTest {
             int deleted = (int) (rec.scope.getDurationMs() / TimeUnit.SECONDS.toMillis(1));
             deletedCount -= deleted;
             localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
-            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor, false, false);
+            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(), localgcsupport,
+                    options, testmonitor, false, false);
             stats = new VersionGCStats();
             stats.limitExceeded = false;
             stats.deletedDocGCCount = deleted;
@@ -530,6 +530,57 @@ public class VersionGCTest {
     }
 
     // OAK-10370 END
+
+    // OAK-10896
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationNotApplicable() throws Exception {
+        int fullGcModeNotAllowedValue = 5;
+        int fullGcModeGapOrphans = 2;
+
+        // set fullGcMode to allowed value that is different than NONE
+        VersionGarbageCollector.setFullGcMode(fullGcModeGapOrphans);
+
+        // reinitialize VersionGarbageCollector with not allowed value
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeNotAllowedValue);
+
+        assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
+                "will set fullGcMode to default NONE", VersionGarbageCollector.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationNone() throws Exception {
+        int fullGcModeNone = 0;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeNone);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationGapOrphans() throws Exception {
+        int fullGcModeGapOrphans = 2;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeGapOrphans);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS);
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationGapOrphansEmptyProperties() throws Exception {
+        int fullGcModeGapOrphansEmptyProperties = 3;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeGapOrphansEmptyProperties);
+
+        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS);
+    }
+
+    // OAK-10896 END
 
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread

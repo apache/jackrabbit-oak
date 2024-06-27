@@ -119,6 +119,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
+    public void fullGCModeValueSet() throws Exception {
+        int fullGCModeValue = 2;
+        addConfigurationEntry(preset, "fullGCMode", fullGCModeValue);
+        Configuration config = createConfiguration();
+        assertEquals(fullGCModeValue, config.fullGCMode());
+    }
+
+    @Test
     public void fullGCIncludePaths() throws Exception {
         final String[] includesPath = new String[]{"/foo", "/bar"};
         addConfigurationEntry(preset, "fullGCIncludePaths", includesPath);

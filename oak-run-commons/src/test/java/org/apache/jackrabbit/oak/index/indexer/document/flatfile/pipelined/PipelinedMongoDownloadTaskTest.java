@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import com.mongodb.MongoClient;
 import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
@@ -49,14 +47,6 @@ public class PipelinedMongoDownloadTaskTest {
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     private MongoRegexPathFilterFactory regexFilterBuilder;
-
-    private NodeDocument newBasicDBObject(String id, long modified, DocumentStore docStore) {
-        NodeDocument obj = Collection.NODES.newDocument(docStore);
-        obj.put(NodeDocument.ID, "3:/content/dam/asset" + id);
-        obj.put(NodeDocument.MODIFIED_IN_SECS, modified);
-        obj.put(NodeDocumentCodec.SIZE_FIELD, 100);
-        return obj;
-    }
 
     @Before
     public void setUp() {
