@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Calendar;
@@ -43,7 +44,7 @@ public class AsyncCheckpointCreator implements Runnable {
     private static final Logger log = LoggerFactory
             .getLogger(AsyncCheckpointCreator.class);
 
-    public AsyncCheckpointCreator(NodeStore store, String name, long checkpointLifetimeInSeconds, long minConcurrentCheckpoints) {
+    public AsyncCheckpointCreator(@NotNull NodeStore store, @NotNull String name, long checkpointLifetimeInSeconds, long minConcurrentCheckpoints) {
         this.store = store;
         this.name = name;
         this.checkpointLifetimeInSeconds = checkpointLifetimeInSeconds;
