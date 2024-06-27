@@ -73,8 +73,9 @@ public class DocumentNodeStoreHelper {
 
     public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
                                                           boolean fullGCEnabled, boolean isFullGCDryRun,
-                                                          boolean embeddedVerification) {
-        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification);
+                                                          boolean embeddedVerification, int fullGCMode) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
+                fullGCMode);
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {

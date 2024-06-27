@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -105,5 +106,12 @@ public class RDBDocumentNodeStoreBuilderTest {
         when(embeddedVerificationFeature.isEnabled()).thenReturn(true);
         builder.setDocStoreEmbeddedVerificationFeature(embeddedVerificationFeature);
         assertNull(builder.getDocStoreEmbeddedVerificationFeature());
+    }
+
+    @Test
+    public void fullGCModeHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCMode(3);
+        assertEquals(0, builder.getFullGCMode());
     }
 }

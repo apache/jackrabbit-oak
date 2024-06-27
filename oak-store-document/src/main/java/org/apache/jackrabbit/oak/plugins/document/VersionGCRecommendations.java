@@ -107,9 +107,9 @@ public class VersionGCRecommendations {
      * @param fullGCEnabled      whether fullGC is enabled or not
      * @param isFullGCDryRun     whether fullGC is running in dryRun mode or not
      */
-    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
-                                    VersionGCOptions options, GCMonitor gcMonitor, boolean fullGCEnabled,
-                                    boolean isFullGCDryRun) {
+    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, boolean checkpointCleanup, Clock clock,
+                                    VersionGCSupport vgc, VersionGCOptions options, GCMonitor gcMonitor,
+                                    boolean fullGCEnabled, boolean isFullGCDryRun) {
         boolean ignoreDueToCheckPoint;
         boolean ignoreFullGCDueToCheckPoint;
         long deletedOnceCount = 0;
@@ -223,7 +223,7 @@ public class VersionGCRecommendations {
         }
 
         //Check for any registered checkpoint which prevent the GC from running
-        Revision checkpoint = checkpoints.getOldestRevisionToKeep();
+        Revision checkpoint = checkpoints.getOldestRevisionToKeep(checkpointCleanup);;
 
         final GCResult gcResult = getResult(options, checkpoint, clock, RGC, scope);
         scope = gcResult.gcScope;

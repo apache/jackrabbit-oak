@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -342,4 +343,14 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.embeddedVerificationEnabled'")
     boolean embeddedVerificationEnabled() default DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC Mode",
+            description = "Integer value indicating which Full GC mode should be enabled for " +
+                    "document node store. The Default value is " + DEFAULT_FULL_GC_MODE +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCMode'. " +
+                    "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled " +
+                    "is set to true, the fullGCMode will be ignored.")
+    int fullGCMode() default DEFAULT_FULL_GC_MODE;
 }

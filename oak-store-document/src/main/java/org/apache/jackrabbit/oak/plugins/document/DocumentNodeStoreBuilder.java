@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
@@ -176,6 +177,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Set<String> fullGCIncludePaths = Set.of();
     private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+    private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -308,11 +310,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.fullGCEnabled;
     }
 
-    public T setFullGCIncludePaths(@NotNull String[] includePaths) {
-        if (Arrays.equals(includePaths, new String[]{"/"})) {
+    public T setFullGCIncludePaths(@Nullable String[] includePaths) {
+        if (isNull(includePaths) || includePaths.length == 0 || Arrays.equals(includePaths, new String[]{"/"})) {
             this.fullGCIncludePaths = Set.of();
         } else {
-            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
         }
         return thisBuilder();
     }
@@ -321,8 +323,12 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return fullGCIncludePaths;
     }
 
-    public T setFullGCExcludePaths(@NotNull String[] excludePaths) {
-        this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+    public T setFullGCExcludePaths(@Nullable String[] excludePaths) {
+        if (isNull(excludePaths) || excludePaths.length == 0) {
+            this.fullGCExcludePaths = Set.of();
+        } else {
+            this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
         return thisBuilder();
     }
 
@@ -337,6 +343,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isEmbeddedVerificationEnabled() {
         return this.embeddedVerificationEnabled;
+    }
+
+    public T setFullGCMode(int v) {
+        this.fullGCMode = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCMode() {
+        return this.fullGCMode;
     }
 
     public T setReadOnlyMode() {
