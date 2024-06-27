@@ -63,7 +63,7 @@ public class VersionGCInitTest {
         vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
         assertEquals(0L, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
-        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
     }
 
     @Test

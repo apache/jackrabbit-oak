@@ -189,7 +189,9 @@ public class VersionGCTest {
         // ensure a canceled GC doesn't update that versionGC SETTINGS entry
         Document statusAfter = store.find(Collection.SETTINGS, "versionGC");
         if (statusBefore == null) {
-            assertNull(statusAfter);
+            // fullGC values had been added, so it won't be null
+            assertNotNull(statusAfter);
+            assertNull(statusAfter.get(lastOldestTimeStampProp));
         } else {
             assertNotNull(statusAfter);
             assertEquals(
