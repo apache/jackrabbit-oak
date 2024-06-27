@@ -94,7 +94,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.base.Function;
@@ -1477,6 +1476,77 @@ public class VersionGarbageCollectorIT {
     }
 
     // OAK-10199 END
+
+    // OAK-10921
+    @Test
+    public void resetFullGCFromOakRunWhileRunning() throws Exception {
+
+        // if we reset fullGC from any external source while GC is running,
+        // it should not update the fullGC variables.
+
+        //1. Create nodes with properties
+        NodeBuilder b1 = store1.getRoot().builder();
+
+        // Add property to node & save
+        for (int i = 0; i < 5; i++) {
+                b1.child("z"+i).setProperty("prop", "foo", STRING);
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc(gc, maxAge, HOURS);
+        assertStatsCountsZero(stats);
+
+        //Remove property
+        NodeBuilder b2 = store1.getRoot().builder();
+        for (int i = 0; i < 5; i++) {
+                b2.getChildNode("z"+i).removeProperty("prop");
+        }
+        store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
+
+            @Override
+            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId,
+                                                          final @NotNull Set<String> includePaths, final @NotNull Set<String> excludePaths) {
+                // reset fullGC variables externally while GC is running
+                store1.getDocumentStore().remove(SETTINGS, SETTINGS_COLLECTION_ID);
+                return super.getModifiedDocs(fromModified, toModified, limit, fromId, includePaths, excludePaths);
+            }
+        };
+
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3));
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        Document document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assert document != null;
+        assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+
+        stats = gcRef.get().gc(maxAge*2, HOURS);
+
+        document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertEquals(5, stats.updatedFullGCDocsCount);
+        assertEquals(5, stats.deletedPropsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+
+        // 4. verify that fullGC variables are not updated after resetting them
+        assert document != null;
+        assertNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+    }
+
+    // OAK-10921 END
 
     @SuppressWarnings("unchecked")
     /**

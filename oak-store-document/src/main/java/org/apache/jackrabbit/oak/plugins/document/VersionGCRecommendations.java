@@ -179,6 +179,9 @@ public class VersionGCRecommendations {
                         () -> oldestModifiedDocTimeStamp.set(0L));
                 oldestModifiedDocId = MIN_ID_VALUE;
                 log.info("fullGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp.get()));
+                // initialize the fullGC database variables i.e. fullGCTimestamp and fullGCId
+                setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, oldestModifiedDocTimeStamp.get(),
+                        SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, oldestModifiedDocId));
             } else {
                 oldestModifiedDocTimeStamp.set(fullGCTimestamp);
             }
@@ -266,13 +269,15 @@ public class VersionGCRecommendations {
             long nextDuration = Math.max(precisionMs, scope.getDurationMs() / 2);
             gcmon.info("Limit {} documents exceeded, reducing next collection interval to {} seconds",
                     this.maxCollect, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
-            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
+            setVGCSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
             stats.needRepeat = true;
         } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint && !isFullGCDryRun) {
             // success, we would not expect to encounter revisions older than this in the future
-            setLongSetting(of(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs,
-                    SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp));
-            setStringSetting(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+            setVGCSetting(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
+            updateVGCSetting(new HashMap<>() {{
+                put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+                put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+            }});
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
             double usedFraction;
@@ -289,7 +294,7 @@ public class VersionGCRecommendations {
                     long nextDuration = (long) Math.ceil(suggestedIntervalMs * 1.5);
                     log.debug("successful run using {}% of limit, raising recommended interval to {} seconds",
                             Math.round(usedFraction * 1000) / 10.0, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
-                    setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
+                    setVGCSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
                 } else {
                     log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)", count, usedFraction,
                             allowedFraction);
@@ -304,11 +309,11 @@ public class VersionGCRecommendations {
         if (fullGCEnabled && !stats.canceled && !stats.ignoredFullGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
             if (isFullGCDryRun) {
-                setLongSetting(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-                setStringSetting(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
+                        SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, stats.oldestModifiedDocId));
             } else {
-                setLongSetting(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-                setStringSetting(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                updateVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
+                        SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId));
             }
 
             final long scopeEnd = scopeFullGC.toMs;
@@ -345,20 +350,31 @@ public class VersionGCRecommendations {
         return settings;
     }
 
-    private void setLongSetting(String propName, long val) {
-        setLongSetting(of(propName, val));
+    private void setVGCSetting(final String propName, final Object val) {
+        setVGCSetting(new HashMap<>() {{
+            put(propName, val);
+        }});
     }
 
-    private void setStringSetting(String propName, String val) {
-        UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
-        updateOp.set(propName, val);
+    private void setVGCSetting(final Map<String, Object> propValMap) {
+        final UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
+        setUpdateOp(propValMap, updateOp);
         vgc.getDocumentStore().createOrUpdate(Collection.SETTINGS, updateOp);
     }
 
-    private void setLongSetting(final Map<String, Long> propValMap) {
-        UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
-        propValMap.forEach(updateOp::set);
-        vgc.getDocumentStore().createOrUpdate(Collection.SETTINGS, updateOp);
+    private void setUpdateOp(final Map<String, Object> propValMap, final UpdateOp updateOp) {
+        propValMap.forEach((k, v) -> {
+            if (v instanceof Number) updateOp.set(k, ((Number) v).longValue());
+            if (v instanceof String) updateOp.set(k, (String) v);
+            if (v instanceof Boolean) updateOp.set(k, (Boolean) v);
+        });
+    }
+
+    private void updateVGCSetting(final Map<String, Object> propValMap) {
+        final UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, false);
+        setUpdateOp(propValMap, updateOp);
+        propValMap.forEach((k, v) -> updateOp.contains(k, true));
+        vgc.getDocumentStore().findAndUpdate(Collection.SETTINGS, updateOp);
     }
 
     @NotNull
