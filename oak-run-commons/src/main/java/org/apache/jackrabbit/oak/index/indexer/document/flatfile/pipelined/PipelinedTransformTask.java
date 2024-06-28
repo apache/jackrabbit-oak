@@ -46,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
@@ -134,7 +133,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 docQueueWaitStopwatch.reset().start();
                 NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
+                if (nodeDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
+                    // So that other threads listening on this queue also get the sentinel
+                    mongoDocQueue.put(PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT);
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
                     String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
                     String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueDelayMillis, totalDurationMillis);
