@@ -74,11 +74,11 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public abstract class IndexPlannerCommonTest {
@@ -545,25 +545,24 @@ public abstract class IndexPlannerCommonTest {
         IndexDefinition defn = getIndexDefinition(root, defnb.build(), "/oak:index/" + indexName);
         IndexNode node = createIndexNode(defn);
 
-        FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
-        FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
-        //Even though foo is indexed it would not be considered for a query involving just foo
-        assertNull(planner.getPlan());
-
-        filter = createFilter("nt:base");
-        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
-        planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
-        QueryIndex.IndexPlan plan1 = planner.getPlan();
-        assertNotNull(plan1);
-
-        final FilterImpl filter2 = createFilter("nt:base");
-        filter2.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
-        filter2.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
-
-
         TestUtil.assertEventually(() -> {
-            FulltextIndexPlanner planner2 = getIndexPlanner(node, "/oak:index/" + indexName, filter2, Collections.<QueryIndex.OrderEntry>emptyList());
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
+            FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.emptyList());
+            //Even though foo is indexed it would not be considered for a query involving just foo
+            assertNull(planner.getPlan());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
+            planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.emptyList());
+            QueryIndex.IndexPlan plan1 = planner.getPlan();
+            assertNotNull(plan1);
+
+            final FilterImpl filter2 = createFilter("nt:base");
+            filter2.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
+            filter2.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
+
+            FulltextIndexPlanner planner2 = getIndexPlanner(node, "/oak:index/" + indexName, filter2, Collections.emptyList());
             QueryIndex.IndexPlan plan2 = planner2.getPlan();
             assertNotNull(plan2);
             // Since, the index has no entries for "bar", estimated entry count for plan2 would be 0
