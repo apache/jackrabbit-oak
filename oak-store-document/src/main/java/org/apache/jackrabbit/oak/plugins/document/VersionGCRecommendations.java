@@ -170,7 +170,7 @@ public class VersionGCRecommendations {
             } else {
                 oldestModifiedDryRunDocTimeStamp.set(fullGCDryRunTimestamp);
             }
-        } else {
+        } else if (fullGCEnabled) {
             if (fullGCTimestamp == 0) {
                 // it will only happen for the very first time, we run this fullGC
                 log.info("No fullGCTimestamp found, querying for the oldest modified candidate");
