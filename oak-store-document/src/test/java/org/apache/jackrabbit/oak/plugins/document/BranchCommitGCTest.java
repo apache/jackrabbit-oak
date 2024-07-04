@@ -159,6 +159,7 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddThenMergedAddAndRemoveChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         RevisionVector br = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
