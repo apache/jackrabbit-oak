@@ -159,6 +159,7 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddThenMergedAddAndRemoveChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         RevisionVector br = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -343,6 +344,7 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddsThenMergedAddsChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         RevisionVector br1 = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
