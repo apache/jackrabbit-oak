@@ -190,7 +190,7 @@ public class VersionGarbageCollectorIT {
     public DocumentStoreFixture fixture;
 
     @Parameter(1)
-    FullGCMode fullGcMode;
+    public FullGCMode fullGcMode;
 
     private Clock clock;
 
