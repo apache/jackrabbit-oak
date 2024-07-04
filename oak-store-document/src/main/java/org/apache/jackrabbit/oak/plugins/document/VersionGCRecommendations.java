@@ -158,7 +158,7 @@ public class VersionGCRecommendations {
             }
         }
 
-        if (isFullGCDryRun) {
+        if (fullGCEnabled && isFullGCDryRun) {
             if (fullGCDryRunTimestamp == 0) {
                 // it will only happen for the very first time, we run this fullGC in dry run mode
                 log.info("No fullGCDryRunTimestamp found, querying for the oldest modified candidate");
