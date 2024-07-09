@@ -182,7 +182,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         if (!excludes.isEmpty()) {
             final List<Bson> ands = new ArrayList<>(excludes.size());
             for (String excl : excludes) {
-                ands.add(not(Filters.regex(ID, ":" + excl)));
+                ands.add(Filters.regex(ID, ":(?!" + excl + ")"));
             }
             if (inclExcl != null) {
                 ands.add(inclExcl);
@@ -256,9 +256,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                                                   @NotNull Set<String> excludedPathPrefixes) {
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Bson query = or(
-                withIncludeExcludes(includedPathPrefixes, Set.of()/*OAK-10914 : temporarily disabling excludedPathPrefixes*/,
+                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
                         and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId))),
-                withIncludeExcludes(includedPathPrefixes, Set.of()/*OAK-10914 : temporarily disabling excludedPathPrefixes*/,
+                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
                         and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
@@ -268,6 +268,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
+                .hint(modifiedIdHint)
                 .sort(sort)
                 .limit(limit);
         return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
