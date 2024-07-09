@@ -307,6 +307,14 @@ public final class IndexUtils {
 
     /**
      * Returns a map with checkpoint name as key and checkpoint metadata map as value, sorted on the basis of particular key in the metadata map.
+     * For example - given the following checkpoints in the system along with their associated metadata maps -
+     * checkpoint3 - {created-epoch=123458, creator=creator1}
+     * checkpoint1 - {created-epoch=123456, creator=creator2}
+     * checkpoint2 - {created-epoch=123457, creator=creator3}
+     * This method should return -
+     * {checkpoint1={created-epoch=123456, creator=creator2},
+     * checkpoint2={created-epoch=123457, creator=creator3},
+     * checkpoint3={created-epoch=123458, creator=creator1}}
      * @param checkpointMap - the map consisting of checkpoints as keys and checkpoint metadata map as values
      * @param keyForComparator - key in the metadata map of the checkpoint that can be used as comparator to sort on checkpoint creation time.
      * @return Map<String, Map<String,String>> sorted checkpoint map

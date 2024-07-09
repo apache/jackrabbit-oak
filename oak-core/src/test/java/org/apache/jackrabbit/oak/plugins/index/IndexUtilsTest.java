@@ -34,7 +34,11 @@ import java.util.Calendar;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 
 public class IndexUtilsTest {
     
@@ -80,7 +84,7 @@ public class IndexUtilsTest {
 
             // Check all works fines if no checkpoints present
             Map<String, Map<String, String>> noCheckpointMap = IndexUtils.getFilteredCheckpoints(store, entry -> "checkpoint-helper-test-process-non-existing".equals(entry.getValue().get(CHECKPOINT_CREATOR_KEY)));
-            Assert.assertEquals(0, noCheckpointMap.size());
+            assertEquals(0, noCheckpointMap.size());
 
             // Create checkpoints
             String checkpoint1 = store.checkpoint(1800000L, getMetaDataMap("checkpoint-helper-test-process"));
@@ -98,21 +102,21 @@ public class IndexUtilsTest {
             // Check for happy case
             Map<String, Map<String, String>> filteredCheckpointMap = IndexUtils.getFilteredCheckpoints(store, entry -> "checkpoint-helper-test-process".equals(entry.getValue().get("creator")));
 
-            Assert.assertEquals(3, filteredCheckpointMap.size());
+            assertEquals(3, filteredCheckpointMap.size());
             for (String checkpoint : filteredCheckpointMap.keySet()) {
-                Assert.assertEquals("checkpoint-helper-test-process",filteredCheckpointMap.get(checkpoint).get(CHECKPOINT_CREATOR_KEY));
+                assertEquals("checkpoint-helper-test-process",filteredCheckpointMap.get(checkpoint).get(CHECKPOINT_CREATOR_KEY));
             }
             // Check sorting now
             Map<String, Map<String, String>> sortedCheckpointMap = IndexUtils.getSortedCheckpointMap(filteredCheckpointMap, CHECKPOINT_CREATED_TIMESTAMP_KEY);
-            Assert.assertEquals(3, sortedCheckpointMap.size());
+            assertEquals(3, sortedCheckpointMap.size());
             Iterator<String> sortedCheckpointIt = sortedCheckpointMap.keySet().iterator();
-            Assert.assertEquals(checkpoint1, sortedCheckpointIt.next());
-            Assert.assertEquals(checkpoint3, sortedCheckpointIt.next());
-            Assert.assertEquals(checkpoint4, sortedCheckpointIt.next());
+            assertEquals(checkpoint1, sortedCheckpointIt.next());
+            assertEquals(checkpoint3, sortedCheckpointIt.next());
+            assertEquals(checkpoint4, sortedCheckpointIt.next());
 
             // Check for negative edge cases
             Map<String, Map<String, String>> filteredCheckpointMap2 = IndexUtils.getFilteredCheckpoints(store, entry -> "checkpoint-helper-test-process-non-existing".equals(entry.getValue().get(CHECKPOINT_CREATOR_KEY)));
-            Assert.assertEquals(0, filteredCheckpointMap2.size());
+            assertEquals(0, filteredCheckpointMap2.size());
 
             // Create a checkpoint with incorrect metadata
             Map<String, String> checkpointMetadata = getMetaDataMap("checkpoint-helper-test-process");
@@ -122,7 +126,7 @@ public class IndexUtilsTest {
 
             // Modify the predicate in the filter method here to also include the check that created exists in the checkpoint metadata
             Map<String, Map<String, String>> filteredCheckpointMap3 = IndexUtils.getFilteredCheckpoints(store, entry -> "checkpoint-helper-test-process".equals(entry.getValue().get(CHECKPOINT_CREATOR_KEY)) && entry.getValue().containsKey(CHECKPOINT_CREATED_TIMESTAMP_KEY));
-            Assert.assertEquals(3, filteredCheckpointMap3.size());
+            assertEquals(3, filteredCheckpointMap3.size());
             Assert.assertFalse(filteredCheckpointMap3.containsKey(latestFilteredCheckpointWithNoTimestamp));
 
             Map<String, String> checkpointMetadata2 = getMetaDataMap("checkpoint-helper-test-process-3");
@@ -130,7 +134,7 @@ public class IndexUtilsTest {
             String latestFilteredCheckpointWithNoTimestamp2 = store.checkpoint(1800000L, checkpointMetadata2);
             checkpointSet.add(latestFilteredCheckpointWithNoTimestamp2);
             Map<String, Map<String, String>> filteredCheckpointMap4 = IndexUtils.getFilteredCheckpoints(store, entry -> "checkpoint-helper-test-process-3".equals(entry.getValue().get(CHECKPOINT_CREATOR_KEY)));
-            Assert.assertEquals(1, filteredCheckpointMap4.size());
+            assertEquals(1, filteredCheckpointMap4.size());
             Assert.assertTrue(filteredCheckpointMap4.containsKey(latestFilteredCheckpointWithNoTimestamp2));
         } finally {
             for (String checkpoint : checkpointSet) {

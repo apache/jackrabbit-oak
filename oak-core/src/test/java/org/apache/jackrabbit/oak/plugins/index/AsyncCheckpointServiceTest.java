@@ -19,13 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
@@ -33,10 +29,9 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class AsyncCheckpointServiceTest {
 
@@ -46,9 +41,14 @@ public class AsyncCheckpointServiceTest {
     private final MemoryNodeStore nodeStore = new AsyncCheckpointServiceTest.FakeClusterableMemoryNodeStore();
     private final AsyncCheckpointService service = new AsyncCheckpointService();
 
+    /**
+     * This test is used to verify the registration of the AsyncCheckpointService with the OSGI context.
+     * The test verifies this with 3 different configurations of the AsyncCheckpointService, 2 of them enabled and 1 disabled.
+     */
     @Test
     public void asyncReg() {
         injectDefaultServices();
+        // Create 3 configurations of the AsyncCheckpointService, 2 of them enabled and 1 disabled.
         String name1 = "checkpoint-async-test-1";
         String name2 = "checkpoint-async-test-2";
         String name3 = "checkpoint-async-test-3";
@@ -75,12 +75,17 @@ public class AsyncCheckpointServiceTest {
                 "checkpointLifetime", 60 * 24L,
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
+        // Activate the service with the above 3 configurations.
         MockOsgi.activate(service, context.bundleContext(), config1);
         MockOsgi.activate(service, context.bundleContext(), config2);
         MockOsgi.activate(service, context.bundleContext(), config3);
+        // Verify that the configs that are enabled are registered with the OSGI context and the one that is disabled is not.
         assertEquals(1, context.getServices(Runnable.class, "(oak.checkpoint.async="+name1+")").length);
         assertEquals(0, context.getServices(Runnable.class, "(oak.checkpoint.async="+name2+")").length);
         assertEquals(1, context.getServices(Runnable.class, "(oak.checkpoint.async="+name3+")").length);
+
+        // Get the instances fo the async tasks that are registered as per the enabled configs and verify the values of the
+        // configured minConcurrentCheckpoints and checkpointLifetimeInSeconds.
         AsyncCheckpointCreator checkpointCreator1 = getCheckpointCreator("checkpoint-async-test-1");
         assertEquals(3, checkpointCreator1.getMinConcurrentCheckpoints());
         assertEquals(60 * 60 * 24, checkpointCreator1.getCheckpointLifetimeInSeconds());

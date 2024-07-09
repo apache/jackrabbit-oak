@@ -1,7 +1,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+
+
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
@@ -14,6 +14,7 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -64,7 +65,7 @@ public class AsyncCheckpointService {
 
     }
 
-    private final List<Registration> regs = Lists.newArrayList();
+    private final List<Registration> regs = new ArrayList<>();
     @Reference
     private NodeStore nodeStore;
 
@@ -78,7 +79,7 @@ public class AsyncCheckpointService {
     }
 
     private void registerAsyncCheckpointCreator(Whiteboard whiteboard, AsyncCheckpointCreator task, long delayInSeconds) {
-        Map<String, Object> config = ImmutableMap.of(
+        Map<String, Object> config = Map.of(
                 AsyncCheckpointCreator.PROP_ASYNC_NAME, task.getName(),
                 "scheduler.name", AsyncCheckpointCreator.class.getName() + "-" + task.getName()
         );
