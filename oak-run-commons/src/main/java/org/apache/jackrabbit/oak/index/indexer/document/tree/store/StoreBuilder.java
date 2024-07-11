@@ -28,10 +28,11 @@ public class StoreBuilder {
      * Build a store. The configuration options are passed as a list of properties.
      *
      * - empty string or null: in-memory.
+     * - "type=memory"
      * - "type=file": file system, with "dir" directory
-     * - "type=azure": Azure
-     * - "type=s3": Amazon S3
-     * - "type=diskCache": disk cache, with "dir" and "backend=azure" or "s3"
+     * - "type=stats.another": statistics wrapper around another
+     * - "type=slow.another": slow wrapper around another (to simulate slowness)
+     * - "type=log.another": log wrapper around another (to analyze problems)
      *
      * @param config the config
      * @return a store
@@ -58,10 +59,6 @@ public class StoreBuilder {
             return new MemoryStore(config);
         case "file":
             return new FileStore(config);
-        case "azure":
-            return new AzureStore(config);
-        case "diskCache":
-            return new DiskCacheStore(config);
         }
         if (type.startsWith("stats.")) {
             config.put("type", type.substring("stats.".length()));

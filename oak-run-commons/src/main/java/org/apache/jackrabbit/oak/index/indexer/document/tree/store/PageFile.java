@@ -98,7 +98,7 @@ public class PageFile {
     }
 
     public byte[] toBytes() {
-        // TODO synchronization is needed because we share the buffer
+        // synchronization is needed because we share the buffer
         synchronized (PageFile.class) {
             ByteBuffer buff = REUSED_BUFFER;
             if (buff.capacity() < sizeInBytes * 2) {
@@ -289,14 +289,12 @@ public class PageFile {
         if (lastSearchIndex == 1) {
             if (key.compareTo(keys.get(keys.size() - 1)) > 0) {
                 index = -(keys.size() + 1);
-                // index = Collections.binarySearch(recordKeys, key);
             } else {
                 index = Collections.binarySearch(keys, key);
             }
         } else if (lastSearchIndex == -1) {
             if (key.compareTo(keys.get(0)) < 0) {
                 index = -1;
-                // index = Collections.binarySearch(recordKeys, key);
             } else {
                 index = Collections.binarySearch(keys, key);
             }

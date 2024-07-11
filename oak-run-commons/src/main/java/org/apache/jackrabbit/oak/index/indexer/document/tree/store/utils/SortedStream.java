@@ -24,8 +24,8 @@ public class SortedStream implements Comparable<SortedStream> {
 
     private final String rootFileName;
     private Iterator<Position> it;
-    public String currentKey;
-    public String currentValue;
+    private String currentKey;
+    private String currentValue;
 
     public SortedStream(String rootFileName, Iterator<Position> it) {
         this.rootFileName = rootFileName;
@@ -37,11 +37,11 @@ public class SortedStream implements Comparable<SortedStream> {
         return "file " + rootFileName + " key " + currentKey + " value " + currentValue;
     }
 
-    String currentKeyOrNull() {
+    public String currentKeyOrNull() {
         return currentKey;
     }
 
-    Object currentValue() {
+    public String currentValue() {
         return currentValue;
     }
 

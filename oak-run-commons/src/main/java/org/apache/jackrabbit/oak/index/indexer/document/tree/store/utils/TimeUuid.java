@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Unlike java.util.UUID, the comparison is unsigned,
  * so that the string comparison yields the same result.
  */
-public class Uuid implements Comparable<Uuid> {
+public class TimeUuid implements Comparable<TimeUuid> {
 
     private static final AtomicLong UUID_LAST_MILLIS_AND_COUNT = new AtomicLong(0);
 
@@ -43,7 +43,7 @@ public class Uuid implements Comparable<Uuid> {
     // least significant bits
     private final long lsb;
 
-    Uuid(long msb, long lsb) {
+    private TimeUuid(long msb, long lsb) {
         this.msb = msb;
         this.lsb = lsb;
     }
@@ -99,7 +99,7 @@ public class Uuid implements Comparable<Uuid> {
      * so that the string comparison yields the same result.
      */
     @Override
-    public int compareTo(Uuid o) {
+    public int compareTo(TimeUuid o) {
         if (o.msb != msb) {
             return Long.compareUnsigned(msb, o.msb);
         }
@@ -123,7 +123,7 @@ public class Uuid implements Comparable<Uuid> {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        Uuid other = (Uuid) obj;
+        TimeUuid other = (TimeUuid) obj;
         return lsb == other.lsb && msb == other.msb;
     }
 
@@ -136,7 +136,7 @@ public class Uuid implements Comparable<Uuid> {
      * @param lastMillisAndCount the last returned value
      * @return the new value
      */
-    static long getMillisAndCountIncreasing(long now, AtomicLong lastMillisAndCount) {
+    private static long getMillisAndCountIncreasing(long now, AtomicLong lastMillisAndCount) {
         long result = now << 12;
         while (true) {
             long last = lastMillisAndCount.get();
@@ -151,7 +151,7 @@ public class Uuid implements Comparable<Uuid> {
         }
     }
 
-    static Uuid timeBasedVersion7(long millisAndCount,
+    private static TimeUuid newUuid(long millisAndCount,
             long random) {
         long millis = millisAndCount >>> 12;
         long counter = millisAndCount & ((1L << 12) - 1);
@@ -159,15 +159,15 @@ public class Uuid implements Comparable<Uuid> {
         long variant = 2;
         long msb = (millis << 16) | (version << 12) | counter;
         long lsb = (variant << 62) | (random & ((1L << 62) - 1));
-        return new Uuid(msb, lsb);
+        return new TimeUuid(msb, lsb);
     }
 
-    public static Uuid timeBasedVersion7() {
+    public static TimeUuid newUuid() {
         long millisAndCount = getMillisAndCountIncreasing(
                 System.currentTimeMillis(),
                 UUID_LAST_MILLIS_AND_COUNT);
         long random = RANDOM.nextLong();
-        return timeBasedVersion7(millisAndCount, random);
+        return newUuid(millisAndCount, random);
     }
 
     public long getMostSignificantBits() {

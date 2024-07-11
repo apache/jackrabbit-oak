@@ -604,15 +604,15 @@ public class Session {
             private void fetchNext() {
                 while (pq.size() > 0) {
                     SortedStream s = pq.poll();
-                    if (s.currentKey == null) {
+                    String key = s.currentKeyOrNull();
+                    if (key == null) {
                         // if this is null, it must be the last stream
                         break;
                     }
-                    String key = s.currentKey;
                     if (key.equals(lastKey)) {
                         continue;
                     }
-                    String value = s.currentValue;
+                    String value = s.currentValue();
                     s.next();
                     pq.add(s);
                     if (value == DELETED) {

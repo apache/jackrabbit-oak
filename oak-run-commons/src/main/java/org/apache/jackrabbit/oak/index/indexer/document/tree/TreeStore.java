@@ -18,12 +18,9 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -36,72 +33,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
-
-    public static void main(String... args) throws IOException {
-        String dir = args[0];
-        MemoryBlobStore blobStore = new MemoryBlobStore();
-        NodeStateEntryReader entryReader = new NodeStateEntryReader(blobStore);
-        try (TreeStore treeStore = new TreeStore(new File(dir), entryReader)) {
-            Session session = treeStore.session;
-            Store store = treeStore.store;
-            if (store.keySet().isEmpty()) {
-                session.init();
-                String fileName = args[1];
-                try (BufferedReader lineReader = new BufferedReader(
-                        new FileReader(fileName, StandardCharsets.UTF_8))) {
-                    int count = 0;
-                    long start = System.nanoTime();
-                    while (true) {
-                        String line = lineReader.readLine();
-                        if (line == null) {
-                            break;
-                        }
-                        count++;
-                        if (count % 1000000 == 0) {
-                            long time = System.nanoTime() - start;
-                            System.out.println(count + " " + (time / count) + " ns/entry");
-                        }
-                        int index = line.indexOf('|');
-                        if (index < 0) {
-                            throw new IllegalArgumentException("| is missing: " + line);
-                        }
-                        String path = line.substring(0, index);
-                        String value = line.substring(index + 1);
-                        session.put(path, value);
-        
-                        if (!path.equals("/")) {
-                            String nodeName = PathUtils.getName(path);
-                            String parentPath = PathUtils.getParentPath(path);
-                            session.put(parentPath + "\t" + nodeName, "");
-                        }
-        
-                    }
-                }
-                session.flush();
-                store.close();
-            }
-            Iterator<NodeStateEntry> it = treeStore.iterator();
-            long nodeCount = 0;
-            long childNodeCount = 0;
-            long start = System.nanoTime();
-            while (it.hasNext()) {
-                NodeStateEntry e = it.next();
-                childNodeCount += e.getNodeState().getChildNodeCount(Long.MAX_VALUE);
-                nodeCount++;
-                if (nodeCount % 1000000 == 0) {
-                    long time = System.nanoTime() - start;
-                    System.out.println("Node count: " + nodeCount +
-                            " child node count: " + childNodeCount +
-                            " speed: " + (time / nodeCount) + " ns/entry");
-                }
-            }
-            System.out.println("Node count: " + nodeCount + " Child node count: " + childNodeCount);
-        }
-    }
 
     private final Store store;
     private final Session session;
@@ -226,6 +160,10 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
 
     public Session getSession() {
         return session;
+    }
+
+    public Store getStore() {
+        return store;
     }
 
 }

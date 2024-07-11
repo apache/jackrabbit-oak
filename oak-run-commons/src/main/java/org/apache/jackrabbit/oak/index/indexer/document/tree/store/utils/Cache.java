@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+// TODO limit by memory usage, not number of entries
 public class Cache<K, V> extends LinkedHashMap<K, V> {
 
     private static final long serialVersionUID = 1L;

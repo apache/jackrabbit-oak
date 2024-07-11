@@ -67,8 +67,6 @@ public class GarbageCollection {
 
     private GarbageCollectionResult sweep(HashSet<String> used) {
         GarbageCollectionResult result = new GarbageCollectionResult();
-        // TODO keep files that were very recently updated
-        // (don't remove files that are part of a concurrent flush)
         HashSet<String> removeSet = new HashSet<String>();
         for (String key: new HashSet<>(store.keySet())) {
             if (!used.contains(key)) {

@@ -28,10 +28,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Uuid;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.TimeUuid;
 
 public class FileStore implements Store {
 
@@ -39,17 +37,7 @@ public class FileStore implements Store {
     private final String directory;
     private Compression compression = Compression.NO;
     private long writeCount, readCount;
-    private Thread backgroundThread;
-    private ConcurrentHashMap<String, PageFile> pendingWrites = new ConcurrentHashMap<>();
-    private LinkedBlockingQueue<WriteOperation> queue = new LinkedBlockingQueue<>(100);
-
-    private static final WriteOperation STOP = new WriteOperation();
-
-    static class WriteOperation {
-        String key;
-        byte[] value;
-    }
-
+    
     public String toString() {
         return "file(" + directory + ")";
     }
@@ -58,51 +46,10 @@ public class FileStore implements Store {
         this.config = config;
         this.directory = config.getProperty("dir");
         new File(directory).mkdirs();
-        boolean asyncWrite = Boolean.parseBoolean(config.getProperty("async", "false"));
-        if (asyncWrite) {
-            startAsyncWriter();
-        }
-    }
-
-    private void startAsyncWriter() {
-        backgroundThread = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    for (int i = 0;; i++) {
-                        WriteOperation op = queue.take();
-                        if (i % 200 == 0) {
-                            // System.out.println("  file writer queue size " + queue.size());
-                        }
-                        if (op == STOP) {
-                            break;
-                        }
-                        writeFile(op.key, op.value);
-                        pendingWrites.remove(op.key);
-                    }
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-
-        });
-        backgroundThread.setDaemon(true);
-        backgroundThread.start();
     }
 
     @Override
     public void close() {
-        try {
-            if (backgroundThread != null) {
-                queue.put(STOP);
-                backgroundThread.join();
-            }
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -112,10 +59,6 @@ public class FileStore implements Store {
 
     @Override
     public PageFile getIfExists(String key) {
-        PageFile pending = pendingWrites.get(key);
-        if (pending != null) {
-            return pending;
-        }
         readCount++;
         File f = getFile(key);
         if (!f.exists()) {
@@ -140,24 +83,7 @@ public class FileStore implements Store {
     @Override
     public void put(String key, PageFile value) {
         writeCount++;
-        if (backgroundThread != null) {
-            writeFileAsync(key, value.copy());
-        } else {
-            writeFile(key, value.toBytes());
-        }
-    }
-
-    private void writeFileAsync(String key, PageFile value) {
-        pendingWrites.put(key, value);
-        WriteOperation op = new WriteOperation();
-        op.key = key;
-        op.value = value.toBytes();
-        try {
-            queue.put(op);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        writeFile(key, value.toBytes());
     }
 
     @Override
@@ -200,22 +126,6 @@ public class FileStore implements Store {
     private void writeFile(String key, byte[] data) {
         data = compression.compress(data);
         putBytes(key, data);
-
-        /*
-        File tempFile = getFile(key, true);
-        File targetFile = getFile(key);
-        // https://stackoverflow.com/questions/595631/how-to-atomically-rename-a-file-in-java-even-if-the-dest-file-already-exists
-        try (RandomAccessFile file = new RandomAccessFile(tempFile, "rw")) {
-            file.write(data);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-        try {
-            Files.move(tempFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-        */
     }
 
     private File getFile(String key) {
@@ -224,7 +134,7 @@ public class FileStore implements Store {
 
     @Override
     public String newFileName() {
-        return Uuid.timeBasedVersion7().toShortString();
+        return TimeUuid.newUuid().toShortString();
     }
 
     @Override
@@ -246,7 +156,6 @@ public class FileStore implements Store {
 
     @Override
     public void remove(Set<String> set) {
-        // TODO keep for some time if the file is relatively new?
         for (String key : set) {
             writeCount++;
             getFile(key).delete();
