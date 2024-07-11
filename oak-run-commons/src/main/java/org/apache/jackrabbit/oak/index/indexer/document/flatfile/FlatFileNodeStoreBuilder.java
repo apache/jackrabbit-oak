@@ -23,6 +23,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -256,7 +258,7 @@ public class FlatFileNodeStoreBuilder {
     private IndexStoreFiles createdSortedStoreFiles() throws IOException, CompositeException {
         // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
-        if (StringUtils.isNotBlank(sortedFilePath)) {
+        if (sortedFilePath != null && !sortedFilePath.isEmpty()) {
             File sortedDir = new File(sortedFilePath);
             log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
                     sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);

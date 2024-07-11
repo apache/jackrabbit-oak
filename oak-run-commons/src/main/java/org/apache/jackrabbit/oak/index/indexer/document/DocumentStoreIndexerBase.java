@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -311,6 +313,50 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
                 flatFileStore.getStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getStorePath());
         return flatFileStore;
+    }
+
+    public void reindexUsingTreeStore() throws CommitFailedException, IOException {
+        NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
+        TreeStore treeStore = new TreeStore(new File("target/treeStore"), reader);
+
+        // TODO this is mostly a copy of reindex()
+
+        IndexingProgressReporter progressReporter =
+                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+        configureEstimators(progressReporter);
+
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
+
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
+        if (indexer.isEmpty()) {
+            return;
+        }
+
+        closer.register(indexer);
+
+        progressReporter.reset();
+
+        progressReporter.reindexingTraversalStart("/");
+
+        preIndexOperations(indexer.getIndexers());
+
+        Stopwatch indexerWatch = Stopwatch.createStarted();
+
+        for (NodeStateEntry entry : treeStore) {
+            reportDocumentRead(entry.getPath(), progressReporter);
+            indexer.index(entry);
+        }
+
+        progressReporter.reindexingTraversalEnd();
+        progressReporter.logReport();
+        log.info("Completed the indexing in {}", indexerWatch);
+
+        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
     public void reindex() throws CommitFailedException, IOException {
