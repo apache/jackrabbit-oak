@@ -31,7 +31,8 @@ public class AsyncCheckpointCreatorTest {
     public void testAsync() {
         NodeStore store = new MemoryNodeStore();
         int minConcurrentCheckpoints = 3;
-        AsyncCheckpointCreator task = new AsyncCheckpointCreator(store, "test", 1000, minConcurrentCheckpoints);
+        int maxConcurrentCheckpoints = 5;
+        AsyncCheckpointCreator task = new AsyncCheckpointCreator(store, "test", 1000, minConcurrentCheckpoints, maxConcurrentCheckpoints);
         Map<Integer, String> checkpointMap = new LinkedHashMap<>();
         for (int i = 0; i < minConcurrentCheckpoints; i++) {
             List<String> checkpointList = new ArrayList<>();

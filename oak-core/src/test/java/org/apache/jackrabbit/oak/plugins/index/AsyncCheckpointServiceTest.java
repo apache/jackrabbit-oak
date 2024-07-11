@@ -56,6 +56,7 @@ public class AsyncCheckpointServiceTest {
                 "name", "checkpoint-async-test-1",
                 "enable", true,
                 "minConcurrentCheckpoints", 3L,
+                "maxConcurrentCheckpoints", 10L,
                 "checkpointLifetime", 60 * 60 * 24L,
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
@@ -64,6 +65,7 @@ public class AsyncCheckpointServiceTest {
                 "name", "checkpoint-async-test-2",
                 "enable", false,
                 "minConcurrentCheckpoints", 3L,
+                "maxConcurrentCheckpoints", 10L,
                 "checkpointLifetime", 60 * 60 * 24L,
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
@@ -72,6 +74,7 @@ public class AsyncCheckpointServiceTest {
                 "name", "checkpoint-async-test-3",
                 "enable", true,
                 "minConcurrentCheckpoints", 4L,
+                "maxConcurrentCheckpoints", 2L,
                 "checkpointLifetime", 60 * 24L,
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
@@ -88,9 +91,11 @@ public class AsyncCheckpointServiceTest {
         // configured minConcurrentCheckpoints and checkpointLifetimeInSeconds.
         AsyncCheckpointCreator checkpointCreator1 = getCheckpointCreator("checkpoint-async-test-1");
         assertEquals(3, checkpointCreator1.getMinConcurrentCheckpoints());
+        assertEquals(10, checkpointCreator1.getMaxConcurrentCheckpoints());
         assertEquals(60 * 60 * 24, checkpointCreator1.getCheckpointLifetimeInSeconds());
         AsyncCheckpointCreator checkpointCreator3 = getCheckpointCreator("checkpoint-async-test-3");
         assertEquals(4, checkpointCreator3.getMinConcurrentCheckpoints());
+        assertEquals(5, checkpointCreator3.getMaxConcurrentCheckpoints());
         assertEquals(60 * 24, checkpointCreator3.getCheckpointLifetimeInSeconds());
         MockOsgi.deactivate(service, context.bundleContext());
         assertNull(context.getService(Runnable.class));

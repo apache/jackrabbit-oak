@@ -46,6 +46,7 @@ public class AsyncCheckpointCreator implements Runnable {
     private final String name;
     private final long checkpointLifetimeInSeconds;
     private final long minConcurrentCheckpoints;
+    private final long maxConcurrentCheckpoints;
     private final NodeStore store;
     public static final String CHECKPOINT_CREATOR_KEY = "creator";
     public static final String CHECKPOINT_CREATED_KEY = "created";
@@ -55,11 +56,19 @@ public class AsyncCheckpointCreator implements Runnable {
     private static final Logger log = LoggerFactory
             .getLogger(AsyncCheckpointCreator.class);
 
-    public AsyncCheckpointCreator(@NotNull NodeStore store, @NotNull String name, long checkpointLifetimeInSeconds, long minConcurrentCheckpoints) {
+    public AsyncCheckpointCreator(@NotNull NodeStore store, @NotNull String name, long checkpointLifetimeInSeconds, long minConcurrentCheckpoints, long maxConcurrentCheckpoints) {
         this.store = store;
         this.name = name;
         this.checkpointLifetimeInSeconds = checkpointLifetimeInSeconds;
         this.minConcurrentCheckpoints = minConcurrentCheckpoints;
+        // maxConcurrentCheckpoints should at least be 1 more than minConcurrentCheckpoints
+        if (maxConcurrentCheckpoints <= minConcurrentCheckpoints) {
+            log.warn("[{}] Max concurrent checkpoints is less than or equal to min concurrent checkpoints. " +
+                    "Setting max concurrent checkpoints to min concurrent checkpoints + 1.", this.name);
+            this.maxConcurrentCheckpoints = minConcurrentCheckpoints + 1;
+        } else {
+            this.maxConcurrentCheckpoints = maxConcurrentCheckpoints;
+        }
     }
 
     public String getName() {
@@ -74,18 +83,31 @@ public class AsyncCheckpointCreator implements Runnable {
         return minConcurrentCheckpoints;
     }
 
+    protected long getMaxConcurrentCheckpoints() {
+        return maxConcurrentCheckpoints;
+    }
+
     @Override
     public void run() {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        String creationTimeStamp = String.valueOf(cal.getTimeInMillis());
-        String creationTimeISOFormat = ISO8601.format(cal);
-        String checkpoint = store.checkpoint(checkpointLifetimeInSeconds * 1000, Map.of(
-                CHECKPOINT_CREATOR_KEY, AsyncCheckpointCreator.class.getSimpleName(),
-                CHECKPOINT_CREATED_KEY, creationTimeISOFormat,
-                CHECKPOINT_CREATED_TIMESTAMP_KEY, creationTimeStamp,
-                CHECKPOINT_THREAD_KEY, Thread.currentThread().getName(),
-                CHECKPOINT_NAME_KEY, name));
-        log.info("[{}] Created checkpoint {} with creation time {}", name, checkpoint, creationTimeISOFormat);
+        Map<String, Map<String, String>> filteredCheckpointMap = IndexUtils.getFilteredCheckpoints(store,
+                entry -> name.equals(entry.getValue().get(CHECKPOINT_NAME_KEY)));
+        // If the number of checkpoints created by this task are equal to or greater than the maxConcurrentCheckpoints, skip
+        // creation of a new checkpoint.
+        // This could happen in case the deletion of older checkpoints failed in multiple previous runs.
+        if (filteredCheckpointMap.size() >= maxConcurrentCheckpoints) {
+            log.info("[{}] Skipping checkpoint creation as the number of concurrent checkpoints is already at max limit", name);
+        } else {
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            String creationTimeStamp = String.valueOf(cal.getTimeInMillis());
+            String creationTimeISOFormat = ISO8601.format(cal);
+            String checkpoint = store.checkpoint(checkpointLifetimeInSeconds * 1000, Map.of(
+                    CHECKPOINT_CREATOR_KEY, AsyncCheckpointCreator.class.getSimpleName(),
+                    CHECKPOINT_CREATED_KEY, creationTimeISOFormat,
+                    CHECKPOINT_CREATED_TIMESTAMP_KEY, creationTimeStamp,
+                    CHECKPOINT_THREAD_KEY, Thread.currentThread().getName(),
+                    CHECKPOINT_NAME_KEY, name));
+            log.info("[{}] Created checkpoint {} with creation time {}", name, checkpoint, creationTimeISOFormat);
+        }
 
         // Get a list of checkpoints filtered on the basis of CHECKPOINT_NAME_KEY (name). This is done using the
         // getFilteredCheckpoints in the IndexUtils, which gets all the checkpoints in the node store and then filters the list based on

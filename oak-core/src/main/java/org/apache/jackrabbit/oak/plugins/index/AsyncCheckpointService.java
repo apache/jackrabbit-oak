@@ -1,7 +1,5 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
-
-
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
@@ -22,8 +20,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleE
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = {})
+        configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = AsyncCheckpointService.Configuration.class, factory = true)
 public class AsyncCheckpointService {
 
@@ -52,6 +49,14 @@ public class AsyncCheckpointService {
         long minConcurrentCheckpoints() default 2;
 
         @AttributeDefinition(
+                name = "Maximum Concurrent Checkpoints",
+                description = "Maximum number of concurrent checkpoints to keep in system. " +
+                        "This limit is to prevent multiple checkpoint creation in case the deletion of older " +
+                        "checkpoints fails multiple times. This should always be greater than Minimum Concurrent Checkpoints"
+        )
+        long maxConcurrentCheckpoints() default 10;
+
+        @AttributeDefinition(
                 name = "Checkpoint Lifetime",
                 description = "Lifetime of a checkpoint in seconds"
         )
@@ -73,7 +78,7 @@ public class AsyncCheckpointService {
     public void activate(BundleContext bundleContext, AsyncCheckpointService.Configuration config) {
         Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
         if (config.enable()) {
-            AsyncCheckpointCreator task = new AsyncCheckpointCreator(nodeStore, config.name(), config.checkpointLifetime(), config.minConcurrentCheckpoints());
+            AsyncCheckpointCreator task = new AsyncCheckpointCreator(nodeStore, config.name(), config.checkpointLifetime(), config.minConcurrentCheckpoints(), config.maxConcurrentCheckpoints());
             registerAsyncCheckpointCreator(whiteboard, task, config.timeIntervalBetweenCheckpoints());
         }
     }
