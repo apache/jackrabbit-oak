@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
@@ -35,14 +35,19 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
+public class TreeStore implements IndexStore {
+
+    private static final String STORE_TYPE = "TreeStore";
 
     private final Store store;
+    private final File directory;
     private final Session session;
     private final NodeStateEntryReader entryReader;
     private final Cache<String, NodeState> nodeStateCache = new Cache<>(10000);
+    private long entryCount;
 
     public TreeStore(File directory, NodeStateEntryReader entryReader) {
+        this.directory = directory;
         this.entryReader = entryReader;
         String storeConfig = System.getProperty("oak.treeStoreConfig",
                 "type=file\n" +
@@ -164,6 +169,30 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
 
     public Store getStore() {
         return store;
+    }
+
+    @Override
+    public String getStorePath() {
+        return directory.getAbsolutePath();
+    }
+
+    @Override
+    public long getEntryCount() {
+        return entryCount;
+    }
+
+    public void setEntryCount(long entryCount) {
+        this.entryCount = entryCount;
+    }
+
+    @Override
+    public String getIndexStoreType() {
+        return STORE_TYPE;
+    }
+
+    @Override
+    public boolean isIncremental() {
+        return true;
     }
 
 }
