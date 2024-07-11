@@ -95,7 +95,7 @@ public class AsyncCheckpointCreator implements Runnable {
         // creation of a new checkpoint.
         // This could happen in case the deletion of older checkpoints failed in multiple previous runs.
         if (filteredCheckpointMap.size() >= maxConcurrentCheckpoints) {
-            log.info("[{}] Skipping checkpoint creation as the number of concurrent checkpoints is already at max limit", name);
+            log.warn("[{}] Skipping checkpoint creation as the number of concurrent checkpoints is already at max limit {}", name, maxConcurrentCheckpoints);
         } else {
             Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
             String creationTimeStamp = String.valueOf(cal.getTimeInMillis());
