@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Function;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -39,7 +40,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -199,7 +199,7 @@ public abstract class AbstractOak2OakTest {
                     return null;
                 }
             }
-        });
+        }::apply);
         assertTrue(values.contains("jcr:mixinTypes"));
         assertTrue(values.contains("jcr:primaryType"));
         assertEquals("false", nodeType.getProperty("jcr:isAbstract").getString());
