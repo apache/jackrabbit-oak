@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -75,7 +74,7 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
         CSVParser parser = CSVParser.parse(dataFile, StandardCharsets.UTF_8, FORMAT);
         closer.register(parser);
         return FluentIterable.from(parser)
-                .transform(new RecordTransformer())
+                .transform(new RecordTransformer()::apply)
                 .filter(notNull())
                 .filter(new Predicate<BinaryResource>() {
                     @Override
