@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.function.Function;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
@@ -36,7 +37,6 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -309,7 +309,7 @@ public class ImporterImpl implements Importer {
                     return null;
                 }
             }
-        }), Predicates.notNull());
+        }::apply), Predicates.notNull());
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
@@ -323,7 +323,7 @@ public class ImporterImpl implements Importer {
                     return null;
                 }
             }
-        }), Predicates.notNull());
+        }::apply), Predicates.notNull());
     }
 
     //-----------------------------------------------------------< Importer >---
