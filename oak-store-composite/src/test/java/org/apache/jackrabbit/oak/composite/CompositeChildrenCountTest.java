@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -40,6 +39,7 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
@@ -224,13 +224,7 @@ public class CompositeChildrenCountTest {
                 Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
                 return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
-                return asCountingIterable(transform(asList(children), new Function<String, ChildNodeEntry>() {
-                    @Nullable
-                    @Override
-                    public ChildNodeEntry apply(@Nullable String input) {
-                        return new MemoryChildNodeEntry(input, EMPTY_NODE);
-                    }
-                }));
+                return asCountingIterable(transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
             }
         }
 
@@ -253,7 +247,7 @@ public class CompositeChildrenCountTest {
                     fetchedChildren++;
                     return input;
                 }
-            });
+            }::apply);
         }
     }
 }
