@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -284,7 +283,7 @@ public class DocumentPropertyStateTest {
         getBrokenSurrogateAndInitializeDifferentStores(MEMORY);
     }
 
-    private @NotNull void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture) {
+    private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture) {
         String test = "brokensurrogate:dfsa\ud800";
 
         DocumentStore store = fixture.createDocumentStore();
