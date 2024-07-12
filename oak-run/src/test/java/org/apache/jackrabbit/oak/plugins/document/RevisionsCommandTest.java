@@ -193,6 +193,32 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("ResetFullGC is enabled : false"));
         assertTrue(output.contains("Compaction is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
+        assertTrue(output.contains("IncludePaths are : [/]"));
+        assertTrue(output.contains("ExcludePaths are : []"));
+    }
+
+    @Test
+    public void fullGCWithIncludePaths() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--includePaths", "/content::/var"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
+        assertTrue(output.contains("Compaction is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+        assertTrue(output.contains("IncludePaths are : [/content, /var]"));
+    }
+
+    @Test
+    public void fullGCWithExcludePaths() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--excludePaths", "/content::/var"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
+        assertTrue(output.contains("Compaction is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+        assertTrue(output.contains("ExcludePaths are : [/content, /var]"));
     }
 
     @Test

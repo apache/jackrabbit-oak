@@ -234,7 +234,10 @@ public class AzureCompact {
          * @return an instance of {@link Runnable}.
          */
         public AzureCompact build() {
-            checkNotNull(path);
+            if (sourceCloudBlobDirectory == null || destinationCloudBlobDirectory == null) {
+                checkNotNull(path);
+                checkNotNull(targetPath);
+            }
             return new AzureCompact(this);
         }
     }
@@ -255,13 +258,13 @@ public class AzureCompact {
 
     private final int concurrency;
 
-    private String persistentCachePath;
+    private final String persistentCachePath;
 
-    private Integer persistentCacheSizeGb;
+    private final Integer persistentCacheSizeGb;
 
-    private CloudBlobDirectory sourceCloudBlobDirectory;
+    private final CloudBlobDirectory sourceCloudBlobDirectory;
 
-    private CloudBlobDirectory destinationCloudBlobDirectory;
+    private final CloudBlobDirectory destinationCloudBlobDirectory;
 
     private AzureCompact(Builder builder) {
         this.path = builder.path;
@@ -284,11 +287,15 @@ public class AzureCompact {
         SegmentNodeStorePersistence roPersistence;
         SegmentNodeStorePersistence rwPersistence;
         if (sourceCloudBlobDirectory != null && destinationCloudBlobDirectory != null) {
-            roPersistence = decorateWithCache(new AzurePersistence(sourceCloudBlobDirectory), persistentCachePath, persistentCacheSizeGb);
+            roPersistence = new AzurePersistence(sourceCloudBlobDirectory);
             rwPersistence = new AzurePersistence(destinationCloudBlobDirectory);
         } else {
-            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path);
             rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+        }
+
+        if (persistentCachePath != null) {
+            roPersistence = decorateWithCache(roPersistence, persistentCachePath, persistentCacheSizeGb);
         }
 
         SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence, rwPersistence);
@@ -296,8 +303,8 @@ public class AzureCompact {
         SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence);
         SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence);
 
-        System.out.printf("Compacting %s\n", path);
-        System.out.printf(" to %s\n", targetPath);
+        System.out.printf("Compacting %s\n", path != null ? path : sourceCloudBlobDirectory.getUri().toString());
+        System.out.printf(" to %s\n", targetPath != null ? targetPath : destinationCloudBlobDirectory.getUri().toString());
         System.out.printf("    before\n");
         List<String> beforeArchives = Collections.emptyList();
         try {
@@ -345,8 +352,13 @@ public class AzureCompact {
         printArchives(System.out, afterArchives);
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
 
-        CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
-        CloudBlobContainer targetContainer = targetDirectory.getContainer();
+        CloudBlobContainer targetContainer = null;
+        if (targetPath != null) {
+            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
+            targetContainer = targetDirectory.getContainer();
+        } else {
+            targetContainer = destinationCloudBlobDirectory.getContainer();
+        }
         printTargetRepoSizeInfo(targetContainer);
 
         return 0;

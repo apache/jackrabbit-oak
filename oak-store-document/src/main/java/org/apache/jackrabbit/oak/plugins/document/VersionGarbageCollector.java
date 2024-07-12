@@ -211,11 +211,36 @@ public class VersionGarbageCollector {
         return fullGcMode;
     }
 
+    /**
+     * Set the full GC mode to be used according to the provided configuration value.
+     * The configuration value will be ignored and fullGCMode will be reset to NONE
+     * if it is set to any other values than the supported ones.
+     * @param fullGcMode
+     */
+    static void setFullGcMode(int fullGcMode) {
+        switch (fullGcMode) {
+            case 0:
+                VersionGarbageCollector.fullGcMode = NONE;
+                break;
+            case 2:
+                VersionGarbageCollector.fullGcMode = GAP_ORPHANS;
+                break;
+            case 3:
+                VersionGarbageCollector.fullGcMode = GAP_ORPHANS_EMPTYPROPS;
+                break;
+            default:
+                log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", fullGcMode);
+                VersionGarbageCollector.fullGcMode = NONE;
+        }
+    }
+
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
+    private Set<String> fullGCIncludePaths = Collections.emptySet();
+    private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -228,6 +253,16 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
+        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
+                DocumentNodeStoreService.DEFAULT_FULL_GC_MODE);
+    }
+
+    VersionGarbageCollector(DocumentNodeStore nodeStore,
+                            VersionGCSupport gcSupport,
+                            final boolean fullGCEnabled,
+                            final boolean isFullGCDryRun,
+                            final boolean embeddedVerification,
+                            final int fullGCMode) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
@@ -235,7 +270,23 @@ public class VersionGarbageCollector {
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
+
+        setFullGcMode(fullGCMode);
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
+    }
+
+    /**
+     * Please note that at the moment the includes do not
+     * take long paths into account. That is, if a long path was
+     * supposed to be included via an include, it is not.
+     * Reason for this is that long paths would require
+     * the mongo query to include a '_path' condition - which disallows
+     * mongo from using the '_modified_id' index. IOW long paths
+     * would result in full scans - which results in bad performance.
+     */
+    void setFullGCPaths(@NotNull Set<String> includes, @NotNull Set<String> excludes) {
+        this.fullGCIncludePaths = requireNonNull(includes);
+        this.fullGCExcludePaths = requireNonNull(excludes);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -351,7 +402,8 @@ public class VersionGarbageCollector {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = nodeStore.getClock().getTime();
         VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled, isFullGCDryRun);
+                !nodeStore.isReadOnlyMode(), nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled,
+                isFullGCDryRun);
         int estimatedIterations = -1;
         if (rec.suggestedIntervalMs > 0) {
             estimatedIterations = (int)Math.ceil((double) (now - rec.scope.toMs) / rec.suggestedIntervalMs);
@@ -731,7 +783,8 @@ public class VersionGarbageCollector {
             VersionGCStats stats = new VersionGCStats();
             stats.active.start();
             VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                    nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled, isFullGCDryRun);
+                    !nodeStore.isReadOnlyMode(), nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled,
+                    isFullGCDryRun);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (!isFullGCDryRun) {
@@ -833,7 +886,7 @@ public class VersionGarbageCollector {
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId, fullGCIncludePaths, fullGCExcludePaths);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -851,7 +904,14 @@ public class VersionGarbageCollector {
                                 lastDoc = doc;
                                 // collect the data to delete in next step
                                 if (phases.start(GCPhase.FULL_GC_COLLECT_GARBAGE)) {
-                                    gc.collectGarbage(doc, phases);
+                                    if (Utils.isIncluded(doc.getPath(), Collections.emptySet(), fullGCExcludePaths)) {
+                                        gc.collectGarbage(doc, phases);
+                                    } else {
+                                        // MongoVersionGCSupport doesn't take long paths into consideration
+                                        // for neither includes nor excludes. If isIncluded returns false here,
+                                        // that can only be due to an excluded long path.
+                                        // in which case, we can actually honor that and skip this
+                                    }
                                     phases.stop(GCPhase.FULL_GC_COLLECT_GARBAGE);
                                 }
 

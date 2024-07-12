@@ -135,7 +135,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public static final String OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE = "oak.indexer.pipelined.sortBufferMemoryPercentage";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE = 25;
 
-    static final NodeDocument[] SENTINEL_MONGO_DOCUMENT = new NodeDocument[0];
     static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
     static final Path SENTINEL_SORTED_FILES_QUEUE = Paths.get("SENTINEL");
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
@@ -451,10 +450,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             if (result instanceof PipelinedMongoDownloadTask.Result) {
                                 PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
                                 LOG.info("Download finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
-                                // Signal the end of documents to the transform threads.
-                                for (int i = 0; i < numberOfTransformThreads; i++) {
-                                    mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
-                                }
                                 mergeSortTask.stopEagerMerging();
                                 downloadFuture = null;
 

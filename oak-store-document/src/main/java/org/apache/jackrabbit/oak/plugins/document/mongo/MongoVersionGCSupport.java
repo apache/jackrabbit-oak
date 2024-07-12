@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.not;
 import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
 import static java.util.Optional.empty;
@@ -53,6 +54,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.mongodb.client.MongoCursor;
+
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -92,9 +95,18 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoVersionGCSupport.class);
 
+    /** log the explain result on a daily cadence only - primarily for rollout-debugging */
+    private static final long EXPLAIN_LOG_INTERVAL_MS = TimeUnit.HOURS.toMillis(24);
+
     private final MongoDocumentStore store;
 
     private final BasicDBObject hint;
+
+    /** the hint representing "_modified_1__id_1" - if that index exists, null otherwise */
+    private final BasicDBObject modifiedIdHint;
+
+    /** timestamp of last time an explain of the 'getModifiedDocs' query was logged */
+    private long lastExplainLogMs = -1;
 
     /** keeps track of the sweepRev of the last (successful) deletion */
     private RevisionVector lastDefaultNoBranchDeletionRevs;
@@ -115,6 +127,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             hint = null;
         }
+        if(hasIndex(getNodeCollection(), MODIFIED_IN_SECS, ID)) {
+            modifiedIdHint = new BasicDBObject();
+            modifiedIdHint.put(MODIFIED_IN_SECS,1);
+            modifiedIdHint.put(ID, 1);
+        } else {
+            modifiedIdHint = null;
+        }
     }
 
     @Override
@@ -130,6 +149,89 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
         return CloseableIterable.wrap(transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
+    }
+
+    /**
+     * Calculate the bson representing including only the provided
+     * include path prefixes and/or excluding the provided
+     * exclude path prefixes - if any are provided - AND the provided
+     * query.
+     * Please note that at the moment the includes do not
+     * take long paths into account. That is, if a long path was
+     * supposed to be included via an include, it is not.
+     * Reason for this is that long paths would require
+     * the mongo query to include a '_path' condition - which disallows
+     * mongo from using the '_modified_id' index. IOW long paths
+     * would result in full scans - which results in bad performance.
+     * @param includes set of path prefixes which should only be considered
+     * @param excludes set of path prefixes which should be excluded.
+     * if these overlap with includes, then exclude has precedence.
+     * @param query the query with which to do an AND
+     * @return the combined bson with include/exclude path prefixes
+     * AND the provided query
+     */
+    private Bson withIncludeExcludes(@NotNull Set<String> includes, @NotNull Set<String> excludes, Bson query) {
+        Bson inclExcl = null;
+        if (!includes.isEmpty()) {
+            final List<Bson> ors = new ArrayList<>(includes.size());
+            for (String incl : includes) {
+                ors.add(Filters.regex(ID, ":" + incl));
+            }
+            inclExcl = or(ors);
+        }
+        if (!excludes.isEmpty()) {
+            final List<Bson> ands = new ArrayList<>(excludes.size());
+            for (String excl : excludes) {
+                ands.add(Filters.regex(ID, ":(?!" + excl + ")"));
+            }
+            if (inclExcl != null) {
+                ands.add(inclExcl);
+            }
+            inclExcl = and(ands);
+        }
+        if (inclExcl == null) {
+            // if no include or exclude path prefixes are defined,
+            // then everything is included - i.e. we fall back to
+            // just the provided query
+            return query;
+        } else {
+            // if there are include or exclude path prefixes,
+            // then add them via AND
+            return and(inclExcl, query);
+        }
+    }
+
+    /**
+     * Logs an explain of a mongo query. If log level is INFO it does it one-lined,
+     * if log level is DEBUG it does it pretty print multi-lined.
+     *
+     * This is done once every 24h of livetime of this particular object.
+     *
+     * @param logMsg the log message to use - should contain two "{}" for the hint
+     *               and the explain json
+     * @param query  the mongo query for which to do an explain with mongo and log
+     *               the result
+     * @param hint   the hint for the query, or null
+     */
+    private void logQueryExplain(String logMsg, @NotNull Bson query, Bson hint) {
+        final long timeSinceLastLog = System.currentTimeMillis() - lastExplainLogMs;
+        if (timeSinceLastLog < EXPLAIN_LOG_INTERVAL_MS) {
+            // then don't log
+            return;
+        }
+        final BasicDBObject explainResult = MongoUtils.explain(store.getDatabase(),
+                getNodeCollection(), query, hint);
+        final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
+        final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
+        if (LOG.isDebugEnabled()) {
+            // if log level is DEBUG, let's do a pretty print
+            String prettyPrinted = JsopBuilder.prettyPrint(result.toJson());
+            LOG.debug(logMsg, hint, prettyPrinted);
+        } else {
+            // otherwise let's just do a compact print
+            LOG.info(logMsg, hint, result);
+        }
+        lastExplainLogMs = System.currentTimeMillis();
     }
 
     /**
@@ -150,17 +252,23 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId) {
+                                                  @NotNull final String fromId, @NotNull Set<String> includedPathPrefixes,
+                                                  @NotNull Set<String> excludedPathPrefixes) {
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Bson query = or(
-                and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId)),
-                and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))));
+                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                        and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId))),
+                withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
+                        and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
 
+        logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
+
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
+                .hint(modifiedIdHint)
                 .sort(sort)
                 .limit(limit);
         return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));

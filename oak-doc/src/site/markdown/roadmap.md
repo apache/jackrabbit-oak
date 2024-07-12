@@ -75,7 +75,9 @@ History
   min JDK 11 -> 2023-03 +-+ 1.50 | 1.22.14
                 2023-06 +-+ 1.52 | 1.22.15
 Guava shaded -> 2023-09 +-+ 1.56 | 1.22.17
-                2023-12 +-+ 1.60 |
+                2023-12 +-+ 1.60 | 1.22.18
+                2024-03 +-+ 1.60 | 1.22.19
+                2024-06 +-+ 1.64 | 1.22.20
 ~~~
 
 The comments on the left side refer to backwards-incompatible changes, which,

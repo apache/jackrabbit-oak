@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -45,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
@@ -133,7 +133,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 docQueueWaitStopwatch.reset().start();
                 NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
+                if (nodeDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
+                    // So that other threads listening on this queue also get the sentinel
+                    mongoDocQueue.put(PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT);
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
                     String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
                     String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueDelayMillis, totalDurationMillis);
@@ -239,7 +241,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private void extractNodeStateEntries(NodeDocument doc, ArrayList<DocumentNodeState> nodeStateEntries) {
         Path path = doc.getPath();
-        DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
+        DocumentNodeState nodeState = DocumentNodeStoreHelper.readNode(documentNodeStore, path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {
             return;

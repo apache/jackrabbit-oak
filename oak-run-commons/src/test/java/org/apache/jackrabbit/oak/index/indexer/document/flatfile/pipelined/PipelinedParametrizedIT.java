@@ -228,26 +228,28 @@ public class PipelinedParametrizedIT {
         }
 
         try (MongoTestBackend roStore = createNodeStore(true, connectionFactory, builderProvider)) {
-
             PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
-
             File file = pipelinedStrategy.createSortedStoreFile();
-
-
             SortedMap<String, Counter> counters = statsProvider.getRegistry().getCounters();
 
             long nDocumentsMatchingFilter = regexPathFiltering ?
                     numberOfFilteredDocuments(roStore.mongoDatabase, "/content/dam") :
                     numberOfDocumentsOnMongo(roStore.mongoDatabase);
             long actualDocumentsDownloaded = counters.get(PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL).getCount();
+            long actualEntriesAccepted = counters.get(PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL).getCount();
             if (parallelDump) {
-                // With parallel download, we may download more documents than the ones matching the filter
-                assertTrue("Docs downloaded: " + actualDocumentsDownloaded + " must be between " + nDocumentsMatchingFilter + " and " + nDocumentsMatchingFilter * 2,
-                        nDocumentsMatchingFilter <= actualDocumentsDownloaded && actualDocumentsDownloaded <= nDocumentsMatchingFilter * 2);
+                // With parallel download, we may download more documents than the ones matching the filter. In the worst
+                // case, we download every document 3x: one time for each of the ascending and descending threads, and
+                // one more time for the catch-up at the end of the download
+                assertTrue("Docs downloaded: " + actualDocumentsDownloaded + " must be between " + nDocumentsMatchingFilter + " and " + nDocumentsMatchingFilter * 3,
+                        nDocumentsMatchingFilter <= actualDocumentsDownloaded && actualDocumentsDownloaded <= nDocumentsMatchingFilter * 3);
+                assertTrue("Entries downloaded: " + actualDocumentsDownloaded + " must be between " + expected.size() + " and " + expected.size() * 2,
+                        expected.size() <= actualEntriesAccepted && actualEntriesAccepted <= expected.size() * 2L);
             } else {
                 assertEquals(nDocumentsMatchingFilter, actualDocumentsDownloaded);
+                assertEquals(expected.size(), actualEntriesAccepted);
             }
-            assertEquals(expected.size(), counters.get(PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL).getCount());
+
 
             assertTrue(file.exists());
             List<String> result = Files.readAllLines(file.toPath());
