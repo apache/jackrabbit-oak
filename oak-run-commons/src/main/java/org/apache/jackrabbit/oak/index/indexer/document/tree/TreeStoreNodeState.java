@@ -34,16 +34,24 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
 
-public class TreeStoreNodeState implements NodeState {
+public class TreeStoreNodeState implements NodeState, MemoryBoundCache.MemoryObject {
+
     private final NodeState delegate;
     private final String path;
     private final TreeStore treeStore;
+    private final long estimatedMemory;
 
-    public TreeStoreNodeState(NodeState delegate, String path, TreeStore treeStore) {
+    public TreeStoreNodeState(NodeState delegate, String path, TreeStore treeStore, long estimatedMemory) {
         this.delegate = delegate;
         this.path = path;
         this.treeStore = treeStore;
+        this.estimatedMemory = estimatedMemory;
+    }
+
+    public long estimatedMemory() {
+        return estimatedMemory;
     }
 
     @Override

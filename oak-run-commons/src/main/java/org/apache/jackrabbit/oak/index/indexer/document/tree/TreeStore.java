@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -39,11 +39,17 @@ public class TreeStore implements IndexStore {
 
     private static final String STORE_TYPE = "TreeStore";
 
+    private static final long CACHE_SIZE_NODE_MB = 128;
+    private static final long CACHE_SIZE_TREE_STORE_MB = 1024;
+    private static final long MAX_FILE_SIZE_MB = 64;
+    private static final long MB = 1024 * 1024;
+
     private final Store store;
     private final File directory;
     private final Session session;
     private final NodeStateEntryReader entryReader;
-    private final Cache<String, NodeState> nodeStateCache = new Cache<>(10000);
+    private final MemoryBoundCache<String, TreeStoreNodeState> nodeStateCache =
+            new MemoryBoundCache<>(CACHE_SIZE_NODE_MB * MB);
     private long entryCount;
 
     public TreeStore(File directory, NodeStateEntryReader entryReader) {
@@ -51,8 +57,8 @@ public class TreeStore implements IndexStore {
         this.entryReader = entryReader;
         String storeConfig = System.getProperty("oak.treeStoreConfig",
                 "type=file\n" +
-                "cacheSizeMB=4096\n" +
-                "maxFileSize=64000000\n" +
+                "cacheSizeMB=" + CACHE_SIZE_TREE_STORE_MB + "\n" +
+                "maxFileSize=" + MAX_FILE_SIZE_MB * MB + "\n" +
                 "dir=" + directory.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
         this.session = new Session(store);
@@ -111,13 +117,13 @@ public class TreeStore implements IndexStore {
     }
 
     NodeState getNodeState(String path) {
-        NodeState result = nodeStateCache.get(path);
+        TreeStoreNodeState result = nodeStateCache.get(path);
         if (result != null) {
             return result;
         }
         String value = session.get(path);
         if (value == null || value.isEmpty()) {
-            result = EmptyNodeState.MISSING_NODE;
+            result = new TreeStoreNodeState(EmptyNodeState.MISSING_NODE, path, this, path.length());
         } else {
             result = getNodeState(path, value);
         }
@@ -125,14 +131,14 @@ public class TreeStore implements IndexStore {
         return result;
     }
 
-    NodeState getNodeState(String path, String value) {
-        NodeState result = nodeStateCache.get(path);
+    TreeStoreNodeState getNodeState(String path, String value) {
+        TreeStoreNodeState result = nodeStateCache.get(path);
         if (result != null) {
             return result;
         }
         String line = path + "|" + value;
         NodeStateEntry entry = entryReader.read(line);
-        result = new TreeStoreNodeState(entry.getNodeState(), path, this);
+        result = new TreeStoreNodeState(entry.getNodeState(), path, this, line.length());
         nodeStateCache.put(path, result);
         return result;
     }

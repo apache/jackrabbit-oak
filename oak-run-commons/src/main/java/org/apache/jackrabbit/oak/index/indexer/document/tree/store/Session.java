@@ -27,7 +27,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Properties;
 
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Position;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SortedStream;
 
@@ -49,7 +49,7 @@ public class Session {
     static final boolean MULTI_ROOT = true;
 
     private final Store store;
-    private final Cache<String, PageFile> cache = new Cache<>(DEFAULT_CACHE_SIZE)  {
+    private final MemoryBoundCache<String, PageFile> cache = new MemoryBoundCache<>(DEFAULT_CACHE_SIZE)  {
         private static final long serialVersionUID = 1L;
 
         public boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
@@ -168,7 +168,7 @@ public class Session {
     }
 
     private PageFile newPageFile(boolean isInternalNode) {
-        PageFile result = new PageFile(isInternalNode);
+        PageFile result = new PageFile(isInternalNode, maxFileSize);
         result.setUpdate(updateId);
         return result;
     }
@@ -458,7 +458,7 @@ public class Session {
         while(it.hasNext()) {
             Entry<String, String> e = it.next();
             put(e.getKey(), e.getValue());
-            // TODO we can remove files that are processed
+            // we can remove files that are processed
         }
         newRoot = getFile(ROOT_NAME);
         if (max < list.size()) {

@@ -23,18 +23,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
 
 /**
  * A B-tree page (leaf, or inner node).
  * An inner node contains one more value than keys.
  * A leaf page has the same number of keys and values.
  */
-public class PageFile {
+public class PageFile implements MemoryBoundCache.MemoryObject {
 
     private static final boolean VERIFY_SIZE = false;
     private static final int INITIAL_SIZE_IN_BYTES = 24;
 
     private String fileName;
+    private final long maxFileSize;
 
     private final boolean innerNode;
 
@@ -52,8 +54,14 @@ public class PageFile {
     // contains unwritten modifications
     private boolean modified;
 
-    public PageFile(boolean innerNode) {
+    public PageFile(boolean innerNode, long maxFileSize) {
         this.innerNode = innerNode;
+        this.maxFileSize = maxFileSize;
+    }
+
+    @Override
+    public long estimatedMemory() {
+        return maxFileSize;
     }
 
     public void setFileName(String fileName) {
@@ -78,13 +86,13 @@ public class PageFile {
         int len = buff.getInt();
         PageFile result;
         if (type == 0) {
-            result = new PageFile(true);
+            result = new PageFile(true, data.length);
             for (int i = 0; i < len; i++) {
                 result.appendRecord(prefix + readString(buff), readString(buff));
             }
             result.values.add(readString(buff));
         } else {
-            result = new PageFile(false);
+            result = new PageFile(false, data.length);
             for (int i = 0; i < len; i++) {
                 result.appendRecord(prefix + readString(buff), readString(buff));
             }
@@ -184,7 +192,7 @@ public class PageFile {
     }
 
     public PageFile copy() {
-        PageFile result = new PageFile(innerNode);
+        PageFile result = new PageFile(innerNode, maxFileSize);
         result.modified = modified;
         result.keys = new ArrayList<>(keys);
         result.values = new ArrayList<>(values);
