@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -31,29 +30,31 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.jetbrains.annotations.NotNull;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.*;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MEMORY;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-@RunWith(Parameterized.class)
 public class DocumentPropertyStateTest {
 
     private static final int BLOB_SIZE = 16 * 1024;
@@ -61,45 +62,6 @@ public class DocumentPropertyStateTest {
     private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
     private static final int DEFAULT_COMPRESSION_THRESHOLD = 1024;
     private static final int DISABLED_COMPRESSION = -1;
-
-    private DocumentStoreFixture fixture;
-    private DocumentStore store;
-    private DocumentPropertyState documentPropertyState;
-
-    @Parameterized.Parameters(name="{0}")
-    public static java.util.Collection<DocumentStoreFixture> fixtures() {
-        List<DocumentStoreFixture> fixtures = new ArrayList<>();
-        if (RDB_H2.isAvailable()) {
-            fixtures.add(RDB_H2);
-        }
-        if (MONGO.isAvailable()) {
-            fixtures.add(MONGO);
-        }
-        if (MEMORY.isAvailable()) {
-            fixtures.add(MEMORY);
-        }
-        return fixtures;
-    }
-
-    public DocumentPropertyStateTest(DocumentStoreFixture fixture) {
-        this.fixture = fixture;
-        this.store = fixture.createDocumentStore();
-        if (this.store instanceof MongoDocumentStore) {
-            // Enforce primary read preference, otherwise tests may fail on a
-            // replica set with a read preference configured to secondary.
-            // Revision GC usually runs with a modified range way in the past,
-            // which means changes made it to the secondary, but not in this
-            // test using a virtual clock
-            MongoTestUtils.setReadPreference(store, ReadPreference.primary());
-        }
-        if (this.store instanceof MongoDocumentStore) {
-            this.documentPropertyState = new DocumentPropertyState(ns, "p", "value", Compression.GZIP);
-        } else if (this.store instanceof RDBDocumentStore) {
-            this.documentPropertyState = new DocumentPropertyState(ns, "p", "value", Compression.GZIP);
-        } else {
-            this.documentPropertyState = new DocumentPropertyState(ns, "p", "value", Compression.GZIP);
-        }
-    }
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -290,23 +252,60 @@ public class DocumentPropertyStateTest {
     }
 
     @Test
-    public void testBrokenSurrogateWithoutCompression() {
-        DocumentNodeStore store = mock(DocumentNodeStore.class);
-        String test = "brokensurrogate:dfsa\ud800";
-
-        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
-        assertEquals(test, state.getValue());
+    public void testBrokenSurrogateWithoutCompressionForMongo() {
+        getBrokenSurrogateAndInitializeDifferentStores(MONGO);
     }
 
     @Test
-    public void testBrokenSurrogateWithCompression() {
-        DocumentNodeStore store = mock(DocumentNodeStore.class);
+    public void testBrokenSurrogateWithoutCompressionForRDB() {
+        getBrokenSurrogateAndInitializeDifferentStores(RDB_H2);
+    }
+
+    @Test
+    public void testBrokenSurrogateWithoutCompressionForInMemory() {
+        getBrokenSurrogateAndInitializeDifferentStores(MEMORY);
+    }
+
+    @Test
+    public void testBrokenSurrogateWithCompressionForMongo() {
+        DocumentPropertyState.setCompressionThreshold(1);
+        getBrokenSurrogateAndInitializeDifferentStores(MONGO);
+    }
+
+    @Test
+    public void testBrokenSurrogateWithCompressionForRDB() {
+        DocumentPropertyState.setCompressionThreshold(1);
+        getBrokenSurrogateAndInitializeDifferentStores(RDB_H2);
+    }
+
+    @Test
+    public void testBrokenSurrogateWithCompressionForInMemory() {
+        DocumentPropertyState.setCompressionThreshold(1);
+        getBrokenSurrogateAndInitializeDifferentStores(MEMORY);
+    }
+
+    private @NotNull void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture) {
         String test = "brokensurrogate:dfsa\ud800";
 
-        DocumentPropertyState.setCompressionThreshold(1);
-        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
-        assertEquals(test, state.getValue());
+        DocumentStore store = fixture.createDocumentStore();
 
+        if (store instanceof MongoDocumentStore) {
+            // Enforce primary read preference, otherwise tests may fail on a
+            // replica set with a read preference configured to secondary.
+            // Revision GC usually runs with a modified range way in the past,
+            // which means changes made it to the secondary, but not in this
+            // test using a virtual clock
+            MongoTestUtils.setReadPreference(store, ReadPreference.primary());
+        }
+        DocumentPropertyState documentPropertyState;
+        if (store instanceof MongoDocumentStore) {
+            documentPropertyState = new DocumentPropertyState(ns, "p", test, Compression.GZIP);
+        } else if (store instanceof RDBDocumentStore) {
+            documentPropertyState = new DocumentPropertyState(ns, "p", test, Compression.GZIP);
+        } else {
+            documentPropertyState = new DocumentPropertyState(ns, "p", test, Compression.GZIP);
+        }
+        assertEquals(test, documentPropertyState.getValue());;
     }
 
     @Test
