@@ -33,8 +33,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -1360,7 +1360,7 @@ public final class NodeDocument extends Document {
                     }
                     return null;
                 }
-            }), new Predicate<NodeDocument>() {
+            }::apply), new Predicate<NodeDocument>() {
                 @Override
                 public boolean apply(@Nullable NodeDocument input) {
                     return input != null && input.getValueMap(property).containsKey(revision);
@@ -1682,7 +1682,7 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges));
+            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
         }
         return filter(changes, new Predicate<Entry<Revision, String>>() {
             @Override
@@ -1786,12 +1786,7 @@ public final class NodeDocument extends Document {
     @NotNull
     RevisionVector getSweepRevisions() {
         return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
-                new Function<String, Revision>() {
-                    @Override
-                    public Revision apply(String s) {
-                        return Revision.fromString(s);
-                    }
-                }));
+                s -> Revision.fromString(s)));
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------

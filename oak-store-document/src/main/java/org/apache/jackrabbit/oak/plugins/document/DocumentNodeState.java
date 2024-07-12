@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
@@ -47,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
@@ -590,7 +591,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                     }
                 };
             }
-        });
+        }::apply);
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
@@ -772,7 +773,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                     }
                 };
             }
-        });
+        }::apply);
     }
 
     private static BundlingContext createBundlingContext(Map<String, PropertyState> properties,

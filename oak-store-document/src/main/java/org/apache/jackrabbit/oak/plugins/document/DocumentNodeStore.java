@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 
 import javax.jcr.PropertyType;
 
@@ -126,7 +127,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
@@ -493,7 +494,7 @@ public final class DocumentNodeStore
     };
 
     /**
-     * A predicate, which takes a String and returns {@code true} if the String
+     * A function, which takes a String and returns {@code true} if the String
      * is a serialized binary value of a {@link DocumentPropertyState}. The
      * apply method will throw an IllegalArgumentException if the String is
      * malformed.
@@ -1629,7 +1630,7 @@ public final class DocumentNodeStore
                     return e.toString();
                 }
             }
-        });
+        }::apply);
     }
 
     @Nullable
@@ -2229,12 +2230,7 @@ public final class DocumentNodeStore
             public boolean apply(Map.Entry<Revision,Checkpoints.Info> cp) {
                 return cp.getValue().getExpiryTime() > now;
             }
-        }), new Function<Map.Entry<Revision,Checkpoints.Info>, String>() {
-            @Override
-            public String apply(Map.Entry<Revision,Checkpoints.Info> cp) {
-                return cp.getKey().toString();
-            }
-        });
+        }), cp -> cp.getKey().toString());
     }
 
     @Nullable
@@ -2673,7 +2669,7 @@ public final class DocumentNodeStore
                 continue;
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
-            Iterator<UpdateOp> it = doc.split(this, head, binarySize).iterator();
+            Iterator<UpdateOp> it = doc.split(this, head, binarySize::apply).iterator();
             while(it.hasNext()) {
                 UpdateOp op = it.next();
                 Path path = doc.getPath();

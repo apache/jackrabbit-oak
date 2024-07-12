@@ -24,8 +24,8 @@ import static java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -73,7 +73,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
                 }
                 return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
             }
-        }), Predicates.notNull()));
+        }::apply), Predicates.notNull()));
     }
 
     /**

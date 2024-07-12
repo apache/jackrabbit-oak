@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
@@ -51,8 +52,6 @@ import org.h2.mvstore.type.DataType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 
 class NodeCache<K extends CacheValue, V extends  CacheValue>
         implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
@@ -175,7 +174,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
                 }
                 return null;
             }
-        });
+        }::apply);
     }
 
     private void write(final K key, final V value) {

@@ -38,7 +38,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.OakVersion;
@@ -983,12 +982,7 @@ public class Utils {
      */
     public static Iterable<StringValue> asStringValueIterable(
             @NotNull Iterable<String> values) {
-        return transform(values, new Function<String, StringValue>() {
-            @Override
-            public StringValue apply(String input) {
-                return new StringValue(input);
-            }
-        });
+        return transform(values, input -> new StringValue(input));
     }
 
     /**

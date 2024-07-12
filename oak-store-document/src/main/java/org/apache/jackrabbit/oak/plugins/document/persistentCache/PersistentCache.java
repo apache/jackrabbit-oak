@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -45,8 +46,6 @@ import org.h2.mvstore.MVStoreTool;
 import org.h2.mvstore.WriteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 
 /**
  * A persistent cache for the document store.
