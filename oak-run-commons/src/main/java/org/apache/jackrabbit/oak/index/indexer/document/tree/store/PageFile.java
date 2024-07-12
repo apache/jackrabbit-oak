@@ -36,7 +36,7 @@ public class PageFile implements MemoryBoundCache.MemoryObject {
     private static final int INITIAL_SIZE_IN_BYTES = 24;
 
     private String fileName;
-    private final long maxFileSize;
+    private final long maxFileSizeBytes;
 
     private final boolean innerNode;
 
@@ -54,14 +54,14 @@ public class PageFile implements MemoryBoundCache.MemoryObject {
     // contains unwritten modifications
     private boolean modified;
 
-    public PageFile(boolean innerNode, long maxFileSize) {
+    public PageFile(boolean innerNode, long maxFileSizeBytes) {
         this.innerNode = innerNode;
-        this.maxFileSize = maxFileSize;
+        this.maxFileSizeBytes = maxFileSizeBytes;
     }
 
     @Override
     public long estimatedMemory() {
-        return maxFileSize;
+        return maxFileSizeBytes;
     }
 
     public void setFileName(String fileName) {
@@ -77,7 +77,7 @@ public class PageFile implements MemoryBoundCache.MemoryObject {
         this.update = update;
     }
 
-    public static PageFile fromBytes(byte[] data) {
+    public static PageFile fromBytes(byte[] data, long maxFileSizeBytes) {
         ByteBuffer buff = ByteBuffer.wrap(data);
         int type = buff.get();
         String nextRoot = readString(buff);
@@ -86,13 +86,13 @@ public class PageFile implements MemoryBoundCache.MemoryObject {
         int len = buff.getInt();
         PageFile result;
         if (type == 0) {
-            result = new PageFile(true, data.length);
+            result = new PageFile(true, maxFileSizeBytes);
             for (int i = 0; i < len; i++) {
                 result.appendRecord(prefix + readString(buff), readString(buff));
             }
             result.values.add(readString(buff));
         } else {
-            result = new PageFile(false, data.length);
+            result = new PageFile(false, maxFileSizeBytes);
             for (int i = 0; i < len; i++) {
                 result.appendRecord(prefix + readString(buff), readString(buff));
             }
@@ -192,7 +192,7 @@ public class PageFile implements MemoryBoundCache.MemoryObject {
     }
 
     public PageFile copy() {
-        PageFile result = new PageFile(innerNode, maxFileSize);
+        PageFile result = new PageFile(innerNode, maxFileSizeBytes);
         result.modified = modified;
         result.keys = new ArrayList<>(keys);
         result.values = new ArrayList<>(values);

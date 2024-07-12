@@ -28,6 +28,7 @@ public class MemoryStore implements Store {
     private final HashMap<String, PageFile> map = new HashMap<>();
     private long nextFileName;
     private long writeCount, readCount;
+    private final long maxFileSizeBytes;
 
     public MemoryStore() {
         this(new Properties());
@@ -35,6 +36,8 @@ public class MemoryStore implements Store {
 
     public MemoryStore(Properties config) {
         this.config = config;
+        this.maxFileSizeBytes = Long.parseLong(config.getProperty(
+                Store.MAX_FILE_SIZE_BYTES, "" + Store.DEFAULT_MAX_FILE_SIZE_BYTES));
     }
 
     @Override
@@ -94,6 +97,11 @@ public class MemoryStore implements Store {
     @Override
     public Properties getConfig() {
         return config;
+    }
+
+    @Override
+    public long getMaxFileSizeBytes() {
+        return maxFileSizeBytes;
     }
 
 }

@@ -137,4 +137,9 @@ public class SlowStore implements Store {
         delay(time, data.length);
     }
 
+    @Override
+    public long getMaxFileSizeBytes() {
+        return backend.getMaxFileSizeBytes();
+    }
+
 }

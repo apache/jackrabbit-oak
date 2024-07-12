@@ -33,6 +33,7 @@ public class StoreBuilder {
      * - "type=stats.another": statistics wrapper around another
      * - "type=slow.another": slow wrapper around another (to simulate slowness)
      * - "type=log.another": log wrapper around another (to analyze problems)
+     * - "maxFileSizeBytes=16000000": the maximum file size in bytes
      *
      * @param config the config
      * @return a store

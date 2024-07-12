@@ -36,9 +36,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SortedS
  */
 public class Session {
 
-    private static final int DEFAULT_CACHE_SIZE = 128;
-    private static final int DEFAULT_MAX_FILE_SIZE = 16 * 1024;
-    private static final int DEFAULT_CACHE_SIZE_MB = 16;
+    public static final String CACHE_SIZE_MB = "cacheSizeMB";
+    private static final int DEFAULT_CACHE_SIZE_MB = 256;
     private static final int DEFAULT_MAX_ROOTS = 10;
 
     public static final String ROOT_NAME = "root";
@@ -49,26 +48,8 @@ public class Session {
     static final boolean MULTI_ROOT = true;
 
     private final Store store;
-    private final MemoryBoundCache<String, PageFile> cache = new MemoryBoundCache<>(DEFAULT_CACHE_SIZE)  {
-        private static final long serialVersionUID = 1L;
-
-        public boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
-            boolean result = super.removeEldestEntry(eldest);
-            if (result) {
-                String key = eldest.getKey();
-                PageFile value = eldest.getValue();
-                if(value.isModified()) {
-                    store.put(key, value);
-                    // not strictly needed as it's no longer referenced
-                    value.setModified(false);
-                }
-            }
-            return result;
-        }
-    };
+    private final MemoryBoundCache<String, PageFile> cache;
     private long updateId;
-    private int maxFileSize;
-    private int cacheSizeMB;
     private int maxRoots = DEFAULT_MAX_ROOTS;
     private long fileReadCount;
 
@@ -78,9 +59,26 @@ public class Session {
 
     public Session(Store store) {
         this.store = store;
-        maxFileSize = Integer.parseInt(store.getConfig().getProperty("maxFileSize", "" + DEFAULT_MAX_FILE_SIZE));
-        cacheSizeMB = Integer.parseInt(store.getConfig().getProperty("cacheSizeMB", "" + DEFAULT_CACHE_SIZE_MB));
-        changeCacheSize();
+        long cacheSizeMB = Long.parseLong(store.getConfig().getProperty(
+                CACHE_SIZE_MB, "" + DEFAULT_CACHE_SIZE_MB));
+        long cacheSizeBytes = cacheSizeMB * 1024 * 1024;
+        this.cache = new MemoryBoundCache<>(cacheSizeBytes)  {
+            private static final long serialVersionUID = 1L;
+
+            public boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
+                boolean result = super.removeEldestEntry(eldest);
+                if (result) {
+                    String key = eldest.getKey();
+                    PageFile value = eldest.getValue();
+                    if(value.isModified()) {
+                        store.put(key, value);
+                        // not strictly needed as it's no longer referenced
+                        value.setModified(false);
+                    }
+                }
+                return result;
+            }
+        };
     }
 
     /**
@@ -94,30 +92,6 @@ public class Session {
 
     public int getMaxRoots() {
         return maxRoots;
-    }
-
-    /**
-     * Set the cache size in MB.
-     *
-     * @param mb the value
-     */
-    public void setCacheSizeMB(int mb) {
-        this.cacheSizeMB = mb;
-    }
-
-    /**
-     * Set the maximum file size. Files might be slightly larger than that, but not a lot.
-     *
-     * @param sizeBytes the file size in bytes
-     */
-    public void setMaxFileSize(int sizeBytes) {
-        this.maxFileSize = sizeBytes;
-        changeCacheSize();
-    }
-
-    private void changeCacheSize() {
-        int cacheEntryCount = (int) (cacheSizeMB * 1024L * 1024 / maxFileSize);
-        cache.setSize(cacheEntryCount);
     }
 
     /**
@@ -168,7 +142,7 @@ public class Session {
     }
 
     private PageFile newPageFile(boolean isInternalNode) {
-        PageFile result = new PageFile(isInternalNode, maxFileSize);
+        PageFile result = new PageFile(isInternalNode, store.getMaxFileSizeBytes());
         result.setUpdate(updateId);
         return result;
     }
@@ -296,7 +270,7 @@ public class Session {
 
     private void splitOrMerge(String fileName, PageFile file, ArrayList<String> parents) {
         int size = file.sizeInBytes();
-        if (size > maxFileSize && file.canSplit()) {
+        if (size > store.getMaxFileSizeBytes() && file.canSplit()) {
             split(fileName, file, parents);
         } else if (file.getKeys().size() == 0) {
             merge(fileName, file, parents);

@@ -166,6 +166,11 @@ public class StatsStore implements Store {
         }
     }
 
+    @Override
+    public long getMaxFileSizeBytes() {
+        return backend.getMaxFileSizeBytes();
+    }
+
     static class Stats {
         final String key;
         long count;

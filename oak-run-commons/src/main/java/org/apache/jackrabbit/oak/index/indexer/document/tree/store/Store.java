@@ -26,6 +26,9 @@ import java.util.Set;
  */
 public interface Store {
 
+    public static final String MAX_FILE_SIZE_BYTES = "maxFileSizeBytes";
+    public static final int DEFAULT_MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+
     /**
      * Get a file
      *
@@ -109,6 +112,13 @@ public interface Store {
     void close();
 
     Properties getConfig();
+
+    /**
+     * Get the maximum file size configured.
+     *
+     * @return the file size, in bytes
+     */
+    long getMaxFileSizeBytes();
 
     default boolean supportsByteOperations() {
         return false;

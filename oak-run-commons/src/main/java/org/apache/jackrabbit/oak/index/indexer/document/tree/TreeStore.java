@@ -39,7 +39,7 @@ public class TreeStore implements IndexStore {
 
     private static final String STORE_TYPE = "TreeStore";
 
-    private static final long CACHE_SIZE_NODE_MB = 128;
+    private static final long CACHE_SIZE_NODE_MB = 64;
     private static final long CACHE_SIZE_TREE_STORE_MB = 1024;
     private static final long MAX_FILE_SIZE_MB = 64;
     private static final long MB = 1024 * 1024;
@@ -57,8 +57,8 @@ public class TreeStore implements IndexStore {
         this.entryReader = entryReader;
         String storeConfig = System.getProperty("oak.treeStoreConfig",
                 "type=file\n" +
-                "cacheSizeMB=" + CACHE_SIZE_TREE_STORE_MB + "\n" +
-                "maxFileSize=" + MAX_FILE_SIZE_MB * MB + "\n" +
+                Session.CACHE_SIZE_MB + "=" + CACHE_SIZE_TREE_STORE_MB + "\n" +
+                Store.MAX_FILE_SIZE_BYTES + "=" + MAX_FILE_SIZE_MB * MB + "\n" +
                 "dir=" + directory.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
         this.session = new Session(store);
@@ -198,7 +198,8 @@ public class TreeStore implements IndexStore {
 
     @Override
     public boolean isIncremental() {
-        return true;
+        // TODO support diff and use Session.checkpoint() / flush().
+        return false;
     }
 
 }

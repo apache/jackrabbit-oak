@@ -119,4 +119,9 @@ public class LogStore implements Store {
         backend.putBytes(key, data);
     }
 
+    @Override
+    public long getMaxFileSizeBytes() {
+        return backend.getMaxFileSizeBytes();
+    }
+
 }

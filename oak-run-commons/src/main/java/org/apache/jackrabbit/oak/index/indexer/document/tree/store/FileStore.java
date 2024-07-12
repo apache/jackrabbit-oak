@@ -37,7 +37,8 @@ public class FileStore implements Store {
     private final String directory;
     private Compression compression = Compression.NO;
     private long writeCount, readCount;
-    
+    private final long maxFileSizeBytes;
+
     public String toString() {
         return "file(" + directory + ")";
     }
@@ -45,6 +46,8 @@ public class FileStore implements Store {
     public FileStore(Properties config) {
         this.config = config;
         this.directory = config.getProperty("dir");
+        this.maxFileSizeBytes = Long.parseLong(config.getProperty(
+                Store.MAX_FILE_SIZE_BYTES, "" + Store.DEFAULT_MAX_FILE_SIZE_BYTES));
         new File(directory).mkdirs();
     }
 
@@ -74,7 +77,7 @@ public class FileStore implements Store {
             file.readFully(data);
             Compression c = Compression.getCompressionFromData(data[0]);
             data = c.expand(data);
-            return PageFile.fromBytes(data);
+            return PageFile.fromBytes(data, maxFileSizeBytes);
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         }
@@ -183,6 +186,11 @@ public class FileStore implements Store {
     @Override
     public Properties getConfig() {
         return config;
+    }
+
+    @Override
+    public long getMaxFileSizeBytes() {
+        return maxFileSizeBytes;
     }
 
 }
