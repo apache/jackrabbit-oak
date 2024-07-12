@@ -265,12 +265,11 @@ public class DocumentPropertyStateTest {
     }
 
     @Test
-    public void testInterestingStrings() {
+    public void testInterestingStringsWithoutCompression() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
-                "tab:a\tb", "nul:a\u0000b", "brokensurrogate:dfsa\ud800"};
+                "tab:a\tb", "nul:a\u0000b"};
 
-        DocumentPropertyState.setCompressionThreshold(1);
         for (String test : tests) {
                 DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
                 assertEquals(test, state.getValue());
@@ -278,15 +277,38 @@ public class DocumentPropertyStateTest {
     }
 
     @Test
-    public void testInterestingStringsWithoutCompression() {
+    public void testInterestingStringsWithCompression() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         String[] tests = new String[]{"simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
-                "tab:a\tb", "nul:a\u0000b", "brokensurrogate:dfsa\ud800"};
+                "tab:a\tb", "nul:a\u0000b"};
+
+        DocumentPropertyState.setCompressionThreshold(1);
+        for (String test : tests) {
+            DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
+            assertEquals(test, state.getValue());
+        }
+    }
+
+    @Test
+    public void testBrokenSurrogateWithoutCompression() {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String[] tests = new String[]{"brokensurrogate:dfsa\ud800"};
 
         for (String test : tests) {
             DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
             assertEquals(test, state.getValue());
         }
+    }
+
+    @Test
+    public void testBrokenSurrogateWithCompression() {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String test = "brokensurrogate:dfsa\ud800";
+
+        DocumentPropertyState.setCompressionThreshold(1);
+        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
+        assertEquals(test, state.getValue());
+
     }
 
     @Test
