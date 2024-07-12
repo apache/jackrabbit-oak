@@ -292,12 +292,10 @@ public class DocumentPropertyStateTest {
     @Test
     public void testBrokenSurrogateWithoutCompression() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
-        String[] tests = new String[]{"brokensurrogate:dfsa\ud800"};
+        String test = "brokensurrogate:dfsa\ud800";
 
-        for (String test : tests) {
-            DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
-            assertEquals(test, state.getValue());
-        }
+        DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
+        assertEquals(test, state.getValue());
     }
 
     @Test
