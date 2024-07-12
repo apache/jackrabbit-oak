@@ -27,8 +27,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
@@ -88,7 +88,7 @@ public class RevisionHistory {
                             NodeState node = getNode(store.getHead(), path);
                             return new HistoryElement(entry.getRevision(), node);
                         }
-                });
+                }::apply);
         }
     }
 
