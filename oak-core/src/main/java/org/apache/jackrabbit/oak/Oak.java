@@ -50,7 +50,6 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -701,16 +700,13 @@ public class Oak {
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
         Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
-                new Function<SecurityConfiguration, WorkspaceInitializer>() {
-                    @Override
-                    public WorkspaceInitializer apply(SecurityConfiguration sc) {
+                sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {
                             ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
                         }
                         return wi;
-                    }
-                });
+                    });
         OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, initHook);
     }
 
