@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
@@ -47,7 +46,6 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWri
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.h2.mvstore.MVMap;
-import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -161,10 +159,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     private void broadcast(final K key, final V value) {
-        cache.broadcast(type, new Function<WriteBuffer, Void>() {
-            @Override
-            @Nullable
-            public Void apply(@Nullable WriteBuffer buffer) {
+        cache.broadcast(type, buffer -> {
                 keyType.write(buffer, key);
                 if (value == null) {
                     buffer.put((byte) 0);
@@ -173,8 +168,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
                     valueType.write(buffer, value);
                 }
                 return null;
-            }
-        }::apply);
+            });
     }
 
     private void write(final K key, final V value) {

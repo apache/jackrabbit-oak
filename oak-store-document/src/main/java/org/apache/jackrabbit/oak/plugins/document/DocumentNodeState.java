@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
@@ -47,7 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -574,24 +572,19 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     private Iterable<ChildNodeEntry> getChildNodeEntries(@NotNull String name,
                                                          int limit) {
         Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
-        return Iterables.transform(children, new Function<AbstractDocumentNodeState, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(final AbstractDocumentNodeState input) {
+        return Iterables.transform(children, input -> {
                 return new AbstractChildNodeEntry() {
-                    @NotNull
                     @Override
                     public String getName() {
                         return input.getPath().getName();
                     }
 
-                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return input;
                     }
                 };
-            }
-        }::apply);
+            });
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
@@ -755,25 +748,19 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private Iterator<ChildNodeEntry> getBundledChildren(){
-        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(),
-                new Function<String, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(final String childNodeName) {
+        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
                 return new AbstractChildNodeEntry() {
-                    @NotNull
                     @Override
                     public String getName() {
                         return childNodeName;
                     }
 
-                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return createBundledState(childNodeName, bundlingContext.matcher.next(childNodeName));
                     }
                 };
-            }
-        }::apply);
+        });
     }
 
     private static BundlingContext createBundlingContext(Map<String, PropertyState> properties,

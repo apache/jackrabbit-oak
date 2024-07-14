@@ -493,19 +493,6 @@ public final class DocumentNodeStore
         }
     };
 
-    /**
-     * A function, which takes a String and returns {@code true} if the String
-     * is a serialized binary value of a {@link DocumentPropertyState}. The
-     * apply method will throw an IllegalArgumentException if the String is
-     * malformed.
-     */
-    private final Function<String, Long> binarySize = new Function<String, Long>() {
-        @Override
-        public Long apply(@Nullable String input) {
-            return getBinarySize(input);
-        }
-    };
-
     private final Clock clock;
 
     private final Checkpoints checkpoints;
@@ -2669,7 +2656,7 @@ public final class DocumentNodeStore
                 continue;
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
-            Iterator<UpdateOp> it = doc.split(this, head, binarySize::apply).iterator();
+            Iterator<UpdateOp> it = doc.split(this, head, input -> getBinarySize(input)).iterator();
             while(it.hasNext()) {
                 UpdateOp op = it.next();
                 Path path = doc.getPath();

@@ -1351,16 +1351,12 @@ public final class NodeDocument extends Document {
             }
 
             // didn't find entry -> scan through remaining head ranges
-            return filter(transform(getPreviousRanges().headMap(revision).entrySet(),
-                    new Function<Map.Entry<Revision, Range>, NodeDocument>() {
-                @Override
-                public NodeDocument apply(Map.Entry<Revision, Range> input) {
+            return filter(transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
                     if (input.getValue().includes(revision)) {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
                     return null;
-                }
-            }::apply), new Predicate<NodeDocument>() {
+                }), new Predicate<NodeDocument>() {
                 @Override
                 public boolean apply(@Nullable NodeDocument input) {
                     return input != null && input.getValueMap(property).containsKey(revision);
@@ -1659,17 +1655,14 @@ public final class NodeDocument extends Document {
         if (ranges.isEmpty()) {
             return Collections.emptyList();
         }
-        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges =
-                new Function<Range, Iterable<Map.Entry<Revision, String>>>() {
-            @Override
-            public Iterable<Map.Entry<Revision, String>> apply(Range input) {
+
+        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges = input -> {
                 NodeDocument doc = getPreviousDoc(input.high, input);
                 if (doc == null) {
                     return Collections.emptyList();
                 }
                 return doc.getVisibleChanges(property, readRev);
-            }
-        };
+            };
 
         Iterable<Map.Entry<Revision, String>> changes;
         if (ranges.size() == 1) {
