@@ -115,19 +115,18 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
-        return Iterables.transform(docs.entries(),
-                input -> {
-                    return new LuceneDocInfo() {
-                        @Override
-                        public String getIndexPath() {
-                            return input.getKey();
-                        }
+        return Iterables.transform(docs.entries(), input -> {
+                return new LuceneDocInfo() {
+                    @Override
+                    public String getIndexPath() {
+                        return input.getKey();
+                    }
 
-                        @Override
-                        public String getDocPath() {
-                            return input.getValue();
-                        }
-                    };
-                });
+                    @Override
+                    public String getDocPath() {
+                        return input.getValue();
+                    }
+                };
+            });
     }
 }

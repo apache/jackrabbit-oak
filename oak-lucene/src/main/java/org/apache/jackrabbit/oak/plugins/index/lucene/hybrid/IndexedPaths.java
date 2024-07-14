@@ -35,18 +35,18 @@ class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
 
     @Override
     public Iterator<IndexedPathInfo> iterator() {
-        return Iterators.transform(indexedPaths.asMap().entrySet().iterator(),
-                input -> new IndexedPathInfo() {
-                    @Override
-                    public String getPath() {
-                        return input.getKey();
-                    }
+        return Iterators.transform(indexedPaths.asMap().entrySet().iterator(), input ->
+            new IndexedPathInfo() {
+                @Override
+                public String getPath() {
+                    return input.getKey();
+                }
 
-                    @Override
-                    public Iterable<String> getIndexPaths() {
-                        return input.getValue();
-                    }
-                });
+                @Override
+                public Iterable<String> getIndexPaths() {
+                    return input.getValue();
+                }
+            });
     }
 
     @Override
