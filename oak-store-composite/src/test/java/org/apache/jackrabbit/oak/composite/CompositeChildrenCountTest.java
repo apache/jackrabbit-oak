@@ -34,12 +34,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
@@ -240,14 +238,10 @@ public class CompositeChildrenCountTest {
         }
 
         private <T> Iterable<T> asCountingIterable(Iterable<T> input) {
-            return Iterables.transform(input, new Function<T, T>() {
-                @Nullable
-                @Override
-                public T apply(@Nullable T input) {
+            return Iterables.transform(input, inp -> {
                     fetchedChildren++;
-                    return input;
-                }
-            }::apply);
+                    return inp;
+            });
         }
     }
 }
