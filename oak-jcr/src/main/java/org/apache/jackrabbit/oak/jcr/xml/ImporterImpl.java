@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
-import java.util.function.Function;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
@@ -299,31 +298,23 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedPropertyImporter>() {
-            @Nullable
-            @Override
-            public ProtectedPropertyImporter apply(@Nullable ProtectedItemImporter importer) {
+        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedPropertyImporter) {
                     return (ProtectedPropertyImporter) importer;
                 } else {
                     return null;
                 }
-            }
-        }::apply), Predicates.notNull());
+            }), Predicates.notNull());
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedNodeImporter>() {
-            @Nullable
-            @Override
-            public ProtectedNodeImporter apply(@Nullable ProtectedItemImporter importer) {
+        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedNodeImporter) {
                     return (ProtectedNodeImporter) importer;
                 } else {
                     return null;
                 }
-            }
-        }::apply), Predicates.notNull());
+            }), Predicates.notNull());
     }
 
     //-----------------------------------------------------------< Importer >---
