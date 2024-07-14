@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -80,15 +78,11 @@ public class RevisionHistory {
         checkNotNull(path);
 
         try (JournalReader journalReader = new JournalReader(checkNotNull(journal))) {
-            return Iterators.transform(journalReader,
-                    new Function<JournalEntry, HistoryElement>() {
-                        @NotNull @Override
-                        public HistoryElement apply(JournalEntry entry) {
+            return Iterators.transform(journalReader, entry -> {
                             store.setRevision(entry.getRevision());
                             NodeState node = getNode(store.getHead(), path);
                             return new HistoryElement(entry.getRevision(), node);
-                        }
-                }::apply);
+                        });
         }
     }
 
