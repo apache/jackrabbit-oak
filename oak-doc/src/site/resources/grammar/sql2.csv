@@ -16,7 +16,7 @@
 "SECTION","TOPIC","SYNTAX","TEXT"
 
 "Grammar","Query","
-SELECT [ DISTINCT ] { * | { column [ , ... ] } } FROM { selector [ join ... ] }
+SELECT { * | { column [ , ... ] } } FROM { selector [ join ... ] }
 [ WHERE constraint ] [ UNION [ ALL ] query ] 
 [ ORDER BY { ordering [ , ... ] } ] [ queryOptions ]
 ","
