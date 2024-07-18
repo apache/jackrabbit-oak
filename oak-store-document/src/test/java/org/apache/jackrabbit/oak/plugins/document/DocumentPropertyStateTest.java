@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -285,23 +286,33 @@ public class DocumentPropertyStateTest {
 
     private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws CommitFailedException {
         String test = "brokensurrogate:dfsa\ud800";
+        DocumentStore store = null;
+        DocumentNodeStore nodeStore = null;
 
-        DocumentStore store = fixture.createDocumentStore();
+        try {
+            store = fixture.createDocumentStore();
 
-        if (store instanceof MongoDocumentStore) {
-            // Enforce primary read preference, otherwise tests may fail on a
-            // replica set with a read preference configured to secondary.
-            // Revision GC usually runs with a modified range way in the past,
-            // which means changes made it to the secondary, but not in this
-            // test using a virtual clock
-            MongoTestUtils.setReadPreference(store, ReadPreference.primary());
+            if (store instanceof MongoDocumentStore) {
+                // Enforce primary read preference, otherwise tests may fail on a
+                // replica set with a read preference configured to secondary.
+                // Revision GC usually runs with a modified range way in the past,
+                // which means changes made it to the secondary, but not in this
+                // test using a virtual clock
+                MongoTestUtils.setReadPreference(store, ReadPreference.primary());
+            }
+            nodeStore = new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
+
+            createPropAndCheckValue(nodeStore, test, compressionEnabled);
+
+        } finally {
+            if (nodeStore != null) {
+                nodeStore.dispose();
+            }
+            if (store != null) {
+                store.dispose();
+            }
         }
-        DocumentNodeStore nodeStore = new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
 
-        createPropAndCheckValue(nodeStore, test, compressionEnabled);
-
-        nodeStore.dispose();
-        store.dispose();
     }
 
     private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
