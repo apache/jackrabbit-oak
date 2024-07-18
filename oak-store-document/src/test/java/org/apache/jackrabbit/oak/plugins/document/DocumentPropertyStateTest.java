@@ -297,13 +297,11 @@ public class DocumentPropertyStateTest {
             MongoTestUtils.setReadPreference(store, ReadPreference.primary());
         }
         DocumentNodeStore nodeStore = new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
-        if (store instanceof MongoDocumentStore) {
-            createPropAndCheckValue(nodeStore, test, compressionEnabled);
-        } else if (store instanceof RDBDocumentStore) {
-            createPropAndCheckValue(nodeStore, test, compressionEnabled);
-        } else {
-            createPropAndCheckValue(nodeStore, test, compressionEnabled);
-        }
+
+        createPropAndCheckValue(nodeStore, test, compressionEnabled);
+
+        nodeStore.dispose();
+        store.dispose();
     }
 
     private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
