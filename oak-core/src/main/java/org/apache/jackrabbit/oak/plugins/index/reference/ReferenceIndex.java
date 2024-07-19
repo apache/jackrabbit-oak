@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -147,12 +146,7 @@ class ReferenceIndex implements QueryIndex {
                 }
             });
         }
-        paths = transform(paths, new Function<String, String>() {
-            @Override
-            public String apply(String path) {
-                return getParentPath(path);
-            }
-        });
+        paths = transform(paths, path -> getParentPath(path));
         return newPathCursor(paths, filter.getQueryLimits());
     }
 

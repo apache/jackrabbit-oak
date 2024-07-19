@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -178,13 +178,8 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(delegate.getChildNodeEntries(), new Function<ChildNodeEntry, ChildNodeEntry>() {
-            @Nullable
-            @Override
-            public ChildNodeEntry apply(ChildNodeEntry input) {
-                return new MemoryChildNodeEntry(input.getName(), decorate(input.getName(), input.getNodeState()));
-            }
-        });
+        return Iterables.transform(delegate.getChildNodeEntries(),
+                input -> new MemoryChildNodeEntry(input.getName(), decorate(input.getName(), input.getNodeState())));
     }
 
     @NotNull

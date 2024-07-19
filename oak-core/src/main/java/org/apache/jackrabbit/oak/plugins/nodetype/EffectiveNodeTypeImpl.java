@@ -44,7 +44,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -227,14 +226,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
-        return Iterables.concat(Iterables.transform(
-                nodeTypes.values(),
-                new Function<NodeTypeImpl, Iterable<NodeDefinition>>() {
-                    @Override
-                    public Iterable<NodeDefinition> apply(NodeTypeImpl input) {
-                        return input.getDeclaredNamedNodeDefinitions(oakName);
-                    }
-                }));
+        return Iterables.concat(Iterables.transform(nodeTypes.values(),
+                input -> input.getDeclaredNamedNodeDefinitions(oakName)));
     }
 
     /**
