@@ -18,21 +18,19 @@
  */
 package org.apache.jackrabbit.oak.upgrade.checkpoint;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.DocumentCheckpointRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.segment.CheckpointAccessor;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
+
 public final class CheckpointRetriever {
 
     public static class Checkpoint implements Comparable<Checkpoint> {
@@ -88,12 +86,7 @@ public final class CheckpointRetriever {
     }
 
     private static List<Checkpoint> getCheckpoints(NodeState checkpointRoot) {
-        return Lists.newArrayList(Iterables.transform(checkpointRoot.getChildNodeEntries(), new Function<ChildNodeEntry, Checkpoint>() {
-            @Nullable
-            @Override
-            public Checkpoint apply(@Nullable ChildNodeEntry input) {
-                return Checkpoint.createFromSegmentNode(input.getName(), input.getNodeState());
-            }
-        }));
+        return Lists.newArrayList(Iterables.transform(checkpointRoot.getChildNodeEntries(),
+                input -> Checkpoint.createFromSegmentNode(input.getName(), input.getNodeState())));
     }
 }

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.JcrConstants;
@@ -37,6 +36,8 @@ import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
+import java.util.function.Function;
+
 class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
     private static final Logger log = LoggerFactory.getLogger(NodeStoreBinaryResourceProvider.class);
     private final NodeStore nodeStore;
@@ -50,7 +51,7 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
     public FluentIterable<BinaryResource> getBinaries(String path) {
         return new OakTreeTraverser()
                 .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)))
-                .transform(new TreeToBinarySource())
+                .transform(new TreeToBinarySource()::apply)
                 .filter(notNull());
     }
 

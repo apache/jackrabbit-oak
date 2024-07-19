@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
@@ -208,13 +207,8 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
             public boolean visit(FullTextOr or) {
                 final int[] index = new int[1];
                 List<Cursor> cursors = Lists.transform(or.list,
-                        new Function<FullTextExpression, Cursor>() {
-                            @Override
-                            public Cursor apply(FullTextExpression input) {
-                                return flatten(input, plan, filter, state,
-                                        path + " or(" + index[0]++ + ")");
-                            }
-                        });
+                        input -> flatten(input, plan, filter, state,
+                                        path + " or(" + index[0]++ + ")"));
                 result.set(Cursors.newConcatCursor(cursors,
                         filter.getQueryLimits()));
                 return true;

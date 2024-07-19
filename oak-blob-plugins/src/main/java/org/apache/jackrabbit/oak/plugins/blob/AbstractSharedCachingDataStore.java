@@ -56,7 +56,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -277,11 +276,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
         return Iterators.concat(Iterators.transform(cache.getStagingCache().getAllIdentifiers(),
-            new Function<String, DataIdentifier>() {
-                @Nullable @Override public DataIdentifier apply(@Nullable String id) {
-                    return new DataIdentifier(id);
-                }
-            }), backend.getAllIdentifiers());
+            id -> new DataIdentifier(id)), backend.getAllIdentifiers());
     }
 
     @Override
