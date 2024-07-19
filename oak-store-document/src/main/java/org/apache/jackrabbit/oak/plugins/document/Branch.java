@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
@@ -274,11 +274,11 @@ class Branch {
         Iterable<Iterable<Path>> paths = transform(filter(commits.entrySet(),
                 new Predicate<Map.Entry<Revision, BranchCommit>>() {
             @Override
-            public boolean apply(Map.Entry<Revision, BranchCommit> input) {
+            public boolean test(Map.Entry<Revision, BranchCommit> input) {
                 return !input.getValue().isRebase()
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
-        }), input -> input.getValue().getModifiedPaths());
+        }::test), input -> input.getValue().getModifiedPaths());
         return Iterables.concat(paths);
     }
 

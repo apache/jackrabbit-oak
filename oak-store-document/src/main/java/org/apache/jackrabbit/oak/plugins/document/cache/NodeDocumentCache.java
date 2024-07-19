@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -41,7 +42,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -367,7 +367,7 @@ public class NodeDocumentCache implements Closeable {
         }
         return new CacheChangesTracker(new Predicate<String>() {
             @Override
-            public boolean apply(@Nullable String input) {
+            public boolean test(@Nullable String input) {
                 return input != null && fromKey.compareTo(input) < 0 && toKey.compareTo(input) > 0;
             }
 
@@ -388,7 +388,7 @@ public class NodeDocumentCache implements Closeable {
     public CacheChangesTracker registerTracker(final Set<String> keys) {
         return new CacheChangesTracker(new Predicate<String>() {
             @Override
-            public boolean apply(@Nullable String input) {
+            public boolean test(@Nullable String input) {
                 return input != null && keys.contains(input);
             }
 

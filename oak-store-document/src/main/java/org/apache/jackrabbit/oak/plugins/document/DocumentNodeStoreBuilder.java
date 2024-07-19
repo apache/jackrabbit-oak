@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -71,7 +72,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
@@ -874,7 +874,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     @Deprecated
     public T setNodeCachePredicate(Predicate<String> p){
-        this.nodeCachePredicate = input -> input != null && p.apply(input.toString());
+        this.nodeCachePredicate = input -> input != null && p.test(input.toString());
         return thisBuilder();
     }
 
@@ -883,7 +883,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     @Deprecated
     public Predicate<String> getNodeCachePredicate() {
-        return input -> input != null && nodeCachePredicate.apply(Path.fromString(input));
+        return input -> input != null && nodeCachePredicate.test(Path.fromString(input));
     }
 
     public T setNodeCachePathPredicate(Predicate<Path> p){

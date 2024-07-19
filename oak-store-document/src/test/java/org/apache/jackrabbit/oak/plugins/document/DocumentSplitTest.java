@@ -26,7 +26,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
@@ -456,12 +455,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
         //1 intermediate and 11 previous doc
         assertEquals(1 + 11, prevDocs.size());
-        assertTrue(Iterables.any(prevDocs, new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument input) {
-                return input.getSplitDocType() == SplitDocType.INTERMEDIATE;
-            }
-        }));
+        assertTrue(Iterables.any(prevDocs, input -> input.getSplitDocType() == SplitDocType.INTERMEDIATE));
 
         for (String s : revs) {
             Revision r = Revision.fromString(s);

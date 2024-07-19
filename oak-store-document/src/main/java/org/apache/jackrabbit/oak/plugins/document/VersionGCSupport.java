@@ -50,7 +50,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 public class VersionGCSupport {
@@ -175,14 +174,10 @@ public class VersionGCSupport {
     protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
                                                      final RevisionVector sweepRevs,
                                                      final long oldestRevTimeStamp) {
-        return filter(getAllDocuments(store), new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument doc) {
-                return gcTypes.contains(doc.getSplitDocType())
+        return filter(getAllDocuments(store),
+                doc -> gcTypes.contains(doc.getSplitDocType())
                         && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
-                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
-            }
-        });
+                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs));
     }
 
     /**
