@@ -84,7 +84,7 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
     }
 
     @SuppressWarnings("unused")
-    @Reference(name = "mountInfoProvider", service = MountInfoProvider.class)
+    @Reference(name = "mountInfoProvider")
     protected void bindMountInfoProvider(MountInfoProvider mip) {
         this.mountInfoProvider = mip;
     }
