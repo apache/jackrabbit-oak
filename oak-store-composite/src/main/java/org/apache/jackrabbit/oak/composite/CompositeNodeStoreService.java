@@ -265,7 +265,12 @@ public class CompositeNodeStoreService {
     }
 
     @SuppressWarnings("unused")
-    @Reference(name = "nodeStores", cardinality = ReferenceCardinality.AT_LEAST_ONE, policy = ReferencePolicy.DYNAMIC, service = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
+    @Reference(name = "nodeStores",
+            cardinality = ReferenceCardinality.AT_LEAST_ONE,
+            policy = ReferencePolicy.DYNAMIC,
+            service = NodeStoreProvider.class,
+            target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))"
+            )
     protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) throws IOException, CommitFailedException {
         NodeStoreWithProps newNs = new NodeStoreWithProps(ns, config);
         nodeStores.add(newNs);
