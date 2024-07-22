@@ -36,6 +36,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -64,8 +66,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -615,13 +615,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(
                         node.getChildren(),
-                        new Predicate<NodeDelegate>() {
-                            @Override
-                            public boolean apply(NodeDelegate state) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
-                            }
-                        });
+                        // TODO: use Oak names
+                        state -> ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern));
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
             @Override
@@ -640,13 +635,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(
                         node.getChildren(),
-                        new Predicate<NodeDelegate>() {
-                            @Override
-                            public boolean apply(NodeDelegate state) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
-                            }
-                        });
+                        // TODO: use Oak names
+                        state -> ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs));
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
             @Override
@@ -705,13 +695,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
-                    @Override
-                    public boolean apply(PropertyDelegate entry) {
-                        // TODO: use Oak names
-                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
-                    }
-                });
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node,
+                    // TODO: use Oak names
+                    entry -> ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern));
                 return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
                     @Override
                     public long getSize() {
@@ -729,13 +715,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
-                    @Override
-                    public boolean apply(PropertyDelegate entry) {
-                        // TODO: use Oak names
-                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
-                    }
-                });
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node,
+                    // TODO: use Oak names
+                    entry -> ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs));
                 return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
                     @Override
                     public long getSize() {
@@ -1721,7 +1703,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
 
         public Iterator<PropertyDelegate> iterator() throws InvalidItemStateException {
-            return Iterators.filter(node.getProperties(), predicate);
+            return Iterators.filter(node.getProperties(), predicate::test);
         }
 
         public long getSize() {
