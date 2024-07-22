@@ -369,7 +369,8 @@ public final class PathUtils {
                 return false;
             }
         } else {
-            ancestor += "/";
+            // Equivalent to path.startsWith(ancestor + "/") but avoids allocating a new string
+            return path.startsWith(ancestor) && path.length() > ancestor.length() && path.charAt(ancestor.length()) == '/';
         }
         return path.startsWith(ancestor);
     }
