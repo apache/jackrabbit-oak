@@ -26,10 +26,10 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import java.io.Closeable;
 import java.io.IOException;
 
-class MongoTestBackend implements Closeable {
+public class MongoTestBackend implements Closeable {
     final MongoClientURI mongoClientURI;
     final MongoDocumentStore mongoDocumentStore;
-    final DocumentNodeStore documentNodeStore;
+    public final DocumentNodeStore documentNodeStore;
     final MongoDatabase mongoDatabase;
 
     public MongoTestBackend(MongoClientURI mongoClientURI, MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase) {

@@ -100,6 +100,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public void close() throws IOException {
+        binaryTextExtractor.done(true);
         indexWriter.close(System.currentTimeMillis());
     }
 

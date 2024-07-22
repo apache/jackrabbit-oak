@@ -42,7 +42,7 @@ public class PersistedLinkedListTest extends FlatFileBufferLinkedListTest {
         BlobStore blobStore = new MemoryBlobStore();
         NodeStateEntryReader reader = new NodeStateEntryReader(blobStore);
         NodeStateEntryWriter writer = new NodeStateEntryWriter(blobStore);
-        list = new PersistedLinkedList(fileName, writer, reader, 1);
+        list = new PersistedLinkedListMemoryBoundBuffer(fileName, writer, reader, 1, 1);
     }
 
     @After

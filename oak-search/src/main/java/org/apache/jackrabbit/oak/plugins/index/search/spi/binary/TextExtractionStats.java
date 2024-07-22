@@ -33,15 +33,17 @@ class TextExtractionStats {
      * Log stats only if time spent is more than 1 min
      */
     private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(1);
+    private final long startTime = System.currentTimeMillis();
     private int count;
     private long totalBytesRead;
-    private long totalTime;
+    private long totalTimeMillis;
     private long totalTextLength;
+
 
     public void addStats(long timeInMillis, long bytesRead, int textLength) {
         count++;
         totalBytesRead += bytesRead;
-        totalTime += timeInMillis;
+        totalTimeMillis += timeInMillis;
         totalTextLength += textLength;
     }
 
@@ -54,11 +56,11 @@ class TextExtractionStats {
     }
 
     public void collectStats(ExtractedTextCache cache){
-        cache.addStats(count, totalTime, totalBytesRead, totalTextLength);
+        cache.addStats(count, totalTimeMillis, totalBytesRead, totalTextLength);
     }
 
     private boolean isTakingLotsOfTime() {
-        return totalTime > LOGGING_THRESHOLD;
+        return totalTimeMillis > LOGGING_THRESHOLD;
     }
 
     private boolean anyParsingDone() {
@@ -67,9 +69,14 @@ class TextExtractionStats {
 
     @Override
     public String toString() {
-        return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
+        long durationMillis = System.currentTimeMillis() - startTime;
+        double percentage = (totalTimeMillis * 100.0) / durationMillis;
+        return String.format(" %d (Time Taken %d ms (%s) out of %d ms (%2.2f%%), Bytes Read %s, Extracted text size %s)",
                 count,
-                timeInWords(totalTime),
+                totalTimeMillis,
+                timeInWords(totalTimeMillis),
+                durationMillis,
+                percentage,
                 humanReadableByteCount(totalBytesRead),
                 humanReadableByteCount(totalTextLength));
     }

@@ -355,9 +355,19 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexParallel(flatFileStores, indexer, progressReporter);
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
-                    for (NodeStateEntry entry : flatFileStore) {
-                        reportDocumentRead(entry.getPath(), progressReporter);
-                        indexer.index(entry);
+
+                    AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = new AheadOfTimeBlobDownloader(
+                            flatFileStore.getStoreFile(),
+                            flatFileStore.getAlgorithm(),
+                            indexHelper.getGCBlobStore());
+                    aheadOfTimeBlobDownloader.start();
+                    try {
+                        for (NodeStateEntry entry : flatFileStore) {
+                            reportDocumentRead(entry.getPath(), progressReporter);
+                            indexer.index(entry);
+                        }
+                    } finally {
+                        aheadOfTimeBlobDownloader.stop();
                     }
                 }
 

@@ -51,9 +51,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
     private final NodeStateEntryWriter writer;
     private final NodeStateEntryReader reader;
     private final String storeFileName;
-    private final int compactStoreMillis = Integer.getInteger(
-            COMPACT_STORE_MILLIS_NAME,
-            60 * 1000);
+    private final int compactStoreMillis = Integer.getInteger(COMPACT_STORE_MILLIS_NAME, 60 * 1000);
 
     private MVStore store;
     private MVMap<Long, String> map;
@@ -66,11 +64,9 @@ public class PersistedLinkedList implements NodeStateEntryList {
     private long cacheHits, cacheMisses;
 
     public PersistedLinkedList(String fileName, NodeStateEntryWriter writer, NodeStateEntryReader reader, int cacheSize) {
-        LOG.info("Opening store " + fileName);
+        LOG.info("Opening store {}", fileName);
         this.storeFileName = fileName;
-        this.cache =
-                new LinkedHashMap<Long, NodeStateEntry>(cacheSize + 1, .75F, true) {
-            private static final long serialVersionUID = 1L;
+        this.cache = new LinkedHashMap<>(cacheSize + 1, .75F, true) {
             @Override
             public boolean removeEldestEntry(Map.Entry<Long, NodeStateEntry> eldest) {
                 return size() > cacheSize;
@@ -78,7 +74,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
         };
         File oldFile = new File(fileName);
         if (oldFile.exists()) {
-            LOG.info("Deleting " + fileName);
+            LOG.info("Deleting {}", fileName);
             try {
                 FileUtils.forceDelete(oldFile);
             } catch (IOException e) {
@@ -98,7 +94,6 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     @Override
     public void add(@NotNull NodeStateEntry item) {
-        Preconditions.checkArgument(item != null, "Can't add null to the list");
         String s = writer.toString(item);
         long index = tailIndex++;
         map.put(index, s);
@@ -107,8 +102,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
         long sizeBytes = store.getFileStore().size();
         long now = System.currentTimeMillis();
         if (now >= lastLog + 10000) {
-            LOG.info("Entries: " + size + " map size: " + map.sizeAsLong() + " file size: "
-                    + sizeBytes + " bytes");
+            LOG.info("Entries: {} map size: {} file size: {} bytes", size, map.sizeAsLong(), sizeBytes);
             lastLog = now;
         }
         boolean compactNow = now >= lastCompact + compactStoreMillis;
@@ -119,7 +113,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
             MVStoreTool.compact(storeFileName, true);
             openStore();
             lastCompact = System.currentTimeMillis();
-            LOG.info("New size=" + store.getFileStore().size() + " bytes");
+            LOG.info("New size={} bytes", store.getFileStore().size());
         }
     }
 
