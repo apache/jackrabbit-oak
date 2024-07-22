@@ -19,24 +19,25 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
-
-import java.io.Closeable;
-import java.util.Iterator;
-import java.util.Set;
-
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.FlatFileBufferLinkedList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.NodeStateEntryList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.PersistedLinkedList;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.PersistedLinkedListV2;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import java.io.Closeable;
+import java.util.Iterator;
+import java.util.Set;
+
+import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
     private static final Logger log = LoggerFactory.getLogger(FlatFileStoreIterator.class);
@@ -44,9 +45,18 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     static final String BUFFER_MEM_LIMIT_CONFIG_NAME = "oak.indexer.memLimitInMB";
     // by default, use the PersistedLinkedList
     private static final int DEFAULT_BUFFER_MEM_LIMIT_IN_MB = 0;
-    static final String PERSISTED_LINKED_LIST_CACHE_SIZE = "oak.indexer.persistedLinkedList.cacheSize";
-    static final int DEFAULT_PERSISTED_LINKED_LIST_CACHE_SIZE = 1000;
 
+    public static final String PERSISTED_LINKED_LIST_CACHE_SIZE = "oak.indexer.persistedLinkedList.cacheSize";
+    public static final int DEFAULT_PERSISTED_LINKED_LIST_CACHE_SIZE = 1000;
+
+    public static final String PERSISTED_LINKED_LIST_V2_CACHE_SIZE = "oak.indexer.persistedLinkedListV2.cacheSize";
+    public static final int DEFAULT_PERSISTED_LINKED_LIST_V2_CACHE_SIZE = 50000;
+
+    public static final String PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB = "oak.indexer.persistedLinkedListV2.cacheMaxSizeMB";
+    public static final int DEFAULT_PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB = 16;
+
+    public static final String PERSISTED_LINKED_LIST_USE_V2 = "oak.indexer.persistedLinkedList.useV2";
+    public static final boolean DEFAULT_PERSISTED_LINKED_LIST_USE_V2 = true;
 
     private final Iterator<NodeStateEntry> baseItr;
     private final NodeStateEntryList buffer;
@@ -69,8 +79,15 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
             log.info("Using a key-value store buffer: {}", fileName);
             NodeStateEntryReader reader = new NodeStateEntryReader(blobStore);
             NodeStateEntryWriter writer = new NodeStateEntryWriter(blobStore);
-            int cacheSize = ConfigHelper.getSystemPropertyAsInt(PERSISTED_LINKED_LIST_CACHE_SIZE, DEFAULT_PERSISTED_LINKED_LIST_CACHE_SIZE);
-            this.buffer = new PersistedLinkedList(fileName, writer, reader, cacheSize);
+            boolean usePersistedLinkedListV2 = ConfigHelper.getSystemPropertyAsBoolean(PERSISTED_LINKED_LIST_USE_V2, DEFAULT_PERSISTED_LINKED_LIST_USE_V2);
+            if (usePersistedLinkedListV2) {
+                int cacheSizeMB = ConfigHelper.getSystemPropertyAsInt(PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB, DEFAULT_PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB);
+                int cacheSize = ConfigHelper.getSystemPropertyAsInt(PERSISTED_LINKED_LIST_V2_CACHE_SIZE, DEFAULT_PERSISTED_LINKED_LIST_V2_CACHE_SIZE);
+                this.buffer = new PersistedLinkedListV2(fileName, writer, reader, cacheSize, cacheSizeMB);
+            } else {
+                int cacheSize = ConfigHelper.getSystemPropertyAsInt(PERSISTED_LINKED_LIST_CACHE_SIZE, DEFAULT_PERSISTED_LINKED_LIST_CACHE_SIZE);
+                this.buffer = new PersistedLinkedList(fileName, writer, reader, cacheSize);
+            }
         } else if (memLimitConfig < 0) {
             log.info("Setting buffer memory limit unbounded");
             this.buffer = new FlatFileBufferLinkedList();
@@ -93,7 +110,8 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         //TODO Add some checks on expected ordering
         current = computeNextEntry();
         if (current == null) {
-            log.info("Max buffer size in complete traversal is [{} / {}]", maxBufferSize, maxBufferSizeBytes);
+            log.info("Max buffer size in complete traversal is {} / {} bytes ({})",
+                    maxBufferSize, maxBufferSizeBytes, IOUtils.humanReadableByteCountBin(maxBufferSizeBytes));
             return endOfData();
         } else {
             return current;
@@ -149,7 +167,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     }
 
     private NodeStateEntry wrapIfNeeded(NodeStateEntry e) {
-        if (buffer instanceof PersistedLinkedList) {
+        if (buffer instanceof PersistedLinkedList || buffer instanceof PersistedLinkedListV2) {
             // for the PersistedLinkedList, the entries from the iterators are
             // de-serialized and don't contain the LazyChildrenNodeState -
             // so we need to wrap them

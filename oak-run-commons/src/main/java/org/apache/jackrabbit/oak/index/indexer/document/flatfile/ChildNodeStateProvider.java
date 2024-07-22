@@ -72,7 +72,7 @@ class ChildNodeStateProvider {
     }
 
     public Iterable<String> getChildNodeNames() {
-        return () -> transform(children(), p -> name(p));
+        return () -> transform(children(), ChildNodeStateProvider::name);
     }
 
     @NotNull
@@ -100,8 +100,8 @@ class ChildNodeStateProvider {
                 "Did not found path [%s] in leftover iterator. Possibly node state accessed " +
                         "after main iterator has moved past it", path);
 
-        //Prepare an iterator to fetch all child node paths i.e. immediate and there children
-        return new AbstractIterator<NodeStateEntry>() {
+        //Prepare an iterator to fetch all child node paths i.e. immediate and their children
+        return new AbstractIterator<>() {
             @Override
             protected NodeStateEntry computeNext() {
                 while (pitr.hasNext() && isAncestor(path, pitr.peek().getPath())) {
