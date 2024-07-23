@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
@@ -167,15 +168,13 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     }
 
     private NodeStateEntry get(Long index) {
-//        LOG.info("Getting index {}", index);
         NodeStateEntry result = cache.get(index);
         if (result == null) {
             cacheMisses++;
             String s = map.get(index);
             result = reader.read(s);
-//            LOG.info("Cache miss: {}={}", index, result.getPath());
+            LOG.trace("Cache miss: {}={}", index, result.getPath());
         } else {
-//            LOG.info("Cache hit: {}={}", index, result.getPath());
             cacheHits++;
         }
         return result;
@@ -183,28 +182,27 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
 
     private void addEntryToCache(Long index, NodeStateEntry entry) {
         long now = System.currentTimeMillis();
-        if (index % (1024 * 1000) == 0 || now >= lastLog + 10000) { // Print every million entries or every 10 seconds
-            LOG.info("Metrics: {}", formatMetrics());
-            lastLog = now;
-        }
         long newCacheSizeBytes = cacheSizeEstimationBytes + entry.estimatedMemUsage();
         if (cache.size() == cacheSizeLimit || newCacheSizeBytes > cacheSizeLimitBytes) {
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Mem cache size {}/{} or byte size {}/{} would exceed maximum. Writing to persistent map: {} = {}, entry size: {}",
+                        newCacheSizeBytes, cacheSizeLimitBytes, cache.size() + 1, cacheSizeLimit, index, entry.getPath(), entry.estimatedMemUsage());
+            }
             storeWrites++;
-            LOG.debug("Mem cache size {}/{} or byte size {}/{} would exceed maximum. Writing to persistent map: {} = {}, entry size: {}",
-                    newCacheSizeBytes, cacheSizeLimitBytes, cache.size() + 1, cacheSizeLimit, index, entry.getPath(), entry.estimatedMemUsage());
             map.put(index, writer.toString(entry));
-            long sizeBytes = store.getFileStore().size();
+            long storeSizeBytes = store.getFileStore().size();
             boolean compactNow = now >= lastCompact + compactStoreMillis;
-            if (compactNow && sizeBytes > 10L * 1000 * 1000) {
+            if (compactNow && storeSizeBytes > 10L * 1000 * 1000) {
                 // compact once a minute, if larger than 10 MB
-                LOG.info("Compacting. Current size: {}", sizeBytes);
+                LOG.info("Compacting. Current size: {}", storeSizeBytes);
                 store.close();
                 MVStoreTool.compact(storeFileName, true);
                 openStore();
                 lastCompact = System.currentTimeMillis();
-                LOG.info("Finished compaction. Previous size: {}, new size={} bytes", sizeBytes, store.getFileStore().size());
+                LOG.info("Finished compaction. Previous size: {}, new size={} bytes", storeSizeBytes, store.getFileStore().size());
             }
         } else {
+            // new element fits in the in-memory cache. Do not write it to the persistent store.
             cache.put(index, entry);
             cacheSizeEstimationBytes = newCacheSizeBytes;
             if (cacheSizeEstimationBytes > peakCacheSizeBytes) {
@@ -215,6 +213,10 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
             }
         }
         totalEntries++;
+        if (index % (1024 * 1000) == 0 || now >= lastLog + 10000) { // Print every million entries or every 10 seconds
+            LOG.info("Metrics: {}", formatMetrics());
+            lastLog = now;
+        }
     }
 
     @Override
@@ -229,9 +231,11 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     }
 
     public String formatMetrics() {
-        return "totalEntries: " + totalEntries + ", mapSize: " + map.sizeAsLong() + ", mapSizeBytes: " + store.getFileStore().size() +
+        return "totalEntriesAdded: " + headIndex + ", totalEntriesInList: " + totalEntries + ", mapSize: " + map.sizeAsLong() +
+                ", mapSizeBytes: " + store.getFileStore().size() + " (" + IOUtils.humanReadableByteCountBin(store.getFileStore().size()) + ")" +
                 ", cacheHits: " + cacheHits + ", cacheMisses: " + cacheMisses + ", storeWrites: " + storeWrites +
-                ", peakCacheSize: " + peakCacheSize + ", peakCacheSizeMB: " + peakCacheSizeBytes;
+                ", peakCacheSize: " + peakCacheSize +
+                ", peakCacheSizeBytes: " + peakCacheSizeBytes + " (" + IOUtils.humanReadableByteCountBin(peakCacheSizeBytes) + ")";
     }
 
     @Override
@@ -247,7 +251,6 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
         private long index;
 
         NodeIterator(long index) {
-//            LOG.info("New iterator from index {}", index);
             this.index = index;
         }
 
@@ -261,7 +264,6 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
             if (index < headIndex || index >= tailIndex) {
                 throw new IllegalStateException();
             }
-//            LOG.info("{} next index {}", System.identityHashCode(this), index);
             return get(index++);
         }
     }
