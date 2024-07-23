@@ -40,7 +40,7 @@ import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
-    private static final Logger log = LoggerFactory.getLogger(FlatFileStoreIterator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FlatFileStoreIterator.class);
 
     static final String BUFFER_MEM_LIMIT_CONFIG_NAME = "oak.indexer.memLimitInMB";
     // by default, use the PersistedLinkedList
@@ -76,7 +76,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         this.preferredPathElements = preferredPathElements;
 
         if (memLimitConfig == 0) {
-            log.info("Using a key-value store buffer: {}", fileName);
+            LOG.info("Using a key-value store buffer: {}", fileName);
             NodeStateEntryReader reader = new NodeStateEntryReader(blobStore);
             NodeStateEntryWriter writer = new NodeStateEntryWriter(blobStore);
             boolean usePersistedLinkedListV2 = ConfigHelper.getSystemPropertyAsBoolean(PERSISTED_LINKED_LIST_USE_V2, DEFAULT_PERSISTED_LINKED_LIST_USE_V2);
@@ -89,10 +89,10 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
                 this.buffer = new PersistedLinkedList(fileName, writer, reader, cacheSize);
             }
         } else if (memLimitConfig < 0) {
-            log.info("Setting buffer memory limit unbounded");
+            LOG.info("Setting buffer memory limit unbounded");
             this.buffer = new FlatFileBufferLinkedList();
         } else {
-            log.info("Setting buffer memory limit to {} MBs", memLimitConfig);
+            LOG.info("Setting buffer memory limit to {} MBs", memLimitConfig);
             this.buffer = new FlatFileBufferLinkedList(memLimitConfig * 1024L * 1024L);
         }
     }
@@ -110,7 +110,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         //TODO Add some checks on expected ordering
         current = computeNextEntry();
         if (current == null) {
-            log.info("Max buffer size in complete traversal is {} / {} bytes ({})",
+            LOG.info("Max buffer size in complete traversal is {} / {} bytes ({})",
                     maxBufferSize, maxBufferSizeBytes, IOUtils.humanReadableByteCountBin(maxBufferSizeBytes));
             return endOfData();
         } else {
@@ -121,12 +121,12 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     private NodeStateEntry computeNextEntry() {
         if (buffer.size() > maxBufferSize) {
             maxBufferSize = buffer.size();
-            log.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
+            LOG.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
                     maxBufferSize, maxBufferSizeBytes, current.getPath());
         }
         if (buffer.estimatedMemoryUsage() > maxBufferSizeBytes) {
             maxBufferSizeBytes = buffer.estimatedMemoryUsage();
-            log.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
+            LOG.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
                     maxBufferSize, maxBufferSizeBytes, current.getPath());
         }
         if (!buffer.isEmpty()) {

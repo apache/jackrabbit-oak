@@ -65,10 +65,11 @@ class ChildNodeStateProvider {
     }
 
     public long getChildNodeCount(long max) {
-        if (max == 1 && children().hasNext()) {
+        Iterator<NodeStateEntry> childrenIter = children();
+        if (max == 1 && childrenIter.hasNext()) {
             return 1;
         }
-        return size(children());
+        return size(childrenIter);
     }
 
     public Iterable<String> getChildNodeNames() {

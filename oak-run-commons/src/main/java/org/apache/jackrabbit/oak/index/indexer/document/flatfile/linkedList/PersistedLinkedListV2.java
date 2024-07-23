@@ -69,7 +69,7 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
 
     private static final String COMPACT_STORE_MILLIS_NAME = "oak.indexer.linkedList.compactMillis";
 
-    private final HashMap<Long, NodeStateEntry> cache = new HashMap<>(1024);
+    private final HashMap<Long, NodeStateEntry> cache = new HashMap<>(512);
     private final int compactStoreMillis = Integer.getInteger(COMPACT_STORE_MILLIS_NAME, 60 * 1000);
     private final NodeStateEntryWriter writer;
     private final NodeStateEntryReader reader;
@@ -81,15 +81,18 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     private MVMap<Long, String> map;
     private long headIndex;
     private long tailIndex;
-    private long size;
+    // Total entries in the list
+    private long totalEntries;
     private long lastLog;
     private long lastCompact;
+
+    // Estimation of the cache size
+    private long cacheSizeEstimationBytes;
 
     // Metrics
     private long cacheHits;
     private long cacheMisses;
-    private long storeWrites;
-    private long cacheSizeEstimationBytes;
+    private long storeWrites; // Each cache miss is a read from the store, so no need for a storeRead counter
     private long peakCacheSizeBytes;
     private long peakCacheSize;
 
@@ -127,27 +130,11 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
         Preconditions.checkArgument(item != null, "Can't add null to the list");
         Long index = tailIndex++;
         addEntryToCache(index, item);
-        long sizeBytes = store.getFileStore().size();
-        long now = System.currentTimeMillis();
-        if (now >= lastLog + 10000) {
-            LOG.info("Entries: {} map size: {} file size: {} bytes", size, map.sizeAsLong(), sizeBytes);
-            lastLog = now;
-        }
-        boolean compactNow = now >= lastCompact + compactStoreMillis;
-        if (compactNow && sizeBytes > 10L * 1000 * 1000) {
-            // compact once a minute, if larger than 10 MB
-            LOG.info("Compacting...");
-            store.close();
-            MVStoreTool.compact(storeFileName, true);
-            openStore();
-            lastCompact = System.currentTimeMillis();
-            LOG.info("New size={} bytes", store.getFileStore().size());
-        }
     }
 
     @Override
     public boolean isEmpty() {
-        return size == 0;
+        return totalEntries == 0;
     }
 
     @Override
@@ -159,24 +146,24 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     public NodeStateEntry remove() {
         Preconditions.checkState(!isEmpty(), "Cannot remove item from empty list");
         Long boxedHeadIndex = headIndex;
-        NodeStateEntry ret = get(boxedHeadIndex);
-        NodeStateEntry cacheEntry = cache.remove(boxedHeadIndex);
-        if (cacheEntry == null) {
+        NodeStateEntry entryRemoved = cache.remove(boxedHeadIndex);
+        if (entryRemoved == null) {
             String mapEntry = map.remove(boxedHeadIndex);
             if (mapEntry == null) {
                 throw new IllegalStateException("Cache entry found but not in map");
             }
+            entryRemoved = reader.read(mapEntry);
         } else {
-            cacheSizeEstimationBytes -= cacheEntry.estimatedMemUsage();
+            cacheSizeEstimationBytes -= entryRemoved.estimatedMemUsage();
         }
 
         headIndex++;
-        size--;
-        if (size == 0) {
+        totalEntries--;
+        if (totalEntries == 0) {
             map.clear();
             cache.clear();
         }
-        return ret;
+        return entryRemoved;
     }
 
     private NodeStateEntry get(Long index) {
@@ -195,8 +182,10 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     }
 
     private void addEntryToCache(Long index, NodeStateEntry entry) {
-        if (index % (1024 * 1000) == 0) { // Print every million entries
+        long now = System.currentTimeMillis();
+        if (index % (1024 * 1000) == 0 || now >= lastLog + 10000) { // Print every million entries or every 10 seconds
             LOG.info("Metrics: {}", formatMetrics());
+            lastLog = now;
         }
         long newCacheSizeBytes = cacheSizeEstimationBytes + entry.estimatedMemUsage();
         if (cache.size() == cacheSizeLimit || newCacheSizeBytes > cacheSizeLimitBytes) {
@@ -204,6 +193,17 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
             LOG.debug("Mem cache size {}/{} or byte size {}/{} would exceed maximum. Writing to persistent map: {} = {}, entry size: {}",
                     newCacheSizeBytes, cacheSizeLimitBytes, cache.size() + 1, cacheSizeLimit, index, entry.getPath(), entry.estimatedMemUsage());
             map.put(index, writer.toString(entry));
+            long sizeBytes = store.getFileStore().size();
+            boolean compactNow = now >= lastCompact + compactStoreMillis;
+            if (compactNow && sizeBytes > 10L * 1000 * 1000) {
+                // compact once a minute, if larger than 10 MB
+                LOG.info("Compacting. Current size: {}", sizeBytes);
+                store.close();
+                MVStoreTool.compact(storeFileName, true);
+                openStore();
+                lastCompact = System.currentTimeMillis();
+                LOG.info("Finished compaction. Previous size: {}, new size={} bytes", sizeBytes, store.getFileStore().size());
+            }
         } else {
             cache.put(index, entry);
             cacheSizeEstimationBytes = newCacheSizeBytes;
@@ -213,17 +213,13 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
             if (cache.size() > peakCacheSize) {
                 peakCacheSize = cache.size();
             }
-            if (cache.size() % 1024 == 0) {
-                LOG.info("Entries added: {}, Entries in cache: {}, cacheSizeBytes: {}, map size: {} file size: {} bytes",
-                        index, cache.size(), cacheSizeEstimationBytes, map.sizeAsLong(), store.getFileStore().size());
-            }
         }
-        size++;
+        totalEntries++;
     }
 
     @Override
     public int size() {
-        return (int) size;
+        return (int) totalEntries;
     }
 
     @Override
@@ -233,8 +229,9 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     }
 
     public String formatMetrics() {
-        return String.format("cacheHits: %d, cacheMisses %d, storeWrites: %d, peakCacheSize: %d, peakCacheSizeMB: %d",
-                cacheHits, cacheMisses, storeWrites, peakCacheSize, peakCacheSizeBytes);
+        return "totalEntries: " + totalEntries + ", mapSize: " + map.sizeAsLong() + ", mapSizeBytes: " + store.getFileStore().size() +
+                ", cacheHits: " + cacheHits + ", cacheMisses: " + cacheMisses + ", storeWrites: " + storeWrites +
+                ", peakCacheSize: " + peakCacheSize + ", peakCacheSizeMB: " + peakCacheSizeBytes;
     }
 
     @Override
@@ -267,5 +264,25 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
 //            LOG.info("{} next index {}", System.identityHashCode(this), index);
             return get(index++);
         }
+    }
+
+    public long getCacheHits() {
+        return cacheHits;
+    }
+
+    public long getCacheMisses() {
+        return cacheMisses;
+    }
+
+    public long getStoreWrites() {
+        return storeWrites;
+    }
+
+    public long getPeakCacheSizeBytes() {
+        return peakCacheSizeBytes;
+    }
+
+    public long getPeakCacheSize() {
+        return peakCacheSize;
     }
 }
