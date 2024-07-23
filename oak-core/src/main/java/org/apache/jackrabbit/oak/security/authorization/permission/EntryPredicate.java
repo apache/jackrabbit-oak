@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -32,11 +33,11 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
     @Nullable
     String getPath();
 
-    default boolean apply(@Nullable PermissionEntry entry) {
-        return entry != null && apply(entry, true);
+    default boolean test(@Nullable PermissionEntry entry) {
+        return entry != null && test(entry, true);
     }
 
-    boolean apply(@NotNull PermissionEntry entry, boolean respectParent);
+    boolean test(@NotNull PermissionEntry entry, boolean respectParent);
 
     static EntryPredicate create() {
         return new EntryPredicate() {
@@ -47,7 +48,7 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
             }
 
             @Override
-            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+            public boolean test(@NotNull PermissionEntry entry, boolean respectParent) {
                 return entry.matches();
             }
         };
@@ -64,7 +65,7 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
             }
 
             @Override
-            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+            public boolean test(@NotNull PermissionEntry entry, boolean respectParent) {
                 respectParent &= rp;
                 return entry.matches(tree, property) || (respectParent && entry.matches(parent, null));
             }
@@ -82,13 +83,13 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
             }
 
             @Override
-            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+            public boolean test(@NotNull PermissionEntry entry, boolean respectParent) {
                 respectParent &= rp;
                 return entry.matches(path, isProperty) || (respectParent && entry.matches(parentPath, false));
             }
         };
     }
-    
+
     static EntryPredicate create(@NotNull String path, boolean respectParent) {
         String parentPath = (!respectParent || PathUtils.ROOT_PATH.equals(path)) ? null : PathUtils.getParentPath(path);
         boolean rp = respectParent && parentPath != null;
@@ -100,7 +101,7 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
             }
 
             @Override
-            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+            public boolean test(@NotNull PermissionEntry entry, boolean respectParent) {
                 respectParent &= rp;
                 return entry.matches(path) || (respectParent && entry.matches(parentPath, false));
             }

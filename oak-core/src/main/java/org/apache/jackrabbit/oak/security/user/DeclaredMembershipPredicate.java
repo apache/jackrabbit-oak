@@ -20,9 +20,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -54,7 +55,7 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
     }
 
     @Override
-    public boolean apply(@Nullable Authorizable authorizable) {
+    public boolean test(@Nullable Authorizable authorizable) {
         String id = saveGetContentId(authorizable);
         if (id != null) {
             if (declaredMemberContentIds.contains(id)) {

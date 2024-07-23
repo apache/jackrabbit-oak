@@ -35,8 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -278,13 +276,7 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        return filter(getNodeBuilder().getProperties(),
-            new Predicate<PropertyState>() {
-                @Override
-                public boolean apply(PropertyState propertyState) {
-                    return !isHidden(propertyState.getName());
-                }
-            });
+        return filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
     }
 
     @Override
