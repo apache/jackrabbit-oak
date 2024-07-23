@@ -63,6 +63,7 @@ public class AzureStorageCredentialManager implements Closeable {
             try {
                 return getStorageCredentialAccessTokenFromServicePrincipals(accountName, clientId, clientSecret, tenantId);
             } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+                log.error("Error occurred while connecting to Azure Storage using service principals: ", e);
                 throw new IllegalArgumentException(
                         "Could not connect to the Azure Storage. Please verify if AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables are correctly set!");
             }
@@ -74,6 +75,7 @@ public class AzureStorageCredentialManager implements Closeable {
         try {
             return new StorageCredentialsAccountAndKey(accountName, key);
         } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+            log.error("Error occurred while connecting to Azure Storage using secret key: ", e);
             throw new IllegalArgumentException(
                     "Could not connect to the Azure Storage. Please verify if AZURE_SECRET_KEY environment variable is correctly set!");
         }
@@ -89,7 +91,6 @@ public class AzureStorageCredentialManager implements Closeable {
                     .build();
             accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
             if (accessToken == null || StringUtils.isBlank(accessToken.getToken())) {
-                log.error("Access token is null or empty");
                 throw new IllegalArgumentException("Could not connect to azure storage, access token is null or empty");
             }
             storageCredentialsToken = new StorageCredentialsToken(accountName, accessToken.getToken());
