@@ -50,13 +50,13 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     public static final int DEFAULT_PERSISTED_LINKED_LIST_CACHE_SIZE = 1000;
 
     public static final String PERSISTED_LINKED_LIST_V2_CACHE_SIZE = "oak.indexer.persistedLinkedListV2.cacheSize";
-    public static final int DEFAULT_PERSISTED_LINKED_LIST_V2_CACHE_SIZE = 50000;
+    public static final int DEFAULT_PERSISTED_LINKED_LIST_V2_CACHE_SIZE = 10000;
 
     public static final String PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB = "oak.indexer.persistedLinkedListV2.cacheMaxSizeMB";
-    public static final int DEFAULT_PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB = 16;
+    public static final int DEFAULT_PERSISTED_LINKED_LIST_V2_MEMORY_CACHE_SIZE_MB = 8;
 
     public static final String PERSISTED_LINKED_LIST_USE_V2 = "oak.indexer.persistedLinkedList.useV2";
-    public static final boolean DEFAULT_PERSISTED_LINKED_LIST_USE_V2 = true;
+    public static final boolean DEFAULT_PERSISTED_LINKED_LIST_USE_V2 = false;
 
     private final Iterator<NodeStateEntry> baseItr;
     private final NodeStateEntryList buffer;
