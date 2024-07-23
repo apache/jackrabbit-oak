@@ -41,8 +41,8 @@ import java.util.Iterator;
  * persistent store the nodes only when the cache is full. The in-memory cache is limited by two parameters:
  *
  * <ul>
- *     <li>maxCacheSize: the maximum number of elements to keep in the in-memory cache</li>
- *     <li>maxCacheSizeMB: the maximum size of the in-memory cache in MB</li>
+ *     <li>cacheSize: the maximum number of elements to keep in the in-memory cache</li>
+ *     <li>cacheSizeMB: the maximum size of the in-memory cache in MB</li>
  * </ul>
  * <p>
  * The recommended configuration is to rely on the total memory usage to limit the cache, giving as much memory as
@@ -55,14 +55,15 @@ import java.util.Iterator;
  * For the access pattern of the indexer, this policy has a lower rate of cache misses than if we move to the cache an
  * element after a miss.
  * <p>
- * Let's assume we want to traverse the children of a node P that is at line/position 100 in the FFS. When we call
- * getChildren on P, this creates an iterator that scans from position 100 for all the children. If we call recursively
- * getChildren on a child C of P, this will also create a new iterator that will start also at position 100. Therefore
- * the iterators will frequently scan from 100 down. Let's assume the cache can only hold 10 nodes and that we use a
- * policy of moving to the cache the last node that was accessed. Then if an iterator scans from 100 to, let's say 150,
- * it will finish with the nodes 141 to 150 in the cache. The next iterator that is scanning from 100 will have cache
- * misses for all the nodes until 140. And this will repeat for every new iterator. On the other hand, if we keep in the
- * cache the nodes from 100 to 109,
+ * To understand why, let's assume we want to traverse the children of a node P that is at line/position 100 in the FFS.
+ * When we call getChildren on P, this creates an iterator that scans from position 100 for all the children.
+ * If we call recursively getChildren on a child C of P, this will also create a new iterator that will start also at
+ * position 100. Therefore, the iterators will frequently scan from 100 down. Let's assume the cache can only hold 10
+ * nodes and that we use a policy of moving to the cache the last node that was accessed. Then, if an iterator scans
+ * from 100 to, let's say 150, when it finishes iterating, the nodes 141 to 150 will be the only ones in the cache.
+ * The next iterator that is scanning from 100 will have cache misses for all the nodes until 140. And this will repeat
+ * for every new iterator. On the other hand, if we keep in the cache the nodes from 100 to 109, every iterator starting
+ * from 100 will at least have 10 cache hits, which is better than having a cache miss for all elements.
  */
 public class PersistedLinkedListV2 implements NodeStateEntryList {
 
@@ -98,12 +99,12 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     private long peakCacheSize;
 
     /**
-     * @param maxCacheSize   the maximum number of elements to keep in the in-memory cache
-     * @param maxCacheSizeMB the maximum size of the in-memory cache in MB
+     * @param cacheSize   the maximum number of elements to keep in the in-memory cache
+     * @param cacheSizeMB the maximum size of the in-memory cache in MB
      */
-    public PersistedLinkedListV2(String fileName, NodeStateEntryWriter writer, NodeStateEntryReader reader, int maxCacheSize, int maxCacheSizeMB) {
-        this.cacheSizeLimit = maxCacheSize;
-        this.cacheSizeLimitBytes = ((long) maxCacheSizeMB) * 1024 * 1024;
+    public PersistedLinkedListV2(String fileName, NodeStateEntryWriter writer, NodeStateEntryReader reader, int cacheSize, int cacheSizeMB) {
+        this.cacheSizeLimit = cacheSize;
+        this.cacheSizeLimitBytes = ((long) cacheSizeMB) * 1024 * 1024;
         this.storeFileName = fileName;
         LOG.info("Opening store {}", fileName);
         File oldFile = new File(fileName);
