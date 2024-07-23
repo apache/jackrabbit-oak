@@ -152,7 +152,7 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
         if (entryRemoved == null) {
             String mapEntry = map.remove(boxedHeadIndex);
             if (mapEntry == null) {
-                throw new IllegalStateException("Cache entry found but not in map");
+                throw new IllegalStateException("Entry not found in cache or in store: " + boxedHeadIndex);
             }
             cacheMisses++;
             entryRemoved = reader.read(mapEntry);
