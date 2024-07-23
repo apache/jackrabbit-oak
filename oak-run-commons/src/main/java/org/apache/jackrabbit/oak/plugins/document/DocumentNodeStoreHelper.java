@@ -35,15 +35,12 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
-import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -73,8 +70,13 @@ public class DocumentNodeStoreHelper {
 
     public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
                                                           boolean fullGCEnabled, boolean isFullGCDryRun,
-                                                          boolean embeddedVerification) {
-        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification);
+                                                          boolean embeddedVerification, int fullGCMode) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
+                fullGCMode);
+    }
+
+    public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {
+        return documentNodeStore.readNode(path, rootRevision);
     }
 
     private static Iterable<BlobReferences> scan(DocumentNodeStore store,
@@ -151,13 +153,8 @@ public class DocumentNodeStoreHelper {
                     mds, Collection.NODES);
             Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
             FindIterable<BasicDBObject> cursor = dbCol.find(query);
-            return Iterables.transform(cursor, new Function<DBObject, NodeDocument>() {
-                @Nullable
-                @Override
-                public NodeDocument apply(DBObject input) {
-                    return MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input);
-                }
-            });
+            return Iterables.transform(cursor,
+                    input -> MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input));
         } else {
             return Utils.getSelectedDocuments(store,
                     NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);

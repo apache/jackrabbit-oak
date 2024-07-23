@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -264,13 +263,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     }
 
     private static void assertSequence(Iterable<Tree> trees, String... names) {
-        List<String> actual = Lists.newArrayList(Iterables.transform(trees, new Function<Tree, String>() {
-            @Nullable
-            @Override
-            public String apply(Tree input) {
-                return input.getName();
-            }
-        }));
+        List<String> actual = Lists.newArrayList(Iterables.transform(trees, input -> input.getName()));
         assertEquals(Lists.newArrayList(names), actual);
     }
 

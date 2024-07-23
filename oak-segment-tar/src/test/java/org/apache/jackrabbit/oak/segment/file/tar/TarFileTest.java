@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
@@ -28,6 +27,7 @@ import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,7 +70,7 @@ public class TarFileTest {
         UUID id = UUID.randomUUID();
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
-        byte[] data = "Hello, World!".getBytes(UTF_8);
+        byte[] data = "Hello, World!".getBytes(StandardCharsets.UTF_8);
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
@@ -89,7 +89,7 @@ public class TarFileTest {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         String data = "test";
-        byte[] buffer = data.getBytes(UTF_8);
+        byte[] buffer = data.getBytes(StandardCharsets.UTF_8);
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, false));
@@ -107,7 +107,7 @@ public class TarFileTest {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         String data = "test";
-        byte[] buffer = data.getBytes(UTF_8);
+        byte[] buffer = data.getBytes(StandardCharsets.UTF_8);
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, true));

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -96,7 +97,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -287,11 +287,13 @@ public class VersionGarbageCollectorIT {
         store1 = documentMKBuilder.getNodeStore();
     }
 
-    private void createSecondaryStore(LeaseCheckMode leaseCheckNode) {
+    private void createSecondaryStore(LeaseCheckMode leaseCheckNode)
+            throws IllegalAccessException {
         createSecondaryStore(leaseCheckNode, false);
     }
 
-    private void createSecondaryStore(LeaseCheckMode leaseCheckNode, boolean withFailingDS) {
+    private void createSecondaryStore(LeaseCheckMode leaseCheckNode, boolean withFailingDS)
+            throws IllegalAccessException {
         LOG.info("createSecondaryStore: creating secondary store with leaseCheckNode = {}, withFailingDS = {}",
                 leaseCheckNode, withFailingDS);
         if (fixture instanceof RDBFixture) {
@@ -308,6 +310,9 @@ public class VersionGarbageCollectorIT {
                 .setLeaseCheckMode(leaseCheckNode)
                 .setDocumentStore(ds2).setAsyncDelay(0);
         store2 = documentMKBuilder2.getNodeStore();
+        // custom fullGcMode needs to be set after each node store creation, since the VersionGarbageCollector
+        // constructor sets the fullGcMode to the value read from OSGI Configuration - method setFullGcMode
+        writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
     }
 
     private static final Set<Thread> tbefore = new HashSet<>();
@@ -534,6 +539,103 @@ public class VersionGarbageCollectorIT {
         assertTrue(stats.ignoredGCDueToCheckPoint);
         assertTrue(stats.ignoredFullGCDueToCheckPoint);
         assertTrue(stats.canceled);
+    }
+
+    @Test
+    public void testGCDeletedLongPathPropsInclExcl_excludes() throws Exception {
+        String longName = repeat("p", PATH_LONG + 1);
+        createEmptyProps("/a/b/" + longName + "/x", "/b/c/" + longName + "/x",
+                "/c/d/" + longName + "/x");
+        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b/c", "/c"));
+        doTestDeletedPropsGC(1, 1);
+    }
+
+    @Test
+    public void testGCDeletedPropsInclExcl_oneInclude() throws Exception {
+        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
+        setGCIncludeExcludes(Sets.newHashSet("/a"), Sets.newHashSet());
+        doTestDeletedPropsGC(1, 1);
+    }
+
+    @Test
+    public void testGCDeletedPropsInclExcl_twoIncludes() throws Exception {
+        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
+        setGCIncludeExcludes(Sets.newHashSet("/a", "/c"), Sets.newHashSet());
+        doTestDeletedPropsGC(2, 2);
+    }
+
+    @Test
+    public void testGCDeletedPropsInclExcl_inclAndExcl() throws Exception {
+        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
+        setGCIncludeExcludes(Sets.newHashSet("/a", "/c"), Sets.newHashSet("/c/d"));
+        doTestDeletedPropsGC(1, 1);
+    }
+
+    @Test
+    public void testGCDeletedPropsInclExcl_excludes() throws Exception {
+        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
+        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b", "/c"));
+        doTestDeletedPropsGC(1, 1);
+    }
+
+    @Test
+    public void testGCDeletedPropsInclExcl_emptyEmpty() throws Exception {
+        createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
+        setGCIncludeExcludes(Collections.emptySet(), Collections.emptySet());
+        doTestDeletedPropsGC(3, 3);
+    }
+
+    private void setGCIncludeExcludes(Set<String> includes, Set<String> excludes) {
+        gc.setFullGCPaths(requireNonNull(includes), requireNonNull(excludes));
+    }
+
+    private void doTestDeletedPropsGC(int deletedPropsCount, int updatedDocsCount)
+            throws Exception {
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
+        long maxAge = 1; //hours
+        clock.waitUntil(getCurrentTimestamp() + TimeUnit.HOURS.toMillis(maxAge));
+        VersionGCStats stats = gc(gc, maxAge, HOURS);
+        assertStatsCountsEqual(stats,
+                gapOrphOnly(),
+                gapOrphProp(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
+                allOrphProp(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
+                keepOneFull(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
+                keepOneUser(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
+                unmergedBcs(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
+                betweenChkp(0, deletedPropsCount, 0, 0, 3, 0, updatedDocsCount),
+                btwnChkpUBC(0, deletedPropsCount, 0, 0, 3, 0, updatedDocsCount));
+    }
+
+    /**
+     * Utility method to create empty properties, meaning they
+     * are created, then removed again. That leaves them
+     * as not existing properties, except they still exist
+     * in the document. FullGC can then remove them after
+     * a certain amount of time
+     */
+    private void createEmptyProps(String... paths) throws CommitFailedException {
+        // 1. create nodes with properties
+        NodeBuilder rb1 = store1.getRoot().builder();
+        for (String path : paths) {
+            NodeBuilder b1 = rb1;
+            for (String name : Path.fromString(path).elements()) {
+                b1 = b1.child(name);
+            }
+            b1.setProperty("foo", "bar", STRING);
+        }
+        store1.merge(rb1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // 2. refresh the builder
+        rb1 = store1.getRoot().builder();
+        // 3. empty the properties
+        for (String path : paths) {
+            NodeBuilder b1 = rb1;
+            for (String name : Path.fromString(path).elements()) {
+                b1 = b1.child(name);
+            }
+            b1.removeProperty("foo");
+        }
+        store1.merge(rb1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     @Test
@@ -1276,8 +1378,11 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
-            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId) {
-                Iterable<NodeDocument> modifiedDocs = super.getModifiedDocs(fromModified, toModified, limit, fromId);
+            public Iterable<NodeDocument> getModifiedDocs(long fromModified,
+                    long toModified, int limit, @NotNull String fromId,
+                    @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
+                Iterable<NodeDocument> modifiedDocs = super.getModifiedDocs(fromModified,
+                        toModified, limit, fromId, includePaths, excludePaths);
                 List<NodeDocument> result = stream(modifiedDocs.spliterator(), false).collect(toList());
                 final Revision updateRev = newRevision(1);
                 store1.getDocumentStore().findAndUpdate(NODES, stream(modifiedDocs.spliterator(), false)
@@ -1336,7 +1441,8 @@ public class VersionGarbageCollectorIT {
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
-            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId) {
+            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId,
+                                                          final @NotNull Set<String> includePaths, final @NotNull Set<String> excludePaths) {
                 return () -> new AbstractIterator<>() {
                     private final Iterator<NodeDocument> it = candidates(fromModified, toModified, limit, fromId);
 
@@ -1353,7 +1459,8 @@ public class VersionGarbageCollectorIT {
             }
 
             private Iterator<NodeDocument> candidates(long fromModified, long toModified, int limit, @NotNull String fromId) {
-                return super.getModifiedDocs(fromModified, toModified, limit, fromId).iterator();
+                return super.getModifiedDocs(fromModified, toModified, limit, fromId,
+                        Collections.emptySet(), Collections.emptySet()).iterator();
             }
         };
 
@@ -1646,6 +1753,7 @@ public class VersionGarbageCollectorIT {
     @Test
     public void testDeletedPropsAndUnmergedBCWithCollision() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -3166,12 +3274,7 @@ public class VersionGarbageCollectorIT {
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
         List<String> prevIds = Lists.newArrayList(Iterators.transform(
-                foo.getPreviousDocLeaves(), new Function<NodeDocument, String>() {
-            @Override
-            public String apply(NodeDocument input) {
-                return input.getId();
-            }
-        }));
+                foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store
         createSecondaryStore(LeaseCheckMode.LENIENT);

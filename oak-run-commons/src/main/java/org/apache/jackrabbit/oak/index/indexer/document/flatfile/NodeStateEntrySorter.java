@@ -32,11 +32,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
@@ -48,7 +48,7 @@ public class NodeStateEntrySorter {
     private static final int DEFAULTMAXTEMPFILES = 1024;
     private final File nodeStateFile;
     private final File workDir;
-    private final Charset charset = UTF_8;
+    private final Charset charset = StandardCharsets.UTF_8;
     private final Comparator<Iterable<String>> pathComparator;
     private File sortedFile;
     private boolean deleteOriginal;

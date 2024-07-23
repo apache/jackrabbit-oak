@@ -107,9 +107,9 @@ public class VersionGCRecommendations {
      * @param fullGCEnabled      whether fullGC is enabled or not
      * @param isFullGCDryRun     whether fullGC is running in dryRun mode or not
      */
-    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
-                                    VersionGCOptions options, GCMonitor gcMonitor, boolean fullGCEnabled,
-                                    boolean isFullGCDryRun) {
+    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, boolean checkpointCleanup, Clock clock,
+                                    VersionGCSupport vgc, VersionGCOptions options, GCMonitor gcMonitor,
+                                    boolean fullGCEnabled, boolean isFullGCDryRun) {
         boolean ignoreDueToCheckPoint;
         boolean ignoreFullGCDueToCheckPoint;
         long deletedOnceCount = 0;
@@ -158,7 +158,7 @@ public class VersionGCRecommendations {
             }
         }
 
-        if (isFullGCDryRun) {
+        if (fullGCEnabled && isFullGCDryRun) {
             if (fullGCDryRunTimestamp == 0) {
                 // it will only happen for the very first time, we run this fullGC in dry run mode
                 log.info("No fullGCDryRunTimestamp found, querying for the oldest modified candidate");
@@ -170,7 +170,7 @@ public class VersionGCRecommendations {
             } else {
                 oldestModifiedDryRunDocTimeStamp.set(fullGCDryRunTimestamp);
             }
-        } else {
+        } else if (fullGCEnabled) {
             if (fullGCTimestamp == 0) {
                 // it will only happen for the very first time, we run this fullGC
                 log.info("No fullGCTimestamp found, querying for the oldest modified candidate");
@@ -223,7 +223,7 @@ public class VersionGCRecommendations {
         }
 
         //Check for any registered checkpoint which prevent the GC from running
-        Revision checkpoint = checkpoints.getOldestRevisionToKeep();
+        Revision checkpoint = checkpoints.getOldestRevisionToKeep(checkpointCleanup);;
 
         final GCResult gcResult = getResult(options, checkpoint, clock, RGC, scope);
         scope = gcResult.gcScope;

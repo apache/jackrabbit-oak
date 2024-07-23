@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.Caching
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import com.microsoft.azure.storage.StorageCredentials;
@@ -134,17 +133,20 @@ public class ToolUtils {
         switch (storeType) {
         case AZURE:
             CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
-            SegmentNodeStorePersistence basePersistence = new AzurePersistence(cloudBlobDirectory);
-
-            PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
-                        persistentCacheSize * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
-            persistence = new CachingPersistence(persistentCache, basePersistence);
+            persistence = decorateWithCache(new AzurePersistence(cloudBlobDirectory), persistentCachePath, persistentCacheSize);
             break;
         default:
             persistence = new TarPersistence(new File(pathOrUri));
         }
 
         return persistence;
+    }
+
+    public static SegmentNodeStorePersistence decorateWithCache(SegmentNodeStorePersistence persistence,
+            String persistentCachePath, Integer persistentCacheSize) {
+        PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
+                persistentCacheSize * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
+        return new CachingPersistence(persistentCache, persistence);
     }
 
     public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,
@@ -209,13 +211,8 @@ public class ToolUtils {
 
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
-                Iterator<String> revisionIterator = Iterators.transform(journalReader, new Function<JournalEntry, String>() {
-                    @NotNull
-                    @Override
-                    public String apply(JournalEntry entry) {
-                        return entry.getRevision();
-                    }
-                });
+                Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                        entry -> entry.getRevision());
                 return newArrayList(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();

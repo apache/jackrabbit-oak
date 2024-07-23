@@ -23,14 +23,13 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -46,7 +45,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -76,7 +74,6 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.GENERATION;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.IN_PROCESS;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.REFS;
-
 
 /**
  * Tracks the blob ids available or added in the blob store using the {@link BlobIdStore} .
@@ -271,8 +268,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(transform(refRecords, new Function<DataRecord, File>() {
-                @Override public File apply(DataRecord input) {
+            List<File> refFiles = newArrayList(transform(refRecords, input -> {
                     InputStream inputStream = null;
                     try {
                         inputStream = input.getStream();
@@ -283,8 +279,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                         closeQuietly(inputStream);
                     }
                     return null;
-                }
-            }));
+                }));
             LOG.info("Retrieved all blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Merge all the downloaded files in to the local store
@@ -678,7 +673,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             close();
 
             processFile = new File(rootDir, prefix + IN_PROCESS.getFileNameSuffix());
-            writer = newWriter(processFile, UTF_8);
+            writer = newWriter(processFile, StandardCharsets.UTF_8);
             LOG.info("Created new process file and writer over {} ", processFile.getAbsolutePath());
         }
 

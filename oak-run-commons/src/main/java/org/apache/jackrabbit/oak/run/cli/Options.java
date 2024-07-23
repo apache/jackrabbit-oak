@@ -19,9 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import org.apache.jackrabbit.guava.common.collect.ClassToInstanceMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.MutableClassToInstanceMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -30,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -38,7 +38,7 @@ import static java.util.Arrays.asList;
 public class Options {
     private final Set<OptionsBeanFactory> beanFactories = Sets.newHashSet();
     private final EnumSet<OptionBeans> oakRunOptions;
-    private final ClassToInstanceMap<OptionsBean> optionBeans = MutableClassToInstanceMap.create();
+    private final Map<Class<? extends OptionsBean>, OptionsBean> optionBeans = new HashMap<>();
     private OptionSet optionSet;
     private boolean disableSystemExit;
     private String commandName;

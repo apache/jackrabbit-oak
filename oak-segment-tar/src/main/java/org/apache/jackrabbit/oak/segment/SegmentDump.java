@@ -24,9 +24,9 @@ import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -57,7 +57,7 @@ class SegmentDump {
                 }
             }
             writer.println("--------------------------------------------------------------------------");
-            dumper.accept(new WriterOutputStream(writer, Charsets.UTF_8));
+            dumper.accept(new WriterOutputStream(writer, StandardCharsets.UTF_8));
             writer.println("--------------------------------------------------------------------------");
         }
         return string.toString();
