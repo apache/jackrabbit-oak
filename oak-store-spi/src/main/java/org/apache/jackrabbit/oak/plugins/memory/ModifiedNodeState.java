@@ -30,8 +30,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
@@ -52,17 +51,7 @@ public class ModifiedNodeState extends AbstractNodeState {
     /**
      * Mapping from a PropertyState instance to its name.
      */
-    private static final Function<PropertyState, String> GET_NAME =
-            new Function<PropertyState, String>() {
-                @Override @Nullable
-                public String apply(@Nullable PropertyState input) {
-                    if (input != null) {
-                        return input.getName();
-                    } else {
-                        return null;
-                    }
-                }
-            };
+    private static final Function<PropertyState, String> GET_NAME = input -> (input != null) ? input.getName() : null;
 
     /**
      * Unwraps the given {@code NodeState} instance into the given internals
@@ -180,7 +169,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                 properties = newHashMap(properties);
             }
             Predicate<PropertyState> predicate = Predicates.compose(
-                    not(in(properties.keySet())), GET_NAME);
+                    not(in(properties.keySet())), GET_NAME::apply);
             return concat(
                     filter(base.getProperties(), predicate),
                     filter(properties.values(), notNull()));
@@ -361,7 +350,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getChildNodeEntries(); // shortcut
         } else {
             Predicate<ChildNodeEntry> predicate = Predicates.compose(
-                    not(in(nodes.keySet())), ChildNodeEntry.GET_NAME);
+                    not(in(nodes.keySet())), ChildNodeEntry.GET_NAME::apply);
             return concat(
                     filter(base.getChildNodeEntries(), predicate),
                     iterable(filterValues(nodes, NodeState.EXISTS).entrySet()));

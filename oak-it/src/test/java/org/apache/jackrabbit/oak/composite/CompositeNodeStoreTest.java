@@ -658,7 +658,7 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME)));
+        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME::apply)));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 

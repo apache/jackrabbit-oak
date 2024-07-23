@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
@@ -165,18 +164,13 @@ final class NodeDocumentSweeper {
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
-        return filter(transform(docs,
-                new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
-            @Override
-            public Map.Entry<Path, UpdateOp> apply(NodeDocument doc) {
-                return immutableEntry(doc.getPath(), sweepOne(doc));
-            }
-        }), new Predicate<Map.Entry<Path, UpdateOp>>() {
-            @Override
-            public boolean apply(Map.Entry<Path, UpdateOp> input) {
-                return input.getValue() != null;
-            }
-        });
+        return filter(transform(docs, doc -> immutableEntry(doc.getPath(), sweepOne(doc))),
+                new Predicate<Map.Entry<Path, UpdateOp>>() {
+                    @Override
+                    public boolean apply(Map.Entry<Path, UpdateOp> input) {
+                        return input.getValue() != null;
+                    }
+                });
     }
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {

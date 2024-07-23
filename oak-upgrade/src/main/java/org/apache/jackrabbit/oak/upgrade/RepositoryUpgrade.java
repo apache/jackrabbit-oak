@@ -59,7 +59,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.HashBiMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -144,7 +144,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermDocs;
 import org.apache.lucene.index.TermEnum;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -777,15 +776,8 @@ public class RepositoryUpgrade {
             while (it.hasNext()) {
                 Privilege aggrPriv = it.next();
 
-                List<String> aggrNames = Lists.transform(
-                        ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
-                        new Function<Privilege, String>() {
-                            @Nullable
-                            @Override
-                            public String apply(@Nullable Privilege input) {
-                                return (input == null) ? null : input.getName();
-                            }
-                        });
+                List<String> aggrNames = Lists.transform(ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
+                        input -> (input == null) ? null : input.getName());
                 if (allAggregatesRegistered(pMgr, aggrNames)) {
                     pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(), aggrNames.toArray(new String[aggrNames.size()]));
                     it.remove();

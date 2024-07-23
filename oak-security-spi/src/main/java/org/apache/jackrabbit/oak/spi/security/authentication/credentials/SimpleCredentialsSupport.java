@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
@@ -66,13 +65,8 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
-            return Maps.asMap(ImmutableSet.copyOf(sc.getAttributeNames()), new Function<String, Object>() {
-                @Nullable
-                @Override
-                public Object apply(String input) {
-                    return sc.getAttribute(input);
-                }
-            });
+            return Maps.asMap(ImmutableSet.copyOf(sc.getAttributeNames()),
+                    input -> sc.getAttribute(input));
         } else {
             return Collections.emptyMap();
         }

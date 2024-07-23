@@ -78,7 +78,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -525,15 +525,12 @@ public class DataStoreBlobStore
                 }
                 return false;
             }
-        }), new Function<DataRecord, String>() {
-            @Override
-            public String apply(DataRecord input) {
+        }), input -> {
                 if (encodeLengthInId) {
                     return BlobId.of(input).encodedValue();
                 }
                 return input.getIdentifier().toString();
-            }
-        });
+            });
     }
 
     @Override
@@ -775,18 +772,14 @@ public class DataStoreBlobStore
         Iterator<DataRecord> result = delegate instanceof SharedDataStore ?
                 ((SharedDataStore) delegate).getAllRecords() :
                 Iterators.transform(delegate.getAllIdentifiers(),
-                        new Function<DataIdentifier, DataRecord>() {
-                            @Nullable
-                            @Override
-                            public DataRecord apply(@Nullable DataIdentifier input) {
+                        input -> {
                                 try {
                                     return delegate.getRecord(input);
                                 } catch (DataStoreException e) {
                                     log.warn("Error occurred while fetching DataRecord for identifier {}", input, e);
                                 }
                                 return null;
-                            }
-                        });
+                            });
 
         if (stats instanceof ExtendedBlobStatsCollector) {
             ((ExtendedBlobStatsCollector) stats).getAllRecordsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);

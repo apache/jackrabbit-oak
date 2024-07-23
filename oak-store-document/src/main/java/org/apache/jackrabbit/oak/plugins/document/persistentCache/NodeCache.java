@@ -46,13 +46,10 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWri
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.h2.mvstore.MVMap;
-import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 
 class NodeCache<K extends CacheValue, V extends  CacheValue>
         implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
@@ -162,10 +159,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     private void broadcast(final K key, final V value) {
-        cache.broadcast(type, new Function<WriteBuffer, Void>() {
-            @Override
-            @Nullable
-            public Void apply(@Nullable WriteBuffer buffer) {
+        cache.broadcast(type, buffer -> {
                 keyType.write(buffer, key);
                 if (value == null) {
                     buffer.put((byte) 0);
@@ -174,8 +168,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
                     valueType.write(buffer, value);
                 }
                 return null;
-            }
-        });
+            });
     }
 
     private void write(final K key, final V value) {
