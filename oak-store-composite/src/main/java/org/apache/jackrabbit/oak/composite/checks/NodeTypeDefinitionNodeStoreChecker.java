@@ -26,8 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -48,8 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 /**
  * Checks that nodes present in a mount are consistent with the global node type definitions
  */
-@Component
-@Service(MountedNodeStoreChecker.class)
+@Component(service = {MountedNodeStoreChecker.class})
 public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreChecker<NodeTypeDefinitionNodeStoreChecker.Context> {
     
     @Override

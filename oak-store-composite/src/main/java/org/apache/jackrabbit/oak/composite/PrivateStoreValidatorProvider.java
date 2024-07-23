@@ -17,10 +17,14 @@
 
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.felix.scr.annotations.*;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ComponentPropertyType;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.commit.*;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -36,20 +40,22 @@ import java.util.Map;
 /**
  * {@link Validator} which detects change commits to the read only mounts.
  */
-@Component(label = "Apache Jackrabbit Oak PrivateStoreValidatorProvider")
+@Component
 public class PrivateStoreValidatorProvider extends ValidatorProvider {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final String ROOT_PATH = "/";
 
-    @Property(
-        boolValue = true,
-        label = "Fail when detecting commits to the read-only stores",
-        description = "Commits will fail if set to true when detecting changes to any read-only store. If set to false the commit information is only logged."
-    )
-    private static final String PROP_FAIL_ON_DETECTION = "failOnDetection";
+    @ComponentPropertyType
+    @interface Config {
+        @AttributeDefinition(
+                name = "Fail when detecting commits to the read-only stores",
+                description = "Commits will fail if set to true when detecting changes to any read-only store. If set to false the commit information is only logged."
+        )
+        boolean failOnDetection() default true;
+    }
+
     private boolean failOnDetection;
 
-    @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     private ServiceRegistration serviceRegistration;
@@ -60,8 +66,8 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
     }
 
     @Activate
-    private void activate(BundleContext bundleContext, Map<String, ?> config) {
-        failOnDetection = PropertiesUtil.toBoolean(config.get(PROP_FAIL_ON_DETECTION), true);
+    private void activate(BundleContext bundleContext, Config config) {
+        failOnDetection = config.failOnDetection();
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
             serviceRegistration = bundleContext.registerService(EditorProvider.class.getName(), this, null);
@@ -89,6 +95,20 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
 
     boolean isFailOnDetection() {
         return failOnDetection;
+    }
+
+    @SuppressWarnings("unused")
+    @Reference(name = "mountInfoProvider", service = MountInfoProvider.class)
+    protected void bindMountInfoProvider(MountInfoProvider mip) {
+        this.mountInfoProvider = mip;
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindMountInfoProvider(MountInfoProvider mip) {
+        if (this.mountInfoProvider == mip) {
+            this.mountInfoProvider = null;
+        }
+
     }
 
     private class PrivateStoreValidator extends DefaultValidator {

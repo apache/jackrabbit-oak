@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.composite.checks;
 
 import java.util.Set;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,8 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
-@Component
-@Service(MountedNodeStoreChecker.class)
+@Component(service={MountedNodeStoreChecker.class})
 public class NamespacePrefixNodestoreChecker implements MountedNodeStoreChecker<NamespacePrefixNodestoreChecker.Context> {
 
     @Override
