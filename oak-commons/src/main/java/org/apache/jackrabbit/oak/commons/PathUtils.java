@@ -367,11 +367,13 @@ public final class PathUtils {
         if (denotesRoot(ancestor)) {
             if (denotesRoot(path)) {
                 return false;
+            } else {
+                return path.startsWith(ancestor);
             }
         } else {
-            ancestor += "/";
+            // Equivalent to path.startsWith(ancestor + "/") but avoids allocating a new string
+            return path.startsWith(ancestor) && path.length() > ancestor.length() && path.charAt(ancestor.length()) == '/';
         }
-        return path.startsWith(ancestor);
     }
 
     /**
