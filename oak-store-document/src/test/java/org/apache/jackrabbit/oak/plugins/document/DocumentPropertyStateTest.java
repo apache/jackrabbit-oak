@@ -304,9 +304,6 @@ public class DocumentPropertyStateTest {
             if (nodeStore != null) {
                 nodeStore.dispose();
             }
-            if (store != null) {
-                store.dispose();
-            }
         }
 
     }
