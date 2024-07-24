@@ -384,22 +384,9 @@ public final class PathUtils {
      * @return true if the path is a direct offspring of the ancestor
      */
     public static boolean isDirectAncestor(String ancestor, String path) {
-        assert isValid(ancestor) : "Invalid parent path [" + ancestor + "]";
-        assert isValid(path) : "Invalid path [" + path + "]";
-        if (ancestor.isEmpty() || path.isEmpty()) {
-            return false;
-        }
-        // The root is never a child of another path
-        if (PathUtils.denotesRoot(path)) {
-            return false;
-        }
-        int idx = path.lastIndexOf('/');
-        if (idx == 0) {
-            // path is a top level path. So it is only an immediate child of root
-            return PathUtils.denotesRoot(ancestor);
-        } else {
-            return idx == ancestor.length() && path.regionMatches(0, ancestor, 0, idx);
-        }
+        int lastSlashInPath = path.lastIndexOf('/');
+        return ((PathUtils.denotesRoot(ancestor) && lastSlashInPath == 0) || lastSlashInPath == ancestor.length())
+                && isAncestor(ancestor, path);
     }
 
     /**
