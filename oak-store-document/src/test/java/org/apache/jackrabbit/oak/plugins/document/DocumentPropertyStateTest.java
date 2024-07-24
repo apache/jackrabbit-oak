@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -34,9 +33,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -233,8 +229,8 @@ public class DocumentPropertyStateTest {
                 "tab:a\tb", "nul:a\u0000b"};
 
         for (String test : tests) {
-                DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
-                assertEquals(test, state.getValue());
+            DocumentPropertyState state = new DocumentPropertyState(store, "propertyName", test, Compression.GZIP);
+            assertEquals(test, state.getValue());
         }
     }
 
@@ -320,8 +316,7 @@ public class DocumentPropertyStateTest {
         if (compressionEnabled) {
             DocumentPropertyState.setCompressionThreshold(1);
         }
-        DocumentPropertyState documentPropertyState = new DocumentPropertyState(nodeStore, "p", test, Compression.GZIP);
-        builder.child(TEST_NODE).setProperty("p", documentPropertyState.getValue(), Type.STRING);
+        builder.child(TEST_NODE).setProperty("p", test, Type.STRING);
         TestUtils.merge(nodeStore, builder);
 
         PropertyState p = nodeStore.getRoot().getChildNode(TEST_NODE).getProperty("p");
