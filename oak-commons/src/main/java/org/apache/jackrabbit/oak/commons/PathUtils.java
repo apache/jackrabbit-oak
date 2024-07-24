@@ -375,6 +375,32 @@ public final class PathUtils {
     }
 
     /**
+     * Check if a path is a direct ancestor of another path.
+     *
+     * @param ancestor the ancestor path
+     * @param path     the potential direct offspring path
+     * @return true if the path is a direct offspring of the ancestor
+     */
+    public static boolean isDirectAncestor(String ancestor, String path) {
+        assert isValid(ancestor) : "Invalid parent path [" + ancestor + "]";
+        assert isValid(path) : "Invalid path [" + path + "]";
+        if (ancestor.isEmpty() || path.isEmpty()) {
+            return false;
+        }
+        // The root is never a child of another path
+        if (PathUtils.denotesRoot(path)) {
+            return false;
+        }
+        int idx = path.lastIndexOf('/');
+        if (idx == 0) {
+            // path is a top level path. So it is only an immediate child of root
+            return PathUtils.denotesRoot(ancestor);
+        } else {
+            return idx == ancestor.length() && path.regionMatches(0, ancestor, 0, idx);
+        }
+    }
+
+    /**
      * Relativize a path wrt. a parent path such that
      * {@code relativize(parentPath, concat(parentPath, path)) == paths}
      * holds.
