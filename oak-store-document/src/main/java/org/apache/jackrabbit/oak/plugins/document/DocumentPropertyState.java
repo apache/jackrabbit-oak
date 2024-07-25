@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.json.ParseUtils;
 import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
@@ -255,10 +256,11 @@ final class DocumentPropertyState implements PropertyState {
     static PropertyState readProperty(String name, DocumentNodeStore store, JsopReader reader) {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
-            try {
-                return new LongPropertyState(name, Long.parseLong(number));
-            } catch (NumberFormatException e) {
+            Long maybeLong = ParseUtils.tryParse(number);
+            if (maybeLong == null) {
                 return new DoublePropertyState(name, Double.parseDouble(number));
+            } else {
+                return new LongPropertyState(name, maybeLong);
             }
         } else if (reader.matches(JsopReader.TRUE)) {
             return BooleanPropertyState.booleanProperty(name, true);
@@ -313,12 +315,13 @@ final class DocumentPropertyState implements PropertyState {
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
-                try {
-                    type = PropertyType.LONG;
-                    values.add(Long.parseLong(number));
-                } catch (NumberFormatException e) {
+                Long maybeLong = ParseUtils.tryParse(number);
+                if (maybeLong == null) {
                     type = PropertyType.DOUBLE;
                     values.add(Double.parseDouble(number));
+                } else {
+                    type = PropertyType.LONG;
+                    values.add(maybeLong);
                 }
             } else if (reader.matches(JsopReader.TRUE)) {
                 type = PropertyType.BOOLEAN;

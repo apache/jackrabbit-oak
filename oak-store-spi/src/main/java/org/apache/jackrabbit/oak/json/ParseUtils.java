@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.json;
 
 import java.util.Arrays;
 
-class ParseUtils {
+public class ParseUtils {
     /*
      * Taken from https://github.com/google/guava/blob/v33.2.1/guava/src/com/google/common/primitives/Longs.java
      */
@@ -51,8 +51,11 @@ class ParseUtils {
     /*
      * Simplified version of https://github.com/google/guava/blob/v33.2.1/guava/src/com/google/common/primitives/Longs.java
      * This version is hardcoded to support only radix 10
+     *
+     * Compared to Long.parseLong(), this version does not throw an exception when it fails to parse the value, instead
+     * it returns null. This is more efficient when the input is expected to often be invalid.
      */
-    static Long tryParse(String string) {
+    public static Long tryParse(String string) {
         if (string == null) {
             return null;
         }
