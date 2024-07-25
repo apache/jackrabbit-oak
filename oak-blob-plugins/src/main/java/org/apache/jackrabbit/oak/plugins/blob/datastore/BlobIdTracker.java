@@ -29,8 +29,8 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -504,13 +504,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
             // Retrieve the process file if it exists
             processFile = FileTreeTraverser.breadthFirst(rootDir)
-                    .filter(file -> IN_PROCESS.filter().apply(file))
+                    .filter(file -> IN_PROCESS.filter().test(file))
                     .findFirst()
                     .orElse(null);
 
             // Get the List of all generations available.
             generations = synchronizedList(FileTreeTraverser.breadthFirst(rootDir)
-                    .filter(file -> GENERATION.filter().apply(file))
+                    .filter(file -> GENERATION.filter().test(file))
                     .collect(toList()));
 
             // Close/rename any existing in process
@@ -760,7 +760,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
                 @Override Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override public boolean test(File input) {
                             return input.getName().endsWith(workingCopySuffix) && input.getName().startsWith(fileNamePrefix);
                         }
                     };
@@ -773,7 +773,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
                 @Override Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override public boolean test(File input) {
                             return input.getName().startsWith(fileNamePrefix)
                                 && input.getName().contains(genFileNameSuffix)
                                 && !input.getName().endsWith(workingCopySuffix);
@@ -788,7 +788,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
                 @Override Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override public boolean test(File input) {
                             return input.getName().endsWith(mergedFileSuffix)
                                 && input.getName().startsWith(fileNamePrefix);
                         }
