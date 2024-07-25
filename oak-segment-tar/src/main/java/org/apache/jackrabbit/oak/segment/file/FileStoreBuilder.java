@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
@@ -36,8 +35,6 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
@@ -69,7 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
-    
+
     private static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
@@ -625,21 +622,11 @@ public class FileStoreBuilder {
         }
 
         void evictOldGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation < newGeneration;
-                }
-            });
+            evictCaches(generation -> generation < newGeneration);
         }
 
         void evictGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation == newGeneration;
-                }
-            });
+            evictCaches(generation -> generation == newGeneration);
         }
     }
 }
