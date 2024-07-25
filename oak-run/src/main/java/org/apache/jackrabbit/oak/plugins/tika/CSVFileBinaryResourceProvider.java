@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
@@ -76,12 +75,7 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
         return FluentIterable.from(parser)
                 .transform(new RecordTransformer()::apply)
                 .filter(notNull())
-                .filter(new Predicate<BinaryResource>() {
-                    @Override
-                    public boolean apply(BinaryResource input) {
-                        return PathUtils.isAncestor(path, input.getPath());
-                    }
-                });
+                .filter(input -> PathUtils.isAncestor(path, input.getPath()));
     }
 
     @Override
