@@ -377,6 +377,19 @@ public final class PathUtils {
     }
 
     /**
+     * Check if a path is a direct ancestor of another path.
+     *
+     * @param ancestor the ancestor path
+     * @param path     the potential direct offspring path
+     * @return true if the path is a direct offspring of the ancestor
+     */
+    public static boolean isDirectAncestor(String ancestor, String path) {
+        int lastSlashInPath = path.lastIndexOf('/');
+        return ((PathUtils.denotesRoot(ancestor) && lastSlashInPath == 0) || lastSlashInPath == ancestor.length())
+                && isAncestor(ancestor, path);
+    }
+
+    /**
      * Relativize a path wrt. a parent path such that
      * {@code relativize(parentPath, concat(parentPath, path)) == paths}
      * holds.
