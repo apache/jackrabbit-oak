@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
 
@@ -48,7 +48,7 @@ final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
         while (next == null) {
             if (nextEntries.hasNext()) {
                 PermissionEntry pe = nextEntries.next();
-                if (predicate.apply(pe)) {
+                if (predicate.test(pe)) {
                     next = pe;
                 }
             } else {
