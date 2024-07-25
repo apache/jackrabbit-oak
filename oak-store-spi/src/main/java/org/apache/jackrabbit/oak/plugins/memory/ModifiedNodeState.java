@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -40,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 
 /**
@@ -171,7 +171,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             Predicate<PropertyState> predicate = Predicates.compose(
                     not(in(properties.keySet())), GET_NAME::apply);
             return concat(
-                    filter(base.getProperties(), predicate),
+                    filter(base.getProperties(), predicate::test),
                     filter(properties.values(), notNull()));
         }
     }
@@ -221,7 +221,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
             return concat(
                     filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
-                    filterValues(nodes, NodeState.EXISTS).keySet());
+                    filterValues(nodes, NodeState.EXISTS::test).keySet());
         }
     }
 
@@ -352,8 +352,8 @@ public class ModifiedNodeState extends AbstractNodeState {
             Predicate<ChildNodeEntry> predicate = Predicates.compose(
                     not(in(nodes.keySet())), ChildNodeEntry.GET_NAME::apply);
             return concat(
-                    filter(base.getChildNodeEntries(), predicate),
-                    iterable(filterValues(nodes, NodeState.EXISTS).entrySet()));
+                    filter(base.getChildNodeEntries(), predicate::test),
+                    iterable(filterValues(nodes, NodeState.EXISTS::test).entrySet()));
         }
     }
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -32,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -237,22 +235,14 @@ public class BackgroundObserver implements Observer, Closeable {
 
             @Override
             public int getLocalEventCount() {
-                return size(filter(queue, new Predicate<ContentChange>() {
-                    @Override
-                    public boolean apply(ContentChange input) {
-                        return !input.info.isExternal();
-                    }
-                }));
+                return size(filter(queue,
+                        input -> !input.info.isExternal()));
             }
 
             @Override
             public int getExternalEventCount() {
-                return size(filter(queue, new Predicate<ContentChange>() {
-                    @Override
-                    public boolean apply(ContentChange input) {
-                        return input.info.isExternal();
-                    }
-                }));
+                return size(filter(queue,
+                        input -> input.info.isExternal()));
             }
         };
     }
@@ -285,7 +275,6 @@ public class BackgroundObserver implements Observer, Closeable {
 
         if (full && last != null) { // last is only null at the beginning
             // queue is full.
-            
             // when the change can't be added to the queue because it's full
             // remove the last entry and add an explicit overflow entry instead.
             queue.remove(last);
