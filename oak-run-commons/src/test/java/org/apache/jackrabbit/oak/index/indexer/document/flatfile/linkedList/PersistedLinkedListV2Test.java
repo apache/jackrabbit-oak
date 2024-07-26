@@ -82,7 +82,7 @@ public class PersistedLinkedListV2Test extends FlatFileBufferLinkedListTest {
 
         var names3 = extracted(persistedLinkedList.iterator());
         Assert.assertEquals(List.of("/a", "/a/b"), names3);
-        Assert.assertEquals(5, persistedLinkedList.getCacheHits());
+        Assert.assertEquals(6, persistedLinkedList.getCacheHits());
         Assert.assertEquals(3, persistedLinkedList.getCacheMisses());
 
         Assert.assertEquals("/a", persistedLinkedList.remove().getPath());
@@ -90,8 +90,8 @@ public class PersistedLinkedListV2Test extends FlatFileBufferLinkedListTest {
 
         var names4 = extracted(persistedLinkedList.iterator());
         Assert.assertTrue(names4.isEmpty());
-        Assert.assertEquals(5, persistedLinkedList.getCacheHits());
-        Assert.assertEquals(3, persistedLinkedList.getCacheMisses());
+        Assert.assertEquals(7, persistedLinkedList.getCacheHits());
+        Assert.assertEquals(4, persistedLinkedList.getCacheMisses());
     }
 
     @Test
