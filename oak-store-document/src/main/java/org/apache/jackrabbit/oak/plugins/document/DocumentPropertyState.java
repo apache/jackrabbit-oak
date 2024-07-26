@@ -33,10 +33,10 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
-import org.apache.jackrabbit.oak.json.ParseUtils;
 import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
@@ -256,7 +256,7 @@ final class DocumentPropertyState implements PropertyState {
     static PropertyState readProperty(String name, DocumentNodeStore store, JsopReader reader) {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
-            Long maybeLong = ParseUtils.tryParse(number);
+            Long maybeLong = LongUtils.tryParse(number);
             if (maybeLong == null) {
                 return new DoublePropertyState(name, Double.parseDouble(number));
             } else {
@@ -315,7 +315,7 @@ final class DocumentPropertyState implements PropertyState {
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
-                Long maybeLong = ParseUtils.tryParse(number);
+                Long maybeLong = LongUtils.tryParse(number);
                 if (maybeLong == null) {
                     type = PropertyType.DOUBLE;
                     values.add(Double.parseDouble(number));
