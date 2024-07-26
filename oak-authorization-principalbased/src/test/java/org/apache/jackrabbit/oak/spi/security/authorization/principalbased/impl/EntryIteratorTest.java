@@ -33,7 +33,7 @@ public class EntryIteratorTest {
 
     @Test
     public void testIterationStopsAtRootPath() {
-        EntryIterator it = new EntryIterator("/some/test/path", Predicates.alwaysTrue(), cache);
+        EntryIterator it = new EntryIterator("/some/test/path", x -> true, cache);
         while (it.hasNext()) {
             it.next();
         }

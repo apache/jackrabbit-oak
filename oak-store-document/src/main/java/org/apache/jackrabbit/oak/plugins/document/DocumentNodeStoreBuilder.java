@@ -72,7 +72,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
@@ -170,7 +169,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private long maxRevisionGCAgeMillis = TimeUnit.SECONDS.toMillis(DEFAULT_VER_GC_MAX_AGE);
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
-    private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
+    private Predicate<Path> nodeCachePredicate = x -> true;
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;

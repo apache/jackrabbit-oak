@@ -45,7 +45,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
@@ -811,7 +810,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
              * @return a predicate to select particular file types
              */
             Predicate<File> filter() {
-                return alwaysTrue();
+                return x -> true;
             }
         }
     }

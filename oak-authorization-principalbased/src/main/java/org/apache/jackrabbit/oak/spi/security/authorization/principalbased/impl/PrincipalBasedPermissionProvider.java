@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -268,7 +267,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         PrivilegeBits bits = PrivilegeBits.getInstance();
         PrivilegeBits parentBits = PrivilegeBits.getInstance();
 
-        Iterator<PermissionEntry> it = getEntryIterator(path, Predicates.alwaysTrue());
+        Iterator<PermissionEntry> it = getEntryIterator(path, x -> true);
         while (it.hasNext()) {
             PermissionEntry entry = it.next();
             PrivilegeBits entryBits = entry.getPrivilegeBits();
