@@ -599,7 +599,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      */
     private boolean indexAggregatedNode(String path, D doc, Aggregate.NodeIncludeResult result) {
         //rule for node being aggregated might be null if such nodes
-        //are not indexed on their own. In such cases we relly in current
+        //are not indexed on their own. In such cases we rely on current
         //rule for some checks
         IndexDefinition.IndexingRule ruleAggNode = definition
                 .getApplicableIndexingRule(getPrimaryTypeName(result.nodeState));
