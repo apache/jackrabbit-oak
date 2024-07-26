@@ -30,6 +30,11 @@ final class EntryPredicate {
     private EntryPredicate() {}
 
     @NotNull
+    protected static Predicate<PermissionEntry> ALWAYS_FALSE() {
+        return x -> false;
+    };
+
+    @NotNull
     static Predicate<PermissionEntry> create() {
         return permissionEntry -> permissionEntry.matches();
     }
@@ -59,10 +64,10 @@ final class EntryPredicate {
     @NotNull
     static Predicate<PermissionEntry> createParent(@NotNull String treePath, @Nullable Tree parentTree, long permissions) {
         if (!Permissions.respectParentPermissions(permissions)) {
-            return x -> false;
+            return ALWAYS_FALSE();
         }
         if (treePath.isEmpty() || PathUtils.denotesRoot(treePath)) {
-            return x -> false;
+            return ALWAYS_FALSE();
         } else if (parentTree != null && parentTree.exists()) {
             return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
         } else {
@@ -74,7 +79,7 @@ final class EntryPredicate {
     @NotNull
     static Predicate<PermissionEntry> createParent(@NotNull Tree tree, long permissions) {
         if (!Permissions.respectParentPermissions(permissions)) {
-            return x -> false;
+            return ALWAYS_FALSE();
         }
         if (!tree.exists()) {
             return createParent(tree.getPath(), tree.getParent(), permissions);
@@ -83,7 +88,7 @@ final class EntryPredicate {
                 Tree parentTree = tree.getParent();
                 return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
             } else {
-                return x -> false;
+                return ALWAYS_FALSE();
             }
         }
     }

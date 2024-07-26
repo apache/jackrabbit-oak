@@ -136,19 +136,19 @@ public class EntryPredicateTest {
 
     @Test
     public void testCreateParentPathReadPermission() {
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(tree.getPath(), null, Permissions.READ));
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(tree.getPath(), mock(Tree.class), Permissions.READ));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(tree.getPath(), null, Permissions.READ));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(tree.getPath(), mock(Tree.class), Permissions.READ));
     }
 
     @Test
     public void testCreateParentPathEmpty() {
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent("", null, Permissions.ALL));
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent("", tree, Permissions.ALL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent("", null, Permissions.ALL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent("", tree, Permissions.ALL));
     }
 
     @Test
     public void testCreateParentPathRoot() {
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(PathUtils.ROOT_PATH, tree, Permissions.ALL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(PathUtils.ROOT_PATH, tree, Permissions.ALL));
     }
 
     @Test
@@ -213,7 +213,7 @@ public class EntryPredicateTest {
     public void testCreateParentTreeReadPermission() {
         when(tree.exists()).thenReturn(true);
 
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(tree, Permissions.READ));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(tree, Permissions.READ));
     }
 
     @Test
@@ -240,7 +240,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateParentTreeRoot() {
         Tree rootTree = mockTree(PathUtils.ROOT_PATH, true);
-        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(rootTree, Permissions.REMOVE|Permissions.MODIFY_ACCESS_CONTROL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(rootTree, Permissions.REMOVE|Permissions.MODIFY_ACCESS_CONTROL));
     }
 
     @Test
