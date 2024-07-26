@@ -55,7 +55,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeTypeIterator;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -435,7 +434,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
             this.blobSize = Math.max(1024, getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE));
 
-            this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
+            this.aggregates = nodeTypeIndex ? Map.of() : collectAggregates(defn);
 
             NodeState rulesState = defn.getChildNode(FulltextIndexConstants.INDEX_RULES);
             if (!rulesState.exists()) {
@@ -906,7 +905,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         //registered nodeType in the system
 
         if (!indexRules.exists()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         if (!hasOrderableChildren(indexRules)) {
@@ -930,7 +929,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             if (!rule.inherited) {
                 //Trim the list to rule's nodeType so that inheritance check
                 //is not performed for other nodeTypes
-                ntNames = Collections.singletonList(rule.getNodeTypeName());
+                ntNames = List.of(rule.getNodeTypeName());
             }
 
             for (String ntName : ntNames) {
@@ -1598,7 +1597,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
         //If no explicit nodeType defined then all config applies for nt:base
         if (declaringNodeTypes.isEmpty()) {
-            declaringNodeTypes = Collections.singleton(NT_BASE);
+            declaringNodeTypes = Set.of(NT_BASE);
         }
 
         Set<String> propNamesSet = new HashSet<>();
@@ -1724,7 +1723,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Set<String> getMultiProperty(NodeState definition, String propName) {
         PropertyState pse = definition.getProperty(propName);
-        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.emptySet();
+        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Set.of();
     }
 
     private static Set<String> toLowerCase(Set<String> values) {
@@ -1778,7 +1777,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Iterable<String> getMixinTypeNames(NodeState state) {
         PropertyState property = state.getProperty(JcrConstants.JCR_MIXINTYPES);
-        return property != null ? property.getValue(NAMES) : Collections.emptyList();
+        return property != null ? property.getValue(NAMES) : List.of();
     }
 
     private static boolean hasOrderableChildren(NodeState state) {
