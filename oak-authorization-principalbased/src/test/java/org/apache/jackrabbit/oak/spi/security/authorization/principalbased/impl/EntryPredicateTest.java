@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -137,19 +136,19 @@ public class EntryPredicateTest {
 
     @Test
     public void testCreateParentPathReadPermission() {
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(tree.getPath(), null, Permissions.READ));
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(tree.getPath(), mock(Tree.class), Permissions.READ));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(tree.getPath(), null, Permissions.READ));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(tree.getPath(), mock(Tree.class), Permissions.READ));
     }
 
     @Test
     public void testCreateParentPathEmpty() {
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent("", null, Permissions.ALL));
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent("", tree, Permissions.ALL));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent("", null, Permissions.ALL));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent("", tree, Permissions.ALL));
     }
 
     @Test
     public void testCreateParentPathRoot() {
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(PathUtils.ROOT_PATH, tree, Permissions.ALL));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(PathUtils.ROOT_PATH, tree, Permissions.ALL));
     }
 
     @Test
@@ -158,7 +157,7 @@ public class EntryPredicateTest {
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, null, Permissions.ALL);
         predicate.test(pe);
-        
+
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(PARENT_PATH, false);
         verifyNoMoreInteractions(pe);
@@ -214,7 +213,7 @@ public class EntryPredicateTest {
     public void testCreateParentTreeReadPermission() {
         when(tree.exists()).thenReturn(true);
 
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(tree, Permissions.READ));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(tree, Permissions.READ));
     }
 
     @Test
@@ -223,7 +222,7 @@ public class EntryPredicateTest {
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.ADD_NODE|Permissions.READ_NODE);
         predicate.test(pe);
-        
+
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(PARENT_PATH, false);
         verifyNoMoreInteractions(pe);
@@ -241,7 +240,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateParentTreeRoot() {
         Tree rootTree = mockTree(PathUtils.ROOT_PATH, true);
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(rootTree, Permissions.REMOVE|Permissions.MODIFY_ACCESS_CONTROL));
+        assertSame((Predicate<PermissionEntry>)x -> false, EntryPredicate.createParent(rootTree, Permissions.REMOVE|Permissions.MODIFY_ACCESS_CONTROL));
     }
 
     @Test

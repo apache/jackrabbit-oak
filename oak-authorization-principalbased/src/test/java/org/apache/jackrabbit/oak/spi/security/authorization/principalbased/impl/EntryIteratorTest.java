@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.junit.Test;
 
@@ -45,7 +44,7 @@ public class EntryIteratorTest {
 
     @Test
     public void testRespectsPredicate() {
-        EntryIterator it = new EntryIterator("/some/test/path", Predicates.alwaysFalse(), cache);
+        EntryIterator it = new EntryIterator("/some/test/path", x -> false, cache);
         assertFalse(it.hasNext());
     }
 }
