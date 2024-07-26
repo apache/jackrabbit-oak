@@ -61,6 +61,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -69,7 +70,6 @@ import java.util.stream.Stream;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -362,17 +362,17 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         protected IndexFormatVersion version;
 
         public Builder root(NodeState root) {
-            this.root = checkNotNull(root);
+            this.root = Objects.requireNonNull(root);
             return this;
         }
 
         public Builder defn(NodeState defn) {
-            this.defn = checkNotNull(defn);
+            this.defn = Objects.requireNonNull(defn);
             return this;
         }
 
         public Builder indexPath(String indexPath) {
-            this.indexPath = checkNotNull(indexPath);
+            this.indexPath = Objects.requireNonNull(indexPath);
             return this;
         }
 
@@ -423,10 +423,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     protected IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
         try {
             this.root = root;
-            this.version = checkNotNull(version);
+            this.version = Objects.requireNonNull(version);
             this.uid = uid;
             this.definition = defn;
-            this.indexPath = checkNotNull(indexPath);
+            this.indexPath = Objects.requireNonNull(indexPath);
             this.indexName = indexPath;
             this.indexTags = getOptionalValues(defn, IndexConstants.INDEX_TAGS, Type.STRINGS, String.class);
             this.indexSelectionPolicy
