@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -315,6 +315,6 @@ public abstract class AbstractTree implements Tree {
                     AbstractTree child = createChild(name);
                     return child.exists() ? child : null;
                 });
-        return filter(children, notNull());
+        return filter(children, x -> x != null);
     }
 }

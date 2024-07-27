@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
@@ -172,7 +172,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                     not(in(properties.keySet())), GET_NAME::apply);
             return concat(
                     filter(base.getProperties(), predicate::test),
-                    filter(properties.values(), notNull()));
+                    filter(properties.values(), x -> x != null));
         }
     }
 

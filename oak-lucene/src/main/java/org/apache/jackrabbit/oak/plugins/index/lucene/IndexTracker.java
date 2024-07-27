@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
@@ -188,7 +188,7 @@ public class IndexTracker {
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
                     .putAll(Maps.filterKeys(original, not(in(updates.keySet()))))
-                    .putAll(Maps.filterValues(updates, notNull()))
+                    .putAll(Maps.filterValues(updates, x -> x != null))
                     .build();
 
             badIndexTracker.markGoodIndexes(updates.keySet());

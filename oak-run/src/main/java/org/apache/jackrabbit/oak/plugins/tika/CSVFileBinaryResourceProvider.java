@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_ENCODING;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIMETYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
@@ -74,8 +74,7 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
         closer.register(parser);
         return FluentIterable.from(parser)
                 .transform(new RecordTransformer()::apply)
-                .filter(notNull())
-                .filter(input -> PathUtils.isAncestor(path, input.getPath()));
+                .filter(input -> input != null && PathUtils.isAncestor(path, input.getPath()));
     }
 
     @Override
