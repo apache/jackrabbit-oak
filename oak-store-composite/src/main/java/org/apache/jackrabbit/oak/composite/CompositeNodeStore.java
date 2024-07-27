@@ -55,7 +55,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.isNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
@@ -270,7 +269,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             }
             nodeStates.put(nodeStore, nodeState);
         }
-        if (any(nodeStates.values(), isNull())) {
+        if (any(nodeStates.values(), x -> x == null)) {
             LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return null;
         }
