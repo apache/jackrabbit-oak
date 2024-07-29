@@ -90,6 +90,9 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
 
     // Estimation of the cache size
     private long cacheSizeEstimationBytes;
+    // If the sanity check on the cache size estimation triggers, log it only once to avoid filling up the logs with
+    // the same message
+    private boolean loggedCacheSizeEstimationMismatch = false;
 
     // Metrics
     private long cacheHits;
@@ -130,7 +133,7 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
     @Override
     public void add(@NotNull NodeStateEntry item) {
         Preconditions.checkArgument(item != null, "Can't add null to the list");
-        Long index = tailIndex++;
+        long index = tailIndex++;
         addEntryToCache(index, item);
     }
 
@@ -164,6 +167,10 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
         headIndex++;
         totalEntries--;
         if (totalEntries == 0) {
+            if (cacheSizeEstimationBytes != 0 && !loggedCacheSizeEstimationMismatch) {
+                loggedCacheSizeEstimationMismatch = true;
+                LOG.warn("Total entries is 0, but cache size estimation is not zero: {}. Metrics: {}", cacheSizeEstimationBytes, formatMetrics());
+            }
             map.clear();
             cache.clear();
         }
@@ -183,10 +190,10 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
         return result;
     }
 
-    private void addEntryToCache(Long index, NodeStateEntry entry) {
+    private void addEntryToCache(long index, NodeStateEntry entry) {
         long now = System.currentTimeMillis();
         long newCacheSizeBytes = cacheSizeEstimationBytes + entry.estimatedMemUsage();
-        if (cache.size() == cacheSizeLimit || newCacheSizeBytes > cacheSizeLimitBytes) {
+        if (cache.size() >= cacheSizeLimit || newCacheSizeBytes > cacheSizeLimitBytes) {
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Mem cache size {}/{} or byte size {}/{} would exceed maximum. Writing to persistent map: {} = {}, entry size: {}",
                         newCacheSizeBytes, cacheSizeLimitBytes, cache.size() + 1, cacheSizeLimit, index, entry.getPath(), entry.estimatedMemUsage());
