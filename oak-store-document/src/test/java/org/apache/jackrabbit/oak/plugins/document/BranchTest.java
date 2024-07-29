@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,8 +30,11 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Rule;
 import org.junit.Test;
+
+import junitx.util.PrivateAccessor;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
@@ -93,6 +97,8 @@ public class BranchTest {
 
     @Test
     public void rootBranchCommitChildTest() throws Exception {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setClusterId(1)
@@ -128,7 +134,115 @@ public class BranchTest {
     }
 
     @Test
+    public void unmergedBCOnRoot() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+
+        // the shared main store
+        MemoryDocumentStore memStore = new MemoryDocumentStore();
+
+        FailingDocumentStore store1 = new FailingDocumentStore(memStore);
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setClusterId(2)
+                .clock(clock)
+                .setDocumentStore(store1).build();
+
+        // create /a as some initial content
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("a");
+        merge(ns1, builder);
+
+        builder.child("c");
+        merge(ns1, builder);
+
+        builder.child("a").setProperty("propA", "valueA");
+        builder.child("c").setProperty("propC", "valueC");
+        merge(ns1, builder);
+
+        // then create /a/b and /a.rootprop in a failed branch commit
+        builder = ns1.getRoot().builder();
+        builder.setProperty("rootprop", "v");
+        builder.child("a").child("b");
+        store1.fail().on(NODES).in(Thread.currentThread()).on("0:/").after(1).eternally();
+        try {
+            persistToBranch(builder);
+            fail("supposed to fail");
+        } catch(Exception e) {
+            // ok
+        }
+        // let anything fail coming from store1
+        store1.fail().eternally();
+
+        // this now left a "_commitRoot" and a "_bc" entry on root,
+        // both from the unmerged branch commit. Given there's the "_bc"
+        // as well, makes things work fine initially though.
+
+        // wait a little to free up the clusterId - 5min
+        clock.waitUntil(clock.getTime() + 5 * 60 * 1000);
+
+        // restart clusterId 1
+        // this will clean unmerged bcs on root - except not the _commitRoot
+        // so the result of this is what the bug reported:
+        // a "_commitRoot" entry on root, without a corresponding "_bc" entry
+        // that would mark it as a branch commit.
+        DocumentNodeStore restartedNs1 = builderProvider.newBuilder()
+                .setClusterId(2)
+                .clock(clock)
+                .setDocumentStore(memStore).build();
+        restartedNs1.runBackgroundOperations();
+
+        //store add a branch and merge it
+        NodeBuilder builder2 = restartedNs1.getRoot().builder();
+        builder2.child("d");
+        builder2.child("d").setProperty("propD", "valueD");
+        persistToBranch(builder2);
+
+        // restart of 1 caused lastrevagent to run - as part of which it
+        // did actually resolve the root node correctly
+        assertFalse(restartedNs1.getRoot().hasProperty("rootprop"));
+        assertFalse(restartedNs1.getRoot().getChildNode("a").hasChildNode("b"));
+        // so, as this doesn't trigger the bug yet, let's dispose restarted 1
+        restartedNs1.dispose();
+
+        // upon a second restart of 1 (or actually any other clusterId)
+        // it will resolve the root node wrongly - as it includes _commitRoot
+        // which was from an unmerged branch commit - except it doesn't consider
+        // it a branch commit anymore (so goes by sweeprev and considers it committed)
+        restartedNs1 = builderProvider.newBuilder()
+                .setClusterId(5)
+                .clock(clock)
+                .setDocumentStore(memStore).build();
+        restartedNs1.runBackgroundOperations();
+
+        // checking for rootprop should now not find it - except the bug thinks otherwise
+        assertFalse(restartedNs1.getRoot().hasProperty("rootprop"));
+        // the caching of the unmerged bc commit value makes also /a/b appear,
+        // even though it was never successfully merged.
+        assertFalse(restartedNs1.getRoot().getChildNode("a").hasChildNode("b"));
+
+        // if the caches are invalidated - and /a/b freshly resolved - then it works fine
+        invalidateCommitValueResolverCache(restartedNs1);
+        restartedNs1.getNodeCache().invalidateAll();
+        assertFalse(restartedNs1.getRoot().getChildNode("a").hasChildNode("b"));
+        // except the root node is still the same one from above, so root still has the bug
+        assertFalse(restartedNs1.getRoot().hasProperty("rootprop"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void invalidateCommitValueResolverCache(DocumentNodeStore dns) throws NoSuchFieldException {
+        CachingCommitValueResolver cvr = (CachingCommitValueResolver) PrivateAccessor
+                .getField(dns, "commitValueResolver");
+        Cache<Revision, String> commitValueCache = (Cache<Revision, String>) PrivateAccessor
+                .getField(cvr, "commitValueCache");
+        commitValueCache.invalidateAll();
+    }
+
+    @Test
     public void manyBranchCommitsDepthTest() throws Exception {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setClusterId(1)
@@ -157,6 +271,8 @@ public class BranchTest {
 
     @Test
     public void manyBranchCommitsWidthTest() throws Exception {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setClusterId(1)
@@ -222,6 +338,9 @@ public class BranchTest {
 
     @Test
     public void orphanedBranchTest() {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
+
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).build();
@@ -240,6 +359,8 @@ public class BranchTest {
 
     @Test
     public void compareBranchStates() {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setAsyncDelay(0).build();
         ns.runBackgroundOperations();

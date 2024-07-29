@@ -1943,6 +1943,7 @@ public final class NodeDocument extends Document {
     public static void removeBranchCommit(@NotNull UpdateOp op,
                                           @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
+        checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
     }
 
     public static void setSweepRevision(@NotNull UpdateOp op,

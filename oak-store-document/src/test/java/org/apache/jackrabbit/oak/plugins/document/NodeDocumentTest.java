@@ -329,7 +329,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 50, c -> true);
-        verify(store, times(6)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        verify(store, times(9)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
 
     }
@@ -379,7 +379,7 @@ public class NodeDocumentTest {
 
         final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 40,
                 clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
-        verify(store, times(8)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        verify(store, times(11)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
 
     }

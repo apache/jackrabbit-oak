@@ -53,6 +53,8 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     private List<FailedUpdateOpListener> listeners = new ArrayList<>();
 
+    private Thread inThread;
+
     private boolean afterOp = false;
 
     private boolean noDispose = false;
@@ -120,6 +122,11 @@ class FailingDocumentStore extends DocumentStoreWrapper {
                 idIncludeList = new LinkedList<>();
             }
             idIncludeList.add(idInclude);
+            return this;
+        }
+
+        Fail in(Thread thread) {
+            inThread = thread;
             return this;
         }
     }
@@ -294,6 +301,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private <T extends Document> void maybeFail(Collection<T> collection,
                                                 List<UpdateOp> remainingOps) {
         if ((collectionIncludeList == null || collectionIncludeList.contains(collection)) &&
+                (inThread == null || inThread == Thread.currentThread()) &&
                 (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) &&
                 (idIncludeList == null || (!remainingOps.isEmpty()
                         && idIncludeList.contains(remainingOps.get(0).getId())))) {
