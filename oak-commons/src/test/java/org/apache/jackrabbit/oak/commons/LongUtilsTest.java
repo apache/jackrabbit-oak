@@ -62,8 +62,8 @@ public class LongUtilsTest {
 
     private void assertParsingFailure(String value) {
         try {
-            Long.parseLong(value);
-            fail("Expected NumberFormatException");
+            long parsed = Long.parseLong(value);
+            fail("Expected NumberFormatException but instead the string: " + value + " was parsed as: " + parsed);
         } catch (NumberFormatException e) {
             // OK
         }
