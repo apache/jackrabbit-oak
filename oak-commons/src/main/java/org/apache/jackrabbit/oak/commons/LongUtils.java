@@ -80,11 +80,13 @@ public final class LongUtils {
         }
     }
 
+    private static final int RADIX = 10;
+
     /**
      * Parses the specified string as a signed decimal long value. Unlike {@link Long#parseLong(String)}, this method
      * returns {@code null} instead of throwing an exception if parsing fails. This can be significantly more efficient
      * when the string to be parsed is often invalid, as raising an exception is an expensive operation.
-     *<p>
+     * <p>
      * This is a simplified version of
      * <a href="https://github.com/google/guava/blob/0c33dd12b193402cdf6962d43d69743521aa2f76/guava/src/com/google/common/primitives/Longs.java#L400">Longs.tryParse()</a>
      * in Guava. This version is hardcoded to only support radix 10.
@@ -96,26 +98,25 @@ public final class LongUtils {
         if (string == null || string.isEmpty()) {
             return null;
         }
-        int radix = 10;
         boolean negative = string.charAt(0) == '-';
         int index = negative ? 1 : 0;
         if (index == string.length()) {
             return null;
         }
         int digit = AsciiDigits.digit(string.charAt(index++));
-        if (digit < 0 || digit >= radix) {
+        if (digit < 0 || digit >= RADIX) {
             return null;
         }
         long accum = -digit;
 
-        long cap = Long.MIN_VALUE / radix;
+        long cap = Long.MIN_VALUE / RADIX;
 
         while (index < string.length()) {
             digit = AsciiDigits.digit(string.charAt(index++));
-            if (digit < 0 || digit >= radix || accum < cap) {
+            if (digit < 0 || digit >= RADIX || accum < cap) {
                 return null;
             }
-            accum *= radix;
+            accum *= RADIX;
             if (accum < Long.MIN_VALUE + digit) {
                 return null;
             }
