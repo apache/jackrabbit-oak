@@ -238,9 +238,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         if (tag != idxDefinedTag) {
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in path {}",
-                        getIndexName(),
-                        Type.fromTag(idxDefinedTag, false), property,
-                        Type.fromTag(tag, false), path);
+                        getIndexName(), Type.fromTag(idxDefinedTag, false), property, Type.fromTag(tag, false), path);
             }
             tag = idxDefinedTag;
         }
@@ -264,9 +262,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     dirty = true;
                 }
             } catch (Exception e) {
-                log.error(
-                    "could not index similarity field for property {} and definition {} for path {}",
-                    property.getName(), pd, path);
+                log.error("could not index similarity field for property {} and definition {} for path {}",
+                        property.getName(), pd, path);
             }
         } else if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
@@ -319,9 +316,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                     indexSimilarityStrings(doc, pd, value);
                                 }
                             } catch (Exception e) {
-                                log.error(
-                                    "could not index similarity field for property {} and definition {} for path {}",
-                                    property.getName(), pd, path);
+                                log.error("could not index similarity field for property {} and definition {} for path {}",
+                                        property.getName(), pd, path);
                             }
                         }
                     }
@@ -390,10 +386,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             // Also there is no handling for different indexes having the same property since those are usually different versions of the same index.
             if (!throttleWarnLogs || MV_ORDERED_PROPERTY_SET.add(pname) ||
                     WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold == 0) {
-                log.warn(
-                        "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
-                        getIndexName(), pname,
-                        Type.fromTag(property.getType().tag(), true), path);
+                log.warn("[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
+                        getIndexName(), pname, Type.fromTag(property.getType().tag(), true), path);
             }
             return false;
         }
@@ -403,11 +397,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
             if (log.isDebugEnabled()) {
-                log.debug(
-                        "[{}] Ordered property defined with type {} differs from property {} with type {} in path {}",
-                        getIndexName(),
-                        Type.fromTag(idxDefinedTag, false), property,
-                        Type.fromTag(tag, false), path);
+                log.debug("[{}] Ordered property defined with type {} differs from property {} with type {} in path {}",
+                        getIndexName(), Type.fromTag(idxDefinedTag, false), property, Type.fromTag(tag, false), path);
             }
             tag = idxDefinedTag;
         }
@@ -608,7 +599,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      */
     private boolean indexAggregatedNode(String path, D doc, Aggregate.NodeIncludeResult result) {
         //rule for node being aggregated might be null if such nodes
-        //are not indexed on there own. In such cases we rely in current
+        //are not indexed on their own. In such cases we rely on current
         //rule for some checks
         IndexDefinition.IndexingRule ruleAggNode = definition
                 .getApplicableIndexingRule(getPrimaryTypeName(result.nodeState));
@@ -635,19 +626,19 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             //Check if any explicit property defn is defined via relative path
             // and is marked to exclude this property from being indexed. We exclude
             //it from aggregation if
-            // 1. Its not to be indexed i.e. index=false
-            // 2. Its explicitly excluded from aggregation i.e. excludeFromAggregation=true
+            // 1. It's not to be indexed i.e. index=false
+            // 2. It's explicitly excluded from aggregation i.e. excludeFromAggregation=true
             PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
             if (pdForRootNode != null && (!pdForRootNode.index || pdForRootNode.excludeFromAggregate)) {
                 continue;
             }
 
             if (Type.BINARY == property.getType()) {
-                String aggreagtedNodePath = PathUtils.concat(path, result.nodePath);
+                String aggregatedNodePath = PathUtils.concat(path, result.nodePath);
                 //Here the fulltext is being created for aggregate root hence nodePath passed
                 //should be null
                 String nodePath = result.isRelativeNode() ? result.rootIncludePath : null;
-                List<String> binaryValues = newBinary(property, result.nodeState, aggreagtedNodePath + "@" + pname);
+                List<String> binaryValues = newBinary(property, result.nodeState, aggregatedNodePath + "@" + pname);
                 addBinary(doc, nodePath, binaryValues);
                 dirty = true;
             } else {
