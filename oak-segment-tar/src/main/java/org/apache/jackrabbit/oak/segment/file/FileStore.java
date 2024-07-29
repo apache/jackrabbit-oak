@@ -298,7 +298,7 @@ public class FileStore extends AbstractFileStore {
     /**
      * @return the size of this store.
      */
-    private long size() {
+    public long size() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return tarFiles.size();
         }
