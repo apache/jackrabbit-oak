@@ -153,10 +153,9 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  */
 public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
-    private static final Logger LOG = LoggerFactory
-            .getLogger(LuceneIndex.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
-    private static double MIN_COST = 2.2;
+    private static final double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -210,7 +209,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         }
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
-            LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
+            LOG.warn("More than one relative parent for query {}", filter.getQueryStatement());
             // there are multiple "parents", as in
             // "contains(a/x, 'hello') and contains(b/x, 'world')"
             return Collections.emptyList();
