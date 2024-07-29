@@ -93,7 +93,7 @@ public final class LongUtils {
      * @see org.apache.jackrabbit.guava.common.primitives.Longs#tryParse(String)
      */
     public static Long tryParse(String string) {
-        if (string == null) {
+        if (string == null || string.isEmpty()) {
             return null;
         }
         int radix = 10;
