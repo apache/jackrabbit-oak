@@ -236,11 +236,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         int idxDefinedTag = pd.getType();
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
-            log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in "
-                            + "path {}",
-                    getIndexName(),
-                    Type.fromTag(idxDefinedTag, false), property,
-                    Type.fromTag(tag, false), path);
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in path {}",
+                        getIndexName(),
+                        Type.fromTag(idxDefinedTag, false), property,
+                        Type.fromTag(tag, false), path);
+            }
             tag = idxDefinedTag;
         }
         return indexFacetProperty(doc, tag, property, pname);
@@ -401,12 +402,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         int idxDefinedTag = pd.getType();
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
-            log.debug(
-                    "[{}] Ordered property defined with type {} differs from property {} with type {} in "
-                            + "path {}",
-                    getIndexName(),
-                    Type.fromTag(idxDefinedTag, false), property,
-                    Type.fromTag(tag, false), path);
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "[{}] Ordered property defined with type {} differs from property {} with type {} in path {}",
+                        getIndexName(),
+                        Type.fromTag(idxDefinedTag, false), property,
+                        Type.fromTag(tag, false), path);
+            }
             tag = idxDefinedTag;
         }
         return indexTypeOrderedFields(doc, pname, tag, property, pd);
@@ -682,7 +684,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             if (p.isArray()) {
-                log.warn(p.getName() + " is an array: {}", parentName);
+                log.warn("{} is an array: {}", p.getName(), parentName);
                 continue;
             }
             String dynaTagValue = p.getValue(Type.STRING);
@@ -692,18 +694,18 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             if (p.isArray()) {
-                log.warn(p.getName() + " is an array: {}", parentName);
+                log.warn("{} is an array: {}", p.getName(), parentName);
                 continue;
             }
             double dynaTagConfidence;
             try {
                 dynaTagConfidence = p.getValue(Type.DOUBLE);
             } catch (NumberFormatException e) {
-                log.warn(p.getName() + " parsing failed: {}", parentName, e);
+                log.warn("{} parsing failed: {}", p.getName(), parentName, e);
                 continue;
             }
             if (!Double.isFinite(dynaTagConfidence)) {
-                log.warn(p.getName() + " is not finite: {}", parentName);
+                log.warn("{} is not finite: {}", p.getName(), parentName);
                 continue;
             }
 
