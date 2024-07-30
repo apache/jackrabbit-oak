@@ -1525,10 +1525,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
          */
         boolean matches(String propertyPath) {
             String parentPath = getParentPath(propertyPath);
+            String propertyName = PathUtils.getName(propertyPath);
             if (!this.parentPath.equals(parentPath)) {
                 return false;
             }
-            String propertyName = PathUtils.getName(propertyPath);
             return pattern.matcher(propertyName).matches();
         }
 
