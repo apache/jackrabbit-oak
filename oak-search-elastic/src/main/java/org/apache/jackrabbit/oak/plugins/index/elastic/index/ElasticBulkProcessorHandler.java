@@ -338,7 +338,7 @@ class ElasticBulkProcessorHandler {
                 try {
                 	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
-                    LOG.warn("Error refreshing index " + indexName, e);
+                    LOG.warn("Error refreshing index {}", indexName, e);
                 }
             }
             return closed;

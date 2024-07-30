@@ -139,8 +139,8 @@ public class ActiveDeletedBlobCollectorFactory {
         try {
             FileUtils.forceMkdir(rootDirectory);
         } catch (IOException ioe) {
-            ActiveDeletedBlobCollectorImpl.LOG.warn("Disabling active blob collector as we couldn't not create folder: "
-                    + rootDirectory, ioe);
+            ActiveDeletedBlobCollectorImpl.LOG.warn("Disabling active blob collector as we couldn't not create folder: {}",
+                    rootDirectory, ioe);
             return NOOP;
         }
         if(!rootDirectory.canRead() || !rootDirectory.canWrite() || !rootDirectory.canExecute()) {
@@ -157,9 +157,9 @@ public class ActiveDeletedBlobCollectorFactory {
      * due deleted blob
      */
     static class ActiveDeletedBlobCollectorImpl implements ActiveDeletedBlobCollector {
-        private static PerfLogger PERF_LOG = new PerfLogger(
+        private static final PerfLogger PERF_LOG = new PerfLogger(
                 LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName() + ".perf"));
-        private static Logger LOG = LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName());
+        private static final Logger LOG = LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName());
 
         private final Clock clock;
 
@@ -241,7 +241,7 @@ public class ActiveDeletedBlobCollectorFactory {
                 try {
                     timestamp = getTimestampFromBlobFileName(deletedBlobListFile.getName());
                 } catch (IllegalArgumentException iae) {
-                    LOG.warn("Couldn't extract timestamp from filename - " + deletedBlobListFile, iae);
+                    LOG.warn("Couldn't extract timestamp from filename - {}", deletedBlobListFile, iae);
                     continue;
                 }
                 if (timestamp < before) {
@@ -261,7 +261,7 @@ public class ActiveDeletedBlobCollectorFactory {
                             } else {
                                 String deletedBlobId = parsedDeletedBlobIdLine[0];
                                 try {
-                                    long blobDeletionTimestamp = Long.valueOf(parsedDeletedBlobIdLine[1]);
+                                    long blobDeletionTimestamp = Long.parseLong(parsedDeletedBlobIdLine[1]);
 
                                     if (blobDeletionTimestamp < lastCheckedBlobTimestamp) {
                                         continue;
@@ -291,19 +291,18 @@ public class ActiveDeletedBlobCollectorFactory {
                                         }
                                     }
                                 } catch (NumberFormatException nfe) {
-                                    LOG.warn("Couldn't parse blobTimestamp(" + parsedDeletedBlobIdLine[1] +
-                                            "). deletedBlobLine - " + deletedBlobLine +
-                                            "; file - " + deletedBlobListFile.getName(), nfe);
+                                    LOG.warn("Couldn't parse blobTimestamp({}). deletedBlobLine - {}; file - {}",
+                                            parsedDeletedBlobIdLine[1], deletedBlobLine, deletedBlobListFile.getName(), nfe);
                                 } catch (DataStoreException dse) {
-                                    LOG.debug("Exception occurred while attempting to delete blob " + deletedBlobId, dse);
+                                    LOG.debug("Exception occurred while attempting to delete blob {}", deletedBlobId, dse);
                                 } catch (Exception e) {
-                                    LOG.warn("Exception occurred while attempting to delete blob " + deletedBlobId, e);
+                                    LOG.warn("Exception occurred while attempting to delete blob {}", deletedBlobId, e);
                                 }
                             }
                         }
                     } catch (IOException ioe) {
                         //log error and continue
-                        LOG.warn("Couldn't read deleted blob list file - " + deletedBlobListFile, ioe);
+                        LOG.warn("Couldn't read deleted blob list file - {}", deletedBlobListFile, ioe);
                     } finally {
                         LineIterator.closeQuietly(blobLineIter);
                     }
@@ -390,9 +389,9 @@ public class ActiveDeletedBlobCollectorFactory {
             }
 
             try {
-                return Long.valueOf(resString);
+                return Long.parseLong(resString);
             } catch (NumberFormatException nfe) {
-                LOG.warn("Couldn't read last checked blob timestamp '" + resString + "' as long", nfe);
+                LOG.warn("Couldn't read last checked blob timestamp '{}' as long", resString, nfe);
                 return -1;
             }
         }
@@ -406,7 +405,7 @@ public class ActiveDeletedBlobCollectorFactory {
                 os = new BufferedOutputStream(new FileOutputStream(blobCollectorInfoFile));
                 p.store(os, "Last checked blob timestamp");
             } catch (IOException e) {
-                LOG.warn("Couldn't write out last checked blob timestamp(" + timestamp + ")", e);
+                LOG.warn("Couldn't write out last checked blob timestamp({})", timestamp, e);
             } finally {
                 org.apache.commons.io.IOUtils.closeQuietly(os);
             }
@@ -465,7 +464,7 @@ public class ActiveDeletedBlobCollectorFactory {
                         FileUtils.writeLines(outFile, localDeletedBlobs, true);
                         PERF_LOG.end(start, 1, "Flushing deleted blobs");
                     } catch (IOException e) {
-                        LOG.error("Couldn't write out to " + outFile, e);
+                        LOG.error("Couldn't write out to {}", outFile, e);
                     }
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Flushed {} blobs to {}", localDeletedBlobs.size(), outFile.getName());

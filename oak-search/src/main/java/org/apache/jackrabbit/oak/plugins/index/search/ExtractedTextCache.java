@@ -136,7 +136,9 @@ public class ExtractedTextCache {
         //incremental indexing mode. As that would only contain older entries
         //That also avoid loading on various state (See DataStoreTextWriter)
         String propertyPath = concat(nodePath, propertyName);
-        log.trace("Looking for extracted text for [{}] with blobId [{}]", propertyPath, blob.getContentIdentity());
+        if (log.isTraceEnabled()) {
+            log.trace("Looking for extracted text for [{}] with blobId [{}]", propertyPath, blob.getContentIdentity());
+        }
         if ((reindexMode || alwaysUsePreExtractedCache) && extractedTextProvider != null){
             try {
                 ExtractedText text = extractedTextProvider.getText(propertyPath, blob);
@@ -346,7 +348,7 @@ public class ExtractedTextCache {
         if (executorService != null) {
             return;
         }
-        log.debug("ExtractedTextCache createExecutor " + this);
+        log.debug("ExtractedTextCache createExecutor {}", this);
         ThreadPoolExecutor executor = new ThreadPoolExecutor(1, EXTRACTION_MAX_THREADS,
                 60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(), new ThreadFactory() {
@@ -378,7 +380,7 @@ public class ExtractedTextCache {
 
     private synchronized void closeExecutorService() {
         if (executorService != null) {
-            log.debug("ExtractedTextCache closeExecutorService " + this);
+            log.debug("ExtractedTextCache closeExecutorService {}", this);
             executorService.shutdown();
             try {
                 executorService.awaitTermination(1, TimeUnit.MINUTES);
