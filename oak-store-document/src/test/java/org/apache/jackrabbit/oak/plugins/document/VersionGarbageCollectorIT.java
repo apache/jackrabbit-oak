@@ -97,7 +97,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -1708,6 +1707,8 @@ public class VersionGarbageCollectorIT {
     // OAK-8646
     @Test
     public void testDeletedPropsAndUnmergedBCWithoutCollision() throws Exception {
+        // OAK-10974:
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -2359,6 +2360,8 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
+        // OAK-10869:
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -3275,12 +3278,7 @@ public class VersionGarbageCollectorIT {
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
         List<String> prevIds = Lists.newArrayList(Iterators.transform(
-                foo.getPreviousDocLeaves(), new Function<NodeDocument, String>() {
-            @Override
-            public String apply(NodeDocument input) {
-                return input.getId();
-            }
-        }));
+                foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store
         createSecondaryStore(LeaseCheckMode.LENIENT);

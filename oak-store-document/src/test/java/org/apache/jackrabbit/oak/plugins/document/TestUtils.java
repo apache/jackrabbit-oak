@@ -18,9 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NavigableMap;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Functions;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 

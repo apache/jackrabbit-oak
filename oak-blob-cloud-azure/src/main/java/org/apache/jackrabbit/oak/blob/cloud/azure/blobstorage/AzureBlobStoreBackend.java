@@ -29,7 +29,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -46,8 +45,8 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -463,13 +462,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
         return new RecordsIterator<DataIdentifier>(
-                new Function<AzureBlobInfo, DataIdentifier>() {
-                    @Override
-                    public DataIdentifier apply(AzureBlobInfo input) {
-                        return new DataIdentifier(getIdentifierName(input.getName()));
-                    }
-                }
-        );
+                input -> new DataIdentifier(getIdentifierName(input.getName())));
     }
 
 

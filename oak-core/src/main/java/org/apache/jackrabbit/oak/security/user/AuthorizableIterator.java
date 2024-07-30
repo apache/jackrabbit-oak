@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -50,7 +50,8 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
                                        @NotNull UserManagerImpl userManager,
                                        @NotNull AuthorizableType authorizableType) {
-        Iterator<Authorizable> it = Iterators.transform(authorizableTrees, new TreeToAuthorizable(userManager, authorizableType));
+        Iterator<Authorizable> it = Iterators.transform(authorizableTrees,
+                new TreeToAuthorizable(userManager, authorizableType)::apply);
         long size = getSize(authorizableTrees);
         return new AuthorizableIterator(it, size, false);
     }

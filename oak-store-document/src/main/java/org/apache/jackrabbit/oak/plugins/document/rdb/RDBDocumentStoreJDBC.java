@@ -61,7 +61,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -432,7 +431,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static <T extends Document> void assertNoDuplicatedIds(List<T> documents) {
-        if (newHashSet(transform(documents, idExtractor)).size() < documents.size()) {
+        if (newHashSet(transform(documents, input -> input.getId())).size() < documents.size()) {
             throw new IllegalArgumentException("There are duplicated ids in the document list");
         }
     }
@@ -1127,11 +1126,4 @@ public class RDBDocumentStoreJDBC {
         });
         return result;
     }
-
-    private static final Function<Document, String> idExtractor = new Function<Document, String>() {
-        @Override
-        public String apply(Document input) {
-            return input.getId();
-        }
-    };
 }

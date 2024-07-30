@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.io.UnsupportedEncodingException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.segment.util.SafeEncode;
@@ -98,13 +97,8 @@ public class CachingSegmentReader implements SegmentReader {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
-        return stringCache.get(msb, lsb, id.getRecordNumber(), new Function<Integer, String>() {
-            @NotNull
-            @Override
-            public String apply(Integer offset) {
-                return segmentId.getSegment().readString(offset);
-            }
-        });
+        return stringCache.get(msb, lsb, id.getRecordNumber(),
+                offset -> segmentId.getSegment().readString(offset));
     }
 
     @NotNull
@@ -122,13 +116,8 @@ public class CachingSegmentReader implements SegmentReader {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
-        return templateCache.get(msb, lsb, id.getRecordNumber(), new Function<Integer, Template>() {
-            @NotNull
-            @Override
-            public Template apply(Integer offset) {
-                return segmentId.getSegment().readTemplate(offset);
-            }
-        });
+        return templateCache.get(msb, lsb, id.getRecordNumber(),
+                offset -> segmentId.getSegment().readTemplate(offset));
     }
 
     private static String safeEncode(String value) {

@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -51,7 +50,6 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type;
@@ -2271,22 +2269,11 @@ public class VersionGarbageCollector {
                 // documents only.
                 final Path path = doc.getPath();
                 return Iterators.transform(prevRanges.entrySet().iterator(),
-                        new Function<Map.Entry<Revision, Range>, String>() {
-                    @Override
-                    public String apply(Map.Entry<Revision, Range> input) {
-                        int h = input.getValue().getHeight();
-                        return Utils.getPreviousIdFor(path, input.getKey(), h);
-                    }
-                });
+                        input -> Utils.getPreviousIdFor(path, input.getKey(), input.getValue().getHeight()));
             } else {
                 // need to fetch the previous documents to get their ids
                 return Iterators.transform(doc.getAllPreviousDocs(),
-                        new Function<NodeDocument, String>() {
-                    @Override
-                    public String apply(NodeDocument input) {
-                        return input.getId();
-                    }
-                });
+                        input -> input.getId());
             }
         }
 

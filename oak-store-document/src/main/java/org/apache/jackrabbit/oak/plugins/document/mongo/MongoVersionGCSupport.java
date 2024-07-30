@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
-import static com.mongodb.client.model.Filters.not;
 import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
 import static java.util.Optional.empty;
@@ -73,7 +71,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
@@ -337,17 +334,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // queries alone (15min is still long).
             Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
-                    new Function<BasicDBObject, NodeDocument>() {
-                @Override
-                public NodeDocument apply(BasicDBObject input) {
-                    return store.convertFromDBObject(NODES, input);
-                }
-            }), new Predicate<NodeDocument>() {
-                @Override
-                public boolean apply(NodeDocument input) {
-                    return !isDefaultNoBranchSplitNewerThan(input, sweepRevs);
-                }
-            });
+                    input -> store.convertFromDBObject(NODES, input)),
+                    new Predicate<NodeDocument>() {
+                        @Override
+                        public boolean apply(NodeDocument input) {
+                            return !isDefaultNoBranchSplitNewerThan(input, sweepRevs);
+                        }
+                    });
             allResults = concat(allResults, iterable);
         }
         return allResults;

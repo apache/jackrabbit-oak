@@ -28,15 +28,12 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
 
 import java.util.Set;
 
@@ -442,17 +439,12 @@ public class VersionableTest extends AbstractJCRTest {
     }
 
     private static Set<String> getNames(Version[] versions) {
-        return newHashSet(transform(asList(versions), new Function<Version, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable Version input) {
-                try {
-                    return input.getName();
-                } catch (RepositoryException e) {
-                    return null;
-                }
+        return newHashSet(transform(asList(versions), input -> {
+            try {
+                return input.getName();
+            } catch (RepositoryException e) {
+                return null;
             }
         }));
     }
-
 }

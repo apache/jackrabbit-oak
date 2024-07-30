@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.LocationMode;
-import com.microsoft.azure.storage.StorageCredentialsToken;
+import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
@@ -43,7 +43,6 @@ import java.security.InvalidKeyException;
 import java.util.Hashtable;
 import java.util.Objects;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.storageCredentialAccessTokenFrom;
 import static org.osgi.framework.Constants.SERVICE_PID;
 
 @Component(
@@ -61,6 +60,7 @@ public class AzureSegmentStoreService {
     public static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
 
     private ServiceRegistration registration;
+    private static AzureStorageCredentialManager azureStorageCredentialManager;
 
     @Activate
     public void activate(ComponentContext context, Configuration config) throws IOException {
@@ -79,6 +79,9 @@ public class AzureSegmentStoreService {
         if (registration != null) {
             registration.unregister();
             registration = null;
+        }
+        if (azureStorageCredentialManager != null) {
+            azureStorageCredentialManager.close();
         }
     }
 
@@ -124,8 +127,9 @@ public class AzureSegmentStoreService {
 
     @NotNull
     private static AzurePersistence createPersistenceFromServicePrincipalCredentials(Configuration configuration) throws IOException {
-        StorageCredentialsToken storageCredentialsToken = storageCredentialAccessTokenFrom(configuration.accountName(), configuration.clientId(), configuration.clientSecret(), configuration.tenantId());
-        
+        azureStorageCredentialManager = new AzureStorageCredentialManager();
+        StorageCredentials storageCredentialsToken = azureStorageCredentialManager.getStorageCredentialAccessTokenFromServicePrincipals(configuration.accountName(), configuration.clientId(), configuration.clientSecret(), configuration.tenantId());
+
         try {
             CloudStorageAccount cloud = new CloudStorageAccount(storageCredentialsToken, true, DEFAULT_ENDPOINT_SUFFIX, configuration.accountName());
             return createAzurePersistence(cloud, configuration, true);

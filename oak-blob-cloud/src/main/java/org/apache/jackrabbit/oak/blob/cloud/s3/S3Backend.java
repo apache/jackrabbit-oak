@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -89,7 +90,6 @@ import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
@@ -441,13 +441,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers()
             throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(
-            new Function<S3ObjectSummary, DataIdentifier>() {
-                @Override
-                public DataIdentifier apply(S3ObjectSummary input) {
-                    return new DataIdentifier(getIdentifierName(input.getKey()));
-                }
-        });
+        return new RecordsIterator<DataIdentifier>(input -> new DataIdentifier(getIdentifierName(input.getKey())));
     }
 
     @Override
@@ -642,14 +636,8 @@ public class S3Backend extends AbstractSharedBackend {
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
         return new RecordsIterator<DataRecord>(
-            new Function<S3ObjectSummary, DataRecord>() {
-                @Override
-                public DataRecord apply(S3ObjectSummary input) {
-                    return new S3DataRecord(backend, s3service, bucket,
-                        new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator);
-                }
-            });
+                input -> new S3DataRecord(backend, s3service, bucket, new DataIdentifier(getIdentifierName(input.getKey())),
+                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator));
     }
 
     @Override
