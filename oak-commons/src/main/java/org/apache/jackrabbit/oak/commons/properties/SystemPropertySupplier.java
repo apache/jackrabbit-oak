@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 /**
  * Utility class for consistent handling of system properties.
@@ -49,7 +50,7 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     private final Function<String, T> parser;
 
     private Logger log = LOG;
-    private String successLogLevel = "INFO";
+    private Level successLogLevel = Level.INFO;
     private Predicate<T> validator = (a) -> true;
     private Function<String, String> sysPropReader = System::getProperty;
     private BiFunction<String, T, String> setMessageFormatter = (a, b) -> {
@@ -99,14 +100,22 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
      * Specify {@link Level} to use for "success" message (defaults to "INFO")
      */
     public SystemPropertySupplier<T> logSuccessAs(String successLogLevel) {
-        String newLevel;
+        Level newLevel;
         switch (Objects.requireNonNull(successLogLevel)) {
             case "DEBUG":
+                newLevel = Level.DEBUG;
+                break;
             case "ERROR":
+                newLevel = Level.ERROR;
+                break;
             case "INFO":
+                newLevel = Level.INFO;
+                break;
             case "TRACE":
+                newLevel = Level.TRACE;
+                break;
             case "WARN":
-                newLevel = successLogLevel;
+                newLevel = Level.WARN;
                 break;
             default:
                 throw new IllegalArgumentException("unsupported log level: " + successLogLevel);
@@ -153,19 +162,19 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
             if (!ret.equals(defaultValue)) {
                 String msg = setMessageFormatter.apply(propName, ret);
                 switch (successLogLevel) {
-                    case "INFO":
+                    case INFO:
                         log.info(msg);
                         break;
-                    case "DEBUG":
+                    case DEBUG:
                         log.debug(msg);
                         break;
-                    case "ERROR":
+                    case ERROR:
                         log.error(msg);
                         break;
-                    case "TRACE":
+                    case TRACE:
                         log.trace(msg);
                         break;
-                    case "WARN":
+                    case WARN:
                         log.warn(msg);
                         break;
                     default:
