@@ -158,7 +158,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
         IndexNode index = acquireIndexNode(plan);
-        checkState(index != null, "The fulltext index of type " + getType() + "  index is not available");
+        checkState(index != null, "The fulltext index of type %s index is not available", getType());
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder();
@@ -411,7 +411,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                                   final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
-            Iterator<String> pathIterator = new Iterator<String>() {
+            Iterator<String> pathIterator = new Iterator<>() {
 
                 private int readCount;
                 private int rewoundCount;
@@ -556,7 +556,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             return pathRow.getValue(columnName);
         }
 
-    };
+    }
 
     public interface IteratorRewoundStateProvider {
         int rewoundCount();
