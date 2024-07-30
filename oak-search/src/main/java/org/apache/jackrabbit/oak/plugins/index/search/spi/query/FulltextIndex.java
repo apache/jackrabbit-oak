@@ -411,7 +411,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                                   final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
-            Iterator<String> pathIterator = new Iterator<>() {
+            Iterator<String> pathIterator = new Iterator<String>() {
 
                 private int readCount;
                 private int rewoundCount;
@@ -556,7 +556,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             return pathRow.getValue(columnName);
         }
 
-    }
+    };
 
     public interface IteratorRewoundStateProvider {
         int rewoundCount();
