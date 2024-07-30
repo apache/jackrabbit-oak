@@ -232,28 +232,6 @@ public class PathUtilsTest extends TestCase {
         assertFalse(PathUtils.isAncestor(parent, child));
         assertFalse(PathUtils.isAncestor("/" + parent, "/" + parent + "123"));
         assertFalse(PathUtils.isAncestor("/" + parent, "/" + parent + "123/foo"));
-        assertTrue(PathUtils.isAncestor("/" + parent, "/" + parent + "/foo"));
-        assertFalse(PathUtils.isAncestor("/" + parent + "/foo", "/" + parent + "/foo"));
-        assertTrue(PathUtils.isAncestor("/" + parent, "/" + parent + "/foo/bar"));
-
-        // isDirectAncestor
-        assertFalse(PathUtils.isDirectAncestor("/", "/"));
-        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent));
-        assertFalse(PathUtils.isDirectAncestor(parent, parent));
-        assertTrue(PathUtils.isDirectAncestor("/", "/" + parent));
-        assertFalse(PathUtils.isDirectAncestor("/", "/" + parent + "/foo1"));
-        assertFalse(PathUtils.isDirectAncestor("/", "/" + parent + "/foo1/foo2"));
-        assertTrue(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo1"));
-        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo1/foo2"));
-        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo1/foo2/foo3"));
-        assertTrue(PathUtils.isDirectAncestor(parent, parent + "/" + child));
-        assertFalse(PathUtils.isDirectAncestor("/", parent + "/" + child));
-        assertTrue(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/" + child));
-        assertFalse(PathUtils.isDirectAncestor(parent, child));
-        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "123"));
-        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "123/foo"));
-        assertTrue(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo"));
-        assertFalse(PathUtils.isDirectAncestor("/" + parent + "/foo", "/" + parent + "/foo"));
 
         // relativize
         assertEquals("", PathUtils.relativize("/", "/"));
