@@ -28,26 +28,26 @@ public interface NodeStateEntryList {
     /**
      * Add an item at the tail of the list.
      */
-    void add(@NotNull NodeStateEntry item);
+    public void add(@NotNull NodeStateEntry item);
 
     /**
      * Remove the first item from the list.
      *
      * @return the removed item
      */
-    NodeStateEntry remove();
+    public NodeStateEntry remove();
 
-    long estimatedMemoryUsage();
+    public long estimatedMemoryUsage();
 
-    int size();
+    public int size();
 
     /**
      * Get an iterator to iterate over the whole list
      */
-    Iterator<NodeStateEntry> iterator();
+    public Iterator<NodeStateEntry> iterator();
 
-    boolean isEmpty();
+    public boolean isEmpty();
 
-    void close();
+    public void close();
 
 }
