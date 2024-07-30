@@ -22,6 +22,7 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -220,7 +221,12 @@ public class NodeUtil {
     }
 
     public void setNames(String propertyName, String... values) {
-        tree.setProperty(propertyName, Lists.transform(Arrays.asList(values), jcrName -> getOakName(jcrName)), NAMES);
+        tree.setProperty(propertyName, Lists.transform(Arrays.asList(values), new Function<String, String>() {
+            @Override
+            public String apply(String jcrName) {
+                return getOakName(jcrName);
+            }
+        }), NAMES);
     }
 
     public void setDate(String name, long time) {

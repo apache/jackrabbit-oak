@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -31,8 +32,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;

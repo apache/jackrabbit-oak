@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import java.util.function.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 public enum BinarySourceMapper implements Function<BinaryResource, String> {
     BY_BLOBID {

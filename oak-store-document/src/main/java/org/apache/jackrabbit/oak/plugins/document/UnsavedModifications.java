@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Supplier;
@@ -119,7 +120,12 @@ class UnsavedModifications {
                 public boolean apply(Map.Entry<Path, Revision> input) {
                     return start.compareRevisionTime(input.getValue()) < 1;
                 }
-            }), input -> input.getKey());
+            }), new Function<Map.Entry<Path, Revision>, Path>() {
+                @Override
+                public Path apply(Map.Entry<Path, Revision> input) {
+                    return input.getKey();
+                }
+            });
         }
     }
 

@@ -23,8 +23,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
-import java.util.function.Function;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

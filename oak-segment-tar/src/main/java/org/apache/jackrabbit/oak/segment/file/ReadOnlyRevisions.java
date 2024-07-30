@@ -25,8 +25,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersisted
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;

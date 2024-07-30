@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.Closeable;
@@ -40,6 +41,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
@@ -610,7 +612,12 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getGarbageDetails() {
         return toArray(transform(failedToDeleteFiles.values(),
-                input -> input.deleteLog()), String.class);
+                new Function<LocalIndexFile, String>() {
+                    @Override
+                    public String apply(LocalIndexFile input) {
+                        return input.deleteLog();
+                    }
+                }), String.class);
     }
 
     @Override
@@ -654,7 +661,12 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getCopyInProgressDetails() {
         return toArray(transform(copyInProgressFiles,
-                input -> input.copyLog()), String.class);
+                new Function<LocalIndexFile, String>() {
+                    @Override
+                    public String apply(LocalIndexFile input) {
+                        return input.copyLog();
+                    }
+                }), String.class);
     }
 
     @Override

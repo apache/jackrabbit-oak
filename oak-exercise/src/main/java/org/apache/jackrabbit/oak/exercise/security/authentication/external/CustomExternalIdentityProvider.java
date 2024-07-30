@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication.external;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -27,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -153,8 +155,13 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     if (groupIds == null || groupIds.isEmpty()) {
                         return ImmutableSet.of();
                     } else {
-                        return Iterables.transform(groupIds,
-                                input -> new ExternalIdentityRef(input, getName()));
+                        return Iterables.transform(groupIds, new Function<String, ExternalIdentityRef>() {
+                            @Nullable
+                            @Override
+                            public ExternalIdentityRef apply(String input) {
+                                return new ExternalIdentityRef(input, getName());
+                            }
+                        });
                     }
                 }
 

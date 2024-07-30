@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -319,10 +320,13 @@ public abstract class AbstractTree implements Tree {
     @NotNull
     public Iterable<Tree> getChildren() {
         Iterable<Tree> children = transform(getChildNames(),
-                name ->  {
+            new Function<String, Tree>() {
+                @Override
+                public Tree apply(String name) {
                     AbstractTree child = createChild(name);
                     return child.exists() ? child : null;
-                });
+                }
+            });
         return filter(children, notNull());
     }
 }

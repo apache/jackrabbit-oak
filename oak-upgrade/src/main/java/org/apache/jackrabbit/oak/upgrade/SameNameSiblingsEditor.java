@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
@@ -171,7 +172,12 @@ public class SameNameSiblingsEditor extends DefaultEditor {
             public boolean apply(ChildNodeEntry input) {
                 return predicate.apply(input.getNodeState());
             }
-        }), input -> input.getName());
+        }), new Function<ChildNodeEntry, String>() {
+            @Override
+            public String apply(ChildNodeEntry input) {
+                return input.getName();
+            }
+        });
     }
 
     /**

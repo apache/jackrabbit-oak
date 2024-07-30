@@ -24,12 +24,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -75,7 +77,12 @@ public class OakFileDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = Sets.newHashSet(Iterators.transform(dis, input -> input.toString()));
+        Set<String> fileNames = Sets.newHashSet(Iterators.transform(dis, new Function<DataIdentifier, String>() {
+            @Override
+            public String apply(@Nullable DataIdentifier input) {
+                return input.toString();
+            }
+        }));
 
         Set<String> expectedNames = Sets.newHashSet("abcdef","bcdefg","cdefgh");
         assertEquals(expectedNames, fileNames);

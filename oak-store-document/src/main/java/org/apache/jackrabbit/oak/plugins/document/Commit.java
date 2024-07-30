@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
@@ -890,8 +891,16 @@ public class Commit {
         return bundledNodes.containsKey(path);
     }
 
+    private static final Function<UpdateOp.Key, String> KEY_TO_NAME =
+            new Function<UpdateOp.Key, String>() {
+        @Override
+        public String apply(UpdateOp.Key input) {
+            return input.getName();
+        }
+    };
+
     private static boolean hasContentChanges(UpdateOp op) {
         return filter(transform(op.getChanges().keySet(),
-                input -> input.getName()), Utils.PROPERTY_OR_DELETED).iterator().hasNext();
+                KEY_TO_NAME), Utils.PROPERTY_OR_DELETED).iterator().hasNext();
     }
 }

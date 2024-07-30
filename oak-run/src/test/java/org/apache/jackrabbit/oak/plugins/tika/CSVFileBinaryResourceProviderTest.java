@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
@@ -51,12 +52,12 @@ public class CSVFileBinaryResourceProviderTest {
 
         CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile, new MemoryBlobStore());
 
-        Map<String, BinaryResource> binaries = provider.getBinaries("/").uniqueIndex(BinarySourceMapper.BY_BLOBID::apply);
+        Map<String, BinaryResource> binaries = provider.getBinaries("/").uniqueIndex(BinarySourceMapper.BY_BLOBID);
         assertEquals(3, binaries.size());
         assertEquals("a", binaries.get("a").getBlobId());
         assertEquals("/a", binaries.get("a").getPath());
 
-        binaries = provider.getBinaries("/a").uniqueIndex(BinarySourceMapper.BY_BLOBID::apply);
+        binaries = provider.getBinaries("/a").uniqueIndex(BinarySourceMapper.BY_BLOBID);
         assertEquals(1, binaries.size());
 
         provider.close();

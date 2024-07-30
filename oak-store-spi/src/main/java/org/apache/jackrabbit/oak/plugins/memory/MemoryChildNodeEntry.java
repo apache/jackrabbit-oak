@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -32,8 +33,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
-    public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(Iterable<E> set) {
-        return Iterables.transform(set, entry -> new MemoryChildNodeEntry(entry.getKey(), entry.getValue()));
+    public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(
+            Iterable<E> set) {
+        return Iterables.transform(
+                set,
+                new Function<Entry<String, ? extends NodeState>, ChildNodeEntry>() {
+                    @Override
+                    public ChildNodeEntry apply(Entry<String, ? extends NodeState> entry) {
+                        return new MemoryChildNodeEntry(entry.getKey(), entry.getValue());
+                    }
+                });
     }
 
     private final String name;

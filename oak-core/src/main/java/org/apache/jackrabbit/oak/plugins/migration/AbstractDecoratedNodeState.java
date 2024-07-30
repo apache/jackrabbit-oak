@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -37,7 +38,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
 import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -139,16 +139,23 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        final Iterable<ChildNodeEntry> transformed = Iterables.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
-            if (childNodeEntry != null) {
-                final String name = childNodeEntry.getName();
-                final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
-                if (nodeState.exists()) {
-                    return new MemoryChildNodeEntry(name, nodeState);
+        final Iterable<ChildNodeEntry> transformed = Iterables.transform(
+                delegate.getChildNodeEntries(),
+                new Function<ChildNodeEntry, ChildNodeEntry>() {
+                    @Nullable
+                    @Override
+                    public ChildNodeEntry apply(@Nullable final ChildNodeEntry childNodeEntry) {
+                        if (childNodeEntry != null) {
+                            final String name = childNodeEntry.getName();
+                            final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
+                            if (nodeState.exists()) {
+                                return new MemoryChildNodeEntry(name, nodeState);
+                            }
+                        }
+                        return null;
+                    }
                 }
-            }
-            return null;
-        });
+        );
         return Iterables.filter(transformed, notNull());
     }
 
@@ -172,7 +179,14 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     public Iterable<? extends PropertyState> getProperties() {
         final Iterable<PropertyState> propertyStates = Iterables.transform(
                 delegate.getProperties(),
-                propertyState -> decorate(propertyState));
+                new Function<PropertyState, PropertyState>() {
+                    @Override
+                    @Nullable
+                    public PropertyState apply(@Nullable final PropertyState propertyState) {
+                        return decorate(propertyState);
+                    }
+                }
+        );
         return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()), notNull());
     }
 

@@ -24,6 +24,7 @@ import java.util.TimeZone;
 
 import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
@@ -95,7 +96,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
             public boolean apply(ClusterNodeInfoDocument input) {
                 return !input.isActive();
             }
-        }), input -> input.getClusterId() + "=" + input.getCreated()), String.class);
+        }), new Function<ClusterNodeInfoDocument, String>() {
+            @Override
+            public String apply(ClusterNodeInfoDocument input) {
+                return input.getClusterId() + "=" + input.getCreated();
+            }
+        }), String.class);
     }
 
     @Override
@@ -106,7 +112,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
             public boolean apply(ClusterNodeInfoDocument input) {
                 return input.isActive();
             }
-        }), input -> input.getClusterId() + "=" + input.getLeaseEndTime()), String.class);
+        }), new Function<ClusterNodeInfoDocument, String>() {
+            @Override
+            public String apply(ClusterNodeInfoDocument input) {
+                return input.getClusterId() + "=" + input.getLeaseEndTime();
+            }
+        }), String.class);
     }
 
     @Override
@@ -117,7 +128,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
             public boolean apply(Revision input) {
                 return input.getClusterId() != getClusterId();
             }
-        }), input -> input.getClusterId() + "=" + input.toString()), String.class);
+        }), new Function<Revision, String>() {
+            @Override
+            public String apply(Revision input) {
+                return input.getClusterId() + "=" + input.toString();
+            }
+        }), String.class);
     }
 
     @Override

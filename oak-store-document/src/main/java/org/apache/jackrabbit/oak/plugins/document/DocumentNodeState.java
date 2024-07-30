@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
@@ -572,19 +573,24 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     private Iterable<ChildNodeEntry> getChildNodeEntries(@NotNull String name,
                                                          int limit) {
         Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
-        return Iterables.transform(children, input -> {
+        return Iterables.transform(children, new Function<AbstractDocumentNodeState, ChildNodeEntry>() {
+            @Override
+            public ChildNodeEntry apply(final AbstractDocumentNodeState input) {
                 return new AbstractChildNodeEntry() {
+                    @NotNull
                     @Override
                     public String getName() {
                         return input.getPath().getName();
                     }
 
+                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return input;
                     }
                 };
-            });
+            }
+        });
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
@@ -748,18 +754,24 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private Iterator<ChildNodeEntry> getBundledChildren(){
-        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
+        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(),
+                new Function<String, ChildNodeEntry>() {
+            @Override
+            public ChildNodeEntry apply(final String childNodeName) {
                 return new AbstractChildNodeEntry() {
+                    @NotNull
                     @Override
                     public String getName() {
                         return childNodeName;
                     }
 
+                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return createBundledState(childNodeName, bundlingContext.matcher.next(childNodeName));
                     }
                 };
+            }
         });
     }
 

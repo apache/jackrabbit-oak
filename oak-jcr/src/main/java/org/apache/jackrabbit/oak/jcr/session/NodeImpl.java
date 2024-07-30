@@ -64,7 +64,7 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -823,11 +823,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
                 Iterable<Property> properties = Iterables.transform(
                         propertyOakPaths,
-                        oakPath -> {
+                        new Function<String, Property>() {
+                            @Override
+                            public Property apply(String oakPath) {
                                 PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
                                 return pd == null ? null : new PropertyImpl(pd, sessionContext);
                             }
-                        );
+                        }
+                );
 
                 return new PropertyIteratorAdapter(sessionDelegate.sync(properties.iterator()));
             }
@@ -1371,13 +1374,23 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
         return sessionDelegate.sync(transform(
                 childNodes,
-                nodeDelegate -> new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext)));
+                new Function<NodeDelegate, Node>() {
+                    @Override
+                    public Node apply(NodeDelegate nodeDelegate) {
+                        return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
+                    }
+                }));
     }
 
     private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
         return sessionDelegate.sync(transform(
                 properties,
-                propertyDelegate -> new PropertyImpl(propertyDelegate, sessionContext)));
+                new Function<PropertyDelegate, Property>() {
+                    @Override
+                    public Property apply(PropertyDelegate propertyDelegate) {
+                        return new PropertyImpl(propertyDelegate, sessionContext);
+                    }
+                }));
     }
 
     private void checkValidWorkspace(String workspaceName)

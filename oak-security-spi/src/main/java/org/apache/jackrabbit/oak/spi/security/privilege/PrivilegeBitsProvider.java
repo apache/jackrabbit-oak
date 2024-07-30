@@ -22,11 +22,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -262,7 +261,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     @NotNull
     private Iterable<String> extractAggregatedPrivileges(@NotNull Iterable<String> privilegeNames) {
-        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges()::apply);
+        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges());
     }
 
     @NotNull

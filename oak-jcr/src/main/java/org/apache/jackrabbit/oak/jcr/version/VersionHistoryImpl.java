@@ -34,6 +34,7 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
@@ -87,7 +88,12 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllLinearVersions(),
-                        input -> new VersionImpl(input, sessionContext));
+                        new Function<VersionDelegate, Version>() {
+                            @Override
+                            public Version apply(VersionDelegate input) {
+                                return new VersionImpl(input, sessionContext);
+                            }
+                        });
                 return new VersionIteratorAdapter(sessionDelegate.sync(versions));
             }
         });
@@ -100,7 +106,12 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllVersions(),
-                        input -> new VersionImpl(input, sessionContext));
+                        new Function<VersionDelegate, Version>() {
+                    @Override
+                    public Version apply(VersionDelegate input) {
+                        return new VersionImpl(input, sessionContext);
+                    }
+                });
                 return new VersionIteratorAdapter(sessionDelegate.sync(versions));
             }
         });

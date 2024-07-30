@@ -88,6 +88,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -445,7 +446,12 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                collection, Lists.transform(updateOps, input -> input.getId()));
+                collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
+                    @Override
+                    public String apply(UpdateOp input) {
+                        return input.getId();
+                    }
+                }));
         return new ArrayList<T>(results.values());
     }
 
@@ -1860,7 +1866,12 @@ public class RDBDocumentStore implements DocumentStore {
                     Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns, conditions,
                             limit, sortBy);
                     returned.add(res);
-                    Iterator<T> tmp = Iterators.transform(res, input -> convertFromDBObject(collection, input));
+                    Iterator<T> tmp = Iterators.transform(res, new Function<RDBRow, T>() {
+                        @Override
+                        public T apply(RDBRow input) {
+                            return convertFromDBObject(collection, input);
+                        }
+                    });
                     return CloseableIterator.wrap(tmp, (Closeable) res);
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);

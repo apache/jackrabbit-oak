@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
-import java.util.function.Function;
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

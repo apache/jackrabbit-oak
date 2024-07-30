@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.Caching
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import com.microsoft.azure.storage.StorageCredentials;
@@ -211,8 +212,13 @@ public class ToolUtils {
 
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
-                Iterator<String> revisionIterator = Iterators.transform(journalReader,
-                        entry -> entry.getRevision());
+                Iterator<String> revisionIterator = Iterators.transform(journalReader, new Function<JournalEntry, String>() {
+                    @NotNull
+                    @Override
+                    public String apply(JournalEntry entry) {
+                        return entry.getRevision();
+                    }
+                });
                 return newArrayList(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();

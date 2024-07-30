@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -105,7 +106,7 @@ public class AggregateTest {
         NodeState state = nb.getNodeState();
         final AtomicInteger counter = new AtomicInteger();
         Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
-                input -> {
+                (Function<ChildNodeEntry, ChildNodeEntry>) input -> {
                     counter.incrementAndGet();
                     return input;
                 });

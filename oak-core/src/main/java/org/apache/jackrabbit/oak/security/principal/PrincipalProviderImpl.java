@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -44,7 +45,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
@@ -144,7 +144,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
-            Iterator<Principal> principals = Iterators.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()::apply), Objects::nonNull);
+            Iterator<Principal> principals = Iterators.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()), Objects::nonNull);
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());

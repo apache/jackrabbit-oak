@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -31,9 +32,6 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-
-import java.util.function.Function;
-
 import static java.util.Collections.emptyList;
 
 class SecureNodeState extends AbstractNodeState {
@@ -146,7 +144,7 @@ class SecureNodeState extends AbstractNodeState {
         } else if (treePermission.canRead()) {
             Iterable<ChildNodeEntry> readable = transform(
                     state.getChildNodeEntries(),
-                    new WrapChildEntryFunction()::apply);
+                    new WrapChildEntryFunction());
             return filter(readable, new IterableNodePredicate());
         } else {
             return emptyList();

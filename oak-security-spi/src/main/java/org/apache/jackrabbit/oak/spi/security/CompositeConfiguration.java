@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -50,7 +51,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Function;
 
 /**
  * Abstract base implementation for {@link SecurityConfiguration}s that can
@@ -205,22 +205,34 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new CompositeWorkspaceInitializer(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getWorkspaceInitializer()));
+        return new CompositeWorkspaceInitializer(Lists.transform(getConfigurations(), new Function<T, WorkspaceInitializer>() {
+            @Override
+            public WorkspaceInitializer apply(T securityConfiguration) {
+                return securityConfiguration.getWorkspaceInitializer();
+            }
+        }));
     }
 
     @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new CompositeInitializer(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getRepositoryInitializer()));
+        return new CompositeInitializer(Lists.transform(getConfigurations(), new Function<T, RepositoryInitializer>() {
+            @Override
+            public RepositoryInitializer apply(T securityConfiguration) {
+                return securityConfiguration.getRepositoryInitializer();
+            }
+        }));
     }
 
     @NotNull
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull final String workspaceName) {
-        Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getCommitHooks(workspaceName)));
+        Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
+            @Override
+            public List<? extends CommitHook> apply(T securityConfiguration) {
+                return securityConfiguration.getCommitHooks(workspaceName);
+            }
+        }));
         return ImmutableList.copyOf(t);
     }
 
@@ -240,8 +252,12 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getProtectedItemImporters()));
+        Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ProtectedItemImporter>>() {
+            @Override
+            public List<? extends ProtectedItemImporter> apply(T securityConfiguration) {
+                return securityConfiguration.getProtectedItemImporters();
+            }
+        }));
         return ImmutableList.copyOf(t);
     }
 
@@ -291,7 +307,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
         private void refresh(@NotNull List<? extends SecurityConfiguration> configurations) {
             Set<Context> s = Sets.newLinkedHashSetWithExpectedSize(configurations.size());
-            for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE::apply)) {
+            for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE)) {
                 if (DEFAULT != c) {
                     s.add(c);
                 }

@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -115,7 +117,9 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
-        return Iterables.transform(docs.entries(), input -> {
+        return Iterables.transform(docs.entries(), new Function<Map.Entry<String, String>, LuceneDocInfo>() {
+            @Override
+            public LuceneDocInfo apply(final Map.Entry<String, String> input) {
                 return new LuceneDocInfo() {
                     @Override
                     public String getIndexPath() {
@@ -127,6 +131,7 @@ public class LuceneDocumentHolder implements JournalProperty {
                         return input.getValue();
                     }
                 };
-            });
+            }
+        });
     }
 }

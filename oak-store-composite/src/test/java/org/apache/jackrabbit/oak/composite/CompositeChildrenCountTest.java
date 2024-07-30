@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import java.util.List;
@@ -222,7 +224,13 @@ public class CompositeChildrenCountTest {
                 Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
                 return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
-                return asCountingIterable(transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
+                return asCountingIterable(transform(asList(children), new Function<String, ChildNodeEntry>() {
+                    @Nullable
+                    @Override
+                    public ChildNodeEntry apply(@Nullable String input) {
+                        return new MemoryChildNodeEntry(input, EMPTY_NODE);
+                    }
+                }));
             }
         }
 
@@ -238,9 +246,13 @@ public class CompositeChildrenCountTest {
         }
 
         private <T> Iterable<T> asCountingIterable(Iterable<T> input) {
-            return Iterables.transform(input, inp -> {
+            return Iterables.transform(input, new Function<T, T>() {
+                @Nullable
+                @Override
+                public T apply(@Nullable T input) {
                     fetchedChildren++;
-                    return inp;
+                    return input;
+                }
             });
         }
     }

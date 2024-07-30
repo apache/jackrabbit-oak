@@ -45,8 +45,8 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -462,7 +462,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
         return new RecordsIterator<DataIdentifier>(
-                input -> new DataIdentifier(getIdentifierName(input.getName())));
+                new Function<AzureBlobInfo, DataIdentifier>() {
+                    @Override
+                    public DataIdentifier apply(AzureBlobInfo input) {
+                        return new DataIdentifier(getIdentifierName(input.getName()));
+                    }
+                }
+        );
     }
 
 

@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 
@@ -280,8 +281,12 @@ public abstract class WriterCacheManager {
             @NotNull
             @Override
             public Iterator<T> iterator() {
-                return transform(generations.values().iterator(),
-                        cacheFactory -> cacheFactory.get());
+                return transform(generations.values().iterator(), new Function<Supplier<T>, T>() {
+                    @Nullable @Override
+                    public T apply(Supplier<T> cacheFactory) {
+                        return cacheFactory.get();
+                    }
+                });
             }
 
             void evictGenerations(@NotNull Predicate<Integer> evict) {

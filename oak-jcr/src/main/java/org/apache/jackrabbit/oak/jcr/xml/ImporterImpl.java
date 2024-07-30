@@ -36,6 +36,7 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -298,23 +299,31 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
+        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedPropertyImporter>() {
+            @Nullable
+            @Override
+            public ProtectedPropertyImporter apply(@Nullable ProtectedItemImporter importer) {
                 if (importer instanceof ProtectedPropertyImporter) {
                     return (ProtectedPropertyImporter) importer;
                 } else {
                     return null;
                 }
-            }), Predicates.notNull());
+            }
+        }), Predicates.notNull());
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
+        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedNodeImporter>() {
+            @Nullable
+            @Override
+            public ProtectedNodeImporter apply(@Nullable ProtectedItemImporter importer) {
                 if (importer instanceof ProtectedNodeImporter) {
                     return (ProtectedNodeImporter) importer;
                 } else {
                     return null;
                 }
-            }), Predicates.notNull());
+            }
+        }), Predicates.notNull());
     }
 
     //-----------------------------------------------------------< Importer >---

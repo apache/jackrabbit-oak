@@ -60,6 +60,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -191,7 +192,11 @@ public class FileIOUtilsTest {
         }
 
         Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = Iterators.transform(boxedEntries, input -> Long.toHexString(input));
+        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
+                    @Nullable @Override public String apply(@Nullable Long input) {
+                        return Long.toHexString(input);
+                    }
+                });
         File f = assertWrite(hexEntries, false, numEntries);
 
         Comparator<String> prefixComparator = new Comparator<String>() {

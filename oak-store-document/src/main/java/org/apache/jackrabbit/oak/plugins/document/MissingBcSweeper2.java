@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -39,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
@@ -161,7 +161,7 @@ final class MissingBcSweeper2 {
                 }
                 return immutableEntry(doc.getPath(), sweepOne(doc));
             }
-        }::apply), new Predicate<Map.Entry<Path, UpdateOp>>() {
+        }), new Predicate<Map.Entry<Path, UpdateOp>>() {
             @Override
             public boolean apply(Map.Entry<Path, UpdateOp> input) {
                 return input.getValue() != null;

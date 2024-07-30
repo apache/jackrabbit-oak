@@ -93,6 +93,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
@@ -1364,10 +1365,20 @@ public class MongoDocumentStore implements DocumentStore {
             }
         } catch (MongoException e) {
             throw handleException(e, collection, Iterables.transform(updateOps,
-                    input -> input.getId()));
+                    new Function<UpdateOp, String>() {
+                @Override
+                public String apply(UpdateOp input) {
+                    return input.getId();
+                }
+            }));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                    collection, Lists.transform(updateOps, input -> input.getId()));
+                    collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
+                @Override
+                public String apply(UpdateOp input) {
+                    return input.getId();
+                }
+            }));
         }
         List<T> resultList = new ArrayList<T>(results.values());
         log("createOrUpdate returns", resultList);
@@ -1527,7 +1538,12 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private static Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
-        return Maps.uniqueIndex(updateOps, input -> input.getId());
+        return Maps.uniqueIndex(updateOps, new Function<UpdateOp, String>() {
+            @Override
+            public String apply(UpdateOp input) {
+                return input.getId();
+            }
+        });
     }
 
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {

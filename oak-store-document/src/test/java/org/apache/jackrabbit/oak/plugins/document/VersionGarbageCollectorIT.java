@@ -97,6 +97,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -3274,7 +3275,12 @@ public class VersionGarbageCollectorIT {
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
         List<String> prevIds = Lists.newArrayList(Iterators.transform(
-                foo.getPreviousDocLeaves(), input -> input.getId()));
+                foo.getPreviousDocLeaves(), new Function<NodeDocument, String>() {
+            @Override
+            public String apply(NodeDocument input) {
+                return input.getId();
+            }
+        }));
 
         // run gc on another document node store
         createSecondaryStore(LeaseCheckMode.LENIENT);

@@ -26,7 +26,6 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -35,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
@@ -233,7 +233,7 @@ class SplitOperations {
     }
 
     private boolean hasBinaryPropertyForSplit(Iterable<String> values) {
-        return doc.hasBinary() && any(transform(values, binarySize::apply), BINARY_FOR_SPLIT_THRESHOLD);
+        return doc.hasBinary() && any(transform(values, binarySize), BINARY_FOR_SPLIT_THRESHOLD);
     }
 
     /**

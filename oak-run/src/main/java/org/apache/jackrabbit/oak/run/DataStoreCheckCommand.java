@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;

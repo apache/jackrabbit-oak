@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.management;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -31,11 +32,11 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.u
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;

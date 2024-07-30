@@ -29,6 +29,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -161,8 +162,12 @@ public class VersionHistoryDelegate extends NodeDelegate {
             }
         });
         final Tree thisTree = getTree();
-        return Iterators.transform(versions.iterator(),
-                nd -> VersionDelegate.create(sessionDelegate, thisTree.getChild(nd.getName())));
+        return Iterators.transform(versions.iterator(), new Function<NodeDelegate, VersionDelegate>() {
+            @Override
+            public VersionDelegate apply(NodeDelegate nd) {
+                return VersionDelegate.create(sessionDelegate, thisTree.getChild(nd.getName()));
+            }
+        });
     }
 
     @NotNull

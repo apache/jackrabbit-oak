@@ -31,6 +31,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -278,7 +279,12 @@ class Branch {
                 return !input.getValue().isRebase()
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
-        }), input -> input.getValue().getModifiedPaths());
+        }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<Path>>() {
+            @Override
+            public Iterable<Path> apply(Map.Entry<Revision, BranchCommit> input) {
+                return input.getValue().getModifiedPaths();
+            }
+        });
         return Iterables.concat(paths);
     }
 
@@ -406,7 +412,12 @@ class Branch {
         @Override
         Iterable<Path> getModifiedPaths() {
             Iterable<Iterable<Path>> paths = transform(previous.values(),
-                    branchCommit -> branchCommit.getModifiedPaths());
+                    new Function<BranchCommit, Iterable<Path>>() {
+                @Override
+                public Iterable<Path> apply(BranchCommit branchCommit) {
+                    return branchCommit.getModifiedPaths();
+                }
+            });
             return Iterables.concat(paths);
         }
 
