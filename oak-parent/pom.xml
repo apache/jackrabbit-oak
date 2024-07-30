@@ -770,7 +770,7 @@
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>9.40</version>
+        <version>9.30.2</version>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
