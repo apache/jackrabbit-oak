@@ -25,7 +25,6 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
@@ -109,21 +108,19 @@ public class SegmentAzureFactoryTest {
 
         String uri = String.format(CONNECTION_URI, ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
         Closer closer = Closer.create();
-        try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
-            try {
-                SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
-                        false)
-                        .accountName(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME))
-                        .uri(uri)
-                        .build();
-                closer = Closer.create();
-                CliUtils.handleSigInt(closer);
-                FileStoreUtils.NodeStoreWithFileStore nodeStore = (FileStoreUtils.NodeStoreWithFileStore) segmentAzureFactory.create(null, closer);
-                assertEquals(1, nodeStore.getFileStore().getSegmentCount());
-            } finally {
-                closer.close();
-                cleanup(uri, azureStorageCredentialManager);
-            }
+        try {
+            SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
+                    false)
+                    .accountName(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME))
+                    .uri(uri)
+                    .build();
+            closer = Closer.create();
+            CliUtils.handleSigInt(closer);
+            FileStoreUtils.NodeStoreWithFileStore nodeStore = (FileStoreUtils.NodeStoreWithFileStore) segmentAzureFactory.create(null, closer);
+            assertEquals(1, nodeStore.getFileStore().getSegmentCount());
+        } finally {
+            closer.close();
+            cleanup(uri);
         }
     }
 
@@ -136,28 +133,26 @@ public class SegmentAzureFactoryTest {
 
         String uri = String.format(CONNECTION_URI, ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
         Closer closer = Closer.create();
-        try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
-            try {
-                SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
-                        false)
-                        .accountName(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME))
-                        .uri(uri)
-                        .build();
+        try {
+            SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
+                    false)
+                    .accountName(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME))
+                    .uri(uri)
+                    .build();
 
-                CliUtils.handleSigInt(closer);
-                FileStoreUtils.NodeStoreWithFileStore nodeStore = (FileStoreUtils.NodeStoreWithFileStore) segmentAzureFactory.create(null, closer);
-                assertEquals(1, nodeStore.getFileStore().getSegmentCount());
-            } finally {
-                closer.close();
-                cleanup(uri, azureStorageCredentialManager);
-            }
+            CliUtils.handleSigInt(closer);
+            FileStoreUtils.NodeStoreWithFileStore nodeStore = (FileStoreUtils.NodeStoreWithFileStore) segmentAzureFactory.create(null, closer);
+            assertEquals(1, nodeStore.getFileStore().getSegmentCount());
+        } finally {
+            closer.close();
+            cleanup(uri);
         }
     }
 
-    private void cleanup(String uri, AzureStorageCredentialManager azureStorageCredentialManager) {
+    private void cleanup(String uri) {
         uri = uri + "/" + DIR;
         try {
-            CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(uri, ENVIRONMENT, azureStorageCredentialManager);
+            CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(uri, ENVIRONMENT);
             AzureUtilities.deleteAllBlobs(cloudBlobDirectory);
         } catch (Exception e) {
             throw new IllegalStateException(e);

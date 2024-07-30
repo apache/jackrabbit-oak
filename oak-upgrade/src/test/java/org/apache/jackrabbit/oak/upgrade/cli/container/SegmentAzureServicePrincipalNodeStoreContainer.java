@@ -20,7 +20,6 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
@@ -44,7 +43,6 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
     private FileStore fs;
     private File tmpDir;
     private AzurePersistence azurePersistence;
-    private final AzureStorageCredentialManager azureStorageCredentialManager;
 
     public SegmentAzureServicePrincipalNodeStoreContainer() {
         this(null);
@@ -52,7 +50,6 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
 
     public SegmentAzureServicePrincipalNodeStoreContainer(BlobStore blobStore) {
         this.blobStore = blobStore;
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
 
@@ -86,7 +83,7 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
         }
         String path = String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
                 CONTAINER_NAME, DIR);
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path, ENVIRONMENT, azureStorageCredentialManager);
+        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path, ENVIRONMENT);
         return new AzurePersistence(cloudBlobDirectory);
     }
 
@@ -98,9 +95,6 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
         }
         if (tmpDir != null) {
             tmpDir.delete();
-        }
-        if (azureStorageCredentialManager != null) {
-            azureStorageCredentialManager.close();
         }
     }
 

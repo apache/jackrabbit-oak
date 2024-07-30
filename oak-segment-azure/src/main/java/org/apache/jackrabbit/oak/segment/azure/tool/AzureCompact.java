@@ -32,7 +32,6 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -266,7 +265,6 @@ public class AzureCompact {
     private final CloudBlobDirectory sourceCloudBlobDirectory;
 
     private final CloudBlobDirectory destinationCloudBlobDirectory;
-    private final AzureStorageCredentialManager azureStorageCredentialManager;
 
     private AzureCompact(Builder builder) {
         this.path = builder.path;
@@ -281,7 +279,6 @@ public class AzureCompact {
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
         this.sourceCloudBlobDirectory = builder.sourceCloudBlobDirectory;
         this.destinationCloudBlobDirectory = builder.destinationCloudBlobDirectory;
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     public int run() throws IOException, StorageException, URISyntaxException {
@@ -293,8 +290,8 @@ public class AzureCompact {
             roPersistence = new AzurePersistence(sourceCloudBlobDirectory);
             rwPersistence = new AzurePersistence(destinationCloudBlobDirectory);
         } else {
-            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, azureStorageCredentialManager);
-            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath, azureStorageCredentialManager);
+            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path);
+            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
         }
 
         if (persistentCachePath != null) {
@@ -357,15 +354,13 @@ public class AzureCompact {
 
         CloudBlobContainer targetContainer = null;
         if (targetPath != null) {
-            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManager);
+            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
             targetContainer = targetDirectory.getContainer();
         } else {
             targetContainer = destinationCloudBlobDirectory.getContainer();
         }
         printTargetRepoSizeInfo(targetContainer);
 
-        // close azure storage credential manager
-        azureStorageCredentialManager.close();
         return 0;
     }
 

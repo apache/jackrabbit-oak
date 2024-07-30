@@ -25,16 +25,14 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
-import org.apache.jackrabbit.oak.segment.azure.util.Environment;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.cli.CliUtils;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFileStore;
 
 import java.io.File;
@@ -55,8 +53,6 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
     private int segmentCacheSize;
     private final boolean readOnly;
-    private static final Environment environment = new Environment();
-    private AzureStorageCredentialManager azureStorageCredentialManager;
 
     public static class Builder {
         private final String dir;
@@ -120,7 +116,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         AzurePersistence azPersistence = null;
         try {
-            azPersistence = createAzurePersistence(closer);
+            azPersistence = createAzurePersistence();
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
             throw new IllegalStateException(e);
         }
@@ -152,7 +148,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         }
     }
 
-    private AzurePersistence createAzurePersistence(Closer closer) throws StorageException, URISyntaxException, InvalidKeyException {
+    private AzurePersistence createAzurePersistence() throws StorageException, URISyntaxException, InvalidKeyException {
         CloudBlobDirectory cloudBlobDirectory = null;
 
         // connection string will take precedence over accountkey / sas / service principal
@@ -163,9 +159,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             if (StringUtils.isNotBlank(sasToken)) {
                 credentials = new StorageCredentialsSharedAccessSignature(sasToken);
             } else {
-                this.azureStorageCredentialManager = new AzureStorageCredentialManager();
-                credentials = azureStorageCredentialManager.getStorageCredentialsFromEnvironment(accountName, environment);
-                closer.register(azureStorageCredentialManager);
+                credentials = ToolUtils.getStorageCredentialsFromAccountAndEnv(accountName);
             }
             cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
         }
@@ -180,12 +174,9 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     @Override
     public boolean hasExternalBlobReferences() throws IOException {
         AzurePersistence azPersistence = null;
-        Closer closer = Closer.create();
-        CliUtils.handleSigInt(closer);
         try {
-            azPersistence = createAzurePersistence(closer);
+            azPersistence = createAzurePersistence();
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
-            closer.close();
             throw new IllegalStateException(e);
         }
 
@@ -201,7 +192,6 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IOException(e);
         } finally {
             tmpDir.delete();
-            closer.close();
         }
     }
 
