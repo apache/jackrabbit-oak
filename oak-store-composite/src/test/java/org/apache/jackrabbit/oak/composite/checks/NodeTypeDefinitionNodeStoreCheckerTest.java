@@ -20,7 +20,8 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 
 import java.io.IOException;
 
-import org.osgi.service.component.annotations.Component;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -44,7 +45,8 @@ import org.junit.Test;
  * that they are performed when needed.</p>
  *
  */
-@Component(service = {MountedNodeStoreChecker.class})
+@Component
+@Service(MountedNodeStoreChecker.class)
 public class NodeTypeDefinitionNodeStoreCheckerTest {
 
     @Test
