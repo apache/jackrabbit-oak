@@ -1707,8 +1707,6 @@ public class VersionGarbageCollectorIT {
     // OAK-8646
     @Test
     public void testDeletedPropsAndUnmergedBCWithoutCollision() throws Exception {
-        // OAK-10974:
-        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -2360,8 +2358,6 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
-        // OAK-10869:
-        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
