@@ -16,19 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,6 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import com.mongodb.ReadPreference;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -48,12 +36,20 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
-import com.mongodb.ReadPreference;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.*;
+import static org.junit.Assert.assertNotEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class DocumentPropertyStateTest {
 
@@ -253,39 +249,38 @@ public class DocumentPropertyStateTest {
 
     @Test
     public void testBrokenSurrogateWithoutCompressionForMongo() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, false);
+        getBrokenSurrogateAndInitializeDifferentStores(MONGO, false);
     }
 
     @Test
     public void testBrokenSurrogateWithoutCompressionForRDB() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, false);
+        getBrokenSurrogateAndInitializeDifferentStores(RDB_H2, false);
     }
 
     @Test
     public void testBrokenSurrogateWithoutCompressionForInMemory() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, false);
+        getBrokenSurrogateAndInitializeDifferentStores(MEMORY, false);
     }
 
     @Test
     public void testBrokenSurrogateWithCompressionForMongo() throws CommitFailedException {
         DocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, true);
+        getBrokenSurrogateAndInitializeDifferentStores(MONGO, true);
     }
 
     @Test
     public void testBrokenSurrogateWithCompressionForRDB() throws CommitFailedException {
         DocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, true);
+        getBrokenSurrogateAndInitializeDifferentStores(RDB_H2, true);
     }
 
     @Test
     public void testBrokenSurrogateWithCompressionForInMemory() throws CommitFailedException {
         DocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, true);
+        getBrokenSurrogateAndInitializeDifferentStores(MEMORY, true);
     }
 
     private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws CommitFailedException {
-        assumeTrue(fixture.isAvailable());
         String test = "brokensurrogate:dfsa\ud800";
         DocumentStore store = null;
         DocumentNodeStore nodeStore = null;
