@@ -45,7 +45,7 @@ public final class FixturesHelper {
     /**
      * System property to be used.
      */
-    public static final String RAW_FIXTURES = SystemPropertySupplier.create(PROPNAME, "").loggingTo(LOG).get().trim();
+    private static final String RAW_FIXTURES = SystemPropertySupplier.create(PROPNAME, "").loggingTo(LOG).get().trim();
 
     private FixturesHelper() { }
 
