@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -130,7 +131,7 @@ public class OakUpgrade {
             BlobStore dstBlobStore = datastores.getDstBlobStore(srcBlobStore).create(closer);
             NodeStore targetNodeStore = stores.getDstStore().create(dstBlobStore, closer);
 
-            UUIDConflictDetector uuidConflictDetector = new UUIDConflictDetector(sourceNodeStore, targetNodeStore);
+            UUIDConflictDetector uuidConflictDetector = new UUIDConflictDetector(sourceNodeStore, targetNodeStore, new File("/tmp"));
             uuidConflictDetector.detectConflicts(migrationOptions.getIncludePaths());
 
         } catch (Throwable t) {

@@ -27,20 +27,22 @@ import java.util.stream.Collectors;
 public class UUIDConflictDetector {
 
     private static final Logger log = LoggerFactory.getLogger(UUIDConflictDetector.class);
-    private final File dir = new File("/tmp");
+    private final File dir;
     private final NodeStore sourceStore;
     private final NodeStore targetStore;
+    private long timeStamp;
 
-    public UUIDConflictDetector(NodeStore sourceStore, NodeStore targetStore) {
+    public UUIDConflictDetector(NodeStore sourceStore, NodeStore targetStore, File dir) {
         this.sourceStore = sourceStore;
         this.targetStore = targetStore;
+        this.dir = dir;
+        this.timeStamp = 0;
     }
 
-    private NodeState getNodeAtPath(NodeState node, String path) {
-        for (String name : path.substring(1).split("/")) {
-            node = node.getChildNode(name);
-        }
-        return node;
+    // for testing purposes only, not for production usage
+    public UUIDConflictDetector(NodeStore sourceStore, NodeStore targetStore, File dir, long timeStamp) {
+        this(sourceStore, targetStore, dir);
+        this.timeStamp = timeStamp;
     }
 
 
@@ -59,19 +61,28 @@ public class UUIDConflictDetector {
             return;
         }
 
-        File sourceFileForPaths = File.createTempFile("source_uuids_" + Instant.now().toEpochMilli(), ".txt", dir);
-        try (BufferedWriter writer = Files.newBufferedWriter(sourceFileForPaths.toPath())) {
+        File sourceFile = getSourceFileForPaths(includePaths);
+        File targetFile = gatherUUIDs(targetStore.getRoot(), "target");
+
+        compareUUIDs(sourceFile, targetFile);
+    }
+
+    private File getSourceFileForPaths(Set<String> includePaths) throws IOException {
+        File sourceFile = File.createTempFile("source_uuids_" + getTimeStamp(), ".txt", dir);
+        try (BufferedWriter writer = Files.newBufferedWriter(sourceFile.toPath())) {
             for (String path : includePaths) {
                 NodeState state = getNodeAtPath(sourceStore.getRoot(), path);
                 gatherUUIDs(state, path, writer);
             }
         }
+        return sortFile(sourceFile);
+    }
 
-        File sourceFile = sortFile(sourceFileForPaths);
-        File targetFile = gatherUUIDs(targetStore.getRoot(), "target");
-
-        compareUUIDs(sourceFile, targetFile);
-
+    private NodeState getNodeAtPath(NodeState node, String path) {
+        for (String name : path.substring(1).split("/")) {
+            node = node.getChildNode(name);
+        }
+        return node;
     }
 
     private Set<String> dedupePaths(String[] includePaths) {
@@ -98,7 +109,7 @@ public class UUIDConflictDetector {
 
 
     private File gatherUUIDs(NodeState state, String prefix) throws IOException {
-        File file = File.createTempFile(prefix + "_uuids_" + Instant.now().toEpochMilli(), ".txt", dir);
+        File file = File.createTempFile(prefix + "_uuids_" + getTimeStamp(), ".txt", dir);
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath())) {
             gatherUUIDs(state, "", writer);
         }
@@ -154,5 +165,9 @@ public class UUIDConflictDetector {
                 }
             }
         }
+    }
+
+    public long getTimeStamp() {
+        return timeStamp == 0L ? Instant.now().toEpochMilli() : timeStamp;
     }
 }
