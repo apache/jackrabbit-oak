@@ -172,10 +172,10 @@ final class DocumentPropertyState implements PropertyState {
     private String decompress(byte[] value) {
         if (decompressedValue == null) {
             try {
-                return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes(), StandardCharsets.UTF_8);
+                decompressedValue = new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes(), StandardCharsets.UTF_8);
             } catch (IOException e) {
                 LOG.error("Failed to decompress property {} value: ", getName(), e);
-                return "\"{}\"";
+                decompressedValue = "\"{}\"";
             }
         }
         return decompressedValue;
