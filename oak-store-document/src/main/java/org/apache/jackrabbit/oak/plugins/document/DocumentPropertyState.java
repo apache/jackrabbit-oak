@@ -166,7 +166,13 @@ final class DocumentPropertyState implements PropertyState {
      */
     @NotNull
     String getValue() {
-        return value != null ? value : decompress(this.compressedValue);
+        if (value != null) {
+            return value;
+        }
+        if (decompressedValue == null) {
+            decompressedValue = decompress(this.compressedValue);
+        }
+        return decompressedValue;
     }
 
     private String decompress(byte[] value) {
