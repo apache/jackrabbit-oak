@@ -120,7 +120,7 @@ public class IndexTracker {
             try {
                 entry.getValue().close();
             } catch (IOException e) {
-                log.error("Failed to close the Lucene index at " + entry.getKey(), e);
+                log.error("Failed to close the Lucene index at {}", entry.getKey(), e);
             }
         }
     }
@@ -204,7 +204,7 @@ public class IndexTracker {
                         index.close();
                     }
                 } catch (IOException e) {
-                    log.error("Failed to close Lucene index at " + path, e);
+                    log.error("Failed to close Lucene index at {}", path, e);
                 }
             }
         }

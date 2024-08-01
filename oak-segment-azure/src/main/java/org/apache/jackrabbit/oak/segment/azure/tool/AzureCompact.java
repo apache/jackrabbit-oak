@@ -32,10 +32,13 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.GCJournal;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
@@ -86,6 +89,10 @@ public class AzureCompact {
         private String persistentCachePath;
 
         private Integer persistentCacheSizeGb;
+
+        private int garbageThresholdGb;
+
+        private int garbageThresholdPercentage;
 
         private CloudBlobDirectory sourceCloudBlobDirectory;
 
@@ -218,6 +225,29 @@ public class AzureCompact {
             return this;
         }
 
+        /**
+         * The minimum garbage size in GB for the compaction to run.
+         * @param garbageThresholdGb
+         *           the minimum garbage size in GB for the compaction to run.
+         *
+         * @return this builder
+         */
+        public Builder withGarbageThresholdGb(int garbageThresholdGb) {
+            this.garbageThresholdGb = garbageThresholdGb;
+            return this;
+        }
+
+        /**
+         * The minimum garbage size in percentage for the compaction to run.
+         * @param garbageThresholdPercentage
+         *          the minimum garbage size in percentage for the compaction to run.
+         * @return this builder
+         */
+        public Builder withGarbageThresholdPercentage(int garbageThresholdPercentage) {
+            this.garbageThresholdPercentage = garbageThresholdPercentage;
+            return this;
+        }
+
         public Builder withSourceCloudBlobDirectory(CloudBlobDirectory sourceCloudBlobDirectory) {
             this.sourceCloudBlobDirectory = checkNotNull(sourceCloudBlobDirectory);
             return this;
@@ -242,6 +272,8 @@ public class AzureCompact {
         }
     }
 
+    private static final long GB = 1024 * 1024 * 1024;
+
     private final String path;
 
     private final String targetPath;
@@ -262,9 +294,14 @@ public class AzureCompact {
 
     private final Integer persistentCacheSizeGb;
 
+    private final int garbageThresholdGb;
+
+    private final int garbageThresholdPercentage;
+
     private final CloudBlobDirectory sourceCloudBlobDirectory;
 
     private final CloudBlobDirectory destinationCloudBlobDirectory;
+    private final AzureStorageCredentialManager azureStorageCredentialManager;
 
     private AzureCompact(Builder builder) {
         this.path = builder.path;
@@ -277,8 +314,11 @@ public class AzureCompact {
         this.concurrency = builder.concurrency;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
+        this.garbageThresholdGb = builder.garbageThresholdGb;
+        this.garbageThresholdPercentage = builder.garbageThresholdPercentage;
         this.sourceCloudBlobDirectory = builder.sourceCloudBlobDirectory;
         this.destinationCloudBlobDirectory = builder.destinationCloudBlobDirectory;
+        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     public int run() throws IOException, StorageException, URISyntaxException {
@@ -290,8 +330,8 @@ public class AzureCompact {
             roPersistence = new AzurePersistence(sourceCloudBlobDirectory);
             rwPersistence = new AzurePersistence(destinationCloudBlobDirectory);
         } else {
-            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path);
-            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, azureStorageCredentialManager);
+            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath, azureStorageCredentialManager);
         }
 
         if (persistentCachePath != null) {
@@ -314,10 +354,19 @@ public class AzureCompact {
         }
 
         printArchives(System.out, beforeArchives);
-        System.out.printf("    -> compacting\n");
 
         try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType, concurrency)) {
+            if (garbageThresholdGb > 0 && garbageThresholdPercentage > 0) {
+                System.out.printf("    -> minimum garbage threshold set to %d GB or %d%%\n", garbageThresholdGb, garbageThresholdPercentage);
+                long currentSize = store.size();
+                if (!isGarbageOverMinimumThreshold(currentSize, roPersistence)) {
+                    return 0;
+                }
+            }
+
+            System.out.printf("    -> compacting\n");
+
             boolean success = false;
             switch (gcType) {
                 case FULL:
@@ -354,14 +403,35 @@ public class AzureCompact {
 
         CloudBlobContainer targetContainer = null;
         if (targetPath != null) {
-            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
+            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManager);
             targetContainer = targetDirectory.getContainer();
         } else {
             targetContainer = destinationCloudBlobDirectory.getContainer();
         }
         printTargetRepoSizeInfo(targetContainer);
 
+        // close azure storage credential manager
+        azureStorageCredentialManager.close();
         return 0;
+    }
+
+    private boolean isGarbageOverMinimumThreshold(long currentSize, SegmentNodeStorePersistence roPersistence) throws IOException {
+        long previousSize = 0;
+
+        GCJournalFile gcJournalFile = roPersistence.getGCJournalFile();
+        if (gcJournalFile != null) {
+            GCJournal gcJournal = new GCJournal(gcJournalFile);
+            GCJournal.GCJournalEntry gcJournalEntry = gcJournal.read();
+            previousSize = gcJournalEntry.getRepoSize();
+        }
+
+        long potentialGarbage = currentSize - previousSize;
+        if (currentSize < previousSize || (potentialGarbage < garbageThresholdGb * GB && potentialGarbage < currentSize * garbageThresholdPercentage / 100)) {
+            System.out.printf("    -> [skipping] not enough garbage -> previous size: %d, current size: %d\n", previousSize, currentSize);
+            return false;
+        }
+
+        return true;
     }
 
     private long printTargetRepoSizeInfo(CloudBlobContainer container) {

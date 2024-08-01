@@ -339,7 +339,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState state) {
-        checkState(exists(), "This builder does not exist: " + this.name);
+        checkState(exists(), "This builder does not exist: %s", name);
         head().getMutableNodeState().setChildNode(name, checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
         updated();
@@ -505,7 +505,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public NodeBuilder setProperty(@NotNull PropertyState property) {
-        checkState(exists(), "This builder does not exist: " + name);
+        checkState(exists(), "This builder does not exist: %s", name);
         head().getMutableNodeState().setProperty(checkNotNull(property));
         updated();
         return this;
@@ -528,7 +528,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public NodeBuilder removeProperty(String name) {
-        checkState(exists(), "This builder does not exist: " + name);
+        checkState(exists(), "This builder does not exist: %s", name);
         if (head().getMutableNodeState().removeProperty(checkNotNull(name))) {
             updated();
         }
