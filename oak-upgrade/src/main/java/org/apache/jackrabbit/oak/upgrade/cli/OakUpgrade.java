@@ -16,28 +16,34 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.ServiceLoader;
-
-import javax.jcr.RepositoryException;
-
+import joptsimple.OptionSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
-
-import joptsimple.OptionSet;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.UUIDConflictDetector;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import java.io.IOException;
+import java.util.List;
+import java.util.ServiceLoader;
 
 public class OakUpgrade {
 
-    public static void main(String... args) throws IOException {
+    private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);
+
+    public static void main(String... args) throws IOException, InterruptedException {
+        Thread.sleep(10000);
         OptionSet options = OptionParserFactory.create().parse(args);
         try {
             MigrationCliArguments cliArguments = new MigrationCliArguments(options);
@@ -45,6 +51,12 @@ public class OakUpgrade {
                 CliUtils.displayUsage();
                 return;
             }
+
+            if (cliArguments.hasOption("check-uuid-conflicts")) {
+                checkUUIDConflicts(cliArguments);
+                return;
+            }
+
             migrate(cliArguments);
         } catch(CliArgumentException e) {
             if (e.getMessage() != null) {
@@ -98,4 +110,33 @@ public class OakUpgrade {
         return new CompositeInitializer(initializers);
     }
 
+    private static void checkUUIDConflicts(MigrationCliArguments argumentParser) throws CliArgumentException, IOException {
+        MigrationOptions migrationOptions = new MigrationOptions(argumentParser);
+        migrationOptions.logOptions();
+
+        StoreArguments stores = new StoreArguments(migrationOptions, argumentParser.getArguments());
+        stores.logOptions();
+
+        boolean srcEmbedded = stores.srcUsesEmbeddedDatastore();
+        DatastoreArguments datastores = new DatastoreArguments(migrationOptions, stores, srcEmbedded);
+
+        Closer closer = Closer.create();
+        CliUtils.handleSigInt(closer);
+
+        try {
+            BlobStore srcBlobStore = datastores.getSrcBlobStore().create(closer);
+            NodeStore sourceNodeStore = stores.getSrcStore().create(srcBlobStore, closer);
+
+            BlobStore dstBlobStore = datastores.getDstBlobStore(srcBlobStore).create(closer);
+            NodeStore targetNodeStore = stores.getDstStore().create(dstBlobStore, closer);
+
+            UUIDConflictDetector uuidConflictDetector = new UUIDConflictDetector(sourceNodeStore, targetNodeStore);
+            uuidConflictDetector.detectConflicts(migrationOptions.getIncludePaths());
+
+        } catch (Throwable t) {
+            throw closer.rethrow(t);
+        } finally {
+            closer.close();
+        }
+    }
 }

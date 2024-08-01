@@ -260,5 +260,11 @@
       <version>1.1.1</version>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-jcr</artifactId>
+          <version>1.67-SNAPSHOT</version>
+          <scope>compile</scope>
+      </dependency>
   </dependencies>
 </project>

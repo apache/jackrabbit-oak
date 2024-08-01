@@ -93,6 +93,7 @@ public class OptionParserFactory {
     public static final String FORCE_CHECKPOINTS = "force-checkpoints";
 
     public static final String ADD_SECONDARY_METADATA = "add-secondary-metadata";
+    public static final String CHECK_UUID_CONFLICT = "check-uuid-conflicts";
 
     public static OptionParser create() {
         OptionParser op = new OptionParser();
@@ -174,5 +175,6 @@ public class OptionParserFactory {
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
         op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
         op.accepts(ADD_SECONDARY_METADATA, "Adds the metadata required by secondary store");
+        op.accepts(CHECK_UUID_CONFLICT, "Checks conflicts for UUID at source and target repositories");
     }
 }
