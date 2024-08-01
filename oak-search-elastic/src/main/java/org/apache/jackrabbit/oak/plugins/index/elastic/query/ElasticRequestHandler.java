@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -336,7 +335,7 @@ public class ElasticRequestHandler {
                 try {
                     bytes = new BlobByteSource(property).read();
                 } catch (IOException e) {
-                    LOG.error("Error reading bytes from property " + pd.name + " on " + text, e);
+                    LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
                     continue;
                 }
 

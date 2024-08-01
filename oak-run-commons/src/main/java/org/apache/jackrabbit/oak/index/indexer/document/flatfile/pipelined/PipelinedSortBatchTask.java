@@ -165,7 +165,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             int pathLength = buffer.getInt();
             totalPathSize += pathLength;
             // Create the String directly from the buffer without creating an intermediate byte[]
-            String path = new String(buffer.array(), buffer.position(), pathLength, StandardCharsets.UTF_8);
+            String path = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), pathLength, StandardCharsets.UTF_8);
             buffer.position(buffer.position() + pathLength);
             // Skip the json
             int entryLength = buffer.getInt();

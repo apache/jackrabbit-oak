@@ -271,7 +271,7 @@ public class FulltextBinaryTextExtractor {
         return TikaParserConfig.getNonIndexedMediaTypes(configStream);
       }
     } catch (TikaException | IOException | SAXException e) {
-      log.warn("Tika configuration not available : " + configSource, e);
+        log.warn("Tika configuration not available : {}", configSource, e);
     } finally {
       IOUtils.closeQuietly(configStream);
     }
@@ -302,7 +302,7 @@ public class FulltextBinaryTextExtractor {
         return new TikaConfigHolder(new TikaConfig(configStream), configSource);
       }
     } catch (TikaException | IOException | SAXException e) {
-      log.warn("Tika configuration not available : " + configSource, e);
+        log.warn("Tika configuration not available : {}", configSource, e);
     } finally {
       IOUtils.closeQuietly(configStream);
       Thread.currentThread().setContextClassLoader(current);
@@ -332,7 +332,7 @@ public class FulltextBinaryTextExtractor {
       log.info("Loaded default Tika Config from classpath {}", configHolder);
       return new AutoDetectParser(configHolder.config);
     } catch (Exception e) {
-      log.warn("Tika configuration not available : " + configHolder, e);
+        log.warn("Tika configuration not available : {}", configHolder, e);
     } finally {
       Thread.currentThread().setContextClassLoader(current);
     }
