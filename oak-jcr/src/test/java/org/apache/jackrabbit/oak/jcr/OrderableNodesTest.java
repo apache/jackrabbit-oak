@@ -133,6 +133,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         for (int k = 0; k < childCount; k++) {
             test.addNode(prefix.toString() + k, "nt:unstructured");
         }
+        session.save();
     }
 
     @Test
