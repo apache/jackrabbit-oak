@@ -107,6 +107,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     protected final IndexerSupport indexerSupport;
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
+    private static final int TOP_SLOWEST_PATHS_TO_LOG = 20;
+
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
         this.indexerSupport = indexerSupport;
@@ -354,7 +356,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexParallel(flatFileStores, indexer, progressReporter);
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
-                    SlowestTopKElements slowestTopKElements = new SlowestTopKElements(20);
+                    TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
                     long entryStart = System.nanoTime();
                     for (NodeStateEntry entry : flatFileStore) {
                         reportDocumentRead(entry.getPath(), progressReporter);
@@ -365,7 +367,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         // we are only interested in entries that take a significant time to index, so this extra
                         // inaccuracy will not significantly change the results.
                         long entryEnd = System.nanoTime();
-                        long elapsedMillis = (entryEnd - entryStart)/1_000_000;
+                        long elapsedMillis = (entryEnd - entryStart) / 1_000_000;
                         entryStart = entryEnd;
                         slowestTopKElements.add(entry.getPath(), elapsedMillis);
                         if (elapsedMillis > 1000) {
