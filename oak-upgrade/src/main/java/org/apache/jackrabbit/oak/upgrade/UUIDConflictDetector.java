@@ -94,7 +94,7 @@ public class UUIDConflictDetector {
                 .collect(Collectors.toSet());
         Set<String> dedupePaths = new HashSet<>();
 
-        // remove child path if parent path is parent path is present
+        // remove child path if parent path is present
         for (String currentPath : uniqueIncludePaths) {
             String parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
             if (uniqueIncludePaths.contains(parentPath)) {
