@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QU
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -45,7 +46,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Tree;
@@ -181,7 +181,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     private static void writeItemDefinitions(@NotNull Tree nodeTypeTree, @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
                                              @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
         // first remove existing
-        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName))) {
+        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName)::test)) {
             t.remove();
         }
         // now write definitions
@@ -214,7 +214,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
         }
 
         @Override
-        public boolean apply(Tree t) {
+        public boolean test(Tree t) {
             String s = t.getName();
             return s.equals(name) || s.startsWith(name + "[");
         }

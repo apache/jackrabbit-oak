@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.FilteringIndexStoreStrategy;
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class Multiplexers {
@@ -136,7 +137,7 @@ public class Multiplexers {
         return new Predicate<String>() {
 
             @Override
-            public boolean apply(String p) {
+            public boolean test(String p) {
                 return m.isMounted(p);
             }
         };

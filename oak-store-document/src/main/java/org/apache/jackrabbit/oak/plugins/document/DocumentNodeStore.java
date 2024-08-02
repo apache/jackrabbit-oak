@@ -68,6 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 
@@ -127,8 +128,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.base.Supplier;
@@ -2212,12 +2211,8 @@ public final class DocumentNodeStore
         checkOpen();
         final long now = clock.getTime();
         return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
-                new Predicate<Map.Entry<Revision,Checkpoints.Info>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision,Checkpoints.Info> cp) {
-                return cp.getValue().getExpiryTime() > now;
-            }
-        }), cp -> cp.getKey().toString());
+                cp -> cp.getValue().getExpiryTime() > now),
+                cp -> cp.getKey().toString());
     }
 
     @Nullable

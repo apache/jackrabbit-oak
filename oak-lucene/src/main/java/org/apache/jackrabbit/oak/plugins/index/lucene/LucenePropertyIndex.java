@@ -136,7 +136,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -1603,7 +1603,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
             paths = FluentIterable.from(queryResult)
                     .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
-                    .filter(notNull());
+                    .filter(x -> x != null);
         } else {
             checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
             Filter filter = plan.getFilter();

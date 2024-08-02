@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -56,7 +55,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.isNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
@@ -209,12 +207,8 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     public Iterable<String> checkpoints() {
         final NodeStore globalNodeStore = ctx.getGlobalStore().getNodeStore();
-        return filter(globalNodeStore.checkpoints(), new Predicate<String>() {
-            @Override
-            public boolean apply(String checkpoint) {
-                return isCompositeCheckpoint(checkpoint);
-            }
-        });
+        return filter(globalNodeStore.checkpoints(),
+                checkpoint -> isCompositeCheckpoint(checkpoint));
     }
 
     private boolean isCompositeCheckpoint(String checkpoint) {
@@ -248,12 +242,8 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             LOG.debug("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception("call stack"));
             return Collections.emptyMap();
         }
-        return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint), new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return !input.startsWith(CHECKPOINT_METADATA);
-            }
-        }));
+        return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint),
+                input -> !input.startsWith(CHECKPOINT_METADATA)));
     }
 
     Map<String, String> allCheckpointInfo(String checkpoint) {
@@ -279,7 +269,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             }
             nodeStates.put(nodeStore, nodeState);
         }
-        if (any(nodeStates.values(), isNull())) {
+        if (any(nodeStates.values(), x -> x == null)) {
             LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return null;
         }
