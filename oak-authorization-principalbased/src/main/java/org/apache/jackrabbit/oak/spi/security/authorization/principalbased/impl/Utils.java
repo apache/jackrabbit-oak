@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -114,7 +113,7 @@ final class Utils implements Constants {
                 log.error("Unknown privilege in access control entry : {}", privilegeName);
                 return null;
             }
-        }), Predicates.notNull()).toArray(new Privilege[0]);
+        }), x -> x != null).toArray(new Privilege[0]);
     }
 
     public static boolean hasModAcPermission(@NotNull PermissionProvider permissionProvider, @NotNull String effectivePath) {

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.ESTIMATION;
@@ -24,9 +23,9 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.IDLE;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentReader;

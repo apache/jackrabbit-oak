@@ -38,12 +38,10 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class CacheChangesTrackerTest {
@@ -58,12 +56,8 @@ public class CacheChangesTrackerTest {
     @Test
     public void testTracker() {
         List<CacheChangesTracker> list = new ArrayList<CacheChangesTracker>();
-        CacheChangesTracker tracker = new CacheChangesTracker(new Predicate<String>() {
-            @Override
-            public boolean apply(@Nullable String input) {
-                return !"ignored".equals(input);
-            }
-        }, list, 100);
+        CacheChangesTracker tracker = new CacheChangesTracker(input -> !"ignored".equals(input),
+                list, 100);
 
         assertFalse(tracker.mightBeenAffected("xyz"));
         assertFalse(tracker.mightBeenAffected("abc"));

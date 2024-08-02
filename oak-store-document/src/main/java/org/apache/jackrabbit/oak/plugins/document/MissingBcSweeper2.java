@@ -39,8 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 /**
  * The {@code MissingBcSweeper2} is used for the so-called sweep2, which is
  * a repository traversal updating documents that have missing branch commit ("_bc") 
@@ -161,12 +159,7 @@ final class MissingBcSweeper2 {
                 }
                 return immutableEntry(doc.getPath(), sweepOne(doc));
             }
-        }::apply), new Predicate<Map.Entry<Path, UpdateOp>>() {
-            @Override
-            public boolean apply(Map.Entry<Path, UpdateOp> input) {
-                return input.getValue() != null;
-            }
-        });
+        }::apply), input -> input.getValue() != null);
     }
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
@@ -177,7 +170,7 @@ final class MissingBcSweeper2 {
         // as that's what was left out by the original sweep1:
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS)) {
+        for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -370,7 +369,7 @@ final class Delegatee {
                     }
                 }
                 return null;
-            }), Predicates.notNull());
+            }), x -> x != null);
         } catch (RepositoryException e) {
             log.error("Error while listing orphaned users", e);
             return Collections.emptyIterator();

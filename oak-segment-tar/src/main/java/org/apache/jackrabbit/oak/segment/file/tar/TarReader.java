@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -40,9 +39,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -388,7 +386,7 @@ public class TarReader implements Closeable {
         }
 
         references.forEach((generation, full, compacted, segment, reference) -> {
-            if (skipGeneration.apply(newGCGeneration(generation, full, compacted))) {
+            if (skipGeneration.test(newGCGeneration(generation, full, compacted))) {
                 return;
             }
             collector.accept(reference);

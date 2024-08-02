@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -114,12 +113,8 @@ class UnsavedModifications {
             return Collections.emptyList();
         } else {
             return Iterables.transform(Iterables.filter(map.entrySet(),
-                    new Predicate<Map.Entry<Path, Revision>>() {
-                @Override
-                public boolean apply(Map.Entry<Path, Revision> input) {
-                    return start.compareRevisionTime(input.getValue()) < 1;
-                }
-            }), input -> input.getKey());
+                    input ->start.compareRevisionTime(input.getValue()) < 1),
+                    input -> input.getKey());
         }
     }
 

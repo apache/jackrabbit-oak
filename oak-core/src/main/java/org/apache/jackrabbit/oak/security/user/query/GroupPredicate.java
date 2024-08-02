@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -28,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
 
@@ -50,7 +50,7 @@ class GroupPredicate implements Predicate<Authorizable> {
     }
 
     @Override
-    public boolean apply(@Nullable Authorizable authorizable) {
+    public boolean test(@Nullable Authorizable authorizable) {
         String id = getID(authorizable);
         if (id != null) {
             if (memberIds.contains(id)) {

@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -165,12 +164,7 @@ final class NodeDocumentSweeper {
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
         return filter(transform(docs, doc -> immutableEntry(doc.getPath(), sweepOne(doc))),
-                new Predicate<Map.Entry<Path, UpdateOp>>() {
-                    @Override
-                    public boolean apply(Map.Entry<Path, UpdateOp> input) {
-                        return input.getValue() != null;
-                    }
-                });
+                input -> input.getValue() != null);
     }
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
@@ -180,7 +174,7 @@ final class NodeDocumentSweeper {
         // - DELETED : for new node (this)
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), SWEEP_ONE_PREDICATE)) {
+        for (String property : filter(doc.keySet(), SWEEP_ONE_PREDICATE::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();

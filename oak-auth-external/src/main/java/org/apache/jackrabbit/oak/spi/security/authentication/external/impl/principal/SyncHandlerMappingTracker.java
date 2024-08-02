@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
@@ -85,7 +84,7 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
                 // different synchandler name
                 return null;
             }
-        }), Predicates.notNull());
+        }), x -> x != null);
     }
 
     private static final class Mapping {

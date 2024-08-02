@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 
 @Component
 public class IndexInfoServiceImpl implements IndexInfoService{
@@ -80,7 +79,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
                 log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
                 return null;
             }
-        }), notNull());
+        }), x -> x != null);
     }
 
     @Override
