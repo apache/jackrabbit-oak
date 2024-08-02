@@ -166,11 +166,11 @@ public class PageFile implements MemoryBoundCache.MemoryObject {
             len = buff.getInt();
             int pos = buff.position();
             buff.position(buff.position() + len);
-            return new String(buff.array(), pos, len, StandardCharsets.UTF_8);
+            return new String(buff.array(), pos + buff.arrayOffset(), len, StandardCharsets.UTF_8);
         } else {
             int pos = buff.position();
             buff.position(buff.position() + len);
-            return new String(buff.array(), pos, len, StandardCharsets.UTF_8);
+            return new String(buff.array(), pos + buff.arrayOffset(), len, StandardCharsets.UTF_8);
         }
     }
 
