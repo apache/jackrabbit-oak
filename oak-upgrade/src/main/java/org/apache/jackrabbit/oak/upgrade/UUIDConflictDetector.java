@@ -46,7 +46,7 @@ public class UUIDConflictDetector {
     }
 
 
-    public void detectConflicts() throws IOException {
+    private void detectConflicts() throws IOException {
         File sourceFile = gatherUUIDs(sourceStore.getRoot(), "source");
         File targetFile = gatherUUIDs(targetStore.getRoot(), "target");
 
@@ -136,7 +136,7 @@ public class UUIDConflictDetector {
     private void compareUUIDs(File sourceFile, File targetFile) throws IOException {
         try (BufferedReader sourceReader = Files.newBufferedReader(sourceFile.toPath());
              BufferedReader targetReader = Files.newBufferedReader(targetFile.toPath());
-             BufferedWriter conflictWriter = Files.newBufferedWriter(Paths.get("/tmp/uuid_conflicts_" + System.currentTimeMillis() + ".txt"))) {
+             BufferedWriter conflictWriter = Files.newBufferedWriter(Paths.get(dir.getAbsolutePath(), "uuid_conflicts_" + getTimeStamp() + ".txt"))) {
 
             String sourceLine = sourceReader.readLine();
             String targetLine = targetReader.readLine();
