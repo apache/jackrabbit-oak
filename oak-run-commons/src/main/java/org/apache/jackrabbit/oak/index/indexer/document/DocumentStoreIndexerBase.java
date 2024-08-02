@@ -350,15 +350,24 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
             Stopwatch indexerWatch = Stopwatch.createStarted();
             try {
-
                 if (flatFileStores.size() > 1) {
                     indexParallel(flatFileStores, indexer, progressReporter);
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
+                    SlowestTopKElements slowestTopKElements = new SlowestTopKElements(20);
+                    Stopwatch watch = Stopwatch.createUnstarted();
                     for (NodeStateEntry entry : flatFileStore) {
                         reportDocumentRead(entry.getPath(), progressReporter);
+                        watch.start();
                         indexer.index(entry);
+                        long elapsedMillis = watch.stop().elapsed(TimeUnit.MILLISECONDS);
+                        slowestTopKElements.add(entry.getPath(), elapsedMillis);
+                        if (elapsedMillis > 1000) {
+                            log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                        }
+                        watch.reset();
                     }
+                    log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                 }
 
                 progressReporter.reindexingTraversalEnd();
