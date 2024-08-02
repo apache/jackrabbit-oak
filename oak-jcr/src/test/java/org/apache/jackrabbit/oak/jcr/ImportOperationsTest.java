@@ -22,9 +22,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
@@ -49,6 +53,7 @@ public class ImportOperationsTest extends AbstractRepositoryTest {
     private Node testNode;
     private static String TEST_NODE_NAME = "ImportOperationsTest";
     private static String TEST_NODE_NAME_REF = "ImportOperationsTest-Reference";
+    private static String TEST_NODE_NAME_TMP = "ImportOperationsTest-Temp";
 
     public ImportOperationsTest(NodeStoreFixture fixture) {
         super(fixture);
@@ -156,6 +161,62 @@ public class ImportOperationsTest extends AbstractRepositoryTest {
             ref.remove();
             test.remove();
             session.save();
+        }
+    }
+
+    @Test
+    public void changeUuidOnReferenceNode() throws RepositoryException {
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
+        test.addMixin(NodeType.MIX_REFERENCEABLE);
+        session.save();
+        Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
+        ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
+        session.save();
+
+        // temporary node for rewriting the references
+        Node tmp = testNode.addNode(TEST_NODE_NAME_TMP, NodeType.NT_UNSTRUCTURED);
+        tmp.addMixin(NodeType.MIX_REFERENCEABLE);
+        session.save();
+
+        try {
+            // find all existing references to the node for which we want to rewrite the jcr:uuid
+            Set<Property> referrers = getReferrers(test);
+
+            // move existing references to TEST_MODE_NAME to TEST_NODE_NAME_TMP
+            setReferrersTo(referrers, tmp.getIdentifier());
+            session.save();
+
+            // rewrite jcr:uuid
+            test.removeMixin(NodeType.MIX_REFERENCEABLE);
+            String testUuid = UUID.randomUUID().toString();
+            test.setProperty("jcr:uuid", testUuid);
+            test.addMixin(NodeType.MIX_REFERENCEABLE);
+            session.save();
+
+            // restore references
+            setReferrersTo(referrers, testUuid);
+            session.save();
+        } finally {
+            tmp.remove();
+            ref.remove();
+            test.remove();
+            session.save();
+        }
+    }
+
+    private static Set<Property> getReferrers(Node to) throws RepositoryException {
+        Set<Property> referrers = new HashSet<>();
+        PropertyIterator pit = to.getReferences();
+        while (pit.hasNext()) {
+            referrers.add(pit.nextProperty());
+        }
+        return referrers;
+    }
+
+    private static void setReferrersTo(Set<Property> referrers, String identifier) throws RepositoryException {
+        for (Property p : referrers) {
+            // add case for multivalued
+            p.getParent().setProperty(p.getName(), identifier);
         }
     }
 }
