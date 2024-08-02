@@ -28,6 +28,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -36,7 +37,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -109,14 +109,9 @@ class SplitOperations {
         this.id = doc.getId();
         this.headRevision = checkNotNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
-        this.nodeExistsAtHeadRevision = Suppliers.memoize(new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                return doc.getLiveRevision(context, headRev,
+        this.nodeExistsAtHeadRevision = Suppliers.memoize(() -> doc.getLiveRevision(context, headRev,
                         Maps.<Revision, String>newHashMap(),
-                        new LastRevs(headRev)) != null;
-            }
-        });
+                        new LastRevs(headRev)) != null);
     }
 
     /**
