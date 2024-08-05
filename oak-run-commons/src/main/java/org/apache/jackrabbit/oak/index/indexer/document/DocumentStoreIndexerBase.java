@@ -107,7 +107,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     protected final IndexerSupport indexerSupport;
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
-    private static final int TOP_SLOWEST_PATHS_TO_LOG = 20;
+    private static final int TOP_SLOWEST_PATHS_TO_LOG = ConfigHelper.getSystemPropertyAsInt(
+            "oak.indexer.topSlowestPathsToLog", 20);
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
