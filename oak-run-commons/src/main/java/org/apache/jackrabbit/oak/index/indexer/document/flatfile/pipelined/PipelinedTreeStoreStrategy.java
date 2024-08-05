@@ -339,7 +339,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
-        TreeStore treeStore = new TreeStore(this.getStoreDir(), null);
+        TreeStore treeStore = new TreeStore(getStoreDir(), null);
         treeStore.getSession().init();
         try {
             // download -> transform thread.

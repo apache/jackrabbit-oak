@@ -22,19 +22,21 @@ import java.util.Iterator;
 
 public class SortedStream implements Comparable<SortedStream> {
 
+    private final int priority;
     private final String rootFileName;
     private Iterator<Position> it;
     private String currentKey;
     private String currentValue;
 
-    public SortedStream(String rootFileName, Iterator<Position> it) {
+    public SortedStream(int priority, String rootFileName, Iterator<Position> it) {
+        this.priority = priority;
         this.rootFileName = rootFileName;
         this.it = it;
         next();
     }
 
     public String toString() {
-        return "file " + rootFileName + " key " + currentKey + " value " + currentValue;
+        return "priority " + priority + " file " + rootFileName + " key " + currentKey + " value " + currentValue;
     }
 
     public String currentKeyOrNull() {
@@ -60,7 +62,7 @@ public class SortedStream implements Comparable<SortedStream> {
     public int compareTo(SortedStream o) {
         if (currentKey == null) {
             if (o.currentKey == null) {
-                return rootFileName.compareTo(o.rootFileName);
+                return Integer.compare(priority, o.priority);
             }
             return 1;
         } else if (o.currentKey == null) {
@@ -68,7 +70,7 @@ public class SortedStream implements Comparable<SortedStream> {
         }
         int comp = currentKey.compareTo(o.currentKey);
         if (comp == 0) {
-            return rootFileName.compareTo(o.rootFileName);
+            return Integer.compare(priority, o.priority);
         }
         return comp;
     }

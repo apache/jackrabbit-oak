@@ -53,6 +53,8 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTreeStoreTask.class);
     private static final String THREAD_NAME = "stree-store-task";
 
+    private static final int MERGE_BATCH = 10;
+
     private final TreeStore treeStore;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
@@ -165,6 +167,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                 entriesProcessed++;
             }
             session.checkpoint();
+            session.mergeRoots(MERGE_BATCH);
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         LOG.info("Wrote batch of size {} (uncompressed) with {} entries in {} at {}",

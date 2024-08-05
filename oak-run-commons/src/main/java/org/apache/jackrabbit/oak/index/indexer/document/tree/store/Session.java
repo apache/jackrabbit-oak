@@ -420,6 +420,9 @@ public class Session {
      */
     public void mergeRoots(int max) {
         List<String> list = getRootFileNames();
+        if (list.size() <= 1 || (max != Integer.MAX_VALUE && list.size() < max)) {
+            return;
+        }
         PageFile root = getFile(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
         root = copyPageFile(root);
@@ -429,7 +432,7 @@ public class Session {
         PageFile newRoot = newPageFile(false);
         newRoot.setNextRoot(rootFileCopy);
         putFile(ROOT_NAME, newRoot);
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             Entry<String, String> e = it.next();
             put(e.getKey(), e.getValue());
             // we can remove files that are processed
@@ -487,7 +490,6 @@ public class Session {
             flush();
             root = copyPageFile(root);
             putFile(ROOT_NAME, root);
-
         } else {
             flush();
             root = copyPageFile(root);
@@ -555,11 +557,22 @@ public class Session {
         return iterator(largerThan, Integer.MAX_VALUE);
     }
 
+    public Iterable<Entry<String, String>> entrySet() {
+        return new Iterable<Entry<String, String>>() {
+
+            @Override
+            public Iterator<Entry<String, String>> iterator() {
+                return iterator();
+            }
+
+        };
+    }
+
     private Iterator<Entry<String, String>> iterator(String largerThan, int maxRootCount) {
         ArrayList<SortedStream> streams = new ArrayList<>();
         String next = ROOT_NAME;
         for (int i = 0; i < maxRootCount; i++) {
-            streams.add(new SortedStream(next, immutableRootIterator(next, largerThan)));
+            streams.add(new SortedStream(i, next, immutableRootIterator(next, largerThan)));
             next = getFile(next).getNextRoot();
             if (next == null) {
                 break;
@@ -584,6 +597,8 @@ public class Session {
                         break;
                     }
                     if (key.equals(lastKey)) {
+                        s.next();
+                        pq.add(s);
                         continue;
                     }
                     String value = s.currentValue();
