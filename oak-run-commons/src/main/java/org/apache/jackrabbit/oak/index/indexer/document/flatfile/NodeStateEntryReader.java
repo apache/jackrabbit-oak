@@ -29,10 +29,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
 public class NodeStateEntryReader {
-    private final BlobDeserializer blobDeserializer;
+    private final JsonDeserializer des;
 
     public NodeStateEntryReader(BlobStore blobStore) {
-        this.blobDeserializer = new BlobIdSerializer(blobStore);
+        BlobDeserializer blobDeserializer = new BlobIdSerializer(blobStore);
+        this.des = new JsonDeserializer(blobDeserializer);
     }
 
     public NodeStateEntry read(String line) {
@@ -43,7 +44,6 @@ public class NodeStateEntryReader {
     }
 
     protected NodeState parseState(String part) {
-        JsonDeserializer des = new JsonDeserializer(blobDeserializer);
         return des.deserialize(part);
     }
 }
