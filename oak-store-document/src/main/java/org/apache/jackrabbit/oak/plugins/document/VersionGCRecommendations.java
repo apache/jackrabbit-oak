@@ -350,12 +350,26 @@ public class VersionGCRecommendations {
         return settings;
     }
 
+    /**
+     * Set the VGC settings with the given property and value.
+     * If property is not present, it will add the property to versionGC document with given value.
+     *
+     * @param propName the property name
+     * @param val the value
+     * @see VersionGCRecommendations#setVGCSetting(Map)
+     */
     private void setVGCSetting(final String propName, final Object val) {
         setVGCSetting(new HashMap<>() {{
             put(propName, val);
         }});
     }
 
+    /**
+     * Set the VGC settings with the given properties and values.
+     * If properties are not present, it will add the properties to versionGC document with given values
+     * .
+     * @param propValMap the properties and values to set
+     */
     private void setVGCSetting(final Map<String, Object> propValMap) {
         final UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
         setUpdateOp(propValMap, updateOp);
@@ -370,6 +384,12 @@ public class VersionGCRecommendations {
         });
     }
 
+    /**
+     * Update the VGC settings with the given properties and values.
+     * Properties are only updated if they already exists in the versionGC document.
+     *
+     * @param propValMap the properties and values to update
+     */
     private void updateVGCSetting(final Map<String, Object> propValMap) {
         final UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, false);
         setUpdateOp(propValMap, updateOp);
