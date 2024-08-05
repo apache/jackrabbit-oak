@@ -592,6 +592,25 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain, containsString("references:/some/content/efjoiefjowfgj/*"));
     }
 
+    @Ignore("Failing test to reproduce OAK-9481")
+    @Test
+    public void multiValuesLikeWithValueExcludedPrefixes() throws Exception{
+        Tree idx = createIndex("test1", of("references"));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("references");
+        propIdx.setProperty("valueExcludedPrefixes", of("sling:folder"), STRINGS);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("references", of("/some/content/AAA", "/some/content/BBB"), Type.STRINGS);
+        test.addChild("b").setProperty("references", of("/some/content/AAA", "/some/content/CCC"), Type.STRINGS);
+        root.commit();
+
+        String q = "SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/some/content/efjoiefjowfgj/%'";
+        String explain = explain(q);
+        System.out.println(explain);
+        assertThat(explain, containsString("references:/some/content/efjoiefjowfgj/*"));
+    }
+
     @Test
     public void redundantNotNullCheck() throws Exception{
         Tree idx = createIndex("test1", of("tags"));
