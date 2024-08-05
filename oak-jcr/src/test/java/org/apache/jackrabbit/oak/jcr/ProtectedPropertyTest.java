@@ -47,7 +47,7 @@ import org.junit.Test;
  * specification, but to observe the actual behavior of the implementation
  * (which may be hard to change).
  */
-public class ImportOperationsTest extends AbstractRepositoryTest {
+public class ProtectedPropertyTest extends AbstractRepositoryTest {
 
     private Session session;
     private Node testNode;
@@ -55,7 +55,7 @@ public class ImportOperationsTest extends AbstractRepositoryTest {
     private static String TEST_NODE_NAME_REF = "ImportOperationsTest-Reference";
     private static String TEST_NODE_NAME_TMP = "ImportOperationsTest-Temp";
 
-    public ImportOperationsTest(NodeStoreFixture fixture) {
+    public ProtectedPropertyTest(NodeStoreFixture fixture) {
         super(fixture);
     }
 
