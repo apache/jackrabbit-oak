@@ -98,11 +98,35 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             session.save();
             test.addMixin(NodeType.MIX_REFERENCEABLE);
             session.save();
-            // surprise: setting the mixin succeeds, and the subsequent state of
-            // the node doesn't have an autocreated UUID
+            // JCR spec
+            // (https://developer.adobe.com/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.8%20Referenceable%20Nodes)
+            // requests an "auto-created" property, so it might be a surprise
+            // that Oak actually keeps the application-assigned previous value.
             assertEquals(testUuid, test.getProperty("jcr:uuid").getString());
         } finally {
             test.remove();
+            session.save();
+        }
+    }
+
+    @Test
+    public void jcrMixinReferenceableOnNtUnstructuredBeforeSettingMixinButWithConflict() throws RepositoryException {
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
+        Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
+        ref.addMixin(NodeType.MIX_REFERENCEABLE);
+        session.save();
+
+        try {
+            String testUuid = ref.getProperty("jcr:uuid").getString();
+            test.setProperty("jcr:uuid", testUuid);
+            // note this fails even though test hasn't be set to mix:referenceable
+            session.save();
+            fail("Attempt so set a UUID already in use should fail");
+        } catch (ConstraintViolationException ex) {
+            // expected
+        } finally {
+            test.remove();
+            ref.remove();
             session.save();
         }
     }
