@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -34,6 +35,7 @@ import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -169,7 +171,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void changeUuidOnReferenceNode() throws RepositoryException {
+    public void changeUuidOnReferencedNodeWithOnlyMixin() throws RepositoryException {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
         test.addMixin(NodeType.MIX_REFERENCEABLE);
         session.save();
@@ -177,33 +179,65 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
         session.save();
 
+        try {
+            String newUuid = UUID.randomUUID().toString();
+            updateJcrUuid(test, newUuid);
+        } finally {
+            ref.remove();
+            test.remove();
+            session.save();
+        }
+    }
+
+    @Test
+    public void changeUuidOnReferencedNodeWithInheritedMixin() throws RepositoryException {
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_RESOURCE);
+        test.setProperty("jcr:data", session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
+        session.save();
+        Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
+        ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
+        session.save();
+
+        try {
+            String newUuid = UUID.randomUUID().toString();
+            updateJcrUuid(test, newUuid);
+            fail("removing mixin:referenceable should fail on nt:resource");
+        } catch (NoSuchNodeTypeException ex) {
+            // expected
+        } finally {
+            ref.remove();
+            test.remove();
+            session.save();
+        }
+    }
+
+    private static void updateJcrUuid(Node target, String newUUID) throws RepositoryException {
+        Session session = target.getSession();
+
         // temporary node for rewriting the references
-        Node tmp = testNode.addNode(TEST_NODE_NAME_TMP, NodeType.NT_UNSTRUCTURED);
+        Node tmp = target.getParent().addNode(TEST_NODE_NAME_TMP, NodeType.NT_UNSTRUCTURED);
         tmp.addMixin(NodeType.MIX_REFERENCEABLE);
         session.save();
 
         try {
             // find all existing references to the node for which we want to rewrite the jcr:uuid
-            Set<Property> referrers = getReferrers(test);
+            Set<Property> referrers = getReferrers(target);
 
             // move existing references to TEST_MODE_NAME to TEST_NODE_NAME_TMP
             setReferrersTo(referrers, tmp.getIdentifier());
             session.save();
 
             // rewrite jcr:uuid
-            test.removeMixin(NodeType.MIX_REFERENCEABLE);
-            String testUuid = UUID.randomUUID().toString();
-            test.setProperty("jcr:uuid", testUuid);
-            test.addMixin(NodeType.MIX_REFERENCEABLE);
+            target.removeMixin(NodeType.MIX_REFERENCEABLE);
+            target.setProperty("jcr:uuid", newUUID);
+            target.addMixin(NodeType.MIX_REFERENCEABLE);
             session.save();
 
             // restore references
-            setReferrersTo(referrers, testUuid);
+            setReferrersTo(referrers, newUUID);
             session.save();
         } finally {
             tmp.remove();
-            ref.remove();
-            test.remove();
             session.save();
         }
     }
