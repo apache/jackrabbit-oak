@@ -54,10 +54,13 @@ public class UUIDConflictDetector {
     }
 
     public void detectConflicts(String[] includePath) throws IOException {
+        long startTime = System.currentTimeMillis();
+        log.info("started detecting uuid conflicts at: {}", startTime);
         Set<String> includePaths = dedupePaths(includePath);
         if (CollectionUtils.isEmpty(includePaths)) {
-            log.info("Include paths not provided, iterating entire repository to detect conflicts");
+            log.info("include paths not provided, iterating entire repository to detect conflicts");
             detectConflicts();
+            log.info("uuid conflict detection completed in: {} ms", System.currentTimeMillis() - startTime);
             return;
         }
 
@@ -65,6 +68,7 @@ public class UUIDConflictDetector {
         File targetFile = gatherUUIDs(targetStore.getRoot(), "target");
 
         compareUUIDs(sourceFile, targetFile);
+        log.info("uuid conflict detection completed in: {} ms", System.currentTimeMillis() - startTime);
     }
 
     private File getSourceFileForPaths(Set<String> includePaths) throws IOException {
@@ -156,6 +160,7 @@ public class UUIDConflictDetector {
                     targetLine = targetReader.readLine();
                 } else {
                     if (!StringUtils.equals(sourcePath, targetPath)) {
+                        log.info("conflict found for uuid: {}, source path: {}, target path: {}", sourceUUID, sourcePath, targetPath);
                         String uuidWithPaths = sourceUUID + ": " + sourcePath + " " + targetPath;
                         conflictWriter.write(uuidWithPaths);
                         conflictWriter.newLine();

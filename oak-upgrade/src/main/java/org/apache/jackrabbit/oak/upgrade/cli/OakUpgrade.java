@@ -52,7 +52,7 @@ public class OakUpgrade {
                 return;
             }
 
-            if (cliArguments.hasOption("check-uuid-conflicts")) {
+            if (cliArguments.hasOption(OptionParserFactory.CHECK_UUID_CONFLICT)) {
                 checkUUIDConflicts(cliArguments);
                 return;
             }
