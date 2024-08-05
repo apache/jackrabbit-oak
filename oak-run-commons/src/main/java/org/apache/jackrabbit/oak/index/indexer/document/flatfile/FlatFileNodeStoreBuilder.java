@@ -19,18 +19,31 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoDatabase;
-import org.apache.commons.lang3.StringUtils;
+import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -47,21 +60,9 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoDatabase;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 
 /**
  * This class is where the strategy being selected for building FlatFileStore.
@@ -121,7 +122,11 @@ public class FlatFileNodeStoreBuilder {
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
          */
-        PIPELINED
+        PIPELINED,
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedTreeStoreStrategy} being used.
+         */
+        PIPELINED_TREE,
     }
 
     public FlatFileNodeStoreBuilder(File workDir) {
@@ -201,21 +206,28 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileStore build() throws IOException, CompositeException {
+    public IndexStore build() throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
         File metadataFile = indexStoreFiles.metadataFile;
-        FlatFileStore store = new FlatFileStore(blobStore, indexStoreFiles.storeFiles.get(0), metadataFile,
-                new NodeStateEntryReader(blobStore),
-                unmodifiableSet(preferredPathElements), algorithm);
+        File file = indexStoreFiles.storeFiles.get(0);
+        IndexStore store;
+        if (file.isDirectory()) {
+            store = new TreeStore(file,
+                    new NodeStateEntryReader(blobStore));
+        } else {
+            store = new FlatFileStore(blobStore, file, metadataFile,
+                    new NodeStateEntryReader(blobStore),
+                    unmodifiableSet(preferredPathElements), algorithm);
+        }
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
         return store;
     }
 
-    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
+    public List<IndexStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                          Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
@@ -235,7 +247,7 @@ public class FlatFileNodeStoreBuilder {
             log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
         }
 
-        List<FlatFileStore> storeList = new ArrayList<>();
+        List<IndexStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
             FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, metadataFile, new NodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), algorithm);
@@ -326,7 +338,7 @@ public class FlatFileNodeStoreBuilder {
                 log.warn("TraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
-            case PIPELINED:
+            case PIPELINED: {
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
                 List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
@@ -334,7 +346,16 @@ public class FlatFileNodeStoreBuilder {
                 return new PipelinedStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
                         statisticsProvider, indexingReporter);
-
+            }
+            case PIPELINED_TREE: {
+                log.info("Using PipelinedTreeStoreStrategy");
+                List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
+                List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+                indexingReporter.setIndexNames(indexNames);
+                return new PipelinedTreeStoreStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
+                        statisticsProvider, indexingReporter);
+            }
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

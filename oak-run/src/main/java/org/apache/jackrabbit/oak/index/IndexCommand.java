@@ -30,8 +30,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -256,8 +255,8 @@ public class IndexCommand implements Command {
                     indexer.reindexUsingTreeStore();
                 } else {
                     if (idxOpts.buildFlatFileStoreSeparately()) {
-                        FlatFileStore ffs = indexer.buildFlatFileStore();
-                        String pathToFFS = ffs.getFlatFileStorePath();
+                        IndexStore store = indexer.buildStore();
+                        String pathToFFS = store.getStorePath();
                         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
                     }
                     indexer.reindex();

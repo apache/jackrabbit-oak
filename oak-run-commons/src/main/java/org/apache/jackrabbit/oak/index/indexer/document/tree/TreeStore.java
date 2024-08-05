@@ -39,9 +39,9 @@ public class TreeStore implements IndexStore {
 
     private static final String STORE_TYPE = "TreeStore";
 
-    private static final long CACHE_SIZE_NODE_MB = 64;
-    private static final long CACHE_SIZE_TREE_STORE_MB = 1024;
-    private static final long MAX_FILE_SIZE_MB = 64;
+    private static final long CACHE_SIZE_NODE_MB = 32;
+    private static final long CACHE_SIZE_TREE_STORE_MB = 32;
+    private static final long MAX_FILE_SIZE_MB = 8;
     private static final long MB = 1024 * 1024;
 
     private final Store store;

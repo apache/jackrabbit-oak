@@ -30,11 +30,15 @@ import java.util.Properties;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Position;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SortedStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Read and write keys and values.
  */
 public class Session {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Session.class);
 
     public static final String CACHE_SIZE_MB = "cacheSizeMB";
     private static final int DEFAULT_CACHE_SIZE_MB = 256;
@@ -62,6 +66,7 @@ public class Session {
         long cacheSizeMB = Long.parseLong(store.getConfig().getProperty(
                 CACHE_SIZE_MB, "" + DEFAULT_CACHE_SIZE_MB));
         long cacheSizeBytes = cacheSizeMB * 1024 * 1024;
+        LOG.info("Cache size {} bytes", cacheSizeBytes);
         this.cache = new MemoryBoundCache<>(cacheSizeBytes)  {
             private static final long serialVersionUID = 1L;
 

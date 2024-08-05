@@ -30,8 +30,12 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.TimeUuid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileStore implements Store {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
 
     private final Properties config;
     private final String directory;
@@ -48,6 +52,7 @@ public class FileStore implements Store {
         this.directory = config.getProperty("dir");
         this.maxFileSizeBytes = Long.parseLong(config.getProperty(
                 Store.MAX_FILE_SIZE_BYTES, "" + Store.DEFAULT_MAX_FILE_SIZE_BYTES));
+        LOG.info("Max file size {} bytes", maxFileSizeBytes);
         new File(directory).mkdirs();
     }
 

@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
@@ -164,14 +163,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState,
+    private List<IndexStore> buildFlatFileStoreList(NodeState checkpointedState,
                                                        CompositeIndexer indexer,
                                                        Predicate<String> pathPredicate,
                                                        Set<String> preferredPathElements,
                                                        boolean splitFlatFile,
                                                        Set<IndexDefinition> indexDefinitions,
                                                        IndexingReporter reporter) throws IOException {
-        List<FlatFileStore> storeList = new ArrayList<>();
+        List<IndexStore> storeList = new ArrayList<>();
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
         int executionCount = 1;
@@ -210,7 +209,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 } else {
                     storeList.add(builder.build());
                 }
-                for (FlatFileStore item : storeList) {
+                for (IndexStore item : storeList) {
                     closer.register(item);
                 }
             } catch (CompositeException e) {
@@ -303,16 +302,16 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
      * @deprecated replaced by {@link #buildStore()}
      */
     @Deprecated
-    public FlatFileStore buildFlatFileStore() throws IOException, CommitFailedException {
+    public IndexStore buildFlatFileStore() throws IOException, CommitFailedException {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
         Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
         Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
-        FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
+        IndexStore indexStore = buildFlatFileStoreList(checkpointedState, null, predicate,
                 preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions, indexingReporter).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
-                flatFileStore.getStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getStorePath());
-        return flatFileStore;
+                indexStore.getStorePath(), OAK_INDEXER_SORTED_FILE_PATH, indexStore.getStorePath());
+        return indexStore;
     }
 
     public void reindexUsingTreeStore() throws CommitFailedException, IOException {
@@ -378,7 +377,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
             closer.register(indexer);
 
-            List<FlatFileStore> flatFileStores = buildFlatFileStoreList(
+            List<IndexStore> indexStores = buildFlatFileStoreList(
                     checkpointedState,
                     indexer,
                     indexer::shouldInclude,
@@ -397,11 +396,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             Stopwatch indexerWatch = Stopwatch.createStarted();
             try {
 
-                if (flatFileStores.size() > 1) {
-                    indexParallel(flatFileStores, indexer, progressReporter);
-                } else if (flatFileStores.size() == 1) {
-                    FlatFileStore flatFileStore = flatFileStores.get(0);
-                    for (NodeStateEntry entry : flatFileStore) {
+                if (indexStores.size() > 1) {
+                    indexParallel(indexStores, indexer, progressReporter);
+                } else if (indexStores.size() == 1) {
+                    IndexStore indexStore = indexStores.get(0);
+                    for (NodeStateEntry entry : indexStore) {
                         reportDocumentRead(entry.getPath(), progressReporter);
                         indexer.index(entry);
                     }
@@ -447,12 +446,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
+    private void indexParallel(List<IndexStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
             throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(IndexerConfiguration.indexThreadPoolSize());
         List<Future> futureList = new ArrayList<>();
 
-        for (FlatFileStore item : storeList) {
+        for (IndexStore item : storeList) {
             Future future = service.submit(() -> {
                 for (NodeStateEntry entry : item) {
                     reportDocumentRead(entry.getPath(), progressReporter);

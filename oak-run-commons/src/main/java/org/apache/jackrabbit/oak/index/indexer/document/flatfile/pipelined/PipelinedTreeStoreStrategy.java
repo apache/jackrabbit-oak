@@ -259,7 +259,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         long memoryReservedForBuffers = nseWorkingMemoryBytes - memoryReservedForSortKeysArray;
 
         // A ByteBuffer can be at most Integer.MAX_VALUE bytes long
-        this.nseBuffersSizeBytes = limitToIntegerRange(memoryReservedForBuffers / nseBuffersCount);
+        this.nseBuffersSizeBytes = limitToIntegerRange(memoryReservedForBuffers / nseBuffersCount / 2);
 
         if (nseBuffersSizeBytes < MIN_ENTRY_BATCH_BUFFER_SIZE_MB * FileUtils.ONE_MB) {
             throw new IllegalArgumentException("Entry batch buffer size too small: " + nseBuffersSizeBytes +
@@ -365,8 +365,8 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
-                    (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
-                    mongoDocBatchMaxNumberOfDocuments,
+                    (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB / 2),
+                    mongoDocBatchMaxNumberOfDocuments / 2,
                     mongoDocQueue,
                     pathFilters,
                     statisticsProvider,
