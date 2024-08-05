@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -1354,7 +1353,7 @@ public final class DocumentNodeStore
 
     @NotNull
     public PropertyState createPropertyState(String name, String value){
-        return DocumentPropertyStateFactory.createPropertyState(this, name, value, Compression.NONE);
+        return new DocumentPropertyState(this, name, checkNotNull(value));
     }
 
     /**
@@ -3215,7 +3214,8 @@ public final class DocumentNodeStore
         if (json == null) {
             return -1;
         }
-        PropertyState p = DocumentPropertyStateFactory.createPropertyState(this, "p", json, Compression.NONE);
+        PropertyState p = new DocumentPropertyState(
+                DocumentNodeStore.this, "p", json);
         if (p.getType().tag() != PropertyType.BINARY) {
             return -1;
         }
