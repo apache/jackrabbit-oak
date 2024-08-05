@@ -44,7 +44,6 @@ public class OakUpgrade {
     private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);
 
     public static void main(String... args) throws IOException, InterruptedException {
-        Thread.sleep(10000);
         OptionSet options = OptionParserFactory.create().parse(args);
         try {
             MigrationCliArguments cliArguments = new MigrationCliArguments(options);
