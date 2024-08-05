@@ -74,9 +74,13 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             session.save();
             test.addMixin(NodeType.MIX_CREATED);
             session.save();
-            // surprise: setting the mixin succeeds, and the subsequent state of
-            // the node is inconsistent with the mixin's type definition
             assertEquals(false, test.getProperty("jcr:created").getBoolean());
+            // in Oak, existing properties are left as-is (even the property
+            // type), which means that after adding the mixin:created type, the
+            // state of the node might be inconsistent with the mixin:created
+            // type. This may come as a surprise, but is allowed as
+            // implementation specific behavior, see
+            // https://developer.adobe.com/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.7.11.7%20mix:created
         } finally {
             test.remove();
             session.save();
