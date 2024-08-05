@@ -59,7 +59,7 @@ public final class SortKey {
             // Interning these strings should provide a big reduction in memory usage.
             // It is not worth to intern all levels because at lower levels the names are more likely to be less diverse,
             // often even unique, so interning them would fill up the interned string hashtable with useless entries.
-            if ((i < 3 || part.length() == 1 || part.startsWith("dam:") || part.startsWith("jcr:") || COMMON_PATH_WORDS.contains(part)) &&
+            if ((i < 3 || part.length() == 1 || part.startsWith("jcr:") || COMMON_PATH_WORDS.contains(part)) &&
                     INTERN_CACHE.size() < MAX_INTERN_CACHE && part.length() < MAX_INTERNED_STRING_LENGTH) {
                 pathElements[i] = INTERN_CACHE.computeIfAbsent(part, String::intern);
             } else {
