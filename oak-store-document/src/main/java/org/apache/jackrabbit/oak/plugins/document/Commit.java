@@ -892,6 +892,6 @@ public class Commit {
 
     private static boolean hasContentChanges(UpdateOp op) {
         return filter(transform(op.getChanges().keySet(),
-                input -> input.getName()), Utils.PROPERTY_OR_DELETED).iterator().hasNext();
+                input -> input.getName()), Utils.PROPERTY_OR_DELETED::test).iterator().hasNext();
     }
 }

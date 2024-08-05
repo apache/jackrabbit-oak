@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
@@ -31,12 +30,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
@@ -361,7 +360,7 @@ public class PriorityCache<K, V> {
                 for (int i = 0; i < entriesPerSegment; i++) {
                     int j = i + s * entriesPerSegment;
                     Entry<?, ?> entry = entries[j];
-                    if (entry != Entry.NULL && purge.apply(entry.generation)) {
+                    if (entry != Entry.NULL && purge.test(entry.generation)) {
                         entries[j] = Entry.NULL;
                         size.decrement();
                         weight.addAndGet(-weighEntry(entry));

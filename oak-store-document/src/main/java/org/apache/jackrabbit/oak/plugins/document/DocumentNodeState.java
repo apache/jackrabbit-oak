@@ -253,7 +253,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         //Filter out the meta properties related to bundling from
         //generic listing of props
         if (bundlingContext.isBundled()){
-            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS);
+            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS::test);
         }
         return properties.values();
     }

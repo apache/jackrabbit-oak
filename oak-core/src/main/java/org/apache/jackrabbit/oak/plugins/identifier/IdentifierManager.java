@@ -51,7 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
@@ -273,7 +272,7 @@ public class IdentifierManager {
                             if (propertyName == null) {
                                 return filter(
                                         transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
-                                        notNull());
+                                        x -> x != null);
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that
                                 // the search found the correct one

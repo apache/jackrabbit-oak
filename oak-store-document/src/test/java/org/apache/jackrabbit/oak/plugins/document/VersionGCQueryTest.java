@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -123,7 +123,7 @@ public class VersionGCQueryTest {
         builder.child("test");
         merge(builder);
         String id = Utils.getIdFromPath("/test");
-        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(), INTERMEDIATE)) {
+        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(), INTERMEDIATE::test)) {
             InputStream s = new RandomStream(10 * 1024, 42);
             PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
             builder = ns.getRoot().builder();
@@ -159,7 +159,7 @@ public class VersionGCQueryTest {
     private static final Predicate<Range> INTERMEDIATE =
             new Predicate<Range>() {
         @Override
-        public boolean apply(Range input) {
+        public boolean test(Range input) {
             return input.height > 0;
         }
     };

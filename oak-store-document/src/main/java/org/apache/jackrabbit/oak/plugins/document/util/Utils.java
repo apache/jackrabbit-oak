@@ -36,9 +36,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -109,32 +110,18 @@ public class Utils {
     /**
      * A predicate for property and _deleted names.
      */
-    public static final Predicate<String> PROPERTY_OR_DELETED = new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return Utils.isPropertyName(input) || isDeletedEntry(input);
-        }
-    };
+    public static final Predicate<String> PROPERTY_OR_DELETED = input -> Utils.isPropertyName(input) || isDeletedEntry(input);
 
     /**
      * A predicate for property, _deleted, _commitRoot or _revisions names.
      */
-    public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return Utils.isPropertyName(input) || isDeletedEntry(input) || isCommitRootEntry(input) || isRevisionsEntry(input);
-        }
-    };
+    public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = input -> Utils.isPropertyName(input)
+            || isDeletedEntry(input) || isCommitRootEntry(input) || isRevisionsEntry(input);
 
     /**
      * A predicate for _commitRoot and _revisions names.
      */
-    public static final Predicate<String> COMMITROOT_OR_REVISIONS = new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return isCommitRootEntry(input) || isRevisionsEntry(input);
-        }
-    };
+    public static final Predicate<String> COMMITROOT_OR_REVISIONS = input -> isCommitRootEntry(input) || isRevisionsEntry(input);
 
     public static int pathDepth(String path) {
         if (path.equals("/")) {
@@ -1166,7 +1153,7 @@ public class Utils {
                 protected T computeNext() {
                     if (it.hasNext()) {
                         T next = it.next();
-                        if (p.apply(next)) {
+                        if (p.test(next)) {
                             return next;
                         }
                     }

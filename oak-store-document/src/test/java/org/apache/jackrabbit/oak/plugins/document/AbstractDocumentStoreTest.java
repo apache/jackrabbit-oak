@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.junit.After;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,6 +43,8 @@ public abstract class AbstractDocumentStoreTest {
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
+    private static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
+
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
         this.dsf = dsf;
         this.ds = dsf.createDocumentStore(getBuilder().setClusterId(1));
@@ -52,7 +55,7 @@ public abstract class AbstractDocumentStoreTest {
     public DocumentMK.Builder getBuilder() {
         return new DocumentMK.Builder();
     }
-    
+
     @After
     public void cleanUp() throws Exception {
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
@@ -69,19 +72,26 @@ public abstract class AbstractDocumentStoreTest {
     }
 
     protected static Collection<Object[]> fixtures(boolean multi) {
-        Collection<Object[]> result = new ArrayList<Object[]>();
+        Collection<Object[]> result = new ArrayList<>();
+        Collection<String> names = new ArrayList<>();
+
         DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
                 DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG,
                 DocumentStoreFixture.RDB_DB2, DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
                 DocumentStoreFixture.RDB_MSSQL };
 
         for (DocumentStoreFixture dsf : candidates) {
-            if (dsf.isAvailable()) {
+            if (SKIP_MONGO && dsf instanceof DocumentStoreFixture.MongoFixture) {
+                LOG.info("Mongo fixture '{}' skipped.", dsf.getName());
+            } else if (dsf.isAvailable()) {
                 if (!multi || dsf.hasSinglePersistence()) {
-                    result.add(new Object[] { dsf });
+                    result.add(new DocumentStoreFixture[] { dsf });
+                    names.add(dsf.getName());
                 }
             }
         }
+
+        LOG.info("Running document store test with fixtures {}.", names);
 
         return result;
     }

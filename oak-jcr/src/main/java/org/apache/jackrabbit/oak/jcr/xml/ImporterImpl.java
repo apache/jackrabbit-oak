@@ -36,7 +36,6 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -304,7 +303,7 @@ public class ImporterImpl implements Importer {
                 } else {
                     return null;
                 }
-            }), Predicates.notNull());
+            }), x -> x != null);
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
@@ -314,7 +313,7 @@ public class ImporterImpl implements Importer {
                 } else {
                     return null;
                 }
-            }), Predicates.notNull());
+            }), x -> x != null);
     }
 
     //-----------------------------------------------------------< Importer >---

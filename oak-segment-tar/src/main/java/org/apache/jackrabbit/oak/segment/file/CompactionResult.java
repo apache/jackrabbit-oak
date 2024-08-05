@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;

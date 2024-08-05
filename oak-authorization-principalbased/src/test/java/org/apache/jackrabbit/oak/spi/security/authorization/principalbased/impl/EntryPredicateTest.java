@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -37,6 +35,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.function.Predicate;
+
 public class EntryPredicateTest {
 
     private static final String TREE_PATH = "/parent/path";
@@ -51,7 +51,7 @@ public class EntryPredicateTest {
     public void before() {
         tree = mockTree(TREE_PATH, false);
     }
-    
+
     @After
     public void after() {
         reset(pe, tree);
@@ -60,7 +60,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateNullPath() {
         Predicate<PermissionEntry> predicate = EntryPredicate.create();
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches();
         verifyNoMoreInteractions(pe);
@@ -69,7 +69,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreatePath() {
         Predicate<PermissionEntry> predicate = EntryPredicate.create("/path");
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches("/path");
         verifyNoMoreInteractions(pe);
@@ -78,7 +78,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreatePathNotIsProperty() {
         Predicate<PermissionEntry> predicate = EntryPredicate.create("/path", false);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches("/path", false);
         verifyNoMoreInteractions(pe);
@@ -87,7 +87,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreatePathIsProperty() {
         Predicate<PermissionEntry> predicate = EntryPredicate.create("/path", true);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches("/path", true);
         verifyNoMoreInteractions(pe);
@@ -97,7 +97,7 @@ public class EntryPredicateTest {
     public void testCreateNonExistingTree() {
         doReturn(false).when(tree).exists();
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, null);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches(tree.getPath(), false);
         verifyNoMoreInteractions(pe);
@@ -106,7 +106,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateNonExistingTreeProperty() {
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, propertyState);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches(PROP_PATH, true);
         verifyNoMoreInteractions(pe);
@@ -117,7 +117,7 @@ public class EntryPredicateTest {
         when(tree.exists()).thenReturn(true);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, null);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches(tree, null);
         verifyNoMoreInteractions(pe);
@@ -128,7 +128,7 @@ public class EntryPredicateTest {
         when(tree.exists()).thenReturn(true);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, propertyState);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).matches(tree, propertyState);
         verifyNoMoreInteractions(pe);
@@ -136,19 +136,19 @@ public class EntryPredicateTest {
 
     @Test
     public void testCreateParentPathReadPermission() {
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(tree.getPath(), null, Permissions.READ));
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(tree.getPath(), mock(Tree.class), Permissions.READ));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(tree.getPath(), null, Permissions.READ));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(tree.getPath(), mock(Tree.class), Permissions.READ));
     }
 
     @Test
     public void testCreateParentPathEmpty() {
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent("", null, Permissions.ALL));
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent("", tree, Permissions.ALL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent("", null, Permissions.ALL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent("", tree, Permissions.ALL));
     }
 
     @Test
     public void testCreateParentPathRoot() {
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(PathUtils.ROOT_PATH, tree, Permissions.ALL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(PathUtils.ROOT_PATH, tree, Permissions.ALL));
     }
 
     @Test
@@ -156,8 +156,8 @@ public class EntryPredicateTest {
         when(pe.appliesTo(PARENT_PATH)).thenReturn(true);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, null, Permissions.ALL);
-        predicate.apply(pe);
-        
+        predicate.test(pe);
+
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(PARENT_PATH, false);
         verifyNoMoreInteractions(pe);
@@ -169,7 +169,7 @@ public class EntryPredicateTest {
 
         Tree parentTree = mockTree(PARENT_PATH, true);
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, parentTree, Permissions.ALL);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(parentTree, null);
@@ -181,7 +181,7 @@ public class EntryPredicateTest {
         when(pe.appliesTo(PARENT_PATH)).thenReturn(true);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, mockTree(PARENT_PATH, false), Permissions.ALL);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(PARENT_PATH, false);
@@ -191,7 +191,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateParentPathMismatch() {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, null, Permissions.ALL);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         String parentPath = PathUtils.getParentPath(TREE_PATH);
         verify(pe, times(1)).appliesTo(parentPath);
@@ -203,7 +203,7 @@ public class EntryPredicateTest {
         Tree parentTree = mockTree(PARENT_PATH, true);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, parentTree, Permissions.ALL);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         String parentPath = PathUtils.getParentPath(TREE_PATH);
         verify(pe, times(1)).appliesTo(parentPath);
@@ -213,7 +213,7 @@ public class EntryPredicateTest {
     public void testCreateParentTreeReadPermission() {
         when(tree.exists()).thenReturn(true);
 
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(tree, Permissions.READ));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(tree, Permissions.READ));
     }
 
     @Test
@@ -221,8 +221,8 @@ public class EntryPredicateTest {
         when(pe.appliesTo(PARENT_PATH)).thenReturn(true);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.ADD_NODE|Permissions.READ_NODE);
-        predicate.apply(pe);
-        
+        predicate.test(pe);
+
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(PARENT_PATH, false);
         verifyNoMoreInteractions(pe);
@@ -231,7 +231,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateParentTreeNotExistingMismatch() {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.ADD_NODE|Permissions.READ_NODE);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verifyNoMoreInteractions(pe);
@@ -240,7 +240,7 @@ public class EntryPredicateTest {
     @Test
     public void testCreateParentTreeRoot() {
         Tree rootTree = mockTree(PathUtils.ROOT_PATH, true);
-        assertSame(Predicates.alwaysFalse(), EntryPredicate.createParent(rootTree, Permissions.REMOVE|Permissions.MODIFY_ACCESS_CONTROL));
+        assertSame(EntryPredicate.ALWAYS_FALSE(), EntryPredicate.createParent(rootTree, Permissions.REMOVE|Permissions.MODIFY_ACCESS_CONTROL));
     }
 
     @Test
@@ -253,7 +253,7 @@ public class EntryPredicateTest {
         when(tree.getParent()).thenReturn(parentTree);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.REMOVE_NODE|Permissions.READ_PROPERTY|Permissions.LOCK_MANAGEMENT);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(parentTree, null);
@@ -268,7 +268,7 @@ public class EntryPredicateTest {
         when(tree.getParent()).thenReturn(parentTree);
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.REMOVE_NODE|Permissions.READ_PROPERTY|Permissions.LOCK_MANAGEMENT);
-        predicate.apply(pe);
+        predicate.test(pe);
 
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verifyNoMoreInteractions(pe);

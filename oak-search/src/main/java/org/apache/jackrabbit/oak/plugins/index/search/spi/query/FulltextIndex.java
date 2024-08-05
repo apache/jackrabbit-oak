@@ -158,7 +158,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
         IndexNode index = acquireIndexNode(plan);
-        checkState(index != null, "The fulltext index of type " + getType() + "  index is not available");
+        checkState(index != null, "The fulltext index of type %s index is not available", getType());
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder();

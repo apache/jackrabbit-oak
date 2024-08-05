@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -78,8 +77,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -516,16 +513,13 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        return transform(filter(getAllRecords(), new Predicate<DataRecord>() {
-            @Override
-            public boolean apply(@Nullable DataRecord input) {
+        return transform(filter(getAllRecords(), input -> {
                 if (input != null && (maxLastModifiedTime <= 0
                         || input.getLastModified() < maxLastModifiedTime)) {
                     return true;
                 }
                 return false;
-            }
-        }), input -> {
+            }), input -> {
                 if (encodeLengthInId) {
                     return BlobId.of(input).encodedValue();
                 }

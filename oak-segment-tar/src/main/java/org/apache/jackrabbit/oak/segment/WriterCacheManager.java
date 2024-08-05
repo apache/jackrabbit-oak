@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -28,6 +27,7 @@ import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 
 /**
@@ -287,7 +286,7 @@ public abstract class WriterCacheManager {
             void evictGenerations(@NotNull Predicate<Integer> evict) {
                 Iterator<Integer> it = generations.keySet().iterator();
                 while (it.hasNext()) {
-                    if (evict.apply(it.next())) {
+                    if (evict.test(it.next())) {
                         it.remove();
                     }
                 }

@@ -39,9 +39,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -64,7 +65,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import static java.lang.Math.round;
@@ -2263,7 +2263,7 @@ public class VersionGarbageCollector {
             Map<Revision, Range> prevRanges = doc.getPreviousRanges(true);
             if (prevRanges.isEmpty()) {
                 return Collections.emptyIterator();
-            } else if (all(prevRanges.values(), FIRST_LEVEL)) {
+            } else if (all(prevRanges.values(), FIRST_LEVEL::test)) {
                 // all previous document ids can be constructed from the
                 // previous ranges map. this works for first level previous
                 // documents only.
@@ -2332,12 +2332,7 @@ public class VersionGarbageCollector {
         private Iterator<String> getPrevDocIdsToDelete() throws IOException {
             ensureSorted();
             return Iterators.filter(prevDocIdsToDelete.getIds(),
-                    new Predicate<String>() {
-                @Override
-                public boolean apply(String input) {
-                    return !exclude.contains(input);
-                }
-            });
+                    input -> !exclude.contains(input));
         }
 
         private int removeDeletedDocuments(Iterator<String> docIdsToDelete,
@@ -2514,12 +2509,7 @@ public class VersionGarbageCollector {
         return new StringSort(options.overflowToDiskThreshold, NodeDocumentIdComparator.INSTANCE);
     }
 
-    private static final Predicate<Range> FIRST_LEVEL = new Predicate<Range>() {
-        @Override
-        public boolean apply(@Nullable Range input) {
-            return input != null && input.height == 0;
-        }
-    };
+    private static final Predicate<Range> FIRST_LEVEL = input -> input != null && input.height == 0;
 
     /**
      * GCMessageTracker is a partial implementation of GCMonitor. We use it to
