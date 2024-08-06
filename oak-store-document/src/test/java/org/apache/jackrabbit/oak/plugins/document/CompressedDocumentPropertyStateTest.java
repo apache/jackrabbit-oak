@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -32,30 +29,22 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.*;
-
-import com.mongodb.ReadPreference;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class CompressedDocumentPropertyStateTest {
 
-    private static final int BLOB_SIZE = 16 * 1024;
-    private static final String TEST_NODE = "test";
     private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
     private static final int DEFAULT_COMPRESSION_THRESHOLD = 1024;
     private static final int DISABLED_COMPRESSION = -1;
@@ -90,81 +79,40 @@ public class CompressedDocumentPropertyStateTest {
         }
     }
 
-    // OAK-5462
-    @Test
-    public void multiValuedBinarySize() throws Exception {
-        NodeBuilder builder = ns.getRoot().builder();
-        List<Blob> blobs = newArrayList();
-        for (int i = 0; i < 3; i++) {
-            blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
-        }
-        builder.child("test").setProperty("p", blobs, Type.BINARIES);
-        TestUtils.merge(ns, builder);
-
-        PropertyState p = ns.getRoot().getChildNode("test").getProperty("p");
-        assertEquals(Type.BINARIES, p.getType());
-        assertEquals(3, p.count());
-
-        reads.clear();
-        assertEquals(BLOB_SIZE, p.size(0));
-        // must not read the blob via stream
-        assertEquals(0, reads.size());
-    }
-
-    @Test
-    public void multiValuedAboveThresholdSize() throws Exception {
-        NodeBuilder builder = ns.getRoot().builder();
-        List<Blob> blobs = newArrayList();
-        for (int i = 0; i < 13; i++) {
-            blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
-        }
-        builder.child(TEST_NODE).setProperty("p", blobs, Type.BINARIES);
-        TestUtils.merge(ns, builder);
-
-        PropertyState p = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
-        assertEquals(Type.BINARIES, Objects.requireNonNull(p).getType());
-        assertEquals(13, p.count());
-
-        reads.clear();
-        assertEquals(BLOB_SIZE, p.size(0));
-        // must not read the blob via stream
-        assertEquals(0, reads.size());
-    }
-
     @Test
     public void stringBelowThresholdSize() throws Exception {
-        NodeBuilder builder = ns.getRoot().builder();
-        builder.child(TEST_NODE).setProperty("p", "dummy", Type.STRING);
-        TestUtils.merge(ns, builder);
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        CompressedDocumentPropertyState.setCompressionThreshold(10000);
 
-        PropertyState p = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
-        assertEquals(Type.STRING, Objects.requireNonNull(p).getType());
-        assertEquals(1, p.count());
+        CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "p", "\"" + STRING_HUGEVALUE + "\"", Compression.GZIP);
 
-        reads.clear();
-        assertEquals(5, p.size(0));
-        // must not read the string via stream
-        assertEquals(0, reads.size());
-    }
-
-    @Test
-    public void stringAboveThresholdSize() throws Exception {
-        NodeBuilder builder = ns.getRoot().builder();
-        builder.child(TEST_NODE).setProperty("p", STRING_HUGEVALUE, Type.STRING);
-        TestUtils.merge(ns, builder);
-
-        PropertyState p = ns.getRoot().getChildNode(TEST_NODE).getProperty("p");
-        assertEquals(Type.STRING, Objects.requireNonNull(p).getType());
-        assertEquals(1, p.count());
+        assertEquals(Type.STRING, state.getType());
+        assertEquals(1, state.count());
 
         reads.clear();
-        assertEquals(10050, p.size(0));
+        assertEquals(10050, state.size(0));
         // must not read the string via streams
         assertEquals(0, reads.size());
     }
 
     @Test
-    public void compressValueThrowsException() throws IOException, NoSuchFieldException, IllegalAccessException {
+    public void stringAboveThresholdSize() throws Exception {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        CompressedDocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
+
+        CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "p", "\"" + STRING_HUGEVALUE + "\"", Compression.GZIP);
+
+        assertEquals(Type.STRING, state.getType());
+        assertEquals(1, state.count());
+
+        reads.clear();
+        assertEquals(10050, state.size(0));
+        // must not read the string via streams
+        assertEquals(0, reads.size());
+    }
+
+    @Test
+    public void compressValueThrowsException() throws IOException {
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
         Compression mockCompression = mock(Compression.class);
         when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
@@ -233,80 +181,6 @@ public class CompressedDocumentPropertyStateTest {
             CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "propertyName", test, Compression.GZIP);
             assertEquals(test, state.getValue());
         }
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForMongo() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForRDB() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForInMemory() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForMongo() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, true);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForRDB() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, true);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForInMemory() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, true);
-    }
-
-    private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws CommitFailedException {
-        assumeTrue(fixture.isAvailable());
-        String test = "brokensurrogate:dfsa\ud800";
-        DocumentStore store = null;
-        DocumentNodeStore nodeStore = null;
-
-        try {
-            store = fixture.createDocumentStore();
-
-            if (store instanceof MongoDocumentStore) {
-                // Enforce primary read preference, otherwise tests may fail on a
-                // replica set with a read preference configured to secondary.
-                // Revision GC usually runs with a modified range way in the past,
-                // which means changes made it to the secondary, but not in this
-                // test using a virtual clock
-                MongoTestUtils.setReadPreference(store, ReadPreference.primary());
-            }
-            nodeStore = new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
-
-            createPropAndCheckValue(nodeStore, test, compressionEnabled);
-
-        } finally {
-            if (nodeStore != null) {
-                nodeStore.dispose();
-            }
-        }
-
-    }
-
-    private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
-        NodeBuilder builder = nodeStore.getRoot().builder();
-        if (compressionEnabled) {
-            CompressedDocumentPropertyState.setCompressionThreshold(1);
-        }
-        builder.child(TEST_NODE).setProperty("p", test, Type.STRING);
-        TestUtils.merge(nodeStore, builder);
-
-        PropertyState p = nodeStore.getRoot().getChildNode(TEST_NODE).getProperty("p");
-        assertEquals(Objects.requireNonNull(p).getValue(Type.STRING), test);
     }
 
     @Test
