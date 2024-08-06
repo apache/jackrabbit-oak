@@ -66,7 +66,6 @@ public final class CompressedDocumentPropertyState implements PropertyState {
     private PropertyState parsed;
     private final byte[] compressedValue;
     private final Compression compression;
-    private String decompressedValue;
 
     private static int COMPRESSION_THRESHOLD = SystemPropertySupplier
             .create("oak.documentMK.stringCompressionThreshold ", -1).loggingTo(LOG).get();
@@ -159,15 +158,12 @@ public final class CompressedDocumentPropertyState implements PropertyState {
     }
 
     private String decompress(byte[] value) {
-        if (decompressedValue == null) {
-            try {
-                decompressedValue = new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                LOG.error("Failed to decompress property {} value: ", getName(), e);
-                decompressedValue = "\"{}\"";
-            }
+        try {
+            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            LOG.error("Failed to decompress property {} value: ", getName(), e);
+            return "\"{}\"";
         }
-        return decompressedValue;
     }
 
     byte[] getCompressedValue() {
