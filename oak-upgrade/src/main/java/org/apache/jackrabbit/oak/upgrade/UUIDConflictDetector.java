@@ -89,6 +89,11 @@ public class UUIDConflictDetector {
         return node;
     }
 
+    /* remove the child paths from includePaths if parent path is provided.
+     * For example,
+     * includePaths = ["/content/foo/a, /content/foo/b, /content/foo, /content/bar"] will be reduced to
+     * ["/content/foo, /content/bar"]
+     * */
     private Set<String> dedupePaths(String[] includePaths) {
         if (includePaths == null || includePaths.length == 0) {
             return Collections.emptySet();
