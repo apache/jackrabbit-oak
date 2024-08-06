@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
@@ -155,7 +156,17 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         test.addMixin(NodeType.MIX_REFERENCEABLE);
         session.save();
         try {
+            // check jcr:uuid is there
+            String prevUuid = test.getProperty("jcr:uuid").getString();
             test.removeMixin(NodeType.MIX_REFERENCEABLE);
+            session.save();
+            // ist jcr:uuid gone now?
+            try {
+                String newUuid = test.getProperty("jcr:uuid").getString();
+                fail("jcr:uuid should be gone after removing the mixin type, was " + prevUuid + ", now is " + newUuid);
+            } catch (PathNotFoundException ex) {
+                // expected
+            }
             String testUuid = UUID.randomUUID().toString();
             test.setProperty("jcr:uuid", testUuid);
             session.save();
