@@ -73,7 +73,7 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
 
     @Override
     public boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-        boolean removeEldest = size() > maxMemoryBytes;
+        boolean removeEldest = memoryUsed > maxMemoryBytes;
         if (removeEldest) {
             memoryUsed -= eldest.getValue().estimatedMemory();
         }
