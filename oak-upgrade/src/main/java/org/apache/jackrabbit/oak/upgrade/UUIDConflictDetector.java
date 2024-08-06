@@ -72,7 +72,7 @@ public class UUIDConflictDetector {
     }
 
     private File getSourceFileForPaths(Set<String> includePaths) throws IOException {
-        File sourceFile = File.createTempFile("source_uuids_" + getTimeStamp(), ".txt", dir);
+        File sourceFile = new File(dir, "source_uuids_" + getTimeStamp() + ".txt");
         try (BufferedWriter writer = Files.newBufferedWriter(sourceFile.toPath())) {
             for (String path : includePaths) {
                 NodeState state = getNodeAtPath(sourceStore.getRoot(), path);
@@ -118,7 +118,7 @@ public class UUIDConflictDetector {
 
 
     private File gatherUUIDs(NodeState state, String prefix) throws IOException {
-        File file = File.createTempFile(prefix + "_uuids_" + getTimeStamp(), ".txt", dir);
+        File file = new File(dir, prefix + "_uuids_" + getTimeStamp() + ".txt");
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath())) {
             gatherUUIDs(state, "", writer);
         }
