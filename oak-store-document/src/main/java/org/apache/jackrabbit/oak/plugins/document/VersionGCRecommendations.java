@@ -274,10 +274,11 @@ public class VersionGCRecommendations {
         } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint && !isFullGCDryRun) {
             // success, we would not expect to encounter revisions older than this in the future
             setVGCSetting(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
-            updateVGCSetting(new HashMap<>() {{
-                put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-                put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
-            }});
+
+            final Map<String, Object> updateVGCMap = new HashMap<>();
+            updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+            updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+            updateVGCSetting(updateVGCMap);
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
             double usedFraction;
@@ -359,9 +360,9 @@ public class VersionGCRecommendations {
      * @see VersionGCRecommendations#setVGCSetting(Map)
      */
     private void setVGCSetting(final String propName, final Object val) {
-        setVGCSetting(new HashMap<>() {{
-            put(propName, val);
-        }});
+        final Map<String, Object> vgcMap = new HashMap<>();
+        vgcMap.put(propName, val);
+        setVGCSetting(vgcMap);
     }
 
     /**
