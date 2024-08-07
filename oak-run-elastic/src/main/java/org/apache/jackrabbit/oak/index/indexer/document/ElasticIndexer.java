@@ -65,6 +65,11 @@ public class ElasticIndexer implements NodeStateIndexer {
     }
 
     @Override
+    public void onIndexingStarting() {
+        binaryTextExtractor.resetStartTime();
+    }
+
+    @Override
     public boolean shouldInclude(String path) {
         return getFilterResult(path) != PathFilter.Result.EXCLUDE;
     }

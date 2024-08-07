@@ -91,7 +91,7 @@ public class ExtractedTextCache {
     private final boolean alwaysUsePreExtractedCache;
     private volatile ExecutorService executorService;
     private volatile int timeoutCount;
-    private long extractionTimeoutMillis = EXTRACTION_TIMEOUT_SECONDS * 1000;
+    private long extractionTimeoutMillis = EXTRACTION_TIMEOUT_SECONDS * 1000L;
 
     public ExtractedTextCache(long maxWeight, long expiryTimeInSecs){
         this(maxWeight, expiryTimeInSecs, false, null);
@@ -305,17 +305,14 @@ public class ExtractedTextCache {
     }
 
     public void process(String name, Callable<Void> callable) throws Throwable {
-        Callable<Void> callable2 = new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                Thread t = Thread.currentThread();
-                String oldThreadName = t.getName();
-                t.setName(oldThreadName + ": " + name);
-                try {
-                    return callable.call();
-                } finally {
-                    Thread.currentThread().setName(oldThreadName);
-                }
+        Callable<Void> callable2 = () -> {
+            Thread t = Thread.currentThread();
+            String oldThreadName = t.getName();
+            t.setName(oldThreadName + ": " + name);
+            try {
+                return callable.call();
+            } finally {
+                Thread.currentThread().setName(oldThreadName);
             }
         };
         try {
@@ -353,12 +350,7 @@ public class ExtractedTextCache {
                 60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
-            private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    log.warn("Error occurred in asynchronous processing ", e);
-                }
-            };
+            private final Thread.UncaughtExceptionHandler handler = (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());

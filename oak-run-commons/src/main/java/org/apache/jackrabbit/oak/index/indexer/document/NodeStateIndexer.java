@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
 public interface NodeStateIndexer extends Closeable{
 
+    default void onIndexingStarting() {}
+
     boolean shouldInclude(String path);
 
     boolean shouldInclude(NodeDocument doc);
