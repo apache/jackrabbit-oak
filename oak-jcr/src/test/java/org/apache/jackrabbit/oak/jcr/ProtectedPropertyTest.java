@@ -38,6 +38,9 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Before;
@@ -216,7 +219,10 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
 
         try {
             String newUuid = UUID.randomUUID().toString();
-            updateJcrUuid(test, newUuid);
+            updateJcrUuidUsingRemoveMixin(test, newUuid);
+            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+            session.save();
+            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
         } finally {
             ref.remove();
             test.remove();
@@ -235,7 +241,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
 
         try {
             String newUuid = UUID.randomUUID().toString();
-            updateJcrUuid(test, newUuid);
+            updateJcrUuidUsingRemoveMixin(test, newUuid);
             fail("removing mixin:referenceable should fail on nt:resource");
         } catch (NoSuchNodeTypeException ex) {
             // expected
@@ -246,13 +252,33 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         }
     }
 
-    private static void updateJcrUuid(Node target, String newUUID) throws RepositoryException {
-        Session session = target.getSession();
+    @Test
+    public void changeUuidOnReferencedNodeWithInheritedMixinByChangingNodeTypeTemporarily() throws RepositoryException {
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_RESOURCE);
+        test.setProperty("jcr:data", session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
+        session.save();
+        Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
+        ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
+        session.save();
 
+        try {
+            String newUuid = UUID.randomUUID().toString();
+            updateJcrUuidUsingNodeTypeManager(test, newUuid);
+            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+            session.save();
+            session.refresh(false);
+            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+        } finally {
+            ref.remove();
+            test.remove();
+            session.save();
+        }
+    }
+
+    private static void updateJcrUuidUsingRemoveMixin(Node target, String newUUID) throws RepositoryException {
         // temporary node for rewriting the references
         Node tmp = target.getParent().addNode(TEST_NODE_NAME_TMP, NodeType.NT_UNSTRUCTURED);
         tmp.addMixin(NodeType.MIX_REFERENCEABLE);
-        session.save();
 
         try {
             // find all existing references to the node for which we want to rewrite the jcr:uuid
@@ -260,20 +286,52 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
 
             // move existing references to TEST_MODE_NAME to TEST_NODE_NAME_TMP
             setReferrersTo(referrers, tmp.getIdentifier());
-            session.save();
 
             // rewrite jcr:uuid
             target.removeMixin(NodeType.MIX_REFERENCEABLE);
             target.setProperty("jcr:uuid", newUUID);
             target.addMixin(NodeType.MIX_REFERENCEABLE);
-            session.save();
 
             // restore references
             setReferrersTo(referrers, newUUID);
-            session.save();
         } finally {
             tmp.remove();
-            session.save();
+        }
+    }
+
+    private static void updateJcrUuidUsingNodeTypeManager(Node target, String newUUID) throws RepositoryException {
+        // temporary node for rewriting the references
+        Node tmp = target.getParent().addNode(TEST_NODE_NAME_TMP, NodeType.NT_UNSTRUCTURED);
+        tmp.addMixin(NodeType.MIX_REFERENCEABLE);
+
+        try {
+            String previousType = target.getPrimaryNodeType().getName();
+
+            // find all existing references to the node for which we want to rewrite the jcr:uuid
+            Set<Property> referrers = getReferrers(target);
+
+            // move existing references to TEST_MODE_NAME to TEST_NODE_NAME_TMP
+            setReferrersTo(referrers, tmp.getIdentifier());
+
+            // rewrite jcr:uuid
+            String temporaryType = registerPrimaryTypeExtendingAndUnprotectingJcrUUID(target);
+            target.setPrimaryType(temporaryType);
+            target.setProperty("jcr:uuid", newUUID);
+            target.setPrimaryType(previousType);
+            unregisterPrimaryTypeExtendingAndUnprotectingJcrUUID(target, temporaryType);
+
+            // restore references
+            setReferrersTo(referrers, newUUID);
+
+            // assert temporary node type is gone
+            try {
+                target.getSession().getWorkspace().getNodeTypeManager().getNodeType(temporaryType);
+                fail("temporary node type should be removed");
+            } catch (NoSuchNodeTypeException ex) {
+                // expected
+            }
+        } finally {
+            tmp.remove();
         }
     }
 
@@ -291,5 +349,28 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             // add case for multivalued
             p.getParent().setProperty(p.getName(), identifier);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String registerPrimaryTypeExtendingAndUnprotectingJcrUUID(Node node) throws RepositoryException {
+        String tmpNodeTypeName = "tmp-" + UUID.randomUUID().toString();
+        NodeTypeManager ntMgr = node.getSession().getWorkspace().getNodeTypeManager();
+
+        NodeTypeTemplate unprotectedNTT = ntMgr.createNodeTypeTemplate();
+        unprotectedNTT.setName(tmpNodeTypeName);
+        unprotectedNTT.setDeclaredSuperTypeNames(new String[] {node.getPrimaryNodeType().getName()});
+        PropertyDefinitionTemplate pdt = ntMgr.createPropertyDefinitionTemplate();
+        pdt.setName("jcr:uuid");
+        pdt.setProtected(false);
+        unprotectedNTT.getPropertyDefinitionTemplates().add(pdt);
+        ntMgr.registerNodeType(unprotectedNTT, true);
+
+        return tmpNodeTypeName;
+    }
+
+    private static void unregisterPrimaryTypeExtendingAndUnprotectingJcrUUID(Node node, String tmpType) throws RepositoryException {
+        NodeTypeManager ntMgr = node.getSession().getWorkspace().getNodeTypeManager();
+
+        ntMgr.unregisterNodeType(tmpType);
     }
 }
