@@ -76,11 +76,11 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
     public void jcrMixinCreatedOnNtUnstructured() throws RepositoryException {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
         try {
-            test.setProperty("jcr:created", false);
+            test.setProperty(Property.JCR_CREATED, false);
             session.save();
             test.addMixin(NodeType.MIX_CREATED);
             session.save();
-            assertEquals(false, test.getProperty("jcr:created").getBoolean());
+            assertEquals(false, test.getProperty(Property.JCR_CREATED).getBoolean());
             // in Oak, existing properties are left as-is (even the property
             // type), which means that after adding the mixin:created type, the
             // state of the node might be inconsistent with the mixin:created
@@ -98,7 +98,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
         try {
             String testUuid = UUID.randomUUID().toString();
-            test.setProperty("jcr:uuid", testUuid);
+            test.setProperty(Property.JCR_UUID, testUuid);
             session.save();
             test.addMixin(NodeType.MIX_REFERENCEABLE);
             session.save();
@@ -106,7 +106,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             // (https://developer.adobe.com/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.8%20Referenceable%20Nodes)
             // requests an "auto-created" property, so it might be a surprise
             // that Oak actually keeps the application-assigned previous value.
-            assertEquals(testUuid, test.getProperty("jcr:uuid").getString());
+            assertEquals(testUuid, test.getProperty(Property.JCR_UUID).getString());
         } finally {
             test.remove();
             session.save();
@@ -121,8 +121,8 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         session.save();
 
         try {
-            String testUuid = ref.getProperty("jcr:uuid").getString();
-            test.setProperty("jcr:uuid", testUuid);
+            String testUuid = ref.getProperty(Property.JCR_UUID).getString();
+            test.setProperty(Property.JCR_UUID, testUuid);
             // note this fails even though test hasn't be set to mix:referenceable
             session.save();
             fail("Attempt so set a UUID already in use should fail");
@@ -142,7 +142,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         session.save();
         try {
             String testUuid = UUID.randomUUID().toString();
-            test.setProperty("jcr:uuid", testUuid);
+            test.setProperty(Property.JCR_UUID, testUuid);
             session.save();
             fail("Setting jcr:uuid after adding mixin:referenceable should fail");
         } catch (ConstraintViolationException ex) {
@@ -160,22 +160,22 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         session.save();
         try {
             // check jcr:uuid is there
-            String prevUuid = test.getProperty("jcr:uuid").getString();
+            String prevUuid = test.getProperty(Property.JCR_UUID).getString();
             test.removeMixin(NodeType.MIX_REFERENCEABLE);
             session.save();
             // ist jcr:uuid gone now?
             try {
-                String newUuid = test.getProperty("jcr:uuid").getString();
+                String newUuid = test.getProperty(Property.JCR_UUID).getString();
                 fail("jcr:uuid should be gone after removing the mixin type, was " + prevUuid + ", now is " + newUuid);
             } catch (PathNotFoundException ex) {
                 // expected
             }
             String testUuid = UUID.randomUUID().toString();
-            test.setProperty("jcr:uuid", testUuid);
+            test.setProperty(Property.JCR_UUID, testUuid);
             session.save();
             test.addMixin(NodeType.MIX_REFERENCEABLE);
             session.save();
-            assertEquals(testUuid, test.getProperty("jcr:uuid").getString());
+            assertEquals(testUuid, test.getProperty(Property.JCR_UUID).getString());
             Node check = session.getNodeByIdentifier(testUuid);
             assertTrue(test.isSame(check));
         } finally {
@@ -196,7 +196,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         try {
             test.removeMixin(NodeType.MIX_REFERENCEABLE);
             String testUuid = UUID.randomUUID().toString();
-            test.setProperty("jcr:uuid", testUuid);
+            test.setProperty(Property.JCR_UUID, testUuid);
             session.save();
             fail("Changing jcr:uuid causing a dangling refence should fail");
         } catch (ReferentialIntegrityException ex) {
@@ -220,9 +220,9 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         try {
             String newUuid = UUID.randomUUID().toString();
             updateJcrUuidUsingRemoveMixin(test, newUuid);
-            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+            assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
             session.save();
-            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+            assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
         } finally {
             ref.remove();
             test.remove();
@@ -233,7 +233,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
     @Test
     public void changeUuidOnReferencedNodeWithInheritedMixin() throws RepositoryException {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_RESOURCE);
-        test.setProperty("jcr:data", session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
+        test.setProperty(Property.JCR_DATA, session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
         session.save();
         Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
         ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
@@ -255,7 +255,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
     @Test
     public void changeUuidOnReferencedNodeWithInheritedMixinByChangingNodeTypeTemporarily() throws RepositoryException {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_RESOURCE);
-        test.setProperty("jcr:data", session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
+        test.setProperty(Property.JCR_DATA, session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
         session.save();
         Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
         ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
@@ -264,10 +264,10 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         try {
             String newUuid = UUID.randomUUID().toString();
             updateJcrUuidUsingNodeTypeManager(test, newUuid);
-            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+            assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
             session.save();
             session.refresh(false);
-            assertEquals(newUuid, test.getProperty("jcr:uuid").getString());
+            assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
         } finally {
             ref.remove();
             test.remove();
@@ -289,7 +289,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
 
             // rewrite jcr:uuid
             target.removeMixin(NodeType.MIX_REFERENCEABLE);
-            target.setProperty("jcr:uuid", newUUID);
+            target.setProperty(Property.JCR_UUID, newUUID);
             target.addMixin(NodeType.MIX_REFERENCEABLE);
 
             // restore references
@@ -316,7 +316,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             // rewrite jcr:uuid
             String temporaryType = registerPrimaryTypeExtendingAndUnprotectingJcrUUID(target);
             target.setPrimaryType(temporaryType);
-            target.setProperty("jcr:uuid", newUUID);
+            target.setProperty(Property.JCR_UUID, newUUID);
             target.setPrimaryType(previousType);
             unregisterPrimaryTypeExtendingAndUnprotectingJcrUUID(target, temporaryType);
 
@@ -360,7 +360,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
         unprotectedNTT.setName(tmpNodeTypeName);
         unprotectedNTT.setDeclaredSuperTypeNames(new String[] {node.getPrimaryNodeType().getName()});
         PropertyDefinitionTemplate pdt = ntMgr.createPropertyDefinitionTemplate();
-        pdt.setName("jcr:uuid");
+        pdt.setName(Property.JCR_UUID);
         pdt.setProtected(false);
         unprotectedNTT.getPropertyDefinitionTemplates().add(pdt);
         ntMgr.registerNodeType(unprotectedNTT, true);
