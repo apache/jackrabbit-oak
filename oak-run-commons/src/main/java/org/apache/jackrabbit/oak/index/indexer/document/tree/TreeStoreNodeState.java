@@ -50,6 +50,7 @@ public class TreeStoreNodeState implements NodeState, MemoryBoundCache.MemoryObj
         this.estimatedMemory = estimatedMemory;
     }
 
+    @Override
     public long estimatedMemory() {
         return estimatedMemory;
     }

@@ -70,12 +70,13 @@ public class Session {
         this.cache = new MemoryBoundCache<>(cacheSizeBytes)  {
             private static final long serialVersionUID = 1L;
 
+            @Override
             public boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
                 boolean result = super.removeEldestEntry(eldest);
                 if (result) {
                     String key = eldest.getKey();
                     PageFile value = eldest.getValue();
-                    if(value.isModified()) {
+                    if (value.isModified()) {
                         store.put(key, value);
                         // not strictly needed as it's no longer referenced
                         value.setModified(false);
@@ -853,6 +854,7 @@ public class Session {
                     rootId, gc.mark(Collections.singletonList(r)).size(), r));
             rootId++;
         }
+        buff.append(cache.toString());
         return buff.toString();
     }
 

@@ -38,7 +38,7 @@ public class TreeStoreUtils {
         String dir = args[0];
         MemoryBlobStore blobStore = new MemoryBlobStore();
         NodeStateEntryReader entryReader = new NodeStateEntryReader(blobStore);
-        try (TreeStore treeStore = new TreeStore(new File(dir), entryReader)) {
+        try (TreeStore treeStore = new TreeStore(new File(dir), entryReader, false)) {
             Session session = treeStore.getSession();
             Store store = treeStore.getStore();
             if (store.keySet().isEmpty()) {
@@ -65,13 +65,13 @@ public class TreeStoreUtils {
                         String path = line.substring(0, index);
                         String value = line.substring(index + 1);
                         session.put(path, value);
-        
+
                         if (!path.equals("/")) {
                             String nodeName = PathUtils.getName(path);
                             String parentPath = PathUtils.getParentPath(path);
                             session.put(parentPath + "\t" + nodeName, "");
                         }
-        
+
                     }
                 }
                 session.flush();

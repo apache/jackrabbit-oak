@@ -532,7 +532,7 @@ public class PipelinedTreeStoreIT {
     }
 
     static List<String> readAllEntries(File dir) throws IOException {
-        TreeStore treeStore = new TreeStore(dir, null);
+        TreeStore treeStore = new TreeStore(dir, null, false);
         ArrayList<String> list = new ArrayList<>();
         Session session = treeStore.getSession();
         for (String k : session.keys()) {

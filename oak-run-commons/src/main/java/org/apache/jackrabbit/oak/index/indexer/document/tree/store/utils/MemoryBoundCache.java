@@ -20,17 +20,22 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
     extends LinkedHashMap<K, V> {
 
     private static final long serialVersionUID = 1L;
-    private long maxMemoryBytes;
-    private long memoryUsed;
+    private volatile long maxMemoryBytes;
+    private AtomicLong memoryUsed = new AtomicLong();
 
     public MemoryBoundCache(long maxMemoryBytes) {
         super(16, 0.75f, true);
         this.maxMemoryBytes = maxMemoryBytes;
+    }
+
+    public String toString() {
+        return "cache entries:" + size() + " max:" + maxMemoryBytes + " used:" + memoryUsed;
     }
 
     public void setSize(int maxMemoryBytes) {
@@ -38,13 +43,13 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
     }
 
     @Override
-    public V put(K key, V value) {
+    public synchronized V put(K key, V value) {
         V old = super.put(key, value);
         if (old != null) {
-            memoryUsed -= old.estimatedMemory();
+            memoryUsed.addAndGet(-old.estimatedMemory());
         }
         if (value != null) {
-            memoryUsed += value.estimatedMemory();
+            memoryUsed.addAndGet(value.estimatedMemory());
         }
         return old;
     }
@@ -57,25 +62,25 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
     }
 
     @Override
-    public V remove(Object key ) {
+    public synchronized V remove(Object key ) {
         V old = super.remove(key);
         if (old != null) {
-            memoryUsed -= old.estimatedMemory();
+            memoryUsed.addAndGet(-old.estimatedMemory());
         }
         return old;
     }
 
     @Override
-    public void clear() {
+    public synchronized void clear() {
         super.clear();
-        memoryUsed = 0;
+        memoryUsed.set(0);
     }
 
     @Override
-    public boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-        boolean removeEldest = memoryUsed > maxMemoryBytes;
+    public synchronized boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+        boolean removeEldest = memoryUsed.get() > maxMemoryBytes;
         if (removeEldest) {
-            memoryUsed -= eldest.getValue().estimatedMemory();
+            memoryUsed.addAndGet(-eldest.getValue().estimatedMemory());
         }
         return removeEldest;
     }

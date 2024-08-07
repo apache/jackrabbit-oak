@@ -95,6 +95,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                         LOG.info("Final merge");
                         Stopwatch start = Stopwatch.createStarted();
                         treeStore.getSession().mergeRoots(Integer.MAX_VALUE);
+                        treeStore.getSession().runGC();
                         long durationSeconds = start.elapsed(TimeUnit.SECONDS);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, 0);
@@ -168,6 +169,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
             }
             session.checkpoint();
             session.mergeRoots(MERGE_BATCH);
+            session.runGC();
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         LOG.info("Wrote batch of size {} (uncompressed) with {} entries in {} at {}",
