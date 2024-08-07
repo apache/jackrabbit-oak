@@ -51,9 +51,9 @@ import org.slf4j.LoggerFactory;
 public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.Result> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTreeStoreTask.class);
-    private static final String THREAD_NAME = "stree-store-task";
+    private static final String THREAD_NAME = "tree-store-task";
 
-    private static final int MERGE_BATCH = 10;
+    private static final int MERGE_BATCH = 5;
 
     private final TreeStore treeStore;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
@@ -66,6 +66,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
     private long timeCreatingSortArrayMillis = 0;
     private long timeSortingMillis = 0;
     private long timeWritingMillis = 0;
+    private int unmergedRoots;
 
     public PipelinedTreeStoreTask(TreeStore treeStore,
             ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
@@ -92,17 +93,25 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
                     synchronized (treeStore) {
-                        LOG.info("Final merge");
+                        Session session = treeStore.getSession();
+                        LOG.info("Final merge(s)");
                         Stopwatch start = Stopwatch.createStarted();
-                        treeStore.getSession().mergeRoots(Integer.MAX_VALUE);
-                        treeStore.getSession().runGC();
+                        while (session.getRootCount() > MERGE_BATCH) {
+                            LOG.info("Merging {} roots; we have {} roots",
+                                    MERGE_BATCH, session.getRootCount());
+                            session.mergeRoots(MERGE_BATCH);
+                            session.runGC();
+                        }
+                        LOG.info("Final merge; we have {} roots", session.getRootCount());
+                        session.mergeRoots(Integer.MAX_VALUE);
+                        session.runGC();
                         long durationSeconds = start.elapsed(TimeUnit.SECONDS);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, 0);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, 0);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, 0);
                         MetricsUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, 0);
-                        LOG.info("Final merge done");
+                        LOG.info("Final merge done, new root count {}", session.getRootCount());
                     }
                     long totalTimeMillis = taskStartTime.elapsed().toMillis();
                     String timeCreatingSortArrayPercentage = formatAsPercentage(timeCreatingSortArrayMillis, totalTimeMillis);
@@ -160,6 +169,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         Stopwatch saveClock = Stopwatch.createStarted();
         long textSize = 0;
         batchesProcessed++;
+        int sortBufferSize = sortBuffer.size();
         synchronized (treeStore) {
             Session session = treeStore.getSession();
             for (Entry<String, String> e : sortBuffer.entrySet()) {
@@ -167,14 +177,25 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                 textSize += e.getKey().length() + e.getValue().length() + 2;
                 entriesProcessed++;
             }
+            // free memory, before we merge, because merging needs memory as well
+            sortBuffer = null;
             session.checkpoint();
-            session.mergeRoots(MERGE_BATCH);
-            session.runGC();
+            unmergedRoots++;
+            LOG.info("Root count is {}, we have {} small unmerged roots",
+                    session.getRootCount(), unmergedRoots);
+            if (unmergedRoots == MERGE_BATCH) {
+                LOG.info("Merging {} roots, as we have {} new ones; root count is {}",
+                        MERGE_BATCH, unmergedRoots, session.getRootCount());
+                session.mergeRoots(MERGE_BATCH);
+                session.runGC();
+                LOG.info("New root count is {}", session.getRootCount());
+                unmergedRoots = 0;
+            }
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         LOG.info("Wrote batch of size {} (uncompressed) with {} entries in {} at {}",
                 humanReadableByteCountBin(textSize),
-                sortBuffer.size(), saveClock,
+                sortBufferSize, saveClock,
                 PipelinedUtils.formatAsTransferSpeedMBs(textSize, saveClock.elapsed().toMillis())
         );
     }

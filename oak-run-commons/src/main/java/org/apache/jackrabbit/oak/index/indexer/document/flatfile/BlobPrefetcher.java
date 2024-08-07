@@ -23,8 +23,10 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -40,7 +42,7 @@ public class BlobPrefetcher {
 
     private static final String BLOB_PREFETCH_PROPERTY_NAME = "oak.index.BlobPrefetchSuffix";
     private static final String BLOB_PREFETCH_SUFFIX_DEFAULT = "";
-    private static final int PRETCH_THREADS = 3;
+    private static final int PRETCH_THREADS = 16;
 
     public static void prefetch(TreeStore treeStore) {
         String prefix = System.getProperty(
@@ -51,6 +53,7 @@ public class BlobPrefetcher {
             return;
         }
         Iterator<String> it = treeStore.pathIterator();
+        Semaphore semaphore = new Semaphore(PRETCH_THREADS);
         ExecutorService executorService = Executors.newFixedThreadPool(1 + PRETCH_THREADS, new ThreadFactory() {
             private final AtomicInteger threadNumber = new AtomicInteger(1);
 
@@ -61,31 +64,41 @@ public class BlobPrefetcher {
                 return t;
             }
         });
+        AtomicLong prefetched = new AtomicLong();
         executorService.submit(() -> {
             int count = 0;
-            while (it.hasNext()) {
-                String e = it.next();
-                if (++count % 200_000 == 0) {
-                    LOG.info("Count {} path {}", count, e);
-                }
-                if (e.endsWith(BLOB_PREFETCH_SUFFIX_DEFAULT)) {
-                    executorService.submit(() -> {
+            try {
+                while (it.hasNext()) {
+                    String e = it.next();
+                    if (++count % 200_000 == 0) {
+                        LOG.info("Count {} path {}", count, e);
+                    }
+                    if (e.endsWith(BLOB_PREFETCH_SUFFIX_DEFAULT)) {
                         NodeStateEntry nse = treeStore.getNodeStateEntry(e);
                         PropertyState p = nse.getNodeState().getProperty("jcr:data");
                         if (p == null || p.isArray() || p.getType() != Type.BINARY) {
-                            return;
+                            continue;
                         }
                         Blob blob = p.getValue(Type.BINARY);
-                        try {
-                            InputStream in = blob.getNewStream();
-                            // read one byte only, in order to prefetch
-                            in.read();
-                            in.close();
-                        } catch (IOException e1) {
-                            LOG.warn("Prefetching failed", e);
-                        }
-                    });
+                        semaphore.acquire();
+                        executorService.submit(() -> {
+                            try {
+                                InputStream in = blob.getNewStream();
+                                // read one byte only, in order to prefetch
+                                in.read();
+                                in.close();
+                            } catch (IOException e1) {
+                                LOG.warn("Prefetching failed", e);
+                            }
+                            semaphore.release();
+                            prefetched.incrementAndGet();
+                        });
+                    }
                 }
+            } catch (Exception e) {
+                LOG.warn("Prefetch error", e);
+            } finally {
+                LOG.info("Completed after {} nodes, {} prefetched", count, prefetched.get());
             }
         });
     }

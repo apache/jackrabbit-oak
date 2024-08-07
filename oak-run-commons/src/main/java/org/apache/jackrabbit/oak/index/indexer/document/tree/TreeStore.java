@@ -43,7 +43,7 @@ public class TreeStore implements IndexStore {
     public static final long CACHE_SIZE_NODE_MB = 64;
     private static final long CACHE_SIZE_TREE_STORE_MB = 64;
 
-    private static final long MAX_FILE_SIZE_MB = 12;
+    private static final long MAX_FILE_SIZE_MB = 8;
     private static final long MB = 1024 * 1024;
 
     private final Store store;
@@ -60,7 +60,7 @@ public class TreeStore implements IndexStore {
         long cacheSizeTreeStoreMB = CACHE_SIZE_TREE_STORE_MB;
         if (smallCache) {
             cacheSizeNodeMB = 16;
-            cacheSizeTreeStoreMB = 48;
+            cacheSizeTreeStoreMB = 32;
         }
         nodeStateCache = new MemoryBoundCache<>(cacheSizeNodeMB * MB);
         String storeConfig = System.getProperty(TREE_STORE_CONFIG,
@@ -70,6 +70,8 @@ public class TreeStore implements IndexStore {
                 "dir=" + directory.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
         this.session = new Session(store);
+        // we don not want to merge too early during the download
+        session.setMaxRoots(1000);
     }
 
     public Iterator<String> pathIterator() {
