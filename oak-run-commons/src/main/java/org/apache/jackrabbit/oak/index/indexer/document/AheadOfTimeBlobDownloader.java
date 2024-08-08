@@ -28,6 +28,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class AheadOfTimeBlobDownloader {
@@ -50,6 +52,10 @@ public class AheadOfTimeBlobDownloader {
     private Future<?> scanFuture;
     private ArrayList<DownloadTask> downloadTasks;
     private ArrayList<Future<?>> downloadFutures;
+
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+    private long indexerPosition = 0;
 
     private static int parseEnv(String env, int defaultValue) {
         String envVal = System.getenv(env);
@@ -80,6 +86,29 @@ public class AheadOfTimeBlobDownloader {
                 return endOfData();
             }
         };
+    }
+
+    public void updateIndexed(long entriesRead) {
+        lock.lock();
+        try {
+            indexerPosition = entriesRead;
+            condition.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void waitUntilIndex(long position) {
+        lock.lock();
+        try {
+            while (indexerPosition < position) {
+                condition.await();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            lock.unlock();
+        }
     }
 
     private class ScanTask implements Runnable {
@@ -188,7 +217,10 @@ public class AheadOfTimeBlobDownloader {
                     }
                 }
                 linesScanned++;
-                if (linesScanned % 100000 == 0) {
+                if (linesScanned % 1024 == 0) {
+                    waitUntilIndex(linesScanned - 1_000_000);
+                }
+                if (linesScanned % 100_000 == 0) {
                     LOG.info("[{}] Last path scanned: {}. Statistics: {}", linesScanned, name, formatStatistics());
                 }
             }

@@ -365,6 +365,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     try {
                         TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
                         long entryStart = System.nanoTime();
+                        long entriesRead = 0;
                         for (NodeStateEntry entry : flatFileStore) {
                             reportDocumentRead(entry.getPath(), progressReporter);
                             indexer.index(entry);
@@ -379,6 +380,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                             slowestTopKElements.add(entry.getPath(), elapsedMillis);
                             if (elapsedMillis > 1000) {
                                 log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                            }
+                            entriesRead++;
+                            if (entriesRead % 1024 == 0) {
+                                aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
                             }
                         }
                         log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
