@@ -75,9 +75,6 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         this.baseItr = baseItr;
         this.preferredPathElements = preferredPathElements;
 
-        String useExperimentalListStr = System.getenv("OAK_USE_EXPERIMENTAL_LIST");
-        boolean useExperimentalList = Boolean.parseBoolean(useExperimentalListStr);
-        log.info("Using experimental list: {} {}", useExperimentalList, useExperimentalListStr);
         if (memLimitConfig == 0) {
             LOG.info("Using a key-value store buffer: {}", fileName);
             NodeStateEntryReader reader = new NodeStateEntryReader(blobStore);

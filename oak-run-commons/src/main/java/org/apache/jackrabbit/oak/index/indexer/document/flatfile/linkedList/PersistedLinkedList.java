@@ -94,6 +94,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     @Override
     public void add(@NotNull NodeStateEntry item) {
+        Preconditions.checkArgument(item != null, "Can't add null to the list");
         String s = writer.toString(item);
         long index = tailIndex++;
         map.put(index, s);
