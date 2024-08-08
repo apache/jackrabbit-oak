@@ -167,7 +167,7 @@ public class AheadOfTimeBlobDownloader {
                 if (name.endsWith("jcr:content/renditions/cqdam.text.txt/jcr:content")) {
                     PropertyState ps = entry.getNodeState().getProperty("jcr:data");
                     if (ps == null || ps.isArray() || ps.getType() != Type.BINARY) {
-                        LOG.info("[{}] Skipping node: {}. Property \"jcr:data\": {}", name, ps);
+                        LOG.info("Skipping node: {}. Property \"jcr:data\": {}", name, ps);
                         continue;
                     }
                     for (Blob v : ps.getValue(Type.BINARIES)) {
