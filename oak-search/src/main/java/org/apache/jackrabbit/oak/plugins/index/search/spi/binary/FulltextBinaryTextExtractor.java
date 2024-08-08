@@ -66,7 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.Fulltext
 public class FulltextBinaryTextExtractor {
     private final static String TEXT_EXTRACTION_TIMER_METRIC_NAME = "TEXT_EXTRACTION_TIME";
 
-    private static final Logger LOG = LoggerFactory.getLogger(FulltextBinaryTextExtractor.class);
+    private static final Logger log = LoggerFactory.getLogger(FulltextBinaryTextExtractor.class);
     private static final Parser defaultParser = createDefaultParser();
     private static final long SMALL_BINARY = Long.getLong("oak.search.smallBinary", 16 * 1024);
     private final TextExtractionStats textExtractionStats = new TextExtractionStats();
@@ -97,9 +97,9 @@ public class FulltextBinaryTextExtractor {
     }
 
     public void logStats() {
-        LOG.info("[{}] Text extraction statistics: {}", getIndexName(), textExtractionStats.formatStats());
+        log.info("[{}] Text extraction statistics: {}", getIndexName(), textExtractionStats.formatStats());
         CacheStats cacheStats = extractedTextCache.getCacheStats();
-        LOG.info("[{}] Text extraction cache statistics: {}",
+        log.info("[{}] Text extraction cache statistics: {}",
                 getIndexName(), cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
     }
 
@@ -112,7 +112,7 @@ public class FulltextBinaryTextExtractor {
         type = definition.getTikaMappedMimeType(type);
 
         if (type == null || !isSupportedMediaType(type)) {
-            LOG.trace("[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
+            log.trace("[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
                     getIndexName(), path, type);
             return values;
         }
@@ -157,8 +157,8 @@ public class FulltextBinaryTextExtractor {
         WriteOutContentHandler handler = new WriteOutContentHandler(definition.getMaxExtractLength());
         long bytesRead = 0;
         long blobLength = blob.length();
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Extracting {}. Length: {}, reference: {}", path, blobLength, blob.getReference());
+        if (log.isDebugEnabled()) {
+            log.debug("Extracting {}. Length: {}, reference: {}", path, blobLength, blob.getReference());
         }
         textExtractionStats.startExtraction();
         try {
@@ -187,12 +187,12 @@ public class FulltextBinaryTextExtractor {
             String format = "[{}] Failed to extract text from a binary property: {}. "
                     + "This often happens when the media types is disabled by configuration.";
             String indexName = getIndexName();
-            LOG.info(format, indexName, path);
-            LOG.debug(format, indexName, path, e);
+            log.info(format, indexName, path);
+            log.debug(format, indexName, path, e);
             extractedTextCache.put(blob, ExtractedText.ERROR);
             return TEXT_EXTRACTION_ERROR;
         } catch (TimeoutException t) {
-            LOG.warn("[{}] Failed to extract text from a binary property due to timeout: {}.",
+            log.warn("[{}] Failed to extract text from a binary property due to timeout: {}.",
                     getIndexName(), path);
             extractedTextCache.put(blob, ExtractedText.ERROR);
             extractedTextCache.putTimeout(blob, ExtractedText.ERROR);
@@ -204,20 +204,20 @@ public class FulltextBinaryTextExtractor {
                 String format = "[{}] Failed to extract text from a binary property: {}. "
                         + "This is quite common, and usually nothing to worry about.";
                 String indexName = getIndexName();
-                LOG.info(format + " Error: " + t, indexName, path);
-                LOG.debug(format, indexName, path, t);
+                log.info(format + " Error: " + t, indexName, path);
+                log.debug(format, indexName, path, t);
                 extractedTextCache.put(blob, ExtractedText.ERROR);
                 return TEXT_EXTRACTION_ERROR;
             } else {
-                LOG.debug("Extracted text size exceeded configured limit({})", definition.getMaxExtractLength());
+                log.debug("Extracted text size exceeded configured limit({})", definition.getMaxExtractLength());
             }
         }
         String result = handler.toString();
         if (bytesRead > 0) {
             int len = result.length();
             long extractionTimeMillis = textExtractionStats.finishExtraction(bytesRead, len);
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Extracted {}. Time: {} ms, Bytes read: {}, Text size: {}", path, extractionTimeMillis, bytesRead, len);
+            if (log.isDebugEnabled()) {
+                log.debug("Extracted {}. Time: {} ms, Bytes read: {}, Text size: {}", path, extractionTimeMillis, bytesRead, len);
             }
         }
         extractedTextCache.put(blob, new ExtractedText(ExtractedText.ExtractionResult.SUCCESS, result));
@@ -272,7 +272,7 @@ public class FulltextBinaryTextExtractor {
                 return TikaParserConfig.getNonIndexedMediaTypes(configStream);
             }
         } catch (TikaException | IOException | SAXException e) {
-            LOG.warn("Tika configuration not available : {}", configSource, e);
+            log.warn("Tika configuration not available : {}", configSource, e);
         } finally {
             IOUtils.closeQuietly(configStream);
         }
@@ -288,7 +288,7 @@ public class FulltextBinaryTextExtractor {
         try {
             Thread.currentThread().setContextClassLoader(FulltextIndexEditorContext.class.getClassLoader());
             if (definition != null && definition.hasCustomTikaConfig()) {
-                LOG.debug("[{}] Using custom tika config", definition.getIndexName());
+                log.debug("[{}] Using custom tika config", definition.getIndexName());
                 configSource = "Custom config at " + definition.getIndexPath();
                 configStream = definition.getTikaConfig();
             } else {
@@ -303,7 +303,7 @@ public class FulltextBinaryTextExtractor {
                 return new TikaConfigHolder(new TikaConfig(configStream), configSource);
             }
         } catch (TikaException | IOException | SAXException e) {
-            LOG.warn("Tika configuration not available : {}", configSource, e);
+            log.warn("Tika configuration not available : {}", configSource, e);
         } finally {
             IOUtils.closeQuietly(configStream);
             Thread.currentThread().setContextClassLoader(current);
@@ -330,10 +330,10 @@ public class FulltextBinaryTextExtractor {
         try {
             configHolder = initializeTikaConfig(null);
             Thread.currentThread().setContextClassLoader(FulltextIndexEditorContext.class.getClassLoader());
-            LOG.info("Loaded default Tika Config from classpath {}", configHolder);
+            log.info("Loaded default Tika Config from classpath {}", configHolder);
             return new AutoDetectParser(configHolder.config);
         } catch (Exception e) {
-            LOG.warn("Tika configuration not available : {}", configHolder, e);
+            log.warn("Tika configuration not available : {}", configHolder, e);
         } finally {
             Thread.currentThread().setContextClassLoader(current);
         }

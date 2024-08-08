@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 final class TextExtractionStats {
-    private static final Logger LOG = LoggerFactory.getLogger(TextExtractionStats.class);
+    private static final Logger log = LoggerFactory.getLogger(TextExtractionStats.class);
     /**
      * Log stats only if time spent is more than 1 min
      */
@@ -44,7 +44,7 @@ final class TextExtractionStats {
     private long startTimeNanos = System.nanoTime();
 
     public void reset() {
-        LOG.info("Resetting statistics");
+        log.info("Resetting statistics");
         this.numberOfExtractions = 0;
         this.totalBytesRead = 0;
         this.totalExtractedTextLength = 0;
@@ -58,10 +58,10 @@ final class TextExtractionStats {
     }
 
     public void log(boolean reindex) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Text extraction stats {}", this);
+        if (log.isDebugEnabled()) {
+            log.debug("Text extraction stats {}", this);
         } else if (anyParsingDone() && (reindex || isTakingLotsOfTime())) {
-            LOG.info("Text extraction stats {}", this);
+            log.info("Text extraction stats {}", this);
         }
     }
 

@@ -39,12 +39,10 @@ import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +112,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 } else {
                     InputStream is = null;
                     boolean threw = true;
-                    long startMillis = System.nanoTime() / 1_000_000;
+                    long startNanos = System.nanoTime();
                     try {
                         is = loader.load(key);
                         copyInputStreamToFile(is, cachedFile);
@@ -126,7 +124,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                         Closeables.close(is, threw);
                     }
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug("Loaded file: {} in {}", key, System.nanoTime() / 1_000_000 - startMillis);
+                        LOG.debug("Loaded file: {} in {}", key, (System.nanoTime() - startNanos) / 1_000_000);
                     }
                     return cachedFile;
                 }
@@ -174,7 +172,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         }
         return new FileCache() {
 
-            private final Cache<?,?> cache = new CacheLIRS<>(0);
+            private final Cache<?, ?> cache = new CacheLIRS<>(0);
 
             @Override public void put(String key, File file) {
             }
