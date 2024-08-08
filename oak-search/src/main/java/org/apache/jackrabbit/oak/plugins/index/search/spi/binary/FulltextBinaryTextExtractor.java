@@ -124,6 +124,7 @@ public class FulltextBinaryTextExtractor {
                 metadata.set(Metadata.CONTENT_ENCODING, encoding);
             }
         }
+
         for (Blob v : property.getValue(Type.BINARIES)) {
             String value = parseStringValue(v, metadata, path, property.getName());
             if (value == null) {
@@ -353,4 +354,5 @@ public class FulltextBinaryTextExtractor {
             return sourceInfo;
         }
     }
+
 }
