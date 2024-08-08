@@ -35,29 +35,26 @@ final class TextExtractionStats {
      */
     private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(1);
 
-    private static long systemNanoAsMillis() {
-        return System.nanoTime() / 1_000_000;
-    }
 
     private int numberOfExtractions;
     private long totalBytesRead;
     private long totalExtractedTextLength;
-    private long totalExtractionTimeMillis;
-    private long currentExtractionStartMillis = 0;
-    private long startTimeMillis = systemNanoAsMillis();
+    private long totalExtractionTimeNanos;
+    private long currentExtractionStartNanos = 0;
+    private long startTimeNanos = System.nanoTime();
 
     public void reset() {
         LOG.info("Resetting statistics");
         this.numberOfExtractions = 0;
         this.totalBytesRead = 0;
         this.totalExtractedTextLength = 0;
-        this.totalExtractionTimeMillis = 0;
-        this.currentExtractionStartMillis = 0;
-        this.startTimeMillis = systemNanoAsMillis();
+        this.totalExtractionTimeNanos = 0;
+        this.currentExtractionStartNanos = 0;
+        this.startTimeNanos = System.nanoTime();
     }
 
     public void startExtraction() {
-        currentExtractionStartMillis = systemNanoAsMillis();
+        currentExtractionStartNanos = System.nanoTime();
     }
 
     public void log(boolean reindex) {
@@ -69,20 +66,20 @@ final class TextExtractionStats {
     }
 
     public long finishExtraction(long bytesRead, int extractedTextLength) {
-        long elapsedMillis = systemNanoAsMillis() - currentExtractionStartMillis;
+        long elapsedNanos = System.nanoTime() - currentExtractionStartNanos;
         numberOfExtractions++;
         totalBytesRead += bytesRead;
         totalExtractedTextLength += extractedTextLength;
-        totalExtractionTimeMillis += elapsedMillis;
-        return elapsedMillis;
+        totalExtractionTimeNanos += elapsedNanos;
+        return elapsedNanos/1_000_000;
     }
 
     public void collectStats(ExtractedTextCache cache) {
-        cache.addStats(numberOfExtractions, totalExtractionTimeMillis, totalBytesRead, totalExtractedTextLength);
+        cache.addStats(numberOfExtractions, totalExtractionTimeNanos/1_000_000, totalBytesRead, totalExtractedTextLength);
     }
 
     private boolean isTakingLotsOfTime() {
-        return totalExtractionTimeMillis > LOGGING_THRESHOLD;
+        return totalExtractionTimeNanos > LOGGING_THRESHOLD*1_000_000;
     }
 
     private boolean anyParsingDone() {
@@ -93,22 +90,22 @@ final class TextExtractionStats {
     public String toString() {
         return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
                 numberOfExtractions,
-                timeInWords(totalExtractionTimeMillis),
+                timeInWords(totalExtractionTimeNanos),
                 humanReadableByteCount(totalBytesRead),
                 humanReadableByteCount(totalExtractedTextLength));
     }
 
     public String formatStats() {
-        long timeSinceStartMillis = systemNanoAsMillis() - startTimeMillis;
-        double timeExtractingPercentage = timeSinceStartMillis == 0 ? -1 : (totalExtractionTimeMillis * 100.0) / timeSinceStartMillis;
-        long avgExtractionTimeMillis = numberOfExtractions == 0 ? -1 : totalExtractionTimeMillis / numberOfExtractions;
+        long timeSinceStartNanos = System.nanoTime() - startTimeNanos;
+        double timeExtractingPercentage = FormattingUtils.safeComputePercentage(totalExtractionTimeNanos, timeSinceStartNanos);
+        long avgExtractionTimeMillis = numberOfExtractions == 0 ? -1 : (totalExtractionTimeNanos/ 1_000_000 / numberOfExtractions);
 
         return String.format("{extractions: %d, timeExtracting: %s (%2.1f%%), totalTime: %s, " +
                         "avgExtractionTime: %s ms, bytesRead: %s, extractedTextSize: %s}",
                 numberOfExtractions,
-                FormattingUtils.formatToSeconds(totalExtractionTimeMillis / 1000),
+                FormattingUtils.formatNanosToSeconds(totalExtractionTimeNanos),
                 timeExtractingPercentage,
-                FormattingUtils.formatToSeconds(timeSinceStartMillis / 1000),
+                FormattingUtils.formatNanosToSeconds(timeSinceStartNanos),
                 avgExtractionTimeMillis,
                 humanReadableByteCount(totalBytesRead), humanReadableByteCount(totalExtractedTextLength));
     }

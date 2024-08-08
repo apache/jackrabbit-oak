@@ -50,10 +50,10 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     private final IndexingProgressReporter progressReporter;
     private FacetsConfig facetsConfig;
 
-    private long startTimeMillis = 0;
-    private long totalTimeIndexingMillis = 0;
-    private long totalTimeMakingDocumentsMillis = 0;
-    private long totalTmeWritingToIndexMillis = 0;
+    private long startTimeNanos = 0;
+    private long totalTimeIndexingNanos = 0;
+    private long totalTimeMakingDocumentsNanos = 0;
+    private long totalTmeWritingToIndexNanos = 0;
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
                          NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
@@ -67,7 +67,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public void onIndexingStarting() {
-        this.startTimeMillis = System.nanoTime()/1_000_000;
+        this.startTimeNanos = System.nanoTime();
         binaryTextExtractor.resetStartTime();
     }
 
@@ -102,15 +102,15 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             writeToIndex(doc, entry.getPath());
             long endWriteNanos = System.nanoTime();
 
-            long totalTimeMillis = (endWriteNanos - startNanos) / 1_000_000;
-            long makeDocumentTimeMillis = (endMakeDocumentNanos - startNanos) / 1_000_000;
-            long writeTimeMillis = (endWriteNanos - endMakeDocumentNanos) / 1_000_000;
-            totalTimeIndexingMillis += totalTimeMillis;
-            totalTimeMakingDocumentsMillis += makeDocumentTimeMillis;
-            totalTmeWritingToIndexMillis += writeTimeMillis;
-            if (totalTimeMillis >= SLOW_DOCUMENT_LOG_THRESHOLD) {
+            long totalTimeNanos = endWriteNanos - startNanos;
+            long makeDocumentTimeNanos = endMakeDocumentNanos - startNanos;
+            long writeTimeNanos = endWriteNanos - endMakeDocumentNanos;
+            totalTimeIndexingNanos += totalTimeNanos;
+            totalTimeMakingDocumentsNanos += makeDocumentTimeNanos;
+            totalTmeWritingToIndexNanos += writeTimeNanos;
+            if (totalTimeNanos >= (long)SLOW_DOCUMENT_LOG_THRESHOLD * 1_000_000) {
                 LOG.info("Slow document: {}. Times: total={}ms, makeDocument={}ms, writeToIndex={}ms",
-                        entry.getPath(), totalTimeMillis, makeDocumentTimeMillis, writeTimeMillis);
+                        entry.getPath(), totalTimeNanos / 1_000_000, makeDocumentTimeNanos / 1_000_000, writeTimeNanos / 1_000_000);
             }
 
             progressReporter.indexUpdate(definition.getIndexPath());
@@ -138,16 +138,21 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     }
 
     public String formatStats() {
-        long endTimeMillis = System.nanoTime()/1_000_000;
-        long totalTimeMillis = endTimeMillis - startTimeMillis;
-        double percentageIndexing = totalTimeMillis == 0 ? -1 : (totalTimeIndexingMillis * 100.0) / totalTimeMillis;
-        double percentageMakingDocument = totalTimeMillis == 0 ? -1 : (totalTimeMakingDocumentsMillis * 100.0) / totalTimeMillis;
-        double percentageWritingToIndex = totalTimeMillis == 0 ? -1 : (totalTmeWritingToIndexMillis * 100.0) / totalTimeMillis;
-        return String.format("Indexed %d documents in %s. indexingTime: %s (%2.1f%%), makeDocument: %s (%2.1f%%), writeIndex: %s (%2.1f%%). (indexingTime = makeDocument + writeIndex + other)",
-                progressReporter.getTotalUpdatesCount(), FormattingUtils.formatToSeconds(totalTimeMillis / 1000),
-                FormattingUtils.formatToSeconds(totalTimeIndexingMillis / 1000), percentageIndexing,
-                FormattingUtils.formatToSeconds(totalTimeMakingDocumentsMillis / 1000), percentageMakingDocument,
-                FormattingUtils.formatToSeconds(totalTmeWritingToIndexMillis / 1000), percentageWritingToIndex);
+        long endTimeNanos = System.nanoTime();
+        long totalTimeNanos = endTimeNanos - startTimeNanos;
+        long nodesIndexed = progressReporter.getTotalUpdatesCount();
+        long avgTimePerDocumentMicros = nodesIndexed == 0 ? -1 : (totalTimeIndexingNanos / nodesIndexed)/1000;
+        long otherTimeNanos = totalTimeIndexingNanos - totalTimeMakingDocumentsNanos - totalTmeWritingToIndexNanos;
+        double percentageIndexing = FormattingUtils.safeComputePercentage(totalTimeIndexingNanos, totalTimeNanos);
+        double percentageMakingDocument = FormattingUtils.safeComputePercentage(totalTimeMakingDocumentsNanos, totalTimeIndexingNanos);
+        double percentageWritingToIndex = FormattingUtils.safeComputePercentage(totalTmeWritingToIndexNanos, totalTimeIndexingNanos);
+        double percentageOther = FormattingUtils.safeComputePercentage(otherTimeNanos, totalTimeIndexingNanos);
+        return String.format("Indexed %d nodes in %s. Avg per node: %d microseconds. indexingTime: %s (%2.1f%% of total time). Breakup of indexing time: makeDocument: %s (%2.1f%%), writeIndex: %s (%2.1f%%), other: %s (%2.1f%%)",
+                progressReporter.getTotalUpdatesCount(), FormattingUtils.formatNanosToSeconds(totalTimeNanos), avgTimePerDocumentMicros,
+                FormattingUtils.formatNanosToSeconds(totalTimeIndexingNanos), percentageIndexing,
+                FormattingUtils.formatNanosToSeconds(totalTimeMakingDocumentsNanos), percentageMakingDocument,
+                FormattingUtils.formatNanosToSeconds(totalTmeWritingToIndexNanos), percentageWritingToIndex,
+                FormattingUtils.formatNanosToSeconds(otherTimeNanos), percentageOther);
     }
 
     private PathFilter.Result getFilterResult(String path) {
