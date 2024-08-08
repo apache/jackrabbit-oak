@@ -61,8 +61,6 @@ public final class CompressedDocumentPropertyState implements PropertyState {
 
     private final String name;
 
-    private final String value;
-
     private PropertyState parsed;
     private final byte[] compressedValue;
     private final Compression compression;
@@ -74,18 +72,12 @@ public final class CompressedDocumentPropertyState implements PropertyState {
         this.store = store;
         this.name = name;
         this.compression = compression;
-        int size = value.length();
-        byte[] compressedValue = null;
-        if (size > COMPRESSION_THRESHOLD) {
-            try {
-                compressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
-                value = null;
-            } catch (IOException e) {
-                LOG.warn("Failed to compress property {} value: ", name, e);
-            }
+        try {
+            this.compressedValue = compress(value.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            LOG.warn("Failed to compress property {} value: ", name, e);
+            throw new IllegalArgumentException("Failed to compress value", e);
         }
-        this.value = value;
-        this.compressedValue = compressedValue;
     }
 
     private byte[] compress(byte[] value) throws IOException {
@@ -154,7 +146,7 @@ public final class CompressedDocumentPropertyState implements PropertyState {
      */
     @NotNull
     String getValue() {
-        return value != null ? value : decompress(this.compressedValue);
+        return decompress(this.compressedValue);
     }
 
     private String decompress(byte[] value) {
@@ -182,7 +174,7 @@ public final class CompressedDocumentPropertyState implements PropertyState {
                 return false;
             }
             if (this.compressedValue == null && other.compressedValue == null) {
-                return value.equals(other.value);
+                return getValue().equals(other.getValue());
             } else {
                 // Compare length and content of compressed values
                 if (this.compressedValue.length != other.compressedValue.length) {
@@ -204,6 +196,10 @@ public final class CompressedDocumentPropertyState implements PropertyState {
     @Override
     public String toString() {
         return AbstractPropertyState.toString(this);
+    }
+
+    static int getCompressionThreshold() {
+        return COMPRESSION_THRESHOLD;
     }
 
     static void setCompressionThreshold(int compressionThreshold) {

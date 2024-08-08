@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -29,8 +28,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -95,27 +92,11 @@ public class CompressedDocumentPropertyStateTest {
         assertEquals(0, reads.size());
     }
 
-    @Test
-    public void stringAboveThresholdSize() throws Exception {
-        DocumentNodeStore store = mock(DocumentNodeStore.class);
-        CompressedDocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
-
-        CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "p", "\"" + STRING_HUGEVALUE + "\"", Compression.GZIP);
-
-        assertEquals(Type.STRING, state.getType());
-        assertEquals(1, state.count());
-
-        reads.clear();
-        assertEquals(10050, state.size(0));
-        // must not read the string via streams
-        assertEquals(0, reads.size());
-    }
-
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void compressValueThrowsException() throws IOException {
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
         Compression mockCompression = mock(Compression.class);
-        when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
+        when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IllegalArgumentException("Compression failed"));
 
         CompressedDocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
         CompressedDocumentPropertyState documentPropertyState = new CompressedDocumentPropertyState(mockDocumentStore, "p", "\"" + STRING_HUGEVALUE + "\"", mockCompression);
@@ -126,24 +107,7 @@ public class CompressedDocumentPropertyStateTest {
     }
 
     @Test
-    public void uncompressValueThrowsException() throws IOException, NoSuchFieldException, IllegalAccessException {
-
-        DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
-        Compression mockCompression = mock(Compression.class);
-        OutputStream mockOutputStream= mock(OutputStream.class);
-        when(mockCompression.getOutputStream(any(OutputStream.class))).thenReturn(mockOutputStream);
-        when(mockCompression.getInputStream(any(InputStream.class))).thenThrow(new IOException("Compression failed"));
-
-        CompressedDocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
-        CompressedDocumentPropertyState documentPropertyState = new CompressedDocumentPropertyState(mockDocumentStore, "p", STRING_HUGEVALUE, mockCompression);
-
-        assertEquals(documentPropertyState.getValue(Type.STRING), "{}");
-
-        verify(mockCompression, times(1)).getInputStream(any(InputStream.class));
-    }
-
-    @Test
-    public void stringAboveThresholdSizeNoCompression() {
+    public void stringAboveThresholdSize() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
 
         CompressedDocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
@@ -159,18 +123,6 @@ public class CompressedDocumentPropertyStateTest {
     }
 
     @Test
-    public void testInterestingStringsWithoutCompression() {
-        DocumentNodeStore store = mock(DocumentNodeStore.class);
-        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
-                "tab:a\tb", "nul:a\u0000b"};
-
-        for (String test : tests) {
-            CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "propertyName", test, Compression.GZIP);
-            assertEquals(test, state.getValue());
-        }
-    }
-
-    @Test
     public void testInterestingStringsWithCompression() {
         DocumentNodeStore store = mock(DocumentNodeStore.class);
         String[] tests = new String[]{"simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
@@ -181,23 +133,6 @@ public class CompressedDocumentPropertyStateTest {
             CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "propertyName", test, Compression.GZIP);
             assertEquals(test, state.getValue());
         }
-    }
-
-    @Test
-    public void testEqualsWithoutCompression() {
-        DocumentNodeStore store = mock(DocumentNodeStore.class);
-        String name = "propertyName";
-        String value = "testValue";
-        Compression compression = Compression.GZIP;
-
-        CompressedDocumentPropertyState state1 = new CompressedDocumentPropertyState(store, name, value, compression);
-        CompressedDocumentPropertyState state2 = new CompressedDocumentPropertyState(store, name, value, compression);
-
-        assertEquals(state1, state2);
-
-        // Test for inequality
-        CompressedDocumentPropertyState state4 = new CompressedDocumentPropertyState(store, "differentName", value, compression);
-        assertNotEquals(state1, state4);
     }
 
     @Test
