@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
@@ -148,11 +148,9 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
                     return buff.toString();
                 }
             }
-        });        
+        });
     }
 
-    
-    
     /**
      * Search for a given set of values, returning {@linkplain IndexEntry} results
      * 
@@ -183,26 +181,24 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             public Iterator<T> iterator() {
                 if (values == null) {
                     return new Iterator<T>() {
-                        
                         Iterator<? extends ChildNodeEntry> it = index.getChildNodeEntries().iterator();
-                        
+
                         @Override
                         public boolean hasNext() {
                             return it.hasNext();
                         }
-                        
+
                         @Override
                         public T next() {
                             ChildNodeEntry indexEntry = it.next();
-                            
                             return prod.produce(indexEntry.getNodeState(), indexEntry.getName());
                         }
-                        
+
                         @Override
                         public void remove() {
                             it.remove();
                         }
-                        
+
                     };
                 }
                 ArrayList<T> list = new ArrayList<>();
@@ -217,7 +213,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             }
         };
     }
-    
+
     @Override
     public boolean exists(Supplier<NodeBuilder> index, String key) {
         return index.get().hasChildNode(key);
@@ -275,7 +271,6 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
      * @param <T> The type of Hit to produce
      */
     private interface HitProducer<T> {
-        
         /**
          * Invoked when a matching index entry is found 
          * 
