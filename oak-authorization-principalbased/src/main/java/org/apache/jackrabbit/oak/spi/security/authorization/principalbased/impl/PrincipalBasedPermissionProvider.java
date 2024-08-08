@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -47,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
@@ -268,14 +267,14 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         PrivilegeBits bits = PrivilegeBits.getInstance();
         PrivilegeBits parentBits = PrivilegeBits.getInstance();
 
-        Iterator<PermissionEntry> it = getEntryIterator(path, Predicates.alwaysTrue());
+        Iterator<PermissionEntry> it = getEntryIterator(path, x -> true);
         while (it.hasNext()) {
             PermissionEntry entry = it.next();
             PrivilegeBits entryBits = entry.getPrivilegeBits();
-            if (parentPredicate.apply(entry)) {
+            if (parentPredicate.test(entry)) {
                 parentBits.add(entryBits);
             }
-            if (predicate.apply(entry)) {
+            if (predicate.test(entry)) {
                 bits.add(entryBits);
             }
             allows |= PrivilegeBits.calculatePermissions(bits, parentBits, true);

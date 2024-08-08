@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -33,10 +30,11 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
+import java.util.function.Predicate;
 
 /**
  * NodeState wrapper which wraps another NodeState (mostly SegmentNodeState)
@@ -48,12 +46,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     public static final String PROP_REVISION = ":doc-rev";
     public static final String PROP_LAST_REV = ":doc-lastRev";
 
-    private static final Predicate<PropertyState> NOT_META_PROPS = new Predicate<PropertyState>() {
-        @Override
-        public boolean apply(PropertyState input) {
-            return !input.getName().startsWith(":doc-");
-        }
-    };
+    private static final Predicate<PropertyState> NOT_META_PROPS = input -> !input.getName().startsWith(":doc-");
 
     private final NodeStateDiffer differ;
     private final NodeState delegate;
@@ -161,7 +154,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.filter(delegate.getProperties(), NOT_META_PROPS);
+        return Iterables.filter(delegate.getProperties(), NOT_META_PROPS::test);
     }
 
     @Override

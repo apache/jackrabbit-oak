@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -35,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -69,7 +69,7 @@ class SplitOperations {
     private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 1000);
     private static final Predicate<Long> BINARY_FOR_SPLIT_THRESHOLD = new Predicate<Long>() {
         @Override
-        public boolean apply(Long input) {
+        public boolean test(Long input) {
             // only force trigger split for binaries bigger than 4k
             return input > 4096;
         }
@@ -233,7 +233,7 @@ class SplitOperations {
     }
 
     private boolean hasBinaryPropertyForSplit(Iterable<String> values) {
-        return doc.hasBinary() && any(transform(values, binarySize::apply), BINARY_FOR_SPLIT_THRESHOLD);
+        return doc.hasBinary() && any(transform(values, binarySize::apply), BINARY_FOR_SPLIT_THRESHOLD::test);
     }
 
     /**
@@ -443,7 +443,7 @@ class SplitOperations {
     private void collectLocalChanges(
             Map<String, NavigableMap<Revision, String>> committedLocally,
             Set<Revision> changes) {
-        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED::test)) {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
             committedLocally.put(property, splitMap);
@@ -533,7 +533,7 @@ class SplitOperations {
         for (Map.Entry<String, Set<Revision>> entry : garbage.entrySet()) {
             for (Revision r : entry.getValue()) {
                 main.removeMapEntry(entry.getKey(), r);
-                if (PROPERTY_OR_DELETED.apply(entry.getKey())) {
+                if (PROPERTY_OR_DELETED.test(entry.getKey())) {
                     NodeDocument.removeCommitRoot(main, r);
                     NodeDocument.removeRevision(main, r);
                     NodeDocument.removeBranchCommit(main, r);

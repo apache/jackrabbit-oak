@@ -34,8 +34,8 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -1356,12 +1356,7 @@ public final class NodeDocument extends Document {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
                     return null;
-                }), new Predicate<NodeDocument>() {
-                @Override
-                public boolean apply(@Nullable NodeDocument input) {
-                    return input != null && input.getValueMap(property).containsKey(revision);
-                }
-            });
+                }), input ->input != null && input.getValueMap(property).containsKey(revision));
         }
     }
 
@@ -1528,12 +1523,7 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Revision> getChanges(@NotNull final String property,
                                   @NotNull final RevisionVector min) {
-        Predicate<Revision> p = new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return min.isRevisionNewer(input);
-            }
-        };
+        Predicate<Revision> p = input -> min.isRevisionNewer(input);
         List<Iterable<Revision>> changes = Lists.newArrayList();
         changes.add(abortingIterable(getLocalMap(property).keySet(), p));
         for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
@@ -1564,16 +1554,11 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
                                                             @NotNull final RevisionVector readRevision) {
-        Predicate<Map.Entry<Revision, String>> p = new Predicate<Map.Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision, String> input) {
-                return !readRevision.isRevisionNewer(input.getKey());
-            }
-        };
+        Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
         List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
         Map<Revision, String> localChanges = getLocalMap(property);
         if (!localChanges.isEmpty()) {
-            changes.add(filter(localChanges.entrySet(), p));
+            changes.add(filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
@@ -1677,12 +1662,7 @@ public final class NodeDocument extends Document {
         } else {
             changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, new Predicate<Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Entry<Revision, String> input) {
-                return !readRev.isRevisionNewer(input.getKey());
-            }
-        });
+        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
 
     /**

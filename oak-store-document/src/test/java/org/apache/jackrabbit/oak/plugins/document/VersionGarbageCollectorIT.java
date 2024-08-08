@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 import static java.util.List.of;
 import static java.util.Objects.requireNonNull;
@@ -97,7 +98,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -1707,6 +1707,8 @@ public class VersionGarbageCollectorIT {
     // OAK-8646
     @Test
     public void testDeletedPropsAndUnmergedBCWithoutCollision() throws Exception {
+        // OAK-10974:
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -2358,6 +2360,8 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
+        // OAK-10869:
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -3158,19 +3162,17 @@ public class VersionGarbageCollectorIT {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
                 return filter(super.getPossiblyDeletedDocs(fromModified, toModified),
-                        new Predicate<NodeDocument>() {
-                            @Override
-                            public boolean apply(NodeDocument input) {
+                        input -> {
                                 try {
                                     docs.put(input);
                                 } catch (InterruptedException e) {
                                     throw new RuntimeException(e);
                                 }
                                 return true;
-                            }
-                        });
+                            });
             }
         };
+
         final VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, false, false, false);
         // start GC -> will try to remove /foo and /bar
         Future<VersionGCStats> f = execService.submit(new Callable<VersionGCStats>() {
@@ -3393,14 +3395,11 @@ public class VersionGarbageCollectorIT {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, long toModified) {
                 return filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
-                        new Predicate<NodeDocument>() {
-                            @Override
-                            public boolean apply(NodeDocument input) {
+                        input -> {
                                 docCounter.incrementAndGet();
-                                return false;// don't report any doc to be
-                                             // GC'able
-                            }
-                        });
+                                // don't report any doc to be GC'able
+                                return false;
+                            });
             }
         };
         final VersionGarbageCollector gc = new VersionGarbageCollector(store1, nonReportingGcSupport, false, false, false);

@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
@@ -149,7 +148,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
             }
             return null;
         });
-        return Iterables.filter(transformed, notNull());
+        return Iterables.filter(transformed, x -> x != null);
     }
 
     @Override
@@ -173,7 +172,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
         final Iterable<PropertyState> propertyStates = Iterables.transform(
                 delegate.getProperties(),
                 propertyState -> decorate(propertyState));
-        return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()), notNull());
+        return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()), x -> x != null);
     }
 
     /**

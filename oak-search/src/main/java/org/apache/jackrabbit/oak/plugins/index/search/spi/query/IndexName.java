@@ -100,7 +100,7 @@ public class IndexName implements Comparable<IndexName> {
                 nextLogWarnClear = now + 5 * 60 * 1000;
             }
             if (LOGGED_WARN.add(nodeName)) {
-                LOG.warn("Index name format error: " + nodeName);
+                LOG.warn("Index name format error: {}", nodeName);
             }
             return new IndexName(nodeName, false);
         }

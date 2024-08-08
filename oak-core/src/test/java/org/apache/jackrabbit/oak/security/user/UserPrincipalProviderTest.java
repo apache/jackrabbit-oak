@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -280,7 +279,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
-            Iterator filtered = Iterators.filter(principals, (Predicate<Principal>) principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            Iterator filtered = Iterators.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
             assertEquals(1, Iterators.size(filtered));
         } finally {
             if (everyoneGroup != null) {
@@ -312,14 +311,14 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
         assertNotNull(it);
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testCreatePrincipalInvalidType() throws Exception {
         Method m = UserPrincipalProvider.class.getDeclaredMethod("createPrincipal", Tree.class);
         m.setAccessible(true);
-        
+
         assertNull(m.invoke(principalProvider, (Tree)null));
-        
+
         PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
         Tree tree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(ps).getMock();
         assertNull(m.invoke(principalProvider, tree));

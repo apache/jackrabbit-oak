@@ -38,7 +38,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterators.size;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static java.util.Collections.emptyIterator;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
@@ -65,10 +64,11 @@ class ChildNodeStateProvider {
     }
 
     public long getChildNodeCount(long max) {
-        if (max == 1 && children().hasNext()) {
+        Iterator<NodeStateEntry> childrenIter = children();
+        if (max == 1 && childrenIter.hasNext()) {
             return 1;
         }
-        return size(children());
+        return size(childrenIter);
     }
 
     public Iterable<String> getChildNodeNames() {
@@ -107,7 +107,7 @@ class ChildNodeStateProvider {
                 while (pitr.hasNext() && isAncestor(path, pitr.peek().getPath())) {
                     NodeStateEntry nextEntry = pitr.next();
                     String nextEntryPath = nextEntry.getPath();
-                    if (isImmediateChild(nextEntryPath)) {
+                    if (PathUtils.isDirectAncestor(path, nextEntryPath)) {
                         String nextEntryName = PathUtils.getName(nextEntryPath);
                         if (preferred && !preferredPathElements.contains(nextEntryName)) {
                             return endOfData();
@@ -122,9 +122,5 @@ class ChildNodeStateProvider {
 
     private static String name(NodeStateEntry p) {
         return getName(p.getPath());
-    }
-
-    private boolean isImmediateChild(String childPath){
-        return getParentPath(childPath).equals(path);
     }
 }

@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
@@ -41,10 +41,10 @@ class AncestorCursor extends PathCursor {
         Iterator<String> filtered = Iterators.filter(unfiltered,
                 new Predicate<String>() {
             @Override
-            public boolean apply(@Nullable String input) {
+            public boolean test(@Nullable String input) {
                 return input != null && PathUtils.getDepth(input) >= level;
             }
-        });
+        }::test);
         return Iterators.transform(filtered,
                 input -> PathUtils.getAncestorPath(input, level));
     }

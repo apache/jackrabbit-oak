@@ -27,7 +27,6 @@ import java.util.function.Function;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -164,7 +163,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
+        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges),
+                privilege -> nameMapper.getOakNameOrNull(privilege.getName())), x -> x != null));
     }
 
     /**

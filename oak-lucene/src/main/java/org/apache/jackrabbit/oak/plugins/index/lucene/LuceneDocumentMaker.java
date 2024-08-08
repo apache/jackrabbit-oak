@@ -218,7 +218,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected  boolean augmentCustomFields(final String path, final Document doc, final NodeState document) {
+    protected boolean augmentCustomFields(final String path, final Document doc, final NodeState document) {
         boolean dirty = false;
 
         if (augmentorFactory != null) {
@@ -264,7 +264,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected boolean isFacetingEnabled(){
+    protected boolean isFacetingEnabled() {
         return facetsConfigProvider != null;
     }
 
@@ -318,7 +318,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     /**
      * Returns a {@code BytesRef} object constructed from the given {@code String} value and also truncates the length
-     * of the {@code BytesRef} object to the specified {@code maxLength}, ensuring that the multi-byte sequences are 
+     * of the {@code BytesRef} object to the specified {@code maxLength}, ensuring that the multi-byte sequences are
      * properly truncated.
      *
      * <p>The {@code BytesRef} object is created from the provided {@code String} value using UTF-8 encoding. As a result, its length
@@ -356,8 +356,10 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         byte[] truncatedBytes = Arrays.copyOf(ref.bytes, end + 1);
         String truncated = new String(truncatedBytes, StandardCharsets.UTF_8);
         ref = new BytesRef(truncated);
-        log.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
-        
+        if (log.isTraceEnabled()) {
+            log.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
+        }
+
         while (ref.length > maxLength) {
             log.error("Truncation did not work: still {} bytes", ref.length);
             // this may not properly work with unicode surrogates:
@@ -368,7 +370,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         return ref;
     }
 
-    private FacetsConfig getFacetsConfig(){
+    private FacetsConfig getFacetsConfig() {
         return facetsConfigProvider.getFacetsConfig();
     }
 
@@ -426,10 +428,12 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
 
         if (added) {
-            log.trace(
-                    "Added augmented fields: {}[{}], {}",
-                    parent + "/", String.join(", ", tokens), confidence
-            );
+            if (log.isTraceEnabled()) {
+                log.trace(
+                        "Added augmented fields: {}[{}], {}",
+                        parent + "/", String.join(", ", tokens), confidence
+                );
+            }
         }
 
         return added;

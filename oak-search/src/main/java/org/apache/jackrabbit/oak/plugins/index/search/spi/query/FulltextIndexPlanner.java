@@ -983,8 +983,10 @@ public class FulltextIndexPlanner {
                     return rule;
                 }
             }
-            log.trace("No applicable IndexingRule found for any of the superTypes {}",
-                    filter.getSupertypes());
+            if (log.isTraceEnabled()) {
+                log.trace("No applicable IndexingRule found for any of the superTypes {}",
+                        filter.getSupertypes());
+            }
         }
         return null;
     }
