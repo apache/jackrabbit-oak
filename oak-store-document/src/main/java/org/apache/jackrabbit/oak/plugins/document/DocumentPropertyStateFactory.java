@@ -41,6 +41,6 @@ public class DocumentPropertyStateFactory {
     }
 
     public static PropertyState createPropertyState(DocumentNodeStore store, String name, String value) {
-        return createPropertyState(store, name, value, Compression.GZIP);
+        return createPropertyState(store, name, value, Compression.NONE);
     }
 }

@@ -1353,7 +1353,7 @@ public final class DocumentNodeStore
 
     @NotNull
     public PropertyState createPropertyState(String name, String value){
-        return new DocumentPropertyState(this, name, checkNotNull(value));
+        return DocumentPropertyStateFactory.createPropertyState(this, name, checkNotNull(value));
     }
 
     /**
@@ -3214,8 +3214,7 @@ public final class DocumentNodeStore
         if (json == null) {
             return -1;
         }
-        PropertyState p = new DocumentPropertyState(
-                DocumentNodeStore.this, "p", json);
+        PropertyState p = DocumentPropertyStateFactory.createPropertyState(DocumentNodeStore.this, "p", json);
         if (p.getType().tag() != PropertyType.BINARY) {
             return -1;
         }
