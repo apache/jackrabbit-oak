@@ -4,7 +4,7 @@ import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.slf4j.Logger;
 
 public final class IndexerStatisticsTracker {
-    private static final int SLOW_DOCUMENT_LOG_THRESHOLD = Integer.getInteger("oak.lucene.slowDocumentLogThreshold", 1000);
+    private static final int SLOW_DOCUMENT_LOG_THRESHOLD = Integer.getInteger("oak.indexer.slowDocumentLogThreshold", 1000);
 
     private final Logger logger;
 
