@@ -24,7 +24,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
@@ -41,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexer.class);
-    private static final int SLOW_DOCUMENT_LOG_THRESHOLD = Integer.getInteger("oak.lucene.slowDocumentLogThreshold", 1000);
 
     private final IndexDefinition definition;
     private final FulltextBinaryTextExtractor binaryTextExtractor;
@@ -50,13 +48,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     private final IndexingProgressReporter progressReporter;
     private FacetsConfig facetsConfig;
 
-    private long startTimeNanos = 0;
-    // Time spent indexing entries. Should be almost the same as totalMakeDocumentTimeNanos+totalWriteTimeNanos
-    private long totalIndexingTimeNanos = 0;
-    // Time making generating the Lucene document.
-    private long totalMakeDocumentTimeNanos = 0;
-    // Time writing the Lucene document to disk.
-    private long totalWriteTimeNanos = 0;
+    private final IndexerStatisticsTracker indexerStatisticsTracker = new IndexerStatisticsTracker(LOG);
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
                          NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
@@ -70,7 +62,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public void onIndexingStarting() {
-        this.startTimeNanos = System.nanoTime();
+        indexerStatisticsTracker.onIndexingStarting();
         binaryTextExtractor.resetStartTime();
     }
 
@@ -97,25 +89,14 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             return false;
         }
 
-        long startIndexingEntryNanos = System.nanoTime();
+        indexerStatisticsTracker.onEntryStart();
+
         LuceneDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
         Document doc = maker.makeDocument(entry.getNodeState());
-        long endMakeDocumentNanos = System.nanoTime();
+        indexerStatisticsTracker.onEntryEndMakeDocument();
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
-            long endWriteNanos = System.nanoTime();
-
-            long entryIndexingTimeNanos = endWriteNanos - startIndexingEntryNanos;
-            long entryMakeDocumentTimeNanos = endMakeDocumentNanos - startIndexingEntryNanos;
-            long entryWriteTimeNanos = endWriteNanos - endMakeDocumentNanos;
-            totalIndexingTimeNanos += entryIndexingTimeNanos;
-            totalMakeDocumentTimeNanos += entryMakeDocumentTimeNanos;
-            totalWriteTimeNanos += entryWriteTimeNanos;
-            if (entryIndexingTimeNanos >= (long)SLOW_DOCUMENT_LOG_THRESHOLD * 1_000_000) {
-                LOG.info("Slow document: {}. Times: total={}ms, makeDocument={}ms, writeToIndex={}ms",
-                        entry.getPath(), entryIndexingTimeNanos / 1_000_000, entryMakeDocumentTimeNanos / 1_000_000, entryWriteTimeNanos / 1_000_000);
-            }
-
+            indexerStatisticsTracker.onEntryEnd(entry.getPath());
             progressReporter.indexUpdate(definition.getIndexPath());
             return true;
         }
@@ -135,24 +116,9 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public void close() throws IOException {
-        LOG.info("Statistics: {}", formatStats());
+        LOG.info("Statistics: {}", indexerStatisticsTracker.formatStats());
         binaryTextExtractor.logStats();
         indexWriter.close(System.currentTimeMillis());
-    }
-
-    public String formatStats() {
-        long endTimeNanos = System.nanoTime();
-        long totalTimeNanos = endTimeNanos - startTimeNanos;
-        long nodesIndexed = progressReporter.getTotalUpdatesCount();
-        long avgTimePerDocumentMicros = nodesIndexed == 0 ? -1 : (totalIndexingTimeNanos / nodesIndexed) / 1000;
-        double percentageIndexing = FormattingUtils.safeComputePercentage(totalIndexingTimeNanos, totalTimeNanos);
-        double percentageMakingDocument = FormattingUtils.safeComputePercentage(totalMakeDocumentTimeNanos, totalIndexingTimeNanos);
-        double percentageWritingToIndex = FormattingUtils.safeComputePercentage(totalWriteTimeNanos, totalIndexingTimeNanos);
-        return String.format("Indexed %d nodes in %s. Avg per node: %d microseconds. indexingTime: %s (%2.1f%% of total time). Breakup of indexing time: makeDocument: %s (%2.1f%%), writeIndex: %s (%2.1f%%)",
-                progressReporter.getTotalUpdatesCount(), FormattingUtils.formatNanosToSeconds(totalTimeNanos), avgTimePerDocumentMicros,
-                FormattingUtils.formatNanosToSeconds(totalIndexingTimeNanos), percentageIndexing,
-                FormattingUtils.formatNanosToSeconds(totalMakeDocumentTimeNanos), percentageMakingDocument,
-                FormattingUtils.formatNanosToSeconds(totalWriteTimeNanos), percentageWritingToIndex);
     }
 
     private PathFilter.Result getFilterResult(String path) {
