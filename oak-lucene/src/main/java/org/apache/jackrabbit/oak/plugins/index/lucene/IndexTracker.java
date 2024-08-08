@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +52,7 @@ import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
@@ -157,7 +158,7 @@ public class IndexTracker {
         }
 
         Map<String, LuceneIndexNodeManager> original = indices;
-        final Map<String, LuceneIndexNodeManager> updates = newHashMap();
+        final Map<String, LuceneIndexNodeManager> updates = new HashMap<>();
 
         Set<String> indexPaths = Sets.newHashSet();
         indexPaths.addAll(original.keySet());

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,14 +26,13 @@ import org.apache.jackrabbit.oak.plugins.observation.NodeObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 public class TestNodeObserver extends NodeObserver {
-    public final Map<String, Set<String>> added = newHashMap();
-    public final Map<String, Set<String>> deleted = newHashMap();
-    public final Map<String, Set<String>> changed = newHashMap();
-    public final Map<String, Map<String, String>> properties = newHashMap();
+    public final Map<String, Set<String>> added = new HashMap<>();
+    public final Map<String, Set<String>> deleted = new HashMap<>();
+    public final Map<String, Set<String>> changed = new HashMap<>();
+    public final Map<String, Map<String, String>> properties = new HashMap<>();
 
     public TestNodeObserver(String path, String... propertyNames) {
         super(path, propertyNames);
@@ -49,7 +48,7 @@ public class TestNodeObserver extends NodeObserver {
             @NotNull CommitInfo commitInfo) {
         this.added.put(path, newHashSet(added));
         if (!properties.isEmpty()) {
-            this.properties.put(path, newHashMap(properties));
+            this.properties.put(path, new HashMap<>(properties));
         }
     }
 
@@ -63,7 +62,7 @@ public class TestNodeObserver extends NodeObserver {
             @NotNull CommitInfo commitInfo) {
         this.deleted.put(path, newHashSet(deleted));
         if (!properties.isEmpty()) {
-            this.properties.put(path, newHashMap(properties));
+            this.properties.put(path, new HashMap<>(properties));
         }
     }
 
@@ -77,7 +76,7 @@ public class TestNodeObserver extends NodeObserver {
             @NotNull CommitInfo commitInfo) {
         this.changed.put(path, newHashSet(changed));
         if (!properties.isEmpty()) {
-            this.properties.put(path, newHashMap(properties));
+            this.properties.put(path, new HashMap<>(properties));
         }
     }
 

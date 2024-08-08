@@ -36,13 +36,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -145,7 +146,7 @@ public class CompositeChildrenCountTest {
 
     private static class CompositeNodeStoreBuilder {
 
-        private final Map<MountedNodeStore, NodeState> rootStates = newHashMap();
+        private final Map<MountedNodeStore, NodeState> rootStates = new HashMap<>();
 
         private final CompositionContext ctx;
 

@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElement
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.URI;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -100,7 +101,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
             return emptyMap();
         }
 
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
 
         Segment segment = getSegment();
         ListRecord values = getValueList(segment);

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +34,7 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Maps.immutableEntry;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
@@ -151,7 +152,7 @@ final class NodeDocumentSweeper {
 
         Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
         for (List<Map.Entry<Path, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
-            Map<Path, UpdateOp> updates = newHashMap();
+            Map<Path, UpdateOp> updates = new HashMap<>();
             for (Map.Entry<Path, UpdateOp> entry : batch) {
                 updates.put(entry.getKey(), entry.getValue());
             }
