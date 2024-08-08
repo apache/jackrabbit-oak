@@ -70,7 +70,7 @@ public class DocumentPropertyStateFactoryTest {
     public void createPropertyStateWithCompressionThresholdExceeded() {
         DocumentNodeStore store = Mockito.mock(DocumentNodeStore.class);
         String name = "testName";
-        String value = "a".repeat(CompressedDocumentPropertyState.getCompressionThreshold() + 1);
+        String value = "testValue";
 
         PropertyState propertyState = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + value + "\"", Compression.GZIP);
 
