@@ -166,10 +166,6 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         return indexUpdateStates.values().stream().anyMatch(st -> st.updateCount.get() > 0);
     }
 
-    public long getTotalUpdatesCount() {
-        return indexUpdateStates.values().stream().mapToLong(st -> st.updateCount.get()).sum();
-    }
-
     public void setTraversalRateEstimator(TraversalRateEstimator traversalRate) {
         this.traversalRateEstimator = traversalRate;
     }
