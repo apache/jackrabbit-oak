@@ -71,15 +71,15 @@ final class TextExtractionStats {
         totalBytesRead += bytesRead;
         totalExtractedTextLength += extractedTextLength;
         totalExtractionTimeNanos += elapsedNanos;
-        return elapsedNanos/1_000_000;
+        return elapsedNanos / 1_000_000;
     }
 
     public void collectStats(ExtractedTextCache cache) {
-        cache.addStats(numberOfExtractions, totalExtractionTimeNanos/1_000_000, totalBytesRead, totalExtractedTextLength);
+        cache.addStats(numberOfExtractions, totalExtractionTimeNanos / 1_000_000, totalBytesRead, totalExtractedTextLength);
     }
 
     private boolean isTakingLotsOfTime() {
-        return totalExtractionTimeNanos > LOGGING_THRESHOLD*1_000_000;
+        return totalExtractionTimeNanos > LOGGING_THRESHOLD * 1_000_000;
     }
 
     private boolean anyParsingDone() {
@@ -98,7 +98,7 @@ final class TextExtractionStats {
     public String formatStats() {
         long timeSinceStartNanos = System.nanoTime() - startTimeNanos;
         double timeExtractingPercentage = FormattingUtils.safeComputePercentage(totalExtractionTimeNanos, timeSinceStartNanos);
-        long avgExtractionTimeMillis = numberOfExtractions == 0 ? -1 : (totalExtractionTimeNanos/ 1_000_000 / numberOfExtractions);
+        long avgExtractionTimeMillis = numberOfExtractions == 0 ? -1 : (totalExtractionTimeNanos / 1_000_000 / numberOfExtractions);
 
         return String.format("{extractions: %d, timeExtracting: %s (%2.1f%%), totalTime: %s, " +
                         "avgExtractionTime: %s ms, bytesRead: %s, extractedTextSize: %s}",
