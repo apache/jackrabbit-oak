@@ -360,7 +360,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = new AheadOfTimeBlobDownloader(
                             flatFileStore.getStoreFile(),
                             flatFileStore.getAlgorithm(),
-                            indexHelper.getGCBlobStore());
+                            indexHelper.getGCBlobStore(),
+                            indexer);
                     aheadOfTimeBlobDownloader.start();
                     try {
                         TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
