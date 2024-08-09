@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_P
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -336,7 +336,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      * An iterator over paths within an index node.
      */
     static class PathIterator implements Iterator<String> {
-        
+
         private final Filter filter;
         private final String indexName;
         private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
@@ -351,7 +351,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private String currentPath;
         private boolean pathContainsValue;
         private final boolean prependPathPrefix;
-        
+
         /**
          * Keep the returned path, to avoid returning duplicate entries.
          */
@@ -370,7 +370,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 }
             } else {
                 filterPath = "";
-            }            
+            }
             parentPath = "";
             currentPath = "/";
             this.settings = filter.getQueryLimits();

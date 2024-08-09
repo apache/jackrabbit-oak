@@ -18,7 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
+import java.util.function.Supplier;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
