@@ -37,8 +37,8 @@ import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STO
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;

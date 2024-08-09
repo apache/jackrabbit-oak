@@ -39,8 +39,8 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -86,7 +86,7 @@ public class SegmentNodeState extends Record implements NodeState {
     ) {
         super(id);
         this.reader = checkNotNull(reader);
-        this.writer = checkNotNull(memoize(writer));
+        this.writer = checkNotNull(memoize(writer::get));
         this.blobStore = blobStore;
         this.readStats = readStats;
     }

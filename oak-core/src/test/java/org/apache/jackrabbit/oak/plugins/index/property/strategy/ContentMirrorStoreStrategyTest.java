@@ -32,8 +32,8 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;

@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -36,7 +37,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
+
 
 /**
  * Instances of this class manage the deduplication caches used by the {@link
@@ -245,7 +246,7 @@ public abstract class WriterCacheManager {
                 @NotNull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
-            this.nodeCache = memoize(nodeCacheFactory);
+            this.nodeCache = memoize(nodeCacheFactory::get);
         }
 
         /**
@@ -271,7 +272,7 @@ public abstract class WriterCacheManager {
             T getGeneration(final int generation) {
                 // Preemptive check to limit the number of wasted (Memoizing)Supplier instances
                 if (!generations.containsKey(generation)) {
-                    generations.putIfAbsent(generation, memoize(cacheFactory));
+                    generations.putIfAbsent(generation, memoize(cacheFactory::get));
                 }
                 return generations.get(generation).get();
             }
