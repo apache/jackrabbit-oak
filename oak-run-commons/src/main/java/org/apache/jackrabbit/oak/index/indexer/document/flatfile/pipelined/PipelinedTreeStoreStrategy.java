@@ -255,11 +255,11 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // - #transforThreads   NSE Binary buffers
         // - x1                 Memory reserved for the array created by the sort-batch thread with the keys of the entries
         //                      in the batch that is being sorted
-        long memoryReservedForSortKeysArray = estimateMaxSizeOfSortKeyArray(nseWorkingMemoryBytes, nseBuffersCount, sortBufferMemoryPercentage);
+        long memoryReservedForSortKeysArray = estimateMaxSizeOfSortArray(nseWorkingMemoryBytes, nseBuffersCount, sortBufferMemoryPercentage);
         long memoryReservedForBuffers = nseWorkingMemoryBytes - memoryReservedForSortKeysArray;
 
         // A ByteBuffer can be at most Integer.MAX_VALUE bytes long
-        this.nseBuffersSizeBytes = limitToIntegerRange(memoryReservedForBuffers / nseBuffersCount / 2);
+        this.nseBuffersSizeBytes = limitToIntegerRange(memoryReservedForBuffers / nseBuffersCount);
 
         if (nseBuffersSizeBytes < MIN_ENTRY_BATCH_BUFFER_SIZE_MB * FileUtils.ONE_MB) {
             throw new IllegalArgumentException("Entry batch buffer size too small: " + nseBuffersSizeBytes +
@@ -281,9 +281,9 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         );
     }
 
-    static long estimateMaxSizeOfSortKeyArray(long nseWorkingMemoryBytes, long nseBuffersCount, int sortBufferMemoryPercentage) {
-        // We reserve a percentage of the size of a buffer for the sort keys array. That is, we are assuming that for every line
-        // in the sort buffer, the memory needed to store the SortKey of the path section of the line will not be more
+    static long estimateMaxSizeOfSortArray(long nseWorkingMemoryBytes, long nseBuffersCount, int sortBufferMemoryPercentage) {
+        // We reserve a percentage of the size of a buffer for sorting. That is, we are assuming that for every line
+        // in the sort buffer, the memory needed to store the path section of the line will not be more
         // than sortBufferMemoryPercentage of the total size of the line in average
         // Estimate memory needed by the sort keys array. We assume each entry requires 256 bytes.
         long approxNseBufferSize = limitToIntegerRange(nseWorkingMemoryBytes / nseBuffersCount);
@@ -339,7 +339,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
-        TreeStore treeStore = new TreeStore(getStoreDir(), null, false);
+        TreeStore treeStore = new TreeStore("dump", getStoreDir(), null, false);
         treeStore.getSession().init();
         try {
             // download -> transform thread.
@@ -365,8 +365,8 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
-                    (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB / 2),
-                    mongoDocBatchMaxNumberOfDocuments / 2,
+                    (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
+                    mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
                     pathFilters,
                     statisticsProvider,

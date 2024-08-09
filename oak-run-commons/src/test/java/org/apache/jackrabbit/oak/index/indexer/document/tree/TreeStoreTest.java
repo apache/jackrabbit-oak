@@ -20,12 +20,22 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreTask;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TreeStoreTest {
 
+    @ClassRule
+    public static TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+
     @Test
-    public void test() {
+    public void convertPathTest() {
         assertEquals("\t", TreeStore.toChildNodeEntry("/"));
         assertEquals("/\tabc", TreeStore.toChildNodeEntry("/abc"));
         assertEquals("/hello\tworld", TreeStore.toChildNodeEntry("/hello/world"));
@@ -33,4 +43,22 @@ public class TreeStoreTest {
         assertEquals("/\tabc", TreeStore.toChildNodeEntry("/", "abc"));
         assertEquals("/hello\tworld", TreeStore.toChildNodeEntry("/hello", "world"));
     }
+
+    @Test
+    public void buildAndIterateTest() throws IOException {
+        File testFolder = temporaryFolder.newFolder();
+        TreeStore store = new TreeStore("test", testFolder, null, true);
+        try {
+            store.getSession().init();
+            PipelinedTreeStoreTask.addEntry("/", "{}", store.getSession());
+            PipelinedTreeStoreTask.addEntry("/content", "{}", store.getSession());
+            Iterator<String> it = store.pathIterator();
+            assertEquals("/", it.next());
+            assertEquals("/content", it.next());
+        } finally {
+            store.close();
+        }
+    }
+
+
 }

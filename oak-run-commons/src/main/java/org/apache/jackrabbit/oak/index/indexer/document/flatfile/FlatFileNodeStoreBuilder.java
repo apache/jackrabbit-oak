@@ -62,6 +62,8 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
+
+import org.apache.jackrabbit.oak.index.indexer.document.tree.BlobPrefetcher;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 
 /**
@@ -216,11 +218,14 @@ public class FlatFileNodeStoreBuilder {
         if (file.isDirectory()) {
             // use a separate tree store (with a smaller cache)
             // to avoid concurrency issues
-            TreeStore blobTreeStore = new TreeStore(file,
-                    new NodeStateEntryReader(blobStore), true);
-            BlobPrefetcher.prefetch(blobTreeStore);
-            store = new TreeStore(file,
+            TreeStore indexingTreeStore = new TreeStore(
+                    "indexing", file,
                     new NodeStateEntryReader(blobStore), false);
+            TreeStore prefetchTreeStore = new TreeStore(
+                    "prefetch", file,
+                    new NodeStateEntryReader(blobStore), true);
+            BlobPrefetcher.prefetch(prefetchTreeStore, indexingTreeStore);
+            store = indexingTreeStore;
         } else {
             store = new FlatFileStore(blobStore, file, metadataFile,
                     new NodeStateEntryReader(blobStore),

@@ -71,7 +71,7 @@ public class Session {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
+            public synchronized boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
                 boolean result = super.removeEldestEntry(eldest);
                 if (result) {
                     String key = eldest.getKey();
@@ -839,6 +839,7 @@ public class Session {
     // garbage collection
 
     public void runGC() {
+        flush();
         new GarbageCollection(store).run(getRootFileNames());
     }
 

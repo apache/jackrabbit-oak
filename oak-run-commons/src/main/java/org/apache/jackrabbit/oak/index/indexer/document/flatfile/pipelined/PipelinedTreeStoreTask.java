@@ -25,9 +25,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -53,7 +53,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTreeStoreTask.class);
     private static final String THREAD_NAME = "tree-store-task";
 
-    private static final int MERGE_BATCH = 5;
+    private static final int MERGE_BATCH = 16;
 
     private final TreeStore treeStore;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
@@ -78,7 +78,6 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         this.nonEmptyBuffersQueue = nonEmptyBuffersQueue;
         this.statisticsProvider = statisticsProvider;
         this.reporter = reporter;
-
     }
 
     @Override
@@ -86,23 +85,21 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         Stopwatch taskStartTime = Stopwatch.createStarted();
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
-        INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting tree store task", THREAD_NAME.toUpperCase(Locale.ROOT));
+        INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
             while (true) {
-                LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
                     synchronized (treeStore) {
                         Session session = treeStore.getSession();
-                        LOG.info("Final merge(s)");
                         Stopwatch start = Stopwatch.createStarted();
                         while (session.getRootCount() > MERGE_BATCH) {
-                            LOG.info("Merging {} roots; we have {} roots",
+                            LOG.info("Merging {} roots; there are {} roots",
                                     MERGE_BATCH, session.getRootCount());
                             session.mergeRoots(MERGE_BATCH);
                             session.runGC();
                         }
-                        LOG.info("Final merge; we have {} roots", session.getRootCount());
+                        LOG.info("Final merge; {} roots", session.getRootCount());
                         session.mergeRoots(Integer.MAX_VALUE);
                         session.runGC();
                         long durationSeconds = start.elapsed(TimeUnit.SECONDS);
@@ -111,7 +108,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, 0);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, 0);
                         MetricsUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, 0);
-                        LOG.info("Final merge done, new root count {}", session.getRootCount());
+                        LOG.info("Final merge done, {} roots", session.getRootCount());
                     }
                     long totalTimeMillis = taskStartTime.elapsed().toMillis();
                     String timeCreatingSortArrayPercentage = formatAsPercentage(timeCreatingSortArrayMillis, totalTimeMillis);
@@ -156,72 +153,80 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         }
     }
 
+    private ArrayList<SortKeyPath> buildSortArray(NodeStateEntryBatch nseb) {
+        Stopwatch startTime = Stopwatch.createStarted();
+        ByteBuffer buffer = nseb.getBuffer();
+        int totalPathSize = 0;
+        ArrayList<SortKeyPath> sortBuffer = new ArrayList<>(nseb.numberOfEntries());
+        while (buffer.hasRemaining()) {
+            // Read the next key from the buffer
+            int pathLength = buffer.getInt();
+            totalPathSize += pathLength;
+            // Create the String directly from the buffer without creating an intermediate byte[]
+            String path = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), pathLength, StandardCharsets.UTF_8);
+            buffer.position(buffer.position() + pathLength);
+            int valuePosition = buffer.position();
+            // Skip the json
+            int entryLength = buffer.getInt();
+            buffer.position(buffer.position() + entryLength);
+            SortKeyPath entry = new SortKeyPath(path, valuePosition);
+            sortBuffer.add(entry);
+        }
+        timeCreatingSortArrayMillis += startTime.elapsed().toMillis();
+        LOG.info("Built sort array in {}. Entries: {}, Total size of path strings: {}",
+                startTime, sortBuffer.size(), humanReadableByteCountBin(totalPathSize));
+        return sortBuffer;
+    }
+
     private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
+        ByteBuffer buffer = nseb.getBuffer();
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
                 nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntriesBytes()));
-        TreeMap<String, String> sortBuffer = buildTreeMap(nseb);
+        ArrayList<SortKeyPath> sortBuffer = buildSortArray(nseb);
         if (sortBuffer.isEmpty()) {
             return;
         }
         Stopwatch sortClock = Stopwatch.createStarted();
+        Collections.sort(sortBuffer);
         timeSortingMillis += sortClock.elapsed().toMillis();
-        LOG.info("Sorted batch in {}. Saving to disk", sortClock);
+        LOG.info("Sorted batch in {}. Saving.", sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
         long textSize = 0;
         batchesProcessed++;
-        int sortBufferSize = sortBuffer.size();
         synchronized (treeStore) {
             Session session = treeStore.getSession();
-            for (Entry<String, String> e : sortBuffer.entrySet()) {
-                session.put(e.getKey(), e.getValue());
-                textSize += e.getKey().length() + e.getValue().length() + 2;
+            for (SortKeyPath entry : sortBuffer) {
                 entriesProcessed++;
+                // Retrieve the entry from the buffer
+                int posInBuffer = entry.getBufferPos();
+                buffer.position(posInBuffer);
+                int valueLength = buffer.getInt();
+                String value = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), valueLength, StandardCharsets.UTF_8);
+                textSize += entry.getPath().length() + value.length() + 2;
+                addEntry(entry.getPath(), value, session);
             }
-            // free memory, before we merge, because merging needs memory as well
-            sortBuffer = null;
             session.checkpoint();
             unmergedRoots++;
             LOG.info("Root count is {}, we have {} small unmerged roots",
                     session.getRootCount(), unmergedRoots);
             if (unmergedRoots == MERGE_BATCH) {
-                LOG.info("Merging {} roots, as we have {} new ones; root count is {}",
-                        MERGE_BATCH, unmergedRoots, session.getRootCount());
                 session.mergeRoots(MERGE_BATCH);
                 session.runGC();
-                LOG.info("New root count is {}", session.getRootCount());
+                LOG.info("Merged {} roots, root count is now {}",
+                        unmergedRoots, session.getRootCount());
                 unmergedRoots = 0;
             }
+            timeWritingMillis += saveClock.elapsed().toMillis();
+            batchesProcessed++;
+            LOG.info("Wrote batch of size {} (uncompressed) in {} at {}",
+                    humanReadableByteCountBin(textSize),
+                    saveClock,
+                    PipelinedUtils.formatAsTransferSpeedMBs(textSize, saveClock.elapsed().toMillis())
+            );
         }
-        timeWritingMillis += saveClock.elapsed().toMillis();
-        LOG.info("Wrote batch of size {} (uncompressed) with {} entries in {} at {}",
-                humanReadableByteCountBin(textSize),
-                sortBufferSize, saveClock,
-                PipelinedUtils.formatAsTransferSpeedMBs(textSize, saveClock.elapsed().toMillis())
-        );
     }
 
-    private TreeMap<String, String> buildTreeMap(NodeStateEntryBatch nseb) {
-        Stopwatch startTime = Stopwatch.createStarted();
-        ByteBuffer buffer = nseb.getBuffer();
-        int totalPathSize = 0;
-        TreeMap<String, String> map = new TreeMap<>();
-        while (buffer.hasRemaining()) {
-            int pathLength = buffer.getInt();
-            totalPathSize += pathLength;
-            String path = new String(buffer.array(), buffer.position() + buffer.arrayOffset(), pathLength, StandardCharsets.UTF_8);
-            buffer.position(buffer.position() + pathLength);
-            int entryLength = buffer.getInt();
-            String data = new String(buffer.array(), buffer.position() + buffer.arrayOffset(), entryLength, StandardCharsets.UTF_8);
-            addEntry(path, data, map);
-            buffer.position(buffer.position() + entryLength);
-        }
-        timeCreatingSortArrayMillis += startTime.elapsed().toMillis();
-        LOG.info("Built tree map in {}. Entries: {}, Total size of path strings: {}", startTime, map.size(),
-                humanReadableByteCountBin(totalPathSize));
-        return map;
-    }
-
-    private static void addEntry(String path, String data, TreeMap<String, String> target) {
+    public static void addEntry(String path, String data, Session target) {
         target.put(path, data);
         if (!path.equals("/")) {
             String nodeName = PathUtils.getName(path);

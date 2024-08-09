@@ -316,7 +316,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     public void reindexUsingTreeStore() throws CommitFailedException, IOException {
         NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
-        TreeStore treeStore = new TreeStore(new File("target/treeStore"), reader, false);
+        TreeStore treeStore = new TreeStore("reindex", new File("target/treeStore"), reader, false);
 
         // TODO this is mostly a copy of reindex()
 

@@ -743,7 +743,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         this.lastIdDownloaded = id;
                         this.documentsDownloadedTotal++;
                         downloadStatics.incrementDocumentsDownloadedTotal();
-                        if (this.documentsDownloadedTotal % 20000 == 0) {
+                        if (this.documentsDownloadedTotal % 100_000 == 0) {
                             reportProgress(id);
                         }
                         TRAVERSAL_LOG.trace(id);

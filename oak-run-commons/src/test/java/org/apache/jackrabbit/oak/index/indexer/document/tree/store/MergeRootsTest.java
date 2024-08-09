@@ -29,6 +29,14 @@ import org.junit.Test;
 public class MergeRootsTest {
 
     @Test
+    public void gcTest() {
+        Store store = StoreBuilder.build("");
+        Session session = new Session(store);
+        session.init();
+        session.runGC();
+    }
+
+    @Test
     public void simpleTest() {
         Store store = StoreBuilder.build("");
         Session session = new Session(store);

@@ -43,6 +43,11 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
     }
 
     @Override
+    public synchronized V get(Object key) {
+        return super.get(key);
+    }
+
+    @Override
     public synchronized V put(K key, V value) {
         V old = super.put(key, value);
         if (old != null) {
