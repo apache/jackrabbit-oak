@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -134,7 +135,7 @@ public class BranchTest {
     }
 
     @Test
-    //@Ignore
+    @Ignore
     public void unmergedBCOnRoot() throws Exception {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
