@@ -609,6 +609,9 @@ public final class NodeDocument extends Document {
             if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 uniqueRevisions.add(r);
                 removeBranchCommit(op, r);
+                if (op.getId().equals(Utils.getIdFromPath("/"))) {
+                    removeCommitRoot(op, r);
+                }
             }
             if (op.getChanges().size() >= batchSize) {
                 store.findAndUpdate(Collection.NODES, op);
@@ -1943,9 +1946,6 @@ public final class NodeDocument extends Document {
     public static void removeBranchCommit(@NotNull UpdateOp op,
                                           @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
-        if (op.getId().equals(Utils.getIdFromPath("/"))) {
-            checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
-        }
     }
 
     public static void setSweepRevision(@NotNull UpdateOp op,
