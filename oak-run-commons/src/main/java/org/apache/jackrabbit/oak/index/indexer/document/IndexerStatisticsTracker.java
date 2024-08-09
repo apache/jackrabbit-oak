@@ -12,7 +12,7 @@ public final class IndexerStatisticsTracker {
     private long startIndexingNanos = 0;
     // Time spent indexing entries. Should be almost the same as totalMakeDocumentTimeNanos+totalWriteTimeNanos
     private long totalIndexingTimeNanos = 0;
-    // Time making generating the Lucene document.
+    // Time generating the Lucene document.
     private long totalMakeDocumentTimeNanos = 0;
     // Time writing the Lucene document to disk.
     private long totalWriteTimeNanos = 0;
