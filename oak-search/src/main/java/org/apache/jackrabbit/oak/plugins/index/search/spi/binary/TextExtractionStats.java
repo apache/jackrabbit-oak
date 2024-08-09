@@ -98,7 +98,7 @@ final class TextExtractionStats {
     public String formatStats() {
         long timeSinceStartNanos = System.nanoTime() - startTimeNanos;
         double timeExtractingPercentage = FormattingUtils.safeComputePercentage(totalExtractionTimeNanos, timeSinceStartNanos);
-        long avgExtractionTimeMillis = numberOfExtractions == 0 ? -1 : (totalExtractionTimeNanos / 1_000_000 / numberOfExtractions);
+        double avgExtractionTimeMillis = FormattingUtils.safeComputeAverage(totalExtractionTimeNanos / 1_000_000, numberOfExtractions);
 
         return String.format("{extractions: %d, timeExtracting: %s (%2.1f%%), totalTime: %s, " +
                         "avgExtractionTime: %s ms, bytesRead: %s, extractedTextSize: %s}",

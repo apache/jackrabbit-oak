@@ -77,7 +77,7 @@ public final class IndexerStatisticsTracker {
     public String formatStats() {
         long endTimeNanos = System.nanoTime();
         long totalTimeNanos = endTimeNanos - startIndexingNanos;
-        long avgTimePerDocumentMicros = nodesIndexed == 0 ? -1 : (totalIndexingTimeNanos / nodesIndexed) / 1000;
+        double avgTimePerDocumentMicros = FormattingUtils.safeComputeAverage(totalIndexingTimeNanos/1000, nodesIndexed);
         double percentageIndexing = FormattingUtils.safeComputePercentage(totalIndexingTimeNanos, totalTimeNanos);
         double percentageMakingDocument = FormattingUtils.safeComputePercentage(totalMakeDocumentTimeNanos, totalIndexingTimeNanos);
         double percentageWritingToIndex = FormattingUtils.safeComputePercentage(totalWriteTimeNanos, totalIndexingTimeNanos);
