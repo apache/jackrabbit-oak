@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
@@ -30,7 +29,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.min;
@@ -55,6 +54,7 @@ import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -391,7 +391,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             // if the base map is small, update in memory and write as a new map
             if (base.isLeaf()) {
-                Map<String, MapEntry> map = newHashMap();
+                Map<String, MapEntry> map = new HashMap<>();
                 for (MapEntry entry : base.getEntries()) {
                     map.put(entry.getName(), entry);
                 }
@@ -1037,7 +1037,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private class ChildNodeCollectorDiff extends DefaultNodeStateDiff {
-            private final Map<String, RecordId> childNodes = newHashMap();
+            private final Map<String, RecordId> childNodes = new HashMap<>();
 
             @Nullable
             private MapRecord base;

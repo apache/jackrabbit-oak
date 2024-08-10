@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPaths;
 
@@ -221,7 +222,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     @Override
     public String checkpoint(long lifetime, Map<String, String> properties) {
-        Map<String, String> globalProperties = newHashMap(properties);
+        Map<String, String> globalProperties = new HashMap<>(properties);
         globalProperties.put(CHECKPOINT_METADATA + "created", Long.toString(currentTimeMillis()));
         globalProperties.put(CHECKPOINT_METADATA + "expires", Long.toString(currentTimeMillis() + lifetime));
         String newCheckpoint = ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
@@ -257,7 +258,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             return null;
         }
         Map<String, String> props = ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint);
-        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+        Map<MountedNodeStore, NodeState> nodeStates = new HashMap<>();
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
             NodeState nodeState;

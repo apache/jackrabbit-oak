@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ALIGN_BITS;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-
 
 import org.jetbrains.annotations.NotNull;
 
@@ -63,7 +61,7 @@ public final class TestUtils {
      */
     public static Map<RecordId, RecordId> randomRecordIdMap(Random rnd, SegmentIdProvider idProvider,
             int segmentCount, int entriesPerSegment) {
-        Map<RecordId, RecordId> map = newHashMap();
+        Map<RecordId, RecordId> map = new HashMap<>();
         for (int i = 0; i < segmentCount; i++) {
             SegmentId id =idProvider.newDataSegmentId();
             int offset = MAX_SEGMENT_SIZE;

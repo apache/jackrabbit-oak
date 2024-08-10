@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
@@ -31,6 +30,7 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -72,7 +72,7 @@ class TarWriter implements Closeable {
     /**
      * Graph of references between segments.
      */
-    private final Map<UUID, Set<UUID>> graph = newHashMap();
+    private final Map<UUID, Set<UUID>> graph = new HashMap<>();
 
     private final SegmentArchiveManager archiveManager;
 
