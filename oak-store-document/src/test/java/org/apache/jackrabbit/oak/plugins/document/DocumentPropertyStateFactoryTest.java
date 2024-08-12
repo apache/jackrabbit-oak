@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -34,6 +36,19 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 
 public class DocumentPropertyStateFactoryTest {
+
+    private static final int COMPRESSION_THRESHOLD = 5;
+    private static final int DISABLED_COMPRESSION = -1;
+
+    @Before
+    public void before() throws Exception {
+        CompressedDocumentPropertyState.setCompressionThreshold(COMPRESSION_THRESHOLD);
+    }
+
+    @After
+    public void tearDown() {
+        CompressedDocumentPropertyState.setCompressionThreshold(DISABLED_COMPRESSION);
+    }
 
     @Test
     public void createPropertyStateWithCompressionNone() {
@@ -67,9 +82,10 @@ public class DocumentPropertyStateFactoryTest {
         String name = "testName";
         String value = "testValue";
 
+        assertEquals(CompressedDocumentPropertyState.getCompressionThreshold(), COMPRESSION_THRESHOLD);
         PropertyState propertyState = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + value + "\"");
 
-        assertTrue(propertyState instanceof DocumentPropertyState);
+        assertTrue(propertyState instanceof CompressedDocumentPropertyState);
         assertEquals(name, propertyState.getName());
         assertEquals(value, propertyState.getValue(Type.STRING));
     }
@@ -102,7 +118,7 @@ public class DocumentPropertyStateFactoryTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void createPropertyStateWithCompressionThresholdExceededFail() throws IOException {
+    public void createPropertyStateWithCompressionThrowsException() throws IOException {
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
         Compression mockCompression = mock(Compression.class);
         when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
