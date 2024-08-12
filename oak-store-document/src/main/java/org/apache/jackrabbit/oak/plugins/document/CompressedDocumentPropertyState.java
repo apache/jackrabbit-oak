@@ -51,7 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * PropertyState implementation with lazy parsing of the JSOP encoded value.
+ * PropertyState compression implementation with lazy parsing of the JSOP encoded value.
  */
 public final class CompressedDocumentPropertyState implements PropertyState {
 
@@ -341,10 +341,3 @@ public final class CompressedDocumentPropertyState implements PropertyState {
         return createProperty(name, values, Type.fromTag(type, true));
     }
 }
-
-
-
-
-
-
-
