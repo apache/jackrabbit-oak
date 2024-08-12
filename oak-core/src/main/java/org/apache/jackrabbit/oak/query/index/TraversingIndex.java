@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
+
 /**
  * An index that traverses over a given subtree.
  */
@@ -77,6 +79,11 @@ public class TraversingIndex implements QueryIndex {
         }
         if (filter.containsNativeConstraint()) {
             // not an appropriate index for native search
+            return Double.POSITIVE_INFINITY;
+        }
+        Filter.PropertyRestriction facetRestriction = filter.getPropertyRestriction(REP_FACET);
+        if (facetRestriction != null) {
+            // not an appropriate index for facets
             return Double.POSITIVE_INFINITY;
         }
         if (filter.isAlwaysFalse()) {

@@ -19,8 +19,11 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,8 +31,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -77,6 +82,14 @@ public class TraversingIndexTest {
         assertFalse(c.hasNext());
         // endure it stays false
         assertFalse(c.hasNext());
+    }
+
+    @Test
+    public void testFacets() {
+        TraversingIndex traversingIndex = new TraversingIndex();
+        Filter mockFilter = mock(Filter.class);
+        when(mockFilter.getPropertyRestriction(REP_FACET)).thenReturn(mock(Filter.PropertyRestriction.class));
+        Assert.assertEquals(traversingIndex.getCost(mockFilter, null), Double.POSITIVE_INFINITY, 0.001);
     }
 
 }

@@ -60,7 +60,7 @@ public class AbstractIndexCommandTest {
     protected void addTestContent(RepositoryFixture fixture, String basePath, String propName, int count) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         for (int i = 0; i < count; i++) {
-            getOrCreateByPath(basePath+i,
+            getOrCreateByPath(basePath + i,
                     "oak:Unstructured", session).setProperty(propName, "bar");
         }
         session.save();
@@ -82,13 +82,13 @@ public class AbstractIndexCommandTest {
         if (!asyncIndex) {
             idxBuilder.noAsync();
         }
-        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex().useInSuggest().analyzed();
 
         Session session = fixture.getAdminSession();
         Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
                 "oak:QueryIndexDefinition", session);
-
         idxBuilder.build(fooIndex);
+        fooIndex.addNode("suggestion").setProperty("suggestUpdateFrequencyMinutes", 0);
         session.save();
         session.logout();
     }

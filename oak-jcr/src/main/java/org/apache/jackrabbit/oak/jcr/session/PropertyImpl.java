@@ -76,12 +76,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public Node perform() throws RepositoryException {
-                NodeDelegate parent = property.getParent();
-                if (parent == null) {
-                    throw new AccessDeniedException();
-                } else {
-                    return NodeImpl.createNode(parent, sessionContext);
-                }
+                return internalGetParent(property, sessionContext);
             }
         });
     }
@@ -114,7 +109,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!getParent().isCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
+                if (!parentIsCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
                     throw new VersionException(
                             "Cannot set property. Node is checked in.");
                 }
@@ -464,7 +459,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!getParent().isCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
+                if (!parentIsCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
                     throw new VersionException(
                             "Cannot set property. Node is checked in.");
                 }
@@ -500,7 +495,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!getParent().isCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
+                if (!parentIsCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
                     throw new VersionException(
                             "Cannot set property. Node is checked in.");
                 }
@@ -530,6 +525,20 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 return String.format("Setting property [%s/%s]", dlg.getPath(), dlg.getName());
             }
         });
+    }
+
+    private boolean parentIsCheckedOut() throws RepositoryException {
+        return internalGetParent(dlg, sessionContext).internalIsCheckedOut();
+    }
+
+    @NotNull
+    private static NodeImpl<? extends NodeDelegate> internalGetParent(@NotNull PropertyDelegate propertyDlg, @NotNull SessionContext sessionContext) throws RepositoryException {
+        NodeDelegate parent = propertyDlg.getParent();
+        if (parent == null) {
+            throw new AccessDeniedException();
+        } else {
+            return NodeImpl.createNode(parent, sessionContext);
+        }
     }
 
 }

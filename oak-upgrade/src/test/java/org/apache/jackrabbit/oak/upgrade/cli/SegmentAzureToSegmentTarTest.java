@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentAzureNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;

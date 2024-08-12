@@ -140,7 +140,7 @@ public class VersionableEditor extends DefaultEditor {
                 NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
                 removeVersionProperties(versionableBuilder, isReferenceable);
                 if (isVersionable.test(versionableBuilder.getNodeState())) {
-                    logger.warn("Node {} is still versionable. Creating empty version history.", path);
+                    logger.warn("Node {} is still versionable. Creating initial version history.", path);
                     createEmptyHistory(versionableBuilder);
                 }
             }

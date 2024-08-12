@@ -30,11 +30,14 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.22.16-SNAPSHOT</version>
+  <version>1.22.21-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
-    <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
+    <!-- build time stamp: should be updated prior to a release -->
+    <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
+    <project.build.outputTimestamp>1715330780</project.build.outputTimestamp>
+    <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -46,7 +49,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.9</jackrabbit.version>
+    <jackrabbit.version>2.20.16</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -54,25 +57,29 @@
     <mongo.url />
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
-    <lucene.version>4.7.1</lucene.version>
+    <lucene.version>4.7.2</lucene.version>
     <solr.version>8.11.1</solr.version>
     <mongo.driver.version>3.12.11</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.2.10</logback.version>
+    <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
-    <tika.version>1.26</tika.version>
+    <tika.version>1.28.5</tika.version>
     <guava.version>15.0</guava.version>
-    <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
+    <guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.13.4</jackson.version>
-    <groovy.version>2.5.20</groovy.version>
-    <java.version>1.8</java.version>
-    <java.version.signature>java18</java.version.signature>
-    
-   <!-- specifies on which fixture to run the integration testing tests. 
-      override in profiles or provide from command line to change behaviour. Provide 
-      more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
+    <jackson.version>2.16.2</jackson.version>
+    <testcontainers.version>1.19.7</testcontainers.version>
+    <groovy.version>2.5.23</groovy.version>
+    <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
+    <javaTargetVersion>8</javaTargetVersion>
+    <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
+    <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
+    <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
+
+    <!-- specifies on which fixture to run the integration testing tests.
+      override in profiles or provide from command line to change behaviour. Provide
+      more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES
       for the possible values: SEGMENT_MK SEGMENT_TAR SEGMENT_AZURE DOCUMENT_NS DOCUMENT_RDB -->
     <fixtures>SEGMENT_TAR</fixtures>
 
@@ -105,18 +112,6 @@
               <!-- OAK-7310 -->
               <arg>-Xpkginfo:always</arg>
             </compilerArgs>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>animal-sniffer-maven-plugin</artifactId>
-          <version>1.22</version>
-          <configuration>
-            <signature>
-              <groupId>org.codehaus.mojo.signature</groupId>
-              <artifactId>${java.version.signature}</artifactId>
-              <version>1.0</version>
-            </signature>
           </configuration>
         </plugin>
         <plugin>
@@ -255,7 +250,7 @@
         <plugin>
           <groupId>org.codehaus.gmavenplus</groupId>
           <artifactId>gmavenplus-plugin</artifactId>
-          <version>1.13.1</version>
+          <version>3.0.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
@@ -312,18 +307,22 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.1.2</version>
+            <version>3.3.1</version>
           </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.7.1.0</version>
+          <version>4.8.5.0</version>
         </plugin>
-        
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.5.3</version>
+        </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.14.1</version>
+          <version>2.16.2</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -378,7 +377,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.8</version>
+          <version>0.8.12</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -454,19 +453,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>animal-sniffer</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -507,7 +493,7 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
-        <version>1.9.6</version>
+        <version>1.12.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
@@ -592,24 +578,19 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>commons-lang</groupId>
-        <artifactId>commons-lang</artifactId>
-        <version>2.6</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
+        <version>3.14.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.6</version>
+        <version>2.15.1</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.14</version>
+        <version>1.17.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -619,12 +600,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.51</version>
+        <version>8.5.92</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>8.5.51</version>
+        <version>8.5.92</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -654,7 +635,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}.2<!--OAK-10021--></version>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -686,10 +667,12 @@
         <artifactId>httpmime</artifactId>
         <version>4.5.14</version>
       </dependency>
+      <!-- Testcontainers dependency -->
       <dependency>
-        <groupId>com.arakelian</groupId>
-        <artifactId>docker-junit-rule</artifactId>
-        <version>2.3.0</version>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
@@ -1019,9 +1002,9 @@
     <profile>
       <id>guava-latest</id>
       <properties>
-        <guava.version>20.0</guava.version>
+        <guava.version>19.0</guava.version>
       </properties>
-	  </profile>
+    </profile>
     <profile>
       <id>rdb-derby</id>
       <dependencies>
@@ -1244,10 +1227,11 @@
     </profile>
   </profiles>
 
-  <scm>
-    <connection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/branches/1.22/oak-parent</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/branches/1.22/oak-parent</developerConnection>
-    <url>https://svn.apache.org/viewvc/maven/pom/branches/1.22/oak-parent</url>
-    <tag>jackrabbit-oak-1.22.9</tag>
+  <!-- using adjusted inheritance rules: https://issues.apache.org/jira/browse/MNG-6059 -->
+  <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false">
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
+    <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
+    <tag>1.22</tag>
   </scm>
 </project>

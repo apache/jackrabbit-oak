@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SameNameSiblingTest extends AbstractRepositoryTest {
@@ -105,6 +106,18 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
             assertTrue(sns.hasNode(name));
             Node sib = sns.getNode(name);
             session.getNode(sns.getPath() + '/' + name);
+        }
+    }
+
+    @Test
+    @Ignore("OAK-10523")
+    public void getSiblingNames() throws RepositoryException {
+        for (String name : SIBLINGS) {
+            Node sib = sns.getNode(name);
+            String n = sib.getName();
+            int i = sib.getIndex();
+            assertTrue("Node.getName() must return valid JCR name (index stripped), but got: " + n, !n.contains("["));
+            assertEquals(name, n + "[" + i + "]");
         }
     }
 

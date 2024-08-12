@@ -76,4 +76,13 @@ public class RestoreTest extends AbstractJCRTest {
         assertFalse("Restored node must not have jcr:frozenPrimaryType property",
                 child.hasProperty(JcrConstants.JCR_FROZENPRIMARYTYPE));
     }
+
+    //OAK-10462: a new node that looks remotely like a sentinel node of a restore operation may
+    //actually trigger a restore operation.
+    public void testCreateFakeSentinelNode() throws RepositoryException {
+        Node n = testRootNode.addNode(nodeName1, ntUnstructured);
+        n.setProperty(jcrVersionHistory, "");
+        n.setProperty(jcrBaseVersion, "");
+        superuser.save();
+    }
 }

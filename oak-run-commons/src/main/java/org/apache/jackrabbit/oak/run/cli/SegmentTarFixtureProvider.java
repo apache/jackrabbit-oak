@@ -26,8 +26,10 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getServic
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import com.google.common.io.Closer;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -53,7 +55,9 @@ class SegmentTarFixtureProvider {
         if (segmentStoreType == ToolUtils.SegmentStoreType.AZURE) {
             SegmentNodeStorePersistence segmentNodeStorePersistence =
                 ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri);
-            builder = fileStoreBuilder(new File(options.getTempDirectory())).withCustomPersistence(segmentNodeStorePersistence);
+            File tempDir = Files.createTempDirectory("azure-segment-store").toFile();
+            closer.register(() -> FileUtils.deleteQuietly(tempDir));
+            builder = fileStoreBuilder(tempDir).withCustomPersistence(segmentNodeStorePersistence);
         } else {
             builder = fileStoreBuilder(new File(pathOrUri)).withMaxFileSize(256);
         }

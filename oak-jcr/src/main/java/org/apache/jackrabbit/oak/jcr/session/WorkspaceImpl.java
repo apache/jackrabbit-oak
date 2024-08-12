@@ -326,7 +326,11 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
         return sessionContext.getPrivilegeManager();
     }
-
+    
+    //------------------------------------------------------------< internal >---
+    public @NotNull VersionManagerImpl internalGetVersionManager() {
+        return versionManager;
+    }
     //------------------------------------------------------------< private >---
 
     private void ensureIsAlive() throws RepositoryException {

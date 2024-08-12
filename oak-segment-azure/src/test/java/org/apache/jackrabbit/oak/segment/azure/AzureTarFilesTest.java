@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;

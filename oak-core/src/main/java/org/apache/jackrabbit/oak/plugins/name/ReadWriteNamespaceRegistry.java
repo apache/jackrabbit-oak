@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -32,6 +35,8 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 public abstract class ReadWriteNamespaceRegistry
         extends ReadOnlyNamespaceRegistry {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ReadWriteNamespaceRegistry.class);
 
     public ReadWriteNamespaceRegistry(Root root) {
         super(root);
@@ -63,6 +68,17 @@ public abstract class ReadWriteNamespaceRegistry
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
+
+        // sanity check for legal namespace names (excluding the "internal"
+        // namespace, see OAK-74)
+        if (!NamespaceConstants.NAMESPACE_REP.equals(uri)) {
+            if (!uri.contains(":")) {
+                LOG.error("Registering invalid namespace name '" + uri + "' for prefix '" + prefix
+                        + "', please see https://developer.adobe.com/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.2.1%20Namespaces",
+                        new Exception("call stack"));
+            }
+        }
+
         if (prefix.isEmpty() && uri.isEmpty()) {
             return; // the default empty namespace is always registered
         } else if (prefix.isEmpty() || uri.isEmpty()) {

@@ -42,6 +42,8 @@ Currently these Blob/DataStores are supported:
 * [S3DataStore](../osgi_config.html#Jackrabbit_2_-_S3DataStore)
 * AzureDataStore
 
+Please note that `Direct Binary Access` doesn't work with Customer provided keys. For more info, please refer to AWS documentation on [SSE-C keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html#ssec-and-presignedurl)
+
 ## Configuration
 
 The feature has to be explicitly enabled by setting properties on the DataStore. In the table, "S3" refers to `S3DataStore`, "Azure" to `AzureDataStore`.
@@ -276,6 +278,19 @@ For example, suppose you have a service running in the cloud and this service wi
 To specify this behavior for signed download URIs, the client requesting the URI should specify to ignore the domain override when building the `BinaryDownloadOptions`:
 
 ```
-BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder = BinaryDownloadOptions.builder()
-    .withDomainOverrideIgnored(true);
+BinaryDownloadOptions options = BinaryDownloadOptions.builder()
+    .withDomainOverrideIgnored(true)
+    .build();
 ```
+
+Default behavior is to use the domain override if one is configured.
+
+To ignore any configured domain override for signed upload URIs, the client requesting the URI should specify to ignore the domain override via the optional `BinaryUploadOptions` parameter:
+
+```
+BinaryUploadOptions options = BinaryUploadOptions.builder()
+    .withDomainOverrideIgnored(true)
+    .build();
+```
+
+Default behavior is to use the domain override if one is configured.  Note that providing a `BinaryUploadOptions` to `JackrabbitValueFactory.initiateBinaryUpload()` is optional, and if not provided the default behavior is used.

@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
@@ -28,6 +30,10 @@ import javax.jcr.version.VersionManager;
 
 import com.google.common.base.Function;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.jetbrains.annotations.Nullable;
 
@@ -314,6 +320,46 @@ public class VersionableTest extends AbstractJCRTest {
 
         history.removeVersion("1.2");
         assertSuccessors(history, of("1.1.0", "1.3"), "1.1");
+    }
+
+    /**
+     * See {@link org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager#isCheckedOut(Tree)} for details.
+     */
+    public void testIsCheckedOutOnNonAccessibleParent() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, testNodeType);
+        node.addMixin(mixVersionable);
+        Node child = node.addNode(nodeName2, testNodeType);
+
+        String nodePath = node.getPath();
+        String childPath = child.getPath();
+
+        // grant the guest-session read-access to child but not the parent.
+        AccessControlUtils.deny(node, EveryonePrincipal.NAME, PrivilegeConstants.JCR_READ);
+        AccessControlUtils.allow(child, EveryonePrincipal.NAME, PrivilegeConstants.JCR_READ);
+        superuser.save();
+
+        node.checkin();
+        assertFalse(node.isCheckedOut());
+        assertFalse(child.isCheckedOut());
+
+        Session guest = getHelper().getRepository().login(new GuestCredentials());
+        assertFalse(guest.nodeExists(nodePath));
+        assertTrue(guest.nodeExists((childPath)));
+
+        assertTrue(guest.getWorkspace().getVersionManager().isCheckedOut(childPath));
+        assertTrue(guest.getNode(childPath).isCheckedOut());
+
+        // grant the guest-session read-access on the parent as well -> checkin-status is visible
+        AccessControlUtils.allow(node, EveryonePrincipal.NAME, PrivilegeConstants.JCR_READ);
+        superuser.save();
+
+        guest.refresh(false);
+        assertTrue(guest.nodeExists(nodePath));
+        assertFalse(guest.getWorkspace().getVersionManager().isCheckedOut(childPath));
+        assertFalse(guest.getWorkspace().getVersionManager().isCheckedOut(nodePath));
+
+        assertFalse(guest.getNode(childPath).isCheckedOut());
+        assertFalse(guest.getNode(nodePath).isCheckedOut());
     }
 
     private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors, String versionName) throws RepositoryException {

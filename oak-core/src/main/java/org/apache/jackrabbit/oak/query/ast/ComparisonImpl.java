@@ -166,17 +166,7 @@ public class ComparisonImpl extends ConstraintImpl {
                         // but v may contain escaped wildcards, so we can't use it
                         PropertyValue pv = PropertyValues.newString(lowerBound);
                         operand1.restrict(f, Operator.EQUAL, pv);
-                    } else if (operand1.supportsRangeConditions()) {
-                        if (lowerBound != null) {
-                            PropertyValue pv = PropertyValues.newString(lowerBound);
-                            operand1.restrict(f, Operator.GREATER_OR_EQUAL, pv);
-                        }
-                        if (upperBound != null) {
-                            PropertyValue pv = PropertyValues.newString(upperBound);
-                            operand1.restrict(f, Operator.LESS_OR_EQUAL, pv);
-                        }
                     } else {
-                        // path conditions
                         operand1.restrict(f, operator, v);
                     }
                 } else {

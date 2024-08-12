@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.16-SNAPSHOT</version>
+    <version>1.22.21-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -215,16 +215,14 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-segment-azure</artifactId>
+      <artifactId>oak-blob-cloud-azure</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
-	<dependency>
-      <groupId>com.arakelian</groupId>
-      <artifactId>docker-junit-rule</artifactId>
-      <version>2.1.0</version>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -263,21 +261,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <!-- Workaround for http://bugs.java.com/view_bug.do?bug_id=6550655 -->
-  <profiles>
-    <profile>
-      <id>java6</id>
-      <activation>
-        <jdk>1.6</jdk>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.felix</groupId>
-          <artifactId>org.apache.felix.scr.annotations</artifactId>
-          <scope>provided</scope>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
 </project>
