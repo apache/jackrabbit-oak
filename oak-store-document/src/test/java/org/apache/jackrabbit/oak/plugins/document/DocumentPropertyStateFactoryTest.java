@@ -22,8 +22,16 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 public class DocumentPropertyStateFactoryTest {
 
@@ -91,5 +99,19 @@ public class DocumentPropertyStateFactoryTest {
         assertTrue(propertyState instanceof DocumentPropertyState);
         assertEquals(name, propertyState.getName());
         assertEquals(value, propertyState.getValue(Type.STRING));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void createPropertyStateWithCompressionThresholdExceededFail() throws IOException {
+        DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
+        Compression mockCompression = mock(Compression.class);
+        when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
+
+        CompressedDocumentPropertyState.setCompressionThreshold(5);
+        CompressedDocumentPropertyState documentPropertyState = new CompressedDocumentPropertyState(mockDocumentStore, "p", "\"" + "testValue" + "\"", mockCompression);
+
+        assertEquals(documentPropertyState.getValue(Type.STRING), "tesValue");
+
+        verify(mockCompression, times(1)).getOutputStream(any(OutputStream.class));
     }
 }
