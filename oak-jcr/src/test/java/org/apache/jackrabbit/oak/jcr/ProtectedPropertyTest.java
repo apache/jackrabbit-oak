@@ -259,7 +259,8 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             assertTrue(test.isSame(session.getNodeByIdentifier(newUuid)));
             session2.save();
             fail("saving 2nd session should fail");
-        } catch (ConstraintViolationException ex) {
+            // SEGMENT_OK fails with the former, DOCUMENT_NS with the latter
+        } catch (ConstraintViolationException | ReferentialIntegrityException ex) {
             // expected
         } finally {
             ref2.remove();
