@@ -358,6 +358,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
                     TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
+                    indexer.onIndexingStarting();
                     long entryStart = System.nanoTime();
                     for (NodeStateEntry entry : flatFileStore) {
                         reportDocumentRead(entry.getPath(), progressReporter);

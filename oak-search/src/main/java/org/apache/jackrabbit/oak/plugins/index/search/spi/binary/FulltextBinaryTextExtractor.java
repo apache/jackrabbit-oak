@@ -24,6 +24,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -86,13 +87,23 @@ public class FulltextBinaryTextExtractor {
         this.reindex = reindex;
     }
 
-    public void done(boolean reindex) {
+    public void resetStartTime() {
+        textExtractionStats.reset();
+    }
+
+    public void done(boolean reindex){
         textExtractionStats.log(reindex);
         textExtractionStats.collectStats(extractedTextCache);
     }
 
-    public List<String> newBinary(
-            PropertyState property, NodeState state, String path) {
+    public void logStats() {
+        log.info("[{}] Text extraction statistics: {}", getIndexName(), textExtractionStats.formatStats());
+        CacheStats cacheStats = extractedTextCache.getCacheStats();
+        log.info("[{}] Text extraction cache statistics: {}",
+                getIndexName(), cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
+    }
+
+    public List<String> newBinary(PropertyState property, NodeState state, String path) {
         List<String> values = new ArrayList<>();
         Metadata metadata = new Metadata();
 
@@ -101,8 +112,7 @@ public class FulltextBinaryTextExtractor {
         type = definition.getTikaMappedMimeType(type);
 
         if (type == null || !isSupportedMediaType(type)) {
-            log.trace(
-                    "[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
+            log.trace("[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
                     getIndexName(), path, type);
             return values;
         }
@@ -143,20 +153,22 @@ public class FulltextBinaryTextExtractor {
         return text;
     }
 
-    private String parseStringValue0(Blob v, Metadata metadata, String path) {
+    private String parseStringValue0(Blob blob, Metadata metadata, String path) {
         WriteOutContentHandler handler = new WriteOutContentHandler(definition.getMaxExtractLength());
-        long start = System.currentTimeMillis();
         long bytesRead = 0;
-        long length = v.length();
+        long blobLength = blob.length();
         if (log.isDebugEnabled()) {
-            log.debug("Extracting {}, {} bytes, id {}", path, length, v.getContentIdentity());
+            log.debug("Extracting {}. Length: {}, reference: {}", path, blobLength, blob.getReference());
         }
+        textExtractionStats.startExtraction();
         try {
-            CountingInputStream stream = new CountingInputStream(new LazyInputStream(v::getNewStream));
+            CountingInputStream stream = new CountingInputStream(new LazyInputStream(blob::getNewStream));
             try {
-                if (length > SMALL_BINARY) {
-                    String name = "Extracting " + path + ", " + length + " bytes";
-                    extractedTextCache.process(name, () -> {
+                if (blobLength > SMALL_BINARY) {
+                    // Extracting can take a long time, so if a binary is large enough, delegate extraction to the
+                    // ExtractedTextCache#process, which may execute the extraction with a timeout (depends on configuration).
+                    String threadName = "Extracting " + path + ", " + blobLength + " bytes";
+                    extractedTextCache.process(threadName, () -> {
                         getParser().parse(stream, handler, metadata, new ParseContext());
                         return null;
                     });
@@ -177,14 +189,13 @@ public class FulltextBinaryTextExtractor {
             String indexName = getIndexName();
             log.info(format, indexName, path);
             log.debug(format, indexName, path, e);
-            extractedTextCache.put(v, ExtractedText.ERROR);
+            extractedTextCache.put(blob, ExtractedText.ERROR);
             return TEXT_EXTRACTION_ERROR;
         } catch (TimeoutException t) {
-            log.warn(
-                    "[{}] Failed to extract text from a binary property due to timeout: {}.",
+            log.warn("[{}] Failed to extract text from a binary property due to timeout: {}.",
                     getIndexName(), path);
-            extractedTextCache.put(v, ExtractedText.ERROR);
-            extractedTextCache.putTimeout(v, ExtractedText.ERROR);
+            extractedTextCache.put(blob, ExtractedText.ERROR);
+            extractedTextCache.putTimeout(blob, ExtractedText.ERROR);
             return TEXT_EXTRACTION_ERROR;
         } catch (Throwable t) {
             // Capture and report any other full text extraction problems.
@@ -193,9 +204,9 @@ public class FulltextBinaryTextExtractor {
                 String format = "[{}] Failed to extract text from a binary property: {}. "
                         + "This is quite common, and usually nothing to worry about.";
                 String indexName = getIndexName();
-                log.info(format, indexName, path);
+                log.info(format + " Error: " + t, indexName, path);
                 log.debug(format, indexName, path, t);
-                extractedTextCache.put(v, ExtractedText.ERROR);
+                extractedTextCache.put(blob, ExtractedText.ERROR);
                 return TEXT_EXTRACTION_ERROR;
             } else {
                 log.debug("Extracted text size exceeded configured limit({})", definition.getMaxExtractLength());
@@ -203,20 +214,14 @@ public class FulltextBinaryTextExtractor {
         }
         String result = handler.toString();
         if (bytesRead > 0) {
-            long time = System.currentTimeMillis() - start;
             int len = result.length();
-            recordTextExtractionStats(time, bytesRead, len);
+            long extractionTimeMillis = textExtractionStats.finishExtraction(bytesRead, len);
             if (log.isDebugEnabled()) {
-                log.debug("Extracting {} took {} ms, {} bytes read, {} text size",
-                        path, time, bytesRead, len);
+                log.debug("Extracted {}. Time: {} ms, Bytes read: {}, Text size: {}", path, extractionTimeMillis, bytesRead, len);
             }
         }
-        extractedTextCache.put(v, new ExtractedText(ExtractedText.ExtractionResult.SUCCESS, result));
+        extractedTextCache.put(blob, new ExtractedText(ExtractedText.ExtractionResult.SUCCESS, result));
         return result;
-    }
-
-    private void recordTextExtractionStats(long timeInMillis, long bytesRead, int textLength) {
-        textExtractionStats.addStats(timeInMillis, bytesRead, textLength);
     }
 
     private String getIndexName() {
