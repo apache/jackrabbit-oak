@@ -67,10 +67,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private final MeterStats updatedDoc;
     private final MeterStats skippedDoc;
 
-    private final Map<GCPhase, MeterStats> foundRevisions;
-    private final Map<GCPhase, MeterStats> foundInternalRevisions;
-    private final Map<GCPhase, MeterStats> foundProperties;
-    private final Map<GCPhase, MeterStats> foundDocuments;
+    private final Map<GCPhase, MeterStats> candidateRevisions;
+    private final Map<GCPhase, MeterStats> candidateInternalRevisions;
+    private final Map<GCPhase, MeterStats> candidateProperties;
+    private final Map<GCPhase, MeterStats> candidateDocuments;
 
     private final TimerStats fullGCActiveTimer;
     private final TimerStats fullGCTimer;
@@ -94,10 +94,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         updatedDoc = meter(provider, UPDATED_DOC);
         skippedDoc = meter(provider, SKIPPED_DOC);
 
-        foundRevisions = new EnumMap<>(GCPhase.class);
-        foundInternalRevisions = new EnumMap<>(GCPhase.class);
-        foundProperties = new EnumMap<>(GCPhase.class);
-        foundDocuments = new EnumMap<>(GCPhase.class);
+        candidateRevisions = new EnumMap<>(GCPhase.class);
+        candidateInternalRevisions = new EnumMap<>(GCPhase.class);
+        candidateProperties = new EnumMap<>(GCPhase.class);
+        candidateDocuments = new EnumMap<>(GCPhase.class);
 
         fullGCActiveTimer = timer(provider, FULL_GC_ACTIVE_TIMER);
         fullGCTimer = timer(provider, FULL_GC_TIMER);
@@ -121,22 +121,22 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
     @Override
     public void candidateProperties(GCPhase phase, long numProps) {
-        getMeter(foundProperties, phase, DELETED_PROPERTY).mark(numProps);
+        getMeter(candidateProperties, phase, DELETED_PROPERTY).mark(numProps);
     }
 
     @Override
-    public void candidateDocuments(GCPhase phase, long numCommits) {
-        getMeter(foundDocuments, phase, DELETED_UNMERGED_BC).mark(numCommits);
+    public void candidateDocuments(GCPhase phase, long numDocs) {
+        getMeter(candidateDocuments, phase, DELETED_UNMERGED_BC).mark(numDocs);
     }
 
     @Override
     public void candidateRevisions(GCPhase phase, long numRevs) {
-        getMeter(foundRevisions, phase, DELETED_REVISION).mark(numRevs);
+        getMeter(candidateRevisions, phase, DELETED_REVISION).mark(numRevs);
     }
 
     @Override
     public void candidateInternalRevisions(GCPhase phase, long numRevs) {
-        getMeter(foundInternalRevisions, phase, DELETED_INTERNAL_PROPERTY).mark(numRevs);
+        getMeter(candidateInternalRevisions, phase, DELETED_INTERNAL_PROPERTY).mark(numRevs);
     }
 
     @Override
@@ -189,15 +189,15 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         StringBuilder sb = new StringBuilder();
         sb.append("FullGCStatsCollectorImpl{");
         sb.append("readDoc=").append(readDoc.getCount());
+        sb.append(", candidateRevisions=").append(mapToString(candidateRevisions));
+        sb.append(", candidateInternalRevisions=").append(mapToString(candidateInternalRevisions));
+        sb.append(", candidateProperties=").append(mapToString(candidateProperties));
+        sb.append(", candidateDocuments=").append(mapToString(candidateDocuments));
         sb.append(", deletedOrphanNode=").append(deletedOrphanNode.getCount());
         sb.append(", deletedProperty=").append(deletedProperty.getCount());
         sb.append(", deletedUnmergedBC=").append(deletedUnmergedBC.getCount());
         sb.append(", updatedDoc=").append(updatedDoc.getCount());
         sb.append(", skippedDoc=").append(skippedDoc.getCount());
-        sb.append(", deletedRevisions=").append(mapToString(foundRevisions));
-        sb.append(", deletedOrphanNodeStats=").append(mapToString(foundInternalRevisions));
-        sb.append(", deletedPropertyStats=").append(mapToString(foundProperties));
-        sb.append(", deletedUnmergedBCStats=").append(mapToString(foundDocuments));
         sb.append('}');
         return sb.toString();
     }

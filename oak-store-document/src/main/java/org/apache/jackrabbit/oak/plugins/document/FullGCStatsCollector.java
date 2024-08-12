@@ -42,9 +42,9 @@ public interface FullGCStatsCollector {
     /**
      * Total No. of documents detected as garbage during a given GC phase
      * @param mode GC phase
-     * @param numCommits no. of garbage documents found in current cycle
+     * @param numDocs no. of garbage documents found in current cycle
      */
-    void candidateDocuments(GCPhase mode, long numCommits);
+    void candidateDocuments(GCPhase mode, long numDocs);
 
     /**
      * Total No. of revisions detected as garbage during a given GC phase

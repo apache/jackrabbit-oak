@@ -1277,6 +1277,7 @@ public class VersionGarbageCollector {
             monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
             orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
             orphanOrDeletedRemovalPathMap.put(doc.getId(), doc.getPath());
+            fullGCStats.candidateDocuments(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES, 1);
 
             if (AUDIT_LOG.isDebugEnabled()) {
                 AUDIT_LOG.debug("<Collected> [{}] orphaned node", doc.getId());
@@ -1356,7 +1357,6 @@ public class VersionGarbageCollector {
             
             olderUnmergedBranchCommits.forEach(bcRevision -> removeUnmergedBCRevision(bcRevision, doc, updateOp));
             deletedUnmergedBCSet.addAll(olderUnmergedBranchCommits);
-            fullGCStats.candidateDocuments(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, olderUnmergedBranchCommits.size());
 
             if (AUDIT_LOG.isDebugEnabled()) {
                 AUDIT_LOG.debug("<Collected> [{}] unmerged branch commits in [{}]", olderUnmergedBranchCommits.size(), doc.getId());
