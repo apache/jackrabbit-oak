@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,9 +60,9 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     private final AtomicReference<NodeState> root;
 
-    private final Map<String, Checkpoint> checkpoints = newHashMap();
+    private final Map<String, Checkpoint> checkpoints = new HashMap<>();
 
-    private final Map<Closeable, Observer> observers = newHashMap();
+    private final Map<Closeable, Observer> observers = new HashMap<>();
 
     private final AtomicInteger checkpointCounter = new AtomicInteger();
 

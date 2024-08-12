@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.reference;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static javax.jcr.PropertyType.REFERENCE;
@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -117,10 +118,10 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.path = "/";
         this.definition = definition;
         this.root = root;
-        this.newRefs = newHashMap();
-        this.rmRefs = newHashMap();
-        this.newWeakRefs = newHashMap();
-        this.rmWeakRefs = newHashMap();
+        this.newRefs = new HashMap<>();
+        this.rmRefs = new HashMap<>();
+        this.newWeakRefs = new HashMap<>();
+        this.rmWeakRefs = new HashMap<>();
         this.rmIds = newHashSet();
         this.newIds = newHashSet();
         this.mountInfoProvider = mountInfoProvider;

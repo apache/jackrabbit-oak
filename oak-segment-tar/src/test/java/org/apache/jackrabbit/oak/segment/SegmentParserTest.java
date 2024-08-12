@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -45,6 +44,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -256,7 +256,7 @@ public class SegmentParserTest {
 
     @Test
     public void emptyMap() throws IOException {
-        Map<String, RecordId> empty = newHashMap();
+        Map<String, RecordId> empty = new HashMap<>();
         MapRecord map = new MapRecord(store.getReader(), writer.writeMap(null, empty));
         MapInfo mapInfo = new TestParser(store.getReader(), "emptyMap") {
             @Override protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) { }
@@ -296,7 +296,7 @@ public class SegmentParserTest {
     }
 
     private Map<String, RecordId> createMap(int size, Random rnd) throws IOException {
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
         for (int k = 0; k < size; k++) {
             map.put("k" + k, writer.writeString("string" + rnd.nextLong()));
         }

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
@@ -28,7 +28,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assume.assumeTrue;
 
@@ -59,7 +58,7 @@ public class DocumentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegi
 
     @Override
     protected void registerNodeStoreService() {
-        Map<String, Object> properties = newHashMap();
+        Map<String, Object> properties = new HashMap<>();
         properties.put(DocumentNodeStoreService.CUSTOM_BLOB_STORE, true);
         properties.put("repository.home", repoHome);
         properties.put("mongouri", MongoUtils.URL);

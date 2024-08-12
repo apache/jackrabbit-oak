@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -60,7 +61,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static java.util.stream.Collectors.toSet;
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
+
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
@@ -744,7 +745,7 @@ public final class NodeDocument extends Document {
             clusterIds = Sets.newHashSet();
             for (Revision prevRev : getPreviousRanges().keySet()) {
                 if (lower.isRevisionNewer(prevRev) ||
-                        equal(prevRev, lower.getRevision(prevRev.getClusterId()))) {
+                        Objects.equals(prevRev, lower.getRevision(prevRev.getClusterId()))) {
                     clusterIds.add(prevRev.getClusterId());
                 }
             }
