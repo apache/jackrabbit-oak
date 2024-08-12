@@ -592,23 +592,28 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain, containsString("references:/some/content/efjoiefjowfgj/*"));
     }
 
-    @Ignore("Failing test to reproduce OAK-9481")
+    //OAK-9481
     @Test
-    public void multiValuesLikeWithValueExcludedPrefixes() throws Exception{
+    public void likeQueryOnPropertiesWithExcludedPrefixes() throws Exception {
         Tree idx = createIndex("test1", of("references"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("references");
-        propIdx.setProperty("valueExcludedPrefixes", of("sling:folder"), STRINGS);
+        propIdx.setProperty("valueExcludedPrefixes", of("/a/b/c2"), STRINGS);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("references", of("/some/content/AAA", "/some/content/BBB"), Type.STRINGS);
-        test.addChild("b").setProperty("references", of("/some/content/AAA", "/some/content/CCC"), Type.STRINGS);
+        test.addChild("a").setProperty("references", of("/a/b/c1", "/a/b/c2", "/a/b/c10"), Type.STRINGS);
+        test.addChild("b").setProperty("references", of("/a/b/c22","/a/b/d12"), Type.STRINGS);
         root.commit();
 
-        String q = "SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/some/content/efjoiefjowfgj/%'";
-        String explain = explain(q);
-        System.out.println(explain);
-        assertThat(explain, containsString("references:/some/content/efjoiefjowfgj/*"));
+        // index test1 not picked up because property restriction matches value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/c%'"),
+                containsString("[nt:unstructured] as [content] /* nodeType"));
+        // index test1 gets picked up because property restriction does not match value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/d%'"),
+                containsString("luceneQuery: references:/a/b/d*"));
+
+        assertQuery("SELECT [jcr:path] FROM [nt:base] as [content] WHERE [content].[references] LIKE '/a/b/c%'", SQL2, asList());
+        assertQuery("SELECT [jcr:path] FROM [nt:base] WHERE references LIKE '/a/b/d%'", asList("/test/b"));
     }
 
     @Test
