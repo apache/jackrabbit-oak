@@ -30,9 +30,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 
 /**
@@ -179,7 +179,7 @@ public class DatastoreArguments {
         }
 
         private String getDescription(DatastoreArguments datastoreArguments) {
-            Map<String, String> map = newHashMap();
+            Map<String, String> map = new HashMap<>();
             map.put("srcnode", datastoreArguments.storeArguments.getSrcDescriptor());
             map.put("dstnode", datastoreArguments.storeArguments.getDstDescriptor());
 

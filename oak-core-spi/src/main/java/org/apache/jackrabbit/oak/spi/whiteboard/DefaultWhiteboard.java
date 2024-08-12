@@ -18,10 +18,11 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static java.util.Collections.emptyList;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class DefaultWhiteboard implements Whiteboard {
 
-    private final Map<Class<?>, Set<Service>> registry = newHashMap();
+    private final Map<Class<?>, Set<Service>> registry = new HashMap<>();
 
     private synchronized <T> void registered(Class<T> type, Service service) {
         Set<Service> services = registry.get(type);

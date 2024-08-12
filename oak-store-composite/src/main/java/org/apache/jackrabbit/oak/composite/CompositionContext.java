@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.singletonList;
 
 class CompositionContext {
@@ -164,7 +165,7 @@ class CompositionContext {
     }
 
     CompositeNodeState createRootNodeState(NodeState globalRootState) {
-        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+        Map<MountedNodeStore, NodeState> nodeStates = new HashMap<>();
         nodeStates.put(getGlobalStore(), globalRootState);
         for (MountedNodeStore nodeStore : getNonDefaultStores()) {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());

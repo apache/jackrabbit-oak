@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
@@ -49,6 +49,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -380,7 +381,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private Map<String, PropertyState> createProperties(NodePropBundle bundle) {
-        Map<String, PropertyState> properties = newHashMap();
+        Map<String, PropertyState> properties = new HashMap<>();
 
         String primary;
         if (bundle.getNodeTypeName() != null) {

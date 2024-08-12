@@ -16,6 +16,7 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -29,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
@@ -164,7 +165,7 @@ public class Namespaces implements NamespaceConstants {
     }
 
     static Map<String, String> collectNamespaces(Iterable<? extends PropertyState> properties) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = new HashMap<>();
         for (PropertyState property : properties) {
             String prefix = property.getName();
             if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {

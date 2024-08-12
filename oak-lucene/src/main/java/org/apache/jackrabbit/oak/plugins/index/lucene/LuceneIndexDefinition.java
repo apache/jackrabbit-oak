@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -47,7 +47,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_ORIGINAL_TERM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -161,7 +160,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
     }
 
     private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
-        Map<String, Analyzer> analyzerMap = newHashMap();
+        Map<String, Analyzer> analyzerMap = new HashMap<>();
         NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(VERSION);
         NodeState analyzersTree = defn.getChildNode(FulltextIndexConstants.ANALYZERS);
         for (ChildNodeEntry cne : analyzersTree.getChildNodeEntries()) {

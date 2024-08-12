@@ -21,13 +21,14 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -278,7 +279,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
-        Map<String, String> properties = newHashMap();
+        Map<String, String> properties = new HashMap<>();
         checkNotNull(checkpoint);
         NodeState cp = scheduler.getHeadNodeState()
                 .getChildNode("checkpoints")

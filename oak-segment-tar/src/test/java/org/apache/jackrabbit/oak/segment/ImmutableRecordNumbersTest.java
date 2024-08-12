@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.util.Arrays.fill;
 import static org.junit.Assert.assertEquals;
 
@@ -88,7 +86,7 @@ public class ImmutableRecordNumbersTest {
     }
 
     private Map<Integer, RecordEntry> recordEntries(Map<Integer, Integer> offsets) {
-        Map<Integer, RecordEntry> entries = newHashMap();
+        Map<Integer, RecordEntry> entries = new HashMap<>();
 
         for (Map.Entry<Integer, Integer> entry : offsets.entrySet()) {
             entries.put(entry.getKey(), new RecordEntry(RecordType.VALUE, entry.getValue()));
