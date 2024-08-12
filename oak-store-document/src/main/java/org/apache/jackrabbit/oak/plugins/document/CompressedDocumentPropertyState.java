@@ -24,12 +24,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -296,7 +296,7 @@ public final class CompressedDocumentPropertyState implements PropertyState {
      */
     static PropertyState readArrayProperty(String name, DocumentNodeStore store, JsopReader reader) {
         int type = PropertyType.STRING;
-        List<Object> values = Lists.newArrayList();
+        List<Object> values = new ArrayList<>();
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
