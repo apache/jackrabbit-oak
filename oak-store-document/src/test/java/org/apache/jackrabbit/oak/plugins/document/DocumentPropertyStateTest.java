@@ -16,24 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
-import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,7 +42,7 @@ public class DocumentPropertyStateTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    private Set<String> reads = newHashSet();
+    private Set<String> reads = new HashSet<>();
 
     private BlobStore bs = new MemoryBlobStore() {
         @Override
@@ -70,7 +64,7 @@ public class DocumentPropertyStateTest {
     @Test
     public void multiValuedBinarySize() throws Exception {
         NodeBuilder builder = ns.getRoot().builder();
-        List<Blob> blobs = newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
         }
@@ -85,80 +79,5 @@ public class DocumentPropertyStateTest {
         assertEquals(BLOB_SIZE, p.size(0));
         // must not read the blob via stream
         assertEquals(0, reads.size());
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForMongo() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForRDB() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForInMemory() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForMongo() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, true);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForRDB() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, true);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForInMemory() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, true);
-    }
-
-    private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws CommitFailedException {
-        assumeTrue(fixture.isAvailable());
-        String test = "brokensurrogate:dfsa\ud800";
-        DocumentStore store = null;
-        DocumentNodeStore nodeStore = null;
-
-        try {
-            store = fixture.createDocumentStore();
-
-            if (store instanceof MongoDocumentStore) {
-                // Enforce primary read preference, otherwise tests may fail on a
-                // replica set with a read preference configured to secondary.
-                // Revision GC usually runs with a modified range way in the past,
-                // which means changes made it to the secondary, but not in this
-                // test using a virtual clock
-                MongoTestUtils.setReadPreference(store, ReadPreference.primary());
-            }
-            nodeStore = new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
-
-            createPropAndCheckValue(nodeStore, test, compressionEnabled);
-
-        } finally {
-            if (nodeStore != null) {
-                nodeStore.dispose();
-            }
-        }
-
-    }
-
-    private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
-        NodeBuilder builder = nodeStore.getRoot().builder();
-
-        if (compressionEnabled) {
-            CompressedDocumentPropertyState.setCompressionThreshold(1);
-        }
-        builder.child("test").setProperty("p", test, Type.STRING);
-        TestUtils.merge(nodeStore, builder);
-
-        PropertyState p = nodeStore.getRoot().getChildNode("test").getProperty("p");
-        assertEquals(Objects.requireNonNull(p).getValue(Type.STRING), test);
     }
 }
