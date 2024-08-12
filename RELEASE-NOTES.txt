@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.66.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.68.0
 
 Introduction
 ------------
@@ -7,112 +7,91 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.66.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.68.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.66.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.68.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.66.0
+Changes in Oak 1.68.0
 ---------------------
 
 Technical task
 
-    [OAK-6756] - Convert oak-auth-external to OSGi R7 annotations
-    [OAK-6761] - Convert oak-blob-plugins to OSGi R7 annotations
-    [OAK-10691] - remove use of Guava Charsets class
-    [OAK-10852] - oak-store-document: disable unreliable tests in BranchCommitGCTest
-    [OAK-10873] - store-spi: remove use of Guava CharMatcher in test case
+    [OAK-6762] - Convert oak-blob to OSGi R7 annotations
+    [OAK-6773] - Convert oak-store-composite to OSGi R7 annotations
+    [OAK-10941] - oak-run: avoid use of Guava's ClassToInstanceMap
+    [OAK-10945] - Remove usage of Guava Function interface
+    [OAK-10955] - remove unused import of java.io.UnsupportedEncodingException
+    [OAK-10961] - Remove usage of Guava Predicate interface
+    [OAK-11004] - Remove usage of Guava Supplier interface
+    [OAK-11010] - Remove usage of Guava newHashMap
+    [OAK-11012] - Remove usage of Guava Objects.equal()
 
 Bug
 
-    [OAK-8848] - Impossible to replace a mix:versionable by a different mix:versionable
-    [OAK-9825] - Flaky unit tests: DocumentNodeStoreSweepIT
-    [OAK-10451] - UserPrincipalProvider may cause many conflicts when under load
-    [OAK-10621] - o.a.j.o.namepath.JcrPathParser does not accept indexed expanded names
-    [OAK-10624] - o.a.j.o.namepath.JcrPathParser does not accept some valid local names containing '{' or '}'
-    [OAK-10826] - Misleading warning about missing checkpoint
-    [OAK-10833] - Consistency check reports success for repository with SNFE in checkpoints
-    [OAK-10838] - oak-lucene: maven install fails in oak-lucene due to baseline check
-    [OAK-10853] - VersionGarbageCollectorIT.testDeletedPropsAndUnmergedBCWithCollision failure
-    [OAK-10856] - oak-run: TextPopulatorTest uses transitive dependency com.beust.jcommander.internal.Maps
-    [OAK-10903] - Indexing job: when parallel download is enabled, the dump may miss documents updated during the download
-    [OAK-10928] - ElasticIndexPlannerCommonTest.indexedButZeroWeightProps is flaky
+    [OAK-10985] - Index defintion with a property rule having valueExcludedPrefixes not getting considered for like condition on that property
+    [OAK-10994] - Update Mockito dependency to 5.12.0
+    [OAK-10998] - OrderableNodesTest#orderableAddManyChildrenWithSave() does not call save()
+    [OAK-11002] - VersionGCWithSplitTest.gcWithConcurrentSplit[MongoFixture: MongoDB] - teardown fails with NPE
 
 Story
 
-    [OAK-10807] - Add oak-run diff to Azure repositories
+    [OAK-10978] - Skip Azure compaction when there's not enough garbage in the repository
+
+New Feature
+
+    [OAK-10991] - document-store: allow to skip tests for MongoDB
 
 Improvement
 
-    [OAK-9455] - Improve oak-run check to allow fast remote consistency checks
-    [OAK-10675] - Azure Service principal support in oak-blob-cloud-azure
-    [OAK-10780] - Access Token refresh in oak-segment-azure
-    [OAK-10781] - Access Token refresh in oak-blob-cloud-azure
-    [OAK-10789] - Indexing job: log paths used for inclusing/exclusion for Mongo regex filters in job summary
-    [OAK-10811] - oak-search-elastic: reduce contention in IndexTracker
-    [OAK-10823] - Support Oak-mongo.js remove functions with mongosh shell
-    [OAK-10825] - Add logs for indexing job failure
-    [OAK-10841] - Elastic should log the root cause when a query fails
-    [OAK-10851] - Log START/END/FAIL messages of indexing job phases inside the same package
-    [OAK-10854] - oak.findOne doesn't find long path documents
-    [OAK-10866] - Avoid intermediate object creation in JsopBuilder
-    [OAK-10867] - Service Principal Support in oak-run-commons
-    [OAK-10868] - Use a constant value to represent empty empty StringValue instances
-    [OAK-10872] - Optimize PathUtils.concat(String, String) to use string concatenation instead of StringBuilder
-    [OAK-10874] - Force Update a failing indexing lane using a jmx method
-    [OAK-10879] - indexing-job: in the index report, list phase timings in chronological order and not alphabetic order
-    [OAK-10889] - indexing job: do not remove field with size estimation from NodeDocuments downloaded from Mongo
-    [OAK-10894] - DocumentNodeStore: expose readNode as package private
-    [OAK-10897] - Delete unused class: DocumentStoreSplitter
-    [OAK-10901] - Indexing job: bypass the DocumentNodeState cache when resolving paths downloaded from Mongo
-    [OAK-10920] - indexing job: simplify termination management of Mongo download thread
+    [OAK-10803] - Compress in-memory property values
+    [OAK-10904] - Use daemon thread for token refresh executor
+    [OAK-10905] - Create a configurable job to create checkpoints at a defined interval of time
+    [OAK-10913] - SQL-2 grammar: remove documentation for "distinct"
+    [OAK-10951] - Make cache size in PersistedLinkedList class configurable
+    [OAK-10965] - indexing job: Sporadic failure at the end of the dump phase
+    [OAK-10966] - Indexing job: create optimized version of PersistedLinkedList
+    [OAK-10968] - Avoid creating auxiliary string in PathUtils.isAncestor
+    [OAK-10971] - Add a method PathUtils.isDirectAncestor
+    [OAK-10972] - JsonDeserializer: do not rely on NumberFormatExceptions in the common case when parsing doubles
+    [OAK-10976] - Avoid unnecessary call to PathUtils.getName in IndexDefinition
+    [OAK-10977] - Cleanup IndexDefinition class
+    [OAK-10984] - Improve invocations of logging API to follow best practices for parameter passing in search/indexing modules
+    [OAK-10988] - Minor performance improvements to NodeStateEntryReader/Writer
+    [OAK-10989] - Performance improvements to JSON parsing
+    [OAK-10990] - In calls to Precondition.checkState() always use string templates instead of concatenation to avoid creating a string when the condition passes
+    [OAK-10995] - indexing-job: when accessing the backing array of a ByteBuffer, use buffer.arrayOffset() in index calculations of array
+    [OAK-10996] - indexing-job: cache interned strings in a local hashmap to avoid calling String.intern too frequently
+    [OAK-10999] - indexing-job: report nodes that take the longest to index
+    [OAK-11006] - indexing-job: better logging of text extraction statistics
+    [OAK-11007] - Reformat FulltextBinaryTextExtractor
+    [OAK-11008] - AzureBlobStore: do not create a new CloudBlobContainer instance for every request to the backend
 
 Task
 
-    [OAK-10690] - Update docs and test config for recommended MongoDB version (5.0)
-    [OAK-10742] - Introduce include/exclude lists for detailedGC
-    [OAK-10829] - examples: update build-helper-maven-plugin to 3.6.0
-    [OAK-10830] - Upgrade jackson-databind dependency to 2.17.1
-    [OAK-10837] - Add documentation for UT/IT fixtures
-    [OAK-10843] - Flaky fullgc tests
-    [OAK-10847] - query-spi: bump log level to ERROR for use of deprecated slf4j.event.Level method
-    [OAK-10857] - Improve oak-run to support unreferenced checkpoints removal for Azure repositories
-    [OAK-10860] - oak-lucene: update gson test dependency and stop using deprecated APIs
-    [OAK-10861] - avoid use of Tika WriteOutHandler convenience method removed in Tika 2.x
-    [OAK-10870] - New oak-mongo.js methods for sizes of properties, counts by clusterId and unmerged branch commits
-    [OAK-10882] - move Oak related notification from dev@jackrabbit.apache.org to oak-dev@jackrabbit.apache.org
-    [OAK-10883] - document mk: disable flaky test VersionGarbageCollectorIT.testBundledPropUnmergedBCGC for mode ORPHANS_EMPTYPROPS_UNMERGED_BC
-    [OAK-10886] - Update Oak trunk to Jackrabbit 2.22.0
-    [OAK-10887] - webapp: remove RMI support
-    [OAK-10890] - Logging for constraint violations (UUID already exists)
-    [OAK-10891] - document mk: disable flaky test BranchCommitGCTest.testDeletedPropsAndUnmergedBCfor mode ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS
-    [OAK-10892] - Update (shaded) Guava to 33.2.1
-    [OAK-10893] - standalone: remove RMI dependency
-    [OAK-10896] - Add osgi config for removal of deleted properties and orphaned nodes
-    [OAK-10898] - Allow AzureCheck and AzureCompact to be built directly with a CloudBlobDirectory
-    [OAK-10912] - Make include/exclude paths for fullgc configurable via OSGI Config
-    [OAK-10914] - fullGC exclude paths should use _modified_id index
-    [OAK-10915] - oak-run FullGC revisions command runs partially against a read-only repository
-    [OAK-10916] - Provide support for include/exclude paths for fullGC in oak-run
-    [OAK-10917] - Make persistent cache related arguments optional for Azure compaction
-    [OAK-10918] - Embed and log an explain for the fullgc mongo query
-    [OAK-10919] - Fix DocumentNodeStoreConfigTest unit case
-    [OAK-10923] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.26.2
-    [OAK-10929] - Update commons-codec dependency to 1.17.0
-    [OAK-10931] - Update commons-io dependency to 2.16.1
-    [OAK-10932] - lucene: update commons-exec test dependency to 1.4.0
-    [OAK-10933] - Avoid log about calculating fullGCTimestamp when fullGC is disabled
-    [OAK-10934] - segment-remote: update commons-pool2 dependency to 2.12.0
-
-Documentation
-
-    [OAK-10881] - Expand oak/docs/participating with some more guidelines
+    [OAK-10705] - oak-standalone: update dependencies
+    [OAK-10821] - webapp: bump htmlunit to 4.4.0
+    [OAK-10848] - commons: remove use of slf4j.event.Level in SystemPropertySupplier API and implementation
+    [OAK-10938] - oak-doc: update branch history in roadmap
+    [OAK-10940] - oak-jcr: improve error message when mongo test fixture fails
+    [OAK-10944] - oak-auth-ldap: update commons-pool2 dependency to 2.12.0
+    [OAK-10949] - blob-cloud, segment-aws: update aws SDK to 1.12.761 (dependencies reference vulnerable amazon ion-java version)
+    [OAK-10954] - Update spotbugs plugin to 4.8.6.2
+    [OAK-10959] - webapp: update Tomcat dependency to 9.0.90
+    [OAK-10960] - blob-cloud, segment: update netty version to 4.1.111
+    [OAK-10962] - oak-solr-osgi: update zookeeper dependency to 3.9.2
+    [OAK-10964] - Update com.nimbusds:nimbus-jose-jwt from 9.30.2 to 9.37.2
+    [OAK-10979] - document-store, jcr, run: use consistent Derby version
+    [OAK-10983] - DocumentNodeStore: improve documentation about testing
+    [OAK-10993] - commons: add better diagnostics to 'FixturesHelper'
+    [OAK-10997] - jcr: OrderableNodeTest with many children may fail with RDB (Derby) due to OOM
+    [OAK-11003] - Update commons-codec dependency to 1.17.1
 
 
 In addition to the above-mentioned changes, this release contains all
