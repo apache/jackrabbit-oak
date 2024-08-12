@@ -21,30 +21,40 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
-class TextExtractionStats {
+final class TextExtractionStats {
     private static final Logger log = LoggerFactory.getLogger(TextExtractionStats.class);
     /**
      * Log stats only if time spent is more than 1 min
      */
     private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(1);
-    private final long startTime = System.currentTimeMillis();
-    private int count;
+
+
+    private int numberOfExtractions;
     private long totalBytesRead;
-    private long totalTimeMillis;
-    private long totalTextLength;
+    private long totalExtractedTextLength;
+    private long totalExtractionTimeNanos;
+    private long currentExtractionStartNanos = 0;
+    private long startTimeNanos = System.nanoTime();
 
+    public void reset() {
+        log.info("Resetting statistics");
+        this.numberOfExtractions = 0;
+        this.totalBytesRead = 0;
+        this.totalExtractedTextLength = 0;
+        this.totalExtractionTimeNanos = 0;
+        this.currentExtractionStartNanos = 0;
+        this.startTimeNanos = System.nanoTime();
+    }
 
-    public void addStats(long timeInMillis, long bytesRead, int textLength) {
-        count++;
-        totalBytesRead += bytesRead;
-        totalTimeMillis += timeInMillis;
-        totalTextLength += textLength;
+    public void startExtraction() {
+        currentExtractionStartNanos = System.nanoTime();
     }
 
     public void log(boolean reindex) {
@@ -55,30 +65,49 @@ class TextExtractionStats {
         }
     }
 
-    public void collectStats(ExtractedTextCache cache){
-        cache.addStats(count, totalTimeMillis, totalBytesRead, totalTextLength);
+    public long finishExtraction(long bytesRead, int extractedTextLength) {
+        long elapsedNanos = System.nanoTime() - currentExtractionStartNanos;
+        numberOfExtractions++;
+        totalBytesRead += bytesRead;
+        totalExtractedTextLength += extractedTextLength;
+        totalExtractionTimeNanos += elapsedNanos;
+        return elapsedNanos / 1_000_000;
+    }
+
+    public void collectStats(ExtractedTextCache cache) {
+        cache.addStats(numberOfExtractions, totalExtractionTimeNanos / 1_000_000, totalBytesRead, totalExtractedTextLength);
     }
 
     private boolean isTakingLotsOfTime() {
-        return totalTimeMillis > LOGGING_THRESHOLD;
+        return totalExtractionTimeNanos > LOGGING_THRESHOLD * 1_000_000;
     }
 
     private boolean anyParsingDone() {
-        return count > 0;
+        return numberOfExtractions > 0;
     }
 
     @Override
     public String toString() {
-        long durationMillis = System.currentTimeMillis() - startTime;
-        double percentage = (totalTimeMillis * 100.0) / durationMillis;
-        return String.format(" %d (Time Taken %d ms (%s) out of %d ms (%2.2f%%), Bytes Read %s, Extracted text size %s)",
-                count,
-                totalTimeMillis,
-                timeInWords(totalTimeMillis),
-                durationMillis,
-                percentage,
+        return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
+                numberOfExtractions,
+                timeInWords(totalExtractionTimeNanos),
                 humanReadableByteCount(totalBytesRead),
-                humanReadableByteCount(totalTextLength));
+                humanReadableByteCount(totalExtractedTextLength));
+    }
+
+    public String formatStats() {
+        long timeSinceStartNanos = System.nanoTime() - startTimeNanos;
+        double timeExtractingPercentage = FormattingUtils.safeComputePercentage(totalExtractionTimeNanos, timeSinceStartNanos);
+        long avgExtractionTimeMillis = Math.round(FormattingUtils.safeComputeAverage(totalExtractionTimeNanos / 1_000_000, numberOfExtractions));
+
+        return String.format("{extractions: %d, timeExtracting: %s (%2.1f%%), totalTime: %s, " +
+                        "avgExtractionTime: %s ms, bytesRead: %s, extractedTextSize: %s}",
+                numberOfExtractions,
+                FormattingUtils.formatNanosToSeconds(totalExtractionTimeNanos),
+                timeExtractingPercentage,
+                FormattingUtils.formatNanosToSeconds(timeSinceStartNanos),
+                avgExtractionTimeMillis,
+                humanReadableByteCount(totalBytesRead), humanReadableByteCount(totalExtractedTextLength));
     }
 
     private static String timeInWords(long millis) {

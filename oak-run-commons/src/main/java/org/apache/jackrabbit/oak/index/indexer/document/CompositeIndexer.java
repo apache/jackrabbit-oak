@@ -42,6 +42,13 @@ public class CompositeIndexer implements NodeStateIndexer {
     }
 
     @Override
+    public void onIndexingStarting() {
+        for (NodeStateIndexer indexer : indexers) {
+            indexer.onIndexingStarting();
+        }
+    }
+
+    @Override
     public boolean shouldInclude(String path) {
         return indexers.stream().anyMatch(indexer -> indexer.shouldInclude(path));
     }
