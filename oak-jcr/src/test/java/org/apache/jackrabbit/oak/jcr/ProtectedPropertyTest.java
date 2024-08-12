@@ -231,6 +231,44 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void changeUuidOnReferencedNodeWithOnlyMixin2Sessions() throws RepositoryException {
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
+        test.addMixin(NodeType.MIX_REFERENCEABLE);
+        session.save();
+        Node ref = testNode.addNode(TEST_NODE_NAME_REF, NodeType.NT_UNSTRUCTURED);
+        ref.setProperty("reference", test.getIdentifier(), PropertyType.REFERENCE);
+        session.save();
+
+        Session session2 = createAdminSession();
+        Node testNode2 = session2.getNode(testNode.getPath());
+        Node test2 = testNode2.addNode(TEST_NODE_NAME + "2", NodeType.NT_UNSTRUCTURED);
+        test2.addMixin(NodeType.MIX_REFERENCEABLE);
+        session2.save();
+        Node ref2 = testNode.addNode(TEST_NODE_NAME_REF + "2", NodeType.NT_UNSTRUCTURED);
+        ref2.setProperty("reference", test2.getIdentifier(), PropertyType.REFERENCE);
+        session2.save();
+
+        try {
+            String newUuid = UUID.randomUUID().toString();
+            updateJcrUuidUsingRemoveMixin(test, newUuid);
+            updateJcrUuidUsingRemoveMixin(test2, newUuid);
+            assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
+            assertEquals(newUuid, test2.getProperty(Property.JCR_UUID).getString());
+            session.save();
+            session2.save();
+            fail("saving 2nd session should fail");
+        } catch (ConstraintViolationException ex) {
+            // expected
+        } finally {
+            ref2.remove();
+            test2.remove();
+            ref.remove();
+            test.remove();
+            session2.logout();
+        }
+    }
+
+    @Test
     public void changeUuidOnReferencedNodeWithInheritedMixin() throws RepositoryException {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_RESOURCE);
         test.setProperty(Property.JCR_DATA, session.getValueFactory().createBinary(new ByteArrayInputStream(new byte[0])));
