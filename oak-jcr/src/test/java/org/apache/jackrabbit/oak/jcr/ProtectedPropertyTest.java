@@ -223,6 +223,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
             session.save();
             assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
+            assertTrue(test.isSame(session.getNodeByIdentifier(newUuid)));
         } finally {
             ref.remove();
             test.remove();
@@ -255,6 +256,7 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
             assertEquals(newUuid, test2.getProperty(Property.JCR_UUID).getString());
             session.save();
+            assertTrue(test.isSame(session.getNodeByIdentifier(newUuid)));
             session2.save();
             fail("saving 2nd session should fail");
         } catch (ConstraintViolationException ex) {
@@ -304,8 +306,8 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
             updateJcrUuidUsingNodeTypeManager(test, newUuid);
             assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
             session.save();
-            session.refresh(false);
             assertEquals(newUuid, test.getProperty(Property.JCR_UUID).getString());
+            assertTrue(test.isSame(session.getNodeByIdentifier(newUuid)));
         } finally {
             ref.remove();
             test.remove();
