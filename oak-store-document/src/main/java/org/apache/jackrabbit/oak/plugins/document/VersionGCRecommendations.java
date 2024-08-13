@@ -68,8 +68,6 @@ public class VersionGCRecommendations {
     final long maxCollect;
     final long deleteCandidateCount;
     final long lastOldestTimestamp;
-    final long fullGCTimestamp;
-    final long fullGCDryRunTimestamp;
     final String fullGCId;
     final long originalCollectLimit;
     private final long precisionMs;
@@ -142,10 +140,10 @@ public class VersionGCRecommendations {
         TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
 
-        fullGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
+        final long fullGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
         oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP);
 
-        fullGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP);
+        final long fullGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP);
         oldestModifiedDryRunDocId = (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP);
 
         if (log.isDebugEnabled()) {
