@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -35,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -205,7 +205,7 @@ public class UploadStagingCache implements Closeable {
         }
         return new UploadStagingCache() {
             @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
-                return Optional.absent();
+                return Optional.empty();
             }
 
             @Override protected void invalidate(String key) {
@@ -324,7 +324,7 @@ public class UploadStagingCache implements Closeable {
                 return Optional.of(result);
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     private synchronized boolean existsOrNotExistsMoveFile(File source, File destination, AtomicLong currentSize,
