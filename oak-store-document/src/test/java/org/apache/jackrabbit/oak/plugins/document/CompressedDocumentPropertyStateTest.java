@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -128,6 +127,57 @@ public class CompressedDocumentPropertyStateTest {
 
         assertEquals(state.getValue(Type.STRING), STRING_HUGEVALUE);
         assertEquals(STRING_HUGEVALUE, state.getValue(Type.STRING));
+    }
+
+    @Test
+    public void uncompressValueThrowsException() throws IOException {
+
+        DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
+        Compression mockCompression = mock(Compression.class);
+        OutputStream mockOutputStream= mock(OutputStream.class);
+        when(mockCompression.getOutputStream(any(OutputStream.class))).thenReturn(mockOutputStream);
+        when(mockCompression.getInputStream(any(InputStream.class))).thenThrow(new IOException("Compression failed"));
+
+        CompressedDocumentPropertyState.setCompressionThreshold(DEFAULT_COMPRESSION_THRESHOLD);
+        PropertyState documentPropertyState = DocumentPropertyStateFactory.createPropertyState(mockDocumentStore, "p", STRING_HUGEVALUE, mockCompression);
+
+        assertEquals(documentPropertyState.getValue(Type.STRING), "{}");
+
+        verify(mockCompression, times(1)).getInputStream(any(InputStream.class));
+    }
+
+    @Test
+    public void testInterestingStringsWithoutCompression() {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
+                "tab:a\tb", "nul:a\u0000b"};
+
+        for (String test : tests) {
+            DocumentPropertyState state = (DocumentPropertyState) DocumentPropertyStateFactory.createPropertyState(store, "propertyName", test, Compression.GZIP);
+            assertEquals(test, state.getValue());
+        }
+    }
+
+    @Test
+    public void testOneCompressOtherUncompressInEquals() throws IOException {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String name = "propertyName";
+        String value = "testValue";
+        Compression compression = Compression.GZIP;
+
+        // Create a PropertyState instance with a compressed value
+        CompressedDocumentPropertyState.setCompressionThreshold(1);
+        PropertyState state1 = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + value + "\"");
+
+        // Create a PropertyState instance with an uncompressed value
+        CompressedDocumentPropertyState.setCompressionThreshold(-1);
+        PropertyState state2 = DocumentPropertyStateFactory.createPropertyState(store, name, value);
+
+        // Decompress the value of the first instance
+        String decompressedValue1 = state1.getValue(Type.STRING);
+
+        // Check that the decompressed value is equal to the original value
+        assertEquals(value, decompressedValue1);
     }
 
     @Test
