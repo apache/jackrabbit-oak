@@ -154,6 +154,50 @@ public class ProtectedPropertyTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void setSameUuidOnTwoNtUnstructuredNodes() throws RepositoryException {
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
+        Node test2 = testNode.addNode(TEST_NODE_NAME + "2", NodeType.NT_UNSTRUCTURED);
+        session.save();
+        try {
+            String testUuid = UUID.randomUUID().toString();
+            test.setProperty(Property.JCR_UUID, testUuid);
+            test2.setProperty(Property.JCR_UUID, testUuid);
+            session.save();
+            fail("should not allow the same UUID on two different nodes");
+        } catch (ConstraintViolationException ex) {
+            // expected
+        } finally {
+            test2.remove();
+            test.remove();
+            session.save();
+        }
+    }
+
+    @Test
+    public void setSameUuidOnTwoNtUnstructuredNodesTwoSessions() throws RepositoryException {
+        Session session2 = createAdminSession();
+        Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
+        Node test2 = session2.getNode(testNode.getParent().getPath()).addNode(TEST_NODE_NAME + "2", NodeType.NT_UNSTRUCTURED);
+        session.save();
+        session2.save();
+        try {
+            String testUuid = UUID.randomUUID().toString();
+            test.setProperty(Property.JCR_UUID, testUuid);
+            test2.setProperty(Property.JCR_UUID, testUuid);
+            session.save();
+            session2.save();
+            fail("should not allow the same UUID on two different nodes");
+        } catch (ConstraintViolationException ex) {
+            // expected
+        } finally {
+            test2.remove();
+            test.remove();
+            session.save();
+            session2.logout();
+        }
+    }
+
+    @Test
     public void jcrMixinReferenceableOnNtUnstructuredAfterRemovingMixin() throws RepositoryException {
         Node test = testNode.addNode(TEST_NODE_NAME, NodeType.NT_UNSTRUCTURED);
         test.addMixin(NodeType.MIX_REFERENCEABLE);
