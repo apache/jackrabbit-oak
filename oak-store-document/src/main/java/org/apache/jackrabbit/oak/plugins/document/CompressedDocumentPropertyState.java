@@ -227,52 +227,7 @@ public final class CompressedDocumentPropertyState implements PropertyState {
      * @return new property state
      */
     PropertyState readProperty(String name, JsopReader reader) {
-        return readProperty(name, store, reader);
-    }
-
-    /**
-     * Read a {@code PropertyState} from a {@link JsopReader}.
-     *
-     * @param name the name of the property state
-     * @param store the store
-     * @param reader the reader
-     * @return new property state
-     */
-    static PropertyState readProperty(String name, DocumentNodeStore store, JsopReader reader) {
-        if (reader.matches(JsopReader.NUMBER)) {
-            String number = reader.getToken();
-            Long maybeLong = LongUtils.tryParse(number);
-            if (maybeLong == null) {
-                return new DoublePropertyState(name, Double.parseDouble(number));
-            } else {
-                return new LongPropertyState(name, maybeLong);
-            }
-        } else if (reader.matches(JsopReader.TRUE)) {
-            return BooleanPropertyState.booleanProperty(name, true);
-        } else if (reader.matches(JsopReader.FALSE)) {
-            return BooleanPropertyState.booleanProperty(name, false);
-        } else if (reader.matches(JsopReader.STRING)) {
-            String jsonString = reader.getToken();
-            if (jsonString.startsWith(TypeCodes.EMPTY_ARRAY)) {
-                int type = PropertyType.valueFromName(jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
-                return PropertyStates.createProperty(name, emptyList(), Type.fromTag(type, true));
-            }
-            int split = TypeCodes.split(jsonString);
-            if (split != -1) {
-                int type = TypeCodes.decodeType(split, jsonString);
-                String value = TypeCodes.decodeName(split, jsonString);
-                if (type == PropertyType.BINARY) {
-
-                    return  BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
-                } else {
-                    return createProperty(name, StringCache.get(value), type);
-                }
-            } else {
-                return StringPropertyState.stringProperty(name, StringCache.get(jsonString));
-            }
-        } else {
-            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
-        }
+        return DocumentPropertyState.readProperty(name, store, reader);
     }
 
     /**
@@ -283,61 +238,6 @@ public final class CompressedDocumentPropertyState implements PropertyState {
      * @return new property state
      */
     PropertyState readArrayProperty(String name, JsopReader reader) {
-        return readArrayProperty(name, store, reader);
-    }
-
-    /**
-     * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
-     *
-     * @param name the name of the property state
-     * @param store the store
-     * @param reader the reader
-     * @return new property state
-     */
-    static PropertyState readArrayProperty(String name, DocumentNodeStore store, JsopReader reader) {
-        int type = PropertyType.STRING;
-        List<Object> values = new ArrayList<>();
-        while (!reader.matches(']')) {
-            if (reader.matches(JsopReader.NUMBER)) {
-                String number = reader.getToken();
-                Long maybeLong = LongUtils.tryParse(number);
-                if (maybeLong == null) {
-                    type = PropertyType.DOUBLE;
-                    values.add(Double.parseDouble(number));
-                } else {
-                    type = PropertyType.LONG;
-                    values.add(maybeLong);
-                }
-            } else if (reader.matches(JsopReader.TRUE)) {
-                type = PropertyType.BOOLEAN;
-                values.add(true);
-            } else if (reader.matches(JsopReader.FALSE)) {
-                type = PropertyType.BOOLEAN;
-                values.add(false);
-            } else if (reader.matches(JsopReader.STRING)) {
-                String jsonString = reader.getToken();
-                int split = TypeCodes.split(jsonString);
-                if (split != -1) {
-                    type = TypeCodes.decodeType(split, jsonString);
-                    String value = TypeCodes.decodeName(split, jsonString);
-                    if (type == PropertyType.BINARY) {
-                        values.add(store.getBlobFromBlobId(value));
-                    } else if (type == PropertyType.DOUBLE) {
-                        values.add(Conversions.convert(value).toDouble());
-                    } else if (type == PropertyType.DECIMAL) {
-                        values.add(Conversions.convert(value).toDecimal());
-                    } else {
-                        values.add(StringCache.get(value));
-                    }
-                } else {
-                    type = PropertyType.STRING;
-                    values.add(StringCache.get(jsonString));
-                }
-            } else {
-                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
-            }
-            reader.matches(',');
-        }
-        return createProperty(name, values, Type.fromTag(type, true));
+        return DocumentPropertyState.readArrayProperty(name, store, reader);
     }
 }
