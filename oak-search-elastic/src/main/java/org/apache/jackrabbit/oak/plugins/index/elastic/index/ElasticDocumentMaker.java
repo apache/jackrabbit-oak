@@ -217,7 +217,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
         // without this check, if the vector size is not correct, the entire document will be skipped
-        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 8) {
+        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 4) {
             // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
             doc.addSimilarityField(pd.name, blob);

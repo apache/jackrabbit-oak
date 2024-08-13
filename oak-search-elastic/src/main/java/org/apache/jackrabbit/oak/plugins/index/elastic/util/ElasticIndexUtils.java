@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ElasticIndexUtils {
 
@@ -53,36 +53,36 @@ public class ElasticIndexUtils {
     }
 
     /**
-     * Converts a given byte array (of doubles) to a list of doubles
+     * Converts a given byte array (of doubles) to a list of floats
      * @param array given byte array
-     * @return list of doubles
+     * @return list of floats
      */
-    public static List<Double> toDoubles(byte[] array) {
-        int blockSize = Double.SIZE / Byte.SIZE;
+    public static List<Float> toFloats(byte[] array) {
+        int blockSize = Float.SIZE / Byte.SIZE;
         ByteBuffer wrap = ByteBuffer.wrap(array);
         if (array.length % blockSize != 0) {
             LOG.warn("Unexpected byte array length {}", array.length);
         }
         int capacity = array.length / blockSize;
-        List<Double> doubles = new ArrayList<>(capacity);
+        List<Float> floats = new ArrayList<>(capacity);
         for (int i = 0; i < capacity; i++) {
-            double e = wrap.getDouble(i * blockSize);
-            doubles.add(e);
+            float e = wrap.getFloat(i * blockSize);
+            floats.add(e);
         }
-        return doubles;
+        return floats;
     }
 
     /**
-     * Converts a given list of double values into a byte array
-     * @param values given list of doubles
+     * Converts a given list of float values into a byte array
+     * @param values given list of floats
      * @return byte array
      */
-    public static byte[] toByteArray(List<Double> values) {
-        int blockSize = Double.SIZE / Byte.SIZE;
+    public static byte[] toByteArray(List<Float> values) {
+        int blockSize = Float.SIZE / Byte.SIZE;
         byte[] bytes = new byte[values.size() * blockSize];
         ByteBuffer wrap = ByteBuffer.wrap(bytes);
         for (int i = 0, j = 0; i < values.size(); i++, j += blockSize) {
-            wrap.putDouble(values.get(i));
+            wrap.putFloat(values.get(i));
         }
         return bytes;
     }

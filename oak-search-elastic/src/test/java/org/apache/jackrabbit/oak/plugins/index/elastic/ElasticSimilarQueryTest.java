@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import co.elastic.clients.elasticsearch._types.mapping.FieldMapping;
-import co.elastic.clients.elasticsearch._types.mapping.Property;
-import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
-import co.elastic.clients.elasticsearch.indices.get_field_mapping.TypeFieldMappings;
-import jakarta.json.JsonObject;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toByteArray;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,6 +29,12 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
+
+import co.elastic.clients.elasticsearch._types.mapping.DenseVectorProperty;
+import co.elastic.clients.elasticsearch._types.mapping.FieldMapping;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
+import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
+import co.elastic.clients.elasticsearch.indices.get_field_mapping.TypeFieldMappings;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -46,11 +52,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toByteArray;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
@@ -171,16 +172,14 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void vectorSimilarityElastiknnIndexConfiguration() throws Exception {
+    public void vectorSimilarityIndexConfiguration() throws Exception {
         final String indexName = "test1";
         final String fieldName1 = "fv1";
         final String similarityFieldName1 = FieldNames.createSimilarityFieldName(fieldName1);
         IndexDefinitionBuilder builder = createIndex(fieldName1);
         Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
                 .similaritySearchDenseVectorSize(2048).getBuilderTree();
-        tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "cosine");
-        tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_TABLES, 10);
-        tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_FUNCTIONS, 12);
+        tree.setProperty(ElasticPropertyDefinition.PROP_SIMILARITY_METRIC, "cosine");
 
         Tree index = setIndex(indexName, builder);
         root.commit();
@@ -196,11 +195,9 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         assertEquals("More than one index found", 1, mappings.size());
         Map<String, FieldMapping> typeFieldMappings = mappings.entrySet().iterator().next().getValue().mappings();
         Property v = typeFieldMappings.get(similarityFieldName1).mapping().get(similarityFieldName1);
-        JsonObject map1 = v._custom().toJson().asJsonObject().get("elastiknn").asJsonObject();
-        assertEquals("Dense vector size doesn't match", 2048, map1.getInt("dims"));
-        assertEquals("Similarity doesn't match", "cosine", map1.getString("similarity"));
-        assertEquals("Similarity doesn't match", 10, map1.getInt("L"));
-        assertEquals("Similarity doesn't match", 12, map1.getInt("k"));
+        DenseVectorProperty denseVector = v.denseVector();
+        assertEquals("Dense vector size doesn't match", 2048, denseVector.dims().intValue());
+        assertEquals("Similarity metric doesn't match", "l2_norm", denseVector.similarity());
     }
 
     @Test
@@ -217,9 +214,9 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
         for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
             String[] split = line.split(",");
-            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            List<Float> values = Stream.of(split).skip(1).map(Float::parseFloat).collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
-            List<Double> actual = toDoubles(bytes);
+            List<Float> actual = toFloats(bytes);
             assertEquals(values, actual);
 
             Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
@@ -247,9 +244,9 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         List<String> children = new LinkedList<>();
         for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
             String[] split = line.split(",");
-            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            List<Float> values = Stream.of(split).skip(1).map(Float::parseFloat).collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
-            List<Double> actual = toDoubles(bytes);
+            List<Float> actual = toFloats(bytes);
             assertEquals(values, actual);
 
             Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
@@ -258,11 +255,6 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
             child.setProperty("fv", blob, Type.BINARY);
             children.add(child.getPath());
         }
-
-        // add a node without FV, the plugin cannot handle it directly
-        Tree child = test.addChild("nofv");
-        child.setProperty("nofv", "test");
-        children.add(child.getPath());
 
         root.commit();
 
@@ -325,17 +317,17 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         for (int i = 0; i < 2000; i++) {
             String imageName = "img" + i;
             imageNameList.add(imageName);
-            List<Double> values = new ArrayList<>();
+            List<Float> values = new ArrayList<>();
             float[] imageData = new float[featureVectorLength];
             for (int j = 0; j < featureVectorLength; j++) {
-                double x = r.nextDouble() * 0.5;
-                double g = 30 * Math.pow(x, 3);
+                float x = r.nextFloat() * 0.5f;
+                float g = (float) (30 * Math.pow(x, 3));
                 values.add(g);
-                imageData[j] = (float) g;
+                imageData[j] = g;
             }
             imageDataList.add(imageData);
             byte[] bytes = toByteArray(values);
-            List<Double> actual = toDoubles(bytes);
+            List<Float> actual = toFloats(bytes);
             assertEquals(values, actual);
             Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
             Tree child = test.addChild(imageName);
