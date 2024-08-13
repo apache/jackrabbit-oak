@@ -28,8 +28,8 @@ public class DocumentPropertyStateFactory {
     public static PropertyState createPropertyState(DocumentNodeStore store, String name, String value, Compression compression) {
 
         if (compression != null && !compression.equals(Compression.NONE) &&
-                value.length() > CompressedDocumentPropertyState.getCompressionThreshold()
-             && CompressedDocumentPropertyState.getCompressionThreshold() != -1) {
+                CompressedDocumentPropertyState.getCompressionThreshold() != -1
+                && value.length() > CompressedDocumentPropertyState.getCompressionThreshold()) {
             try {
                 return new CompressedDocumentPropertyState(store, name, value, compression);
             } catch (Exception e) {
