@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsZero;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.betweenChkp;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.btwnChkpUBC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.empPropOnly;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.gapOrphOnly;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.gapOrphProp;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.isModeOneOf;
@@ -138,6 +139,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 1, 0, 1, 0, 3),
@@ -150,7 +152,7 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.EMPTYPROPS)) {
             assertNotExists("1:/a");
             assertNotExists("1:/b");
             assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -200,6 +202,7 @@ public class BranchCommitGCTest {
                     new GCCounts(FullGCMode.NONE,
                                 2, 0, 0, 0, 0, 0, 0),
                     gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                    empPropOnly(2, 0, 0, 0, 0, 0, 0),
                     gapOrphProp(2, 0, 0, 0, 0, 0, 0),
                     allOrphProp(2, 0, 0, 0, 0, 0, 0),
                     keepOneFull(2, 0, 1, 0, 2, 0, 1),
@@ -213,6 +216,7 @@ public class BranchCommitGCTest {
                     new GCCounts(FullGCMode.NONE,
                                 2, 0, 0, 0, 0, 0, 0),
                     gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                    empPropOnly(2, 0, 0, 0, 0, 0, 0),
                     gapOrphProp(2, 0, 0, 0, 0, 0, 0),
                     allOrphProp(2, 0, 0, 0, 0, 0, 0),
                     keepOneFull(2, 1, 0, 0, 0, 0, 0),
@@ -278,6 +282,7 @@ public class BranchCommitGCTest {
         // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(0, 3, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 3, 0, 0, 0, 0, 2),
                 allOrphProp(0, 3, 0, 0, 0, 0, 2),
                 keepOneFull(0, 3, 2, 1,17, 0, 3),
@@ -319,6 +324,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 2, 0, 2, 0, 3),
@@ -327,7 +333,7 @@ public class BranchCommitGCTest {
                 unmergedBcs(2, 0, 2, 0, 2, 2, 3),
                 btwnChkpUBC(2, 0, 2, 0, 2, 2, 3));
 
-        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.EMPTYPROPS)) {
             assertNotExists("1:/a");
             assertNotExists("1:/b");
         }
@@ -374,6 +380,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(),
                 keepOneFull(0, 0, 1, 4,12, 0, 3),
@@ -437,6 +444,7 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
+                empPropOnly(0, 0, 0, 0, 0, 0, 0),
                 gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
                 gapOrphProp(0, 0, 0, 0, 0, 0, 0),
                 allOrphProp(0, 0, 0, 0, 0, 0, 0),
@@ -480,6 +488,7 @@ public class BranchCommitGCTest {
         // first gc round now deletes it, via orphaned node deletion
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(1, 0, 0, 0, 0, 0, 1),
                 keepOneFull(1, 0, 0, 1, 6, 0, 4),
@@ -518,6 +527,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 4, 0, 2),
@@ -544,6 +554,7 @@ public class BranchCommitGCTest {
         // 1 deleted prop: 1:/foo[a]
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
                 keepOneFull(0, 1, 0, 0, 4, 0, 2),
@@ -586,6 +597,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
+                empPropOnly(0, 0, 0, 0, 0, 0, 0),
                 gapOrphProp(0, 0, 0, 0, 0, 0, 0),
                 allOrphProp(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 1,10,40, 0, 2),
@@ -635,6 +647,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
+                empPropOnly(0, 0, 0, 0, 0, 0, 0),
                 gapOrphProp(0, 0, 0, 0, 0, 0, 0),
                 allOrphProp(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 2,10,30, 0, 2),
@@ -694,6 +707,7 @@ public class BranchCommitGCTest {
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                empPropOnly(0, 2, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 2, 0, 0, 0, 0, 2),
                 allOrphProp(0, 2, 0, 0, 0, 0, 2),
                 keepOneFull(0, 2, 1, 0, 8, 0, 2),

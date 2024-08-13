@@ -99,6 +99,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.EMPTYPROPS;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.GAP_ORPHANS;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.NONE;
@@ -171,6 +172,8 @@ public class VersionGarbageCollector {
     enum FullGCMode {
         /** no full GC is done at all */
         NONE,
+        /** GC only empty properties */
+        EMPTYPROPS,
         /** GC only orphaned nodes with gaps in ancestor docs */
         GAP_ORPHANS,
         /** GC orphaned nodes with gaps in ancestor docs, plus empty properties */
@@ -213,12 +216,15 @@ public class VersionGarbageCollector {
      * Set the full GC mode to be used according to the provided configuration value.
      * The configuration value will be ignored and fullGCMode will be reset to NONE
      * if it is set to any other values than the supported ones.
-     * @param fullGcMode
+     * @param fullGcMode configuration value for full GC mode
      */
     static void setFullGcMode(int fullGcMode) {
         switch (fullGcMode) {
             case 0:
                 VersionGarbageCollector.fullGcMode = NONE;
+                break;
+            case 1:
+                VersionGarbageCollector.fullGcMode = EMPTYPROPS;
                 break;
             case 2:
                 VersionGarbageCollector.fullGcMode = GAP_ORPHANS;
@@ -1149,7 +1155,13 @@ public class VersionGarbageCollector {
                 }
             }
 
-            if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
+            if (fullGcMode == EMPTYPROPS) {
+                if (!traversedState.exists()) {
+                    // doc is an orphan, this mode skips orphans
+                    return;
+                }
+                collectDeletedProperties(doc, phases, op, traversedState);
+            } else if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
                 // here the node is not orphaned which means that we can reach the node from root
                 switch(fullGcMode) {
                     case NONE : {
@@ -1195,15 +1207,15 @@ public class VersionGarbageCollector {
                         break;
                     }
                 }
-                // only add if there are changes for this doc
-                if (op.hasChanges()) {
-                    op.equals(MODIFIED_IN_SECS, doc.getModified());
-                    garbageDocsCount++;
-                    totalGarbageDocsCount++;
-                    monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
-                    AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
-                    updateOpList.add(op);
-                }
+            }
+            // only add if there are changes for this doc
+            if (op.hasChanges()) {
+                op.equals(MODIFIED_IN_SECS, doc.getModified());
+                garbageDocsCount++;
+                totalGarbageDocsCount++;
+                monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
+                AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
+                updateOpList.add(op);
             }
             if (log.isTraceEnabled() && op.hasChanges()) {
                 // only log in case of changes & debug level enabled
