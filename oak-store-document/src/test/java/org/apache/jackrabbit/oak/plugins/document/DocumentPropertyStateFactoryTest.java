@@ -132,16 +132,16 @@ public class DocumentPropertyStateFactoryTest {
         assertEquals(STRING_HUGEVALUE, state.getValue(Type.STRING));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void createPropertyStateWithCompressionThrowsException() throws IOException {
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
         Compression mockCompression = mock(Compression.class);
-        when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IOException("Compression failed"));
+        when(mockCompression.getOutputStream(any(OutputStream.class))).thenThrow(new IllegalArgumentException("Compression failed"));
 
         CompressedDocumentPropertyState.setCompressionThreshold(5);
-        CompressedDocumentPropertyState documentPropertyState = new CompressedDocumentPropertyState(mockDocumentStore, "p", "\"" + "testValue" + "\"", mockCompression);
+        PropertyState documentPropertyState = DocumentPropertyStateFactory.createPropertyState(mockDocumentStore, "p", "\"" + "testValue" + "\"", mockCompression);
 
-        assertEquals(documentPropertyState.getValue(Type.STRING), "tesValue");
+        assertEquals(documentPropertyState.getValue(Type.STRING), "testValue");
 
         verify(mockCompression, times(1)).getOutputStream(any(OutputStream.class));
     }

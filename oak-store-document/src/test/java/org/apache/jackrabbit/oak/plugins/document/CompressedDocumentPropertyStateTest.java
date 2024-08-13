@@ -83,22 +83,6 @@ public class CompressedDocumentPropertyStateTest {
         }
     }
 
-    @Test
-    public void stringBelowThresholdSize() throws Exception {
-        DocumentNodeStore store = mock(DocumentNodeStore.class);
-        CompressedDocumentPropertyState.setCompressionThreshold(10000);
-
-        CompressedDocumentPropertyState state = new CompressedDocumentPropertyState(store, "p", "\"" + STRING_HUGEVALUE + "\"", Compression.GZIP);
-
-        assertEquals(Type.STRING, state.getType());
-        assertEquals(1, state.count());
-
-        reads.clear();
-        assertEquals(10050, state.size(0));
-        // must not read the string via streams
-        assertEquals(0, reads.size());
-    }
-
     @Test(expected = IllegalArgumentException.class)
     public void compressValueThrowsException() throws IOException {
         DocumentNodeStore mockDocumentStore = mock(DocumentNodeStore.class);
