@@ -1308,6 +1308,140 @@ public class VersionGarbageCollectorIT {
         assertFalse(jcrContent.hasProperty("prop0"));
     }
 
+    /**
+     * To test behaviour when a bundled node having child nodes is goes missing.
+     * These children must be GCed.
+     */
+    @Test
+    public void testGCMissingBundledNode() throws Exception {
+
+        //0. Initialize bundling configs
+        final NodeBuilder builder = store1.getRoot().builder();
+        new InitialContent().initialize(builder);
+        BundlingConfigInitializer.INSTANCE.initialize(builder);
+        merge(store1, builder);
+        store1.runBackgroundOperations();
+
+        //1. Create nodes with properties
+        NodeBuilder b1 = store1.getRoot().builder();
+        b1.child("x").setProperty("jcr:primaryType", "nt:file", NAME);
+
+        // Add property to node & save
+        // adding 11 to have the 10th being a special case as we're not removing it below
+        for (int i = 0; i < 11; i++) {
+            b1.child("x").child("jcr:content").setProperty("prop"+i, "t", STRING);
+            b1.child("x").child("jcr:content").child("y").setProperty("prop"+i, "t", STRING);
+            b1.child("x").child("jcr:content").child("y").child("z").setProperty("prop"+i, "t", STRING);
+            b1.child("x").setProperty(META_PROP_PATTERN, of("jcr:content"), STRINGS);
+            b1.child("x").setProperty("prop"+i, "bar", STRING);
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc(gc, maxAge, HOURS);
+        assertStatsCountsZero(stats);
+
+        // Remove bundled node
+        store1.getDocumentStore().remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, "1:/x");
+        // invalidate cached DocumentNodeState
+        store1.invalidateNodeCache("/x", store1.getRoot().getLastRevision());
+        store1.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc(gc, maxAge*2, HOURS);
+        assertStatsCountsZero(stats);
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        stats = gc(gc, maxAge*2, HOURS);
+        System.out.println(stats.deletedDocGCCount);
+        assertStatsCountsEqual(stats,
+                gapOrphOnly(2, 0, 0, 0, 0, 0, 2),
+                gapOrphProp(2, 0, 0, 0, 0, 0, 2),
+                allOrphProp(2, 0, 0, 0, 0, 0, 2),
+                keepOneFull(2, 0, 0, 0, 0, 0, 2),
+                keepOneUser(2, 0, 0, 0, 0, 0, 2),
+                unmergedBcs(2, 0, 0, 0, 0, 0, 2),
+                betweenChkp(2, 0, 0, 0, 1, 0, 2),
+                btwnChkpUBC(2, 0, 0, 0, 1, 0, 2));
+    }
+
+    /**
+     * To test behaviour when a bundled node having child nodes is deleted.
+     * These children must be GCed along with bundled properties.
+     */
+    @Test
+    public void testGCDeletedBundledNode() throws Exception {
+
+        //0. Initialize bundling configs
+        final NodeBuilder builder = store1.getRoot().builder();
+        new InitialContent().initialize(builder);
+        BundlingConfigInitializer.INSTANCE.initialize(builder);
+        merge(store1, builder);
+        store1.runBackgroundOperations();
+
+        //1. Create nodes with properties
+        NodeBuilder b1 = store1.getRoot().builder();
+        b1.child("x").setProperty("jcr:primaryType", "nt:file", NAME);
+
+        // Add property to node & save
+        // adding 11 to have the 10th being a special case as we're not removing it below
+        for (int i = 0; i < 11; i++) {
+            b1.child("x").child("jcr:content").setProperty("prop"+i, "t", STRING);
+            b1.child("x").child("jcr:content").child("y").setProperty("prop"+i, "t", STRING);
+            b1.child("x").child("jcr:content").child("y").child("z").setProperty("prop"+i, "t", STRING);
+            b1.child("x").setProperty(META_PROP_PATTERN, of("jcr:content"), STRINGS);
+            b1.child("x").setProperty("prop"+i, "bar", STRING);
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc(gc, maxAge, HOURS);
+        assertStatsCountsZero(stats);
+
+        // Remove bundled node
+        NodeBuilder b2 = store1.getRoot().builder();
+        b2.getChildNode("x").getChildNode("jcr:content").remove();
+        store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store1.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc(gc, maxAge*2, HOURS);
+        assertStatsCountsZero(stats);
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        stats = gc(gc, maxAge*2, HOURS);
+        System.out.println(stats.deletedDocGCCount);
+        assertStatsCountsEqual(stats,
+                new GCCounts(FullGCMode.NONE, 2, 0,0,0,0,0,0),
+                gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                gapOrphProp(2, 13, 0, 0, 0, 0, 1),
+                allOrphProp(2, 13, 0, 0, 0, 0, 1),
+                keepOneFull(2, 13, 0, 0, 0, 0, 1),
+                keepOneUser(2, 13, 0, 0, 0, 0, 1),
+                unmergedBcs(2, 13, 0, 0, 0, 0, 1),
+                betweenChkp(2, 13, 0, 0, 1, 0, 2),
+                btwnChkpUBC(2, 13, 0, 0, 1, 0, 2));
+    }
+
     static void assertStatsCountsZero(VersionGCStats stats) {
         GCCounts c = new GCCounts(VersionGarbageCollector.getFullGcMode());
         assertStatsCountsEqual(stats, c);
