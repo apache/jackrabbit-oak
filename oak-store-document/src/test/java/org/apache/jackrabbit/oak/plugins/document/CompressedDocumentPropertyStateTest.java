@@ -158,6 +158,7 @@ public class CompressedDocumentPropertyStateTest {
         PropertyState state2 = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + value + "\"");
 
         assertEquals(state2, state1);
+        assertEquals(state1, state2);
 
         // Decompress the value of the first instance
         String decompressedValue1 = state1.getValue(Type.STRING);
