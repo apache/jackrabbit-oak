@@ -676,6 +676,30 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 luceneQuery);
     }
 
+    //OAK-9481
+    @Test
+    public void likeQueryOnPropertiesWithExcludedPrefixes() throws Exception {
+        Tree idx = createIndex("test1", of("references"));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("references");
+        propIdx.setProperty("valueExcludedPrefixes", of("/a/b/c2"), STRINGS);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("references", of("/a/b/c1", "/a/b/c2", "/a/b/c10"), Type.STRINGS);
+        test.addChild("b").setProperty("references", of("/a/b/c22","/a/b/d12"), Type.STRINGS);
+        root.commit();
+
+        // index test1 not picked up because property restriction matches value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/c%'"),
+                containsString("[nt:unstructured] as [content] /* nodeType"));
+        // index test1 gets picked up because property restriction does not match value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/d%'"),
+                containsString("lucene:test1(/oak:index/test1) references:/a/b/d*"));
+
+        assertQuery("SELECT [jcr:path] FROM [nt:base] as [content] WHERE [content].[references] LIKE '/a/b/c%'", SQL2, asList());
+        assertQuery("SELECT [jcr:path] FROM [nt:base] WHERE references LIKE '/a/b/d%'", asList("/test/b"));
+    }
+
     @Test
     public void redundantNotNullCheck() throws Exception{
         Tree idx = createIndex("test1", of("tags"));

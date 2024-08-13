@@ -46,6 +46,14 @@ public final class ValuePatternUtil {
         List<String> list = new ArrayList<>();
         for(PropertyRestriction p : filter.getPropertyRestrictions(property)) {
             if (p.isLike) {
+                String prefixForLike = getPrefixForLikeRestriction(p.first.getValue(Type.STRING));
+                if (prefixForLike != null) {
+                    list.add(prefixForLike);
+                    // Set first and last to true to make sure if there is only 1 property restriction, which is like -
+                    // the value for same gets evaluated for calculating the longest prefix.
+                    first = true;
+                    last = true;
+                }
                 continue;
             }
             if (p.first != null) {
@@ -76,6 +84,41 @@ public final class ValuePatternUtil {
             }
         }
         return prefix;
+    }
+
+    private static String getPrefixForLikeRestriction(String likeRestrictionValue) {
+        //"like 'abc%'"  => prefix 'abc'
+        //"like 'abcdef' => prefix 'abcdef'
+        //"like 'abc_def' => prefix 'abc'
+        //"like '%abc' => no prefix
+        //"like 'abc\%'"  => prefix 'abc%'  (because \ is the escape char to search for the character % explicitly)
+        //"like 'abc\_def%' => prefix 'abc_def'
+        // the wildcards characters for like values are _ (any one character) and % (any characters).
+        // An index is used, except if the operand starts with a wildcard. To search for the characters % and _,
+        // the characters need to be escaped using \ (backslash).
+
+        // if the value starts with a wildcard, then there is no prefix
+        if (likeRestrictionValue.startsWith("%") || likeRestrictionValue.startsWith("_")) {
+            return null;
+        } else {
+            // if the value contains a wildcard, then the prefix is the value up to the first of the 2 wildcards % or _
+            // Logic also handles escape using \ (backslash).
+            StringBuilder prefix = new StringBuilder();
+            boolean escape = false;
+            for (int i = 0; i < likeRestrictionValue.length(); i++) {
+                char c = likeRestrictionValue.charAt(i);
+                if (c == '\\' && !escape) {
+                    escape = true;
+                } else {
+                    if (!escape && (c == '%' || c == '_')) {
+                        break;
+                    }
+                    prefix.append(c);
+                    escape = false;
+                }
+            }
+            return prefix.toString();
+        }
     }
 
     @Nullable
