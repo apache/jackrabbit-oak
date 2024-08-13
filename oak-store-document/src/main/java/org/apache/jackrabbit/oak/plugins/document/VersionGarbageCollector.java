@@ -1275,11 +1275,6 @@ public class VersionGarbageCollector {
         private boolean isDeletedOrOrphanedNode(final NodeState traversedState, final Path greatestExistingAncestorOrSelf,
                                                 final GCPhases phases, final NodeDocument doc) {
 
-            if (fullGcMode == EMPTYPROPS) {
-                // we won't collect orphan nodes in this mode, only empty properties would be collected.
-                return false;
-            }
-
             if (!phases.start(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES)) {
                 // gc has been cancelled
                 return false;
