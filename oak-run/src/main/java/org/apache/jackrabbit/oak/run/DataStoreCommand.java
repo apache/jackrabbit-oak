@@ -88,7 +88,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
+
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -659,9 +659,8 @@ public class DataStoreCommand implements Command {
 
             if (dsType == FAKE || dsType == FDS) {
                 // 0102030405... => 01/02/03/0102030405...
-                blobId =
-                    (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value()
-                        + blobId.substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+                blobId = String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
+                        blobId.substring(4, 6), blobId);
             } else if (dsType == S3 || dsType == AZURE) {
                 //b47b58169f121822cd4a0... => b47b-58169f121822cd4a0...
                 blobId = (blobId.substring(0, 4) + DASH + blobId.substring(4));
