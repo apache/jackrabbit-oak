@@ -157,7 +157,7 @@ public class CompressedDocumentPropertyStateTest {
         CompressedDocumentPropertyState.setCompressionThreshold(-1);
         PropertyState state2 = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + value + "\"");
 
-        assertEquals(state1, state2);
+        assertEquals(state2, state1);
 
         // Decompress the value of the first instance
         String decompressedValue1 = state1.getValue(Type.STRING);
