@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -39,6 +40,7 @@ public class DocumentPropertyStateFactoryTest {
 
     private static final int COMPRESSION_THRESHOLD = 5;
     private static final int DISABLED_COMPRESSION = -1;
+    private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
 
     @Before
     public void before() throws Exception {
@@ -107,14 +109,27 @@ public class DocumentPropertyStateFactoryTest {
     public void createPropertyStateWithCompressionThresholdNotExceeded() {
         DocumentNodeStore store = Mockito.mock(DocumentNodeStore.class);
         String name = "testName";
-        CompressedDocumentPropertyState.setCompressionThreshold(15);
         String value = "testValue";
+        CompressedDocumentPropertyState.setCompressionThreshold(15);
 
         PropertyState propertyState = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + value + "\"", Compression.GZIP);
 
         assertTrue(propertyState instanceof DocumentPropertyState);
         assertEquals(name, propertyState.getName());
         assertEquals(value, propertyState.getValue(Type.STRING));
+    }
+
+    @Test
+    public void defaultValueSetToMinusOne() {
+        DocumentNodeStore store = mock(DocumentNodeStore.class);
+        String name = "propertyNameNew";
+
+        CompressedDocumentPropertyState.setCompressionThreshold(-1);
+        PropertyState state = DocumentPropertyStateFactory.createPropertyState(store, name, "\"" + STRING_HUGEVALUE + "\"");
+
+        assertTrue(state instanceof DocumentPropertyState);
+        assertEquals(name, state.getName());
+        assertEquals(STRING_HUGEVALUE, state.getValue(Type.STRING));
     }
 
     @Test(expected = IllegalArgumentException.class)
