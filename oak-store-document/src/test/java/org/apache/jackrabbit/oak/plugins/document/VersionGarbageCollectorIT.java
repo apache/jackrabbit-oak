@@ -1377,7 +1377,6 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        System.out.println(stats.deletedDocGCCount);
         assertStatsCountsEqual(stats,
                 empPropOnly(),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 2),
@@ -1445,7 +1444,6 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        System.out.println(stats.deletedDocGCCount);
         assertStatsCountsEqual(stats,
                 new GCCounts(FullGCMode.NONE, 2, 0,0,0,0,0,0),
                 empPropOnly(2, 13, 0, 0, 0, 0, 1),
