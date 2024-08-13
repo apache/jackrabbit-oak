@@ -75,6 +75,7 @@ public class FullGCHelper {
             final String... exceptIds) {
         assertTrue(br.isBranch());
         if (VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC) {
