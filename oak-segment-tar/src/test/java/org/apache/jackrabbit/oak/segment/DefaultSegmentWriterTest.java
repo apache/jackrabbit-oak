@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.MAX_ELEMENTS;
@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -217,7 +218,7 @@ public class DefaultSegmentWriterTest {
         MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.<String, RecordId>of()));
         MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
         MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId, "two", blockId)));
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
         }
@@ -259,7 +260,7 @@ public class DefaultSegmentWriterTest {
         assertFalse(iterator.hasNext());
         assertNull(many.getEntry("foo"));
 
-        Map<String, RecordId> changes = newHashMap();
+        Map<String, RecordId> changes = new HashMap<>();
         changes.put("key0", null);
         changes.put("key1000", blockId);
         MapRecord modified = new MapRecord(store.fileStore().getReader(), writer.writeMap(many, changes));
@@ -351,7 +352,7 @@ public class DefaultSegmentWriterTest {
     public void testMapRemoveNonExisting() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        Map<String, RecordId> changes = newHashMap();
+        Map<String, RecordId> changes = new HashMap<>();
         changes.put("one", null);
         MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, changes));
         assertEquals(0, zero.size());
@@ -360,7 +361,7 @@ public class DefaultSegmentWriterTest {
     @Test
     public void testWorstCaseMap() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
         char[] key = new char[2];
         for (int i = 0; i <= MapRecord.BUCKETS_PER_LEVEL; i++) {
             key[0] = (char) ('A' + i);

@@ -25,10 +25,12 @@ import java.util.Set;
 
 import com.mongodb.ReadPreference;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.After;
@@ -63,6 +65,8 @@ public class VersionGCSupportTest {
 
     private static final Set<String> EMPTY_STRING_SET = Collections.emptySet();
 
+    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
+
     private final DocumentStoreFixture fixture;
     private final DocumentStore store;
     private final VersionGCSupport gcSupport;
@@ -85,6 +89,10 @@ public class VersionGCSupportTest {
 
     public VersionGCSupportTest(DocumentStoreFixture fixture) {
         this.fixture = fixture;
+        if (fixture instanceof RDBFixture) {
+            ((RDBFixture) fixture).setRDBOptions(
+                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+        }
         this.store = fixture.createDocumentStore();
         if (this.store instanceof MongoDocumentStore) {
             // Enforce primary read preference, otherwise tests may fail on a

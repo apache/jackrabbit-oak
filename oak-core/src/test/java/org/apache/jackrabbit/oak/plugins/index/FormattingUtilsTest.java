@@ -85,4 +85,22 @@ public class FormattingUtilsTest {
         ticker.set(nanos);
         assertEquals(expected, FormattingUtils.formatToMillis(sw));
     }
+
+    @Test
+    public void testSafeComputePercentage() {
+        assertEquals(50.0, FormattingUtils.safeComputePercentage(50, 100), 0.001);
+        assertEquals(0.0, FormattingUtils.safeComputePercentage(0, 100), 0.001);
+        assertEquals(-1.0, FormattingUtils.safeComputePercentage(50, 0), 0.001);
+        assertEquals(100.0, FormattingUtils.safeComputePercentage(100, 100), 0.001);
+        assertEquals(33.333, FormattingUtils.safeComputePercentage(1, 3), 0.001);
+    }
+
+    @Test
+    public void testSafeComputeAverage() {
+        assertEquals(50.0, FormattingUtils.safeComputeAverage(100, 2), 0.001);
+        assertEquals(0.0, FormattingUtils.safeComputeAverage(0, 100), 0.001);
+        assertEquals(-1.0, FormattingUtils.safeComputeAverage(100, 0), 0.001);
+        assertEquals(100.0, FormattingUtils.safeComputeAverage(100, 1), 0.001);
+        assertEquals(33.333, FormattingUtils.safeComputeAverage(100, 3), 0.001);
+    }
 }

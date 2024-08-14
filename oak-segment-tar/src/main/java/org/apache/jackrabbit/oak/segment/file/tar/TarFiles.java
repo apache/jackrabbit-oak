@@ -20,7 +20,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 
@@ -308,14 +308,14 @@ public class TarFiles implements Closeable {
     }
 
     private static Map<Integer, Map<Character, String>> collectFiles(SegmentArchiveManager archiveManager) throws IOException {
-        Map<Integer, Map<Character, String>> dataFiles = newHashMap();
+        Map<Integer, Map<Character, String>> dataFiles = new HashMap<>();
         for (String file : archiveManager.listArchives()) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file);
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
                 Map<Character, String> files = dataFiles.get(index);
                 if (files == null) {
-                    files = newHashMap();
+                    files = new HashMap<>();
                     dataFiles.put(index, files);
                 }
                 Character generation = 'a';

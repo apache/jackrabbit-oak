@@ -23,11 +23,12 @@ import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -104,12 +105,12 @@ public class ModifiedNodeState extends AbstractNodeState {
      */
     public static NodeState squeeze(NodeState state) {
         if (state instanceof ModifiedNodeState) {
-            Map<String, PropertyState> properties = newHashMap();
+            Map<String, PropertyState> properties = new HashMap<>();
             for (PropertyState property : state.getProperties()) {
                 properties.put(property.getName(), property);
             }
 
-            Map<String, NodeState> nodes = newHashMap();
+            Map<String, NodeState> nodes = new HashMap<>();
             for (ChildNodeEntry child : state.getChildNodeEntries()) {
                 nodes.put(child.getName(), squeeze(child.getNodeState()));
             }
@@ -166,7 +167,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getProperties(); // shortcut
         } else {
             if (copy) {
-                properties = newHashMap(properties);
+                properties = new HashMap<>(properties);
             }
             Predicate<PropertyState> predicate = Predicates.compose(
                     not(in(properties.keySet())), GET_NAME::apply);
@@ -217,7 +218,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getChildNodeNames(); // shortcut
         } else {
             if (copy) {
-                nodes = newHashMap(nodes);
+                nodes = new HashMap<>(nodes);
             }
             return concat(
                     filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
@@ -259,13 +260,13 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (checkNotNull(properties).isEmpty()) {
             this.properties = emptyMap();
         } else {
-            this.properties = newHashMap(properties);
+            this.properties = new HashMap<>(properties);
         }
 
         if (checkNotNull(nodes).isEmpty()) {
             this.nodes = emptyMap();
         } else {
-            this.nodes = newHashMap();
+            this.nodes = new HashMap<>();
             for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
                 this.nodes.put(entry.getKey(), entry.getValue().snapshot());
             }

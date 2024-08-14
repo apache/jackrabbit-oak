@@ -22,7 +22,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,6 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
-
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.HashBiMap;
@@ -667,7 +667,7 @@ public class RepositoryUpgrade {
 
     protected ConfigurationParameters mapConfigurationParameters(
             BeanConfig config, String... mapping) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = new HashMap<>();
         if (config != null) {
             Properties properties = config.getParameters();
             for (int i = 0; i + 1 < mapping.length; i += 2) {
