@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -48,6 +47,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,12 +56,11 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.isNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPaths;
 
@@ -209,12 +208,8 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     public Iterable<String> checkpoints() {
         final NodeStore globalNodeStore = ctx.getGlobalStore().getNodeStore();
-        return filter(globalNodeStore.checkpoints(), new Predicate<String>() {
-            @Override
-            public boolean apply(String checkpoint) {
-                return isCompositeCheckpoint(checkpoint);
-            }
-        });
+        return filter(globalNodeStore.checkpoints(),
+                checkpoint -> isCompositeCheckpoint(checkpoint));
     }
 
     private boolean isCompositeCheckpoint(String checkpoint) {
@@ -227,7 +222,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     @Override
     public String checkpoint(long lifetime, Map<String, String> properties) {
-        Map<String, String> globalProperties = newHashMap(properties);
+        Map<String, String> globalProperties = new HashMap<>(properties);
         globalProperties.put(CHECKPOINT_METADATA + "created", Long.toString(currentTimeMillis()));
         globalProperties.put(CHECKPOINT_METADATA + "expires", Long.toString(currentTimeMillis() + lifetime));
         String newCheckpoint = ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
@@ -248,12 +243,8 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             LOG.debug("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception("call stack"));
             return Collections.emptyMap();
         }
-        return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint), new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return !input.startsWith(CHECKPOINT_METADATA);
-            }
-        }));
+        return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint),
+                input -> !input.startsWith(CHECKPOINT_METADATA)));
     }
 
     Map<String, String> allCheckpointInfo(String checkpoint) {
@@ -267,7 +258,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             return null;
         }
         Map<String, String> props = ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint);
-        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+        Map<MountedNodeStore, NodeState> nodeStates = new HashMap<>();
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
             NodeState nodeState;
@@ -279,7 +270,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             }
             nodeStates.put(nodeStore, nodeState);
         }
-        if (any(nodeStates.values(), isNull())) {
+        if (any(nodeStates.values(), x -> x == null)) {
             LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return null;
         }

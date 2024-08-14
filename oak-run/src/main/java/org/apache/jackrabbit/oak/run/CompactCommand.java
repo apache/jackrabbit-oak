@@ -78,6 +78,16 @@ class CompactCommand implements Command {
                 .withRequiredArg()
                 .ofType(Integer.class)
                 .defaultsTo(50);
+        OptionSpec<Integer> garbageThresholdGb = parser.accepts("garbage-threshold-gb", "Minimum amount of garbage in GB (defaults to 0 GB) for "
+                        + "compaction to run")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(0);
+        OptionSpec<Integer> garbageThresholdPercentage = parser.accepts("garbage-threshold-percentage", "Minimum amount of garbage in percentage (defaults to 0%) for "
+                        + "compaction to run")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(0);
 
 
         OptionSet options = parser.parse(args);
@@ -99,24 +109,30 @@ class CompactCommand implements Command {
                 System.exit(-1);
             }
 
-            if (persistentCachePath.value(options) == null) {
-                System.err.println("A path for the persistent disk cache needs to be specified");
-                parser.printHelpOn(System.err);
-                System.exit(-1);
-            }
-
             AzureCompact.Builder azureBuilder = AzureCompact.builder()
                     .withPath(path)
                     .withTargetPath(targetPath.value(options))
-                    .withPersistentCachePath(persistentCachePath.value(options))
-                    .withPersistentCacheSizeGb(persistentCacheSizeGb.value(options))
                     .withForce(options.has(forceArg))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
                     .withConcurrency(nThreads.value(options));
 
+            if (options.has(persistentCachePath)) {
+                azureBuilder.withPersistentCachePath(persistentCachePath.value(options));
+                azureBuilder.withPersistentCacheSizeGb(persistentCacheSizeGb.value(options));
+            }
+
+            if (options.has(garbageThresholdGb)) {
+                azureBuilder.withGarbageThresholdGb(garbageThresholdGb.value(options));
+            }
+
+            if (options.has(garbageThresholdPercentage)) {
+                azureBuilder.withGarbageThresholdPercentage(garbageThresholdPercentage.value(options));
+            }
+
             if (options.has(tailArg)) {
                 azureBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
             }
+
             if (options.has(compactor)) {
                 azureBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }

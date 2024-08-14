@@ -35,11 +35,11 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
 public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, CompositeNodeStoreMonitor {
@@ -87,7 +87,7 @@ public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, Co
         this.nodeSwitchToDefaultMount = statisticsProvider.getCounterStats(prefix + NODE_SWITCH_TO_DEFAULT_MOUNT, StatsOptions.DEFAULT);
         this.nodeSwitchToNonDefaultMount = statisticsProvider.getCounterStats(prefix + NODE_SWITCH_TO_NON_DEFAULT_MOUNT, StatsOptions.DEFAULT);
 
-        this.nodePathCounts = newHashMap();
+        this.nodePathCounts = new HashMap<>();
         this.maxNodePathCount = 0;
 
         this.countPaths = countPaths;
@@ -194,7 +194,7 @@ public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, Co
                 .stream()
                 .sorted(Comparator.<Entry<String, Long>>comparingLong(Entry::getValue).reversed())
                 .map(e -> {
-                    Map<String, Object> m = newHashMap();
+                    Map<String, Object> m = new HashMap<>();
                     m.put("count", e.getValue());
                     m.put("path", e.getKey());
                     return m;

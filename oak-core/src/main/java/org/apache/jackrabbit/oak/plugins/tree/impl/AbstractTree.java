@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -34,9 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -279,13 +276,7 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        return filter(getNodeBuilder().getProperties(),
-            new Predicate<PropertyState>() {
-                @Override
-                public boolean apply(PropertyState propertyState) {
-                    return !isHidden(propertyState.getName());
-                }
-            });
+        return filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
     }
 
     @Override
@@ -320,13 +311,10 @@ public abstract class AbstractTree implements Tree {
     @NotNull
     public Iterable<Tree> getChildren() {
         Iterable<Tree> children = transform(getChildNames(),
-            new Function<String, Tree>() {
-                @Override
-                public Tree apply(String name) {
+                name ->  {
                     AbstractTree child = createChild(name);
                     return child.exists() ? child : null;
-                }
-            });
-        return filter(children, notNull());
+                });
+        return filter(children, x -> x != null);
     }
 }

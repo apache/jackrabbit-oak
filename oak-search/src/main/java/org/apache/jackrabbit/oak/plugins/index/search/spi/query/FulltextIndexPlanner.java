@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
@@ -983,8 +983,10 @@ public class FulltextIndexPlanner {
                     return rule;
                 }
             }
-            log.trace("No applicable IndexingRule found for any of the superTypes {}",
-                    filter.getSupertypes());
+            if (log.isTraceEnabled()) {
+                log.trace("No applicable IndexingRule found for any of the superTypes {}",
+                        filter.getSupertypes());
+            }
         }
         return null;
     }
@@ -1032,11 +1034,11 @@ public class FulltextIndexPlanner {
         private final List<PropertyDefinition> sortedProperties = newArrayList();
 
         //Map of actual property name as present in our property definitions
-        private final Map<String, PropertyDefinition> propDefns = newHashMap();
+        private final Map<String, PropertyDefinition> propDefns = new HashMap<>();
 
         //Map of property restriction name -> property definition name
         //like 'jcr:content/status' -> 'status'
-        private final Map<String, String> relPropMapping = newHashMap();
+        private final Map<String, String> relPropMapping = new HashMap<>();
 
         private boolean nonFullTextConstraints;
         private int parentDepth;

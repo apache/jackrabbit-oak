@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collection;
@@ -40,7 +41,6 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -590,6 +590,30 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String q = "SELECT * FROM [nt:unstructured] as content WHERE references LIKE '/some/content/efjoiefjowfgj/%'";
         String explain = explain(q);
         assertThat(explain, containsString("references:/some/content/efjoiefjowfgj/*"));
+    }
+
+    //OAK-9481
+    @Test
+    public void likeQueryOnPropertiesWithExcludedPrefixes() throws Exception {
+        Tree idx = createIndex("test1", of("references"));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("references");
+        propIdx.setProperty("valueExcludedPrefixes", of("/a/b/c2"), STRINGS);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("references", of("/a/b/c1", "/a/b/c2", "/a/b/c10"), Type.STRINGS);
+        test.addChild("b").setProperty("references", of("/a/b/c22","/a/b/d12"), Type.STRINGS);
+        root.commit();
+
+        // index test1 not picked up because property restriction matches value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/c%'"),
+                containsString("[nt:unstructured] as [content] /* nodeType"));
+        // index test1 gets picked up because property restriction does not match value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/d%'"),
+                containsString("luceneQuery: references:/a/b/d*"));
+
+        assertQuery("SELECT [jcr:path] FROM [nt:base] as [content] WHERE [content].[references] LIKE '/a/b/c%'", SQL2, asList());
+        assertQuery("SELECT [jcr:path] FROM [nt:base] WHERE references LIKE '/a/b/d%'", asList("/test/b"));
     }
 
     @Test
@@ -3411,11 +3435,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
 
         public AccessStateProvidingBlob(String content) {
-            this(content.getBytes(Charsets.UTF_8));
+            this(content.getBytes(StandardCharsets.UTF_8));
         }
 
         public AccessStateProvidingBlob(String content, String id) {
-            this(content.getBytes(Charsets.UTF_8));
+            this(content.getBytes(StandardCharsets.UTF_8));
             this.id = id;
         }
 

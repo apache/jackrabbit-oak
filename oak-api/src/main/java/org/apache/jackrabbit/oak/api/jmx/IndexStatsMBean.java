@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.api.jmx;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
@@ -126,6 +127,15 @@ public interface IndexStatsMBean {
      * @return the reference checkpoint
      */
     String getReferenceCheckpoint();
+
+    @Description("Force update the indexing lane to a checkpoint created during execution of this function. This will abort and pause the running lane, release it's lease and set the reference checkpoint to a latest one." +
+            "Any content changes between the old reference checkpoint and the new one will be not be indexed and a reindexing would be required." +
+            "Only use this operation if you are sure that the lane is stuck and not updated since many days and cannot catch up on its own." +
+            "Once this operation is completed, reindexing for all indexes on the lane is required.")
+    String forceIndexLaneCatchup(
+            @Name("Confirmation Message")
+            @Description("Enter 'CONFIRM' to confirm the operation")
+            String confirmationMessage) throws CommitFailedException;
 
     /**
      * Returns the processed checkpoint used by the async indexer. If this index

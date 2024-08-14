@@ -26,20 +26,17 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.jetbrains.annotations.NotNull;
 
 public final class Utils {
 
@@ -77,13 +74,8 @@ public final class Utils {
 
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
-                Iterator<String> revisionIterator = Iterators.transform(journalReader, new Function<JournalEntry, String>() {
-                    @NotNull
-                    @Override
-                    public String apply(JournalEntry entry) {
-                        return entry.getRevision();
-                    }
-                });
+                Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                        entry -> entry.getRevision());
                 return newArrayList(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();

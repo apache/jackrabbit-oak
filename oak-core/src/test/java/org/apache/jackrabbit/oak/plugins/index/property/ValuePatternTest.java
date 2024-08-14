@@ -236,6 +236,41 @@ public class ValuePatternTest {
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.LIKE, 
                 PropertyValues.newString("hello%"));
+        assertEquals("hello", getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("helloworld"));
+        assertEquals("helloworld", getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("hello_orld"));
+        assertEquals("hello", getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("%hello"));
+        assertNull(getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("hello\\%"));
+        assertEquals("hello%", getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("hello\\_world%"));
+        assertEquals("hello_world", getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("hello_world%"));
+        assertEquals("hello", getLongestPrefix(filter, "x"));
+
+        filter = new FilterImpl(null, null, null);
+        filter.restrictProperty("x", Operator.LIKE,
+                PropertyValues.newString("_hello_world%"));
         assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);

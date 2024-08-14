@@ -237,6 +237,31 @@ public class UtilsTest {
     }
 
     @Test
+    public void fullGCModeDefaultValue() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        int fullGCModeDefaultValue = builder.getFullGCMode();
+        final int fullGcModeNone = 0;
+        assertEquals("Full GC mode has NONE value by default", fullGCModeDefaultValue, fullGcModeNone);
+    }
+
+    @Test
+    public void fullGCModeSetViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        final int fullGcModeGapOrphans = 2;
+        builder.setFullGCMode(fullGcModeGapOrphans);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode set correctly via configuration", fullGCModeValue, fullGcModeGapOrphans);
+    }
+
+    @Test
+    public void fullGCModeHasDefaultValueForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCMode(3);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode has default value 0 for RDB Document Store", fullGCModeValue, 0);
+    }
+
+    @Test
     public void embeddedVerificationEnabledDefaultValue() {
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(newDocumentNodeStoreBuilder());
         assertTrue("Embedded Verification is enabled by default", embeddedVerificationEnabled);

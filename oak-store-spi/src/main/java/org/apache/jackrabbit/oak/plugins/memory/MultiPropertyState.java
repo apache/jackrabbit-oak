@@ -21,15 +21,12 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -62,89 +59,29 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     private <S> S  convertTo(Type<S> type) {
         switch (type.tag()) {
             case PropertyType.STRING:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toString();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toString());
             case PropertyType.BINARY:
-                return (S) Iterables.transform(values, new Function<T, Blob>() {
-                    @Override
-                    public Blob apply(T value) {
-                        return getConverter(value).toBinary();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toBinary());
             case PropertyType.LONG:
-                return (S) Iterables.transform(values, new Function<T, Long>() {
-                    @Override
-                    public Long apply(T value) {
-                        return getConverter(value).toLong();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toLong());
             case PropertyType.DOUBLE:
-                return (S) Iterables.transform(values, new Function<T, Double>() {
-                    @Override
-                    public Double apply(T value) {
-                        return getConverter(value).toDouble();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toDouble());
             case PropertyType.DATE:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toDate();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toDate());
             case PropertyType.BOOLEAN:
-                return (S) Iterables.transform(values, new Function<T, Boolean>() {
-                    @Override
-                    public Boolean apply(T value) {
-                        return getConverter(value).toBoolean();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toBoolean());
             case PropertyType.NAME:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toString();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toString());
             case PropertyType.PATH:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toString();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toString());
             case PropertyType.REFERENCE:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toString();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toString());
             case PropertyType.WEAKREFERENCE:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toString();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toString());
             case PropertyType.URI:
-                return (S) Iterables.transform(values, new Function<T, String>() {
-                    @Override
-                    public String apply(T value) {
-                        return getConverter(value).toString();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toString());
             case PropertyType.DECIMAL:
-                return (S) Iterables.transform(values, new Function<T, BigDecimal>() {
-                    @Override
-                    public BigDecimal apply(T value) {
-                        return getConverter(value).toDecimal();
-                    }
-                });
+                return (S) Iterables.transform(values, value -> getConverter(value).toDecimal());
             default: throw new IllegalArgumentException("Unknown type:" + type);
         }
     }

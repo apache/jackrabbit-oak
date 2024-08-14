@@ -49,11 +49,11 @@ import javax.jcr.security.AccessControlManager;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -131,7 +131,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetRestrictionPattern() throws Exception {
-        Map<PropertyState, RestrictionPattern> map = newHashMap();
+        Map<PropertyState, RestrictionPattern> map = new HashMap<>();
         map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
         map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
@@ -159,7 +159,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetPatternForAllSupported() throws Exception {
-        Map<PropertyState, RestrictionPattern> map = newHashMap();
+        Map<PropertyState, RestrictionPattern> map = new HashMap<>();
         String globRestriction = "/*/jcr:content";
         map.put(PropertyStates.createProperty(REP_GLOB, globRestriction), GlobPattern.create("/testPath", globRestriction));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
@@ -189,7 +189,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
     public void testGetPatternFromRestrictions() throws Exception {
         String globRestriction = "/*/jcr:content";
 
-        Map<PropertyState, RestrictionPattern> map = newHashMap();
+        Map<PropertyState, RestrictionPattern> map = new HashMap<>();
         map.put(PropertyStates.createProperty(REP_GLOB, globRestriction), GlobPattern.create("/testPath", globRestriction));
 
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);

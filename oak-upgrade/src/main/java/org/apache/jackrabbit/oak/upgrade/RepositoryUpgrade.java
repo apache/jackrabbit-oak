@@ -22,7 +22,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -37,8 +37,10 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.S
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,8 +60,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.HashBiMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -144,7 +144,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermDocs;
 import org.apache.lucene.index.TermEnum;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -668,7 +667,7 @@ public class RepositoryUpgrade {
 
     protected ConfigurationParameters mapConfigurationParameters(
             BeanConfig config, String... mapping) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = new HashMap<>();
         if (config != null) {
             Properties properties = config.getParameters();
             for (int i = 0; i + 1 < mapping.length; i += 2) {
@@ -777,15 +776,8 @@ public class RepositoryUpgrade {
             while (it.hasNext()) {
                 Privilege aggrPriv = it.next();
 
-                List<String> aggrNames = Lists.transform(
-                        ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
-                        new Function<Privilege, String>() {
-                            @Nullable
-                            @Override
-                            public String apply(@Nullable Privilege input) {
-                                return (input == null) ? null : input.getName();
-                            }
-                        });
+                List<String> aggrNames = Lists.transform(ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
+                        input -> (input == null) ? null : input.getName());
                 if (allAggregatesRegistered(pMgr, aggrNames)) {
                     pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(), aggrNames.toArray(new String[aggrNames.size()]));
                     it.remove();
@@ -1025,7 +1017,7 @@ public class RepositoryUpgrade {
         if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
+        if (name.getBytes(StandardCharsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
             return false;
         }
         return true;
@@ -1038,7 +1030,7 @@ public class RepositoryUpgrade {
         if (parentPath.length() < Utils.PATH_SHORT) {
             return false;
         }
-        if (parentPath.getBytes(Charsets.UTF_8).length < Utils.PATH_LONG) {
+        if (parentPath.getBytes(StandardCharsets.UTF_8).length < Utils.PATH_LONG) {
             return false;
         }
         return true;

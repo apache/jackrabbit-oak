@@ -24,9 +24,6 @@ import java.util.TimeZone;
 
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -91,49 +88,22 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     @Override
     public String[] getInactiveClusterNodes() {
         return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return !input.isActive();
-            }
-        }), new Function<ClusterNodeInfoDocument, String>() {
-            @Override
-            public String apply(ClusterNodeInfoDocument input) {
-                return input.getClusterId() + "=" + input.getCreated();
-            }
-        }), String.class);
+                input -> !input.isActive()),
+                input -> input.getClusterId() + "=" + input.getCreated()), String.class);
     }
 
     @Override
     public String[] getActiveClusterNodes() {
         return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return input.isActive();
-            }
-        }), new Function<ClusterNodeInfoDocument, String>() {
-            @Override
-            public String apply(ClusterNodeInfoDocument input) {
-                return input.getClusterId() + "=" + input.getLeaseEndTime();
-            }
-        }), String.class);
+                input -> input.isActive()),
+                input -> input.getClusterId() + "=" + input.getLeaseEndTime()), String.class);
     }
 
     @Override
     public String[] getLastKnownRevisions() {
         return toArray(transform(filter(nodeStore.getHeadRevision(),
-                new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return input.getClusterId() != getClusterId();
-            }
-        }), new Function<Revision, String>() {
-            @Override
-            public String apply(Revision input) {
-                return input.getClusterId() + "=" + input.toString();
-            }
-        }), String.class);
+                input -> input.getClusterId() != getClusterId()),
+                input -> input.getClusterId() + "=" + input.toString()), String.class);
     }
 
     @Override

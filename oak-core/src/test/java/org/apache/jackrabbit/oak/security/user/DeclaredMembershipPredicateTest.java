@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -32,6 +31,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+
+import java.util.function.Predicate;
 
 public class DeclaredMembershipPredicateTest extends AbstractSecurityTest {
 
@@ -92,44 +93,44 @@ public class DeclaredMembershipPredicateTest extends AbstractSecurityTest {
         assertNull(userManager.getAuthorizable(id));
 
         Predicate<Authorizable> predicate = getDeclaredMembershipPredicate(id);
-        assertFalse(predicate.apply(testUser));
-        assertFalse(predicate.apply(testGroup));
-        assertFalse(predicate.apply(inheritedMember));
-        assertFalse(predicate.apply(null));
+        assertFalse(predicate.test(testUser));
+        assertFalse(predicate.test(testGroup));
+        assertFalse(predicate.test(inheritedMember));
+        assertFalse(predicate.test(null));
     }
 
     @Test
     public void testUserId() throws Exception {
         Predicate<Authorizable> predicate = getDeclaredMembershipPredicate(testUser.getID());
-        assertFalse(predicate.apply(testUser));
-        assertFalse(predicate.apply(testGroup));
-        assertFalse(predicate.apply(inheritedMember));
-        assertFalse(predicate.apply(null));
+        assertFalse(predicate.test(testUser));
+        assertFalse(predicate.test(testGroup));
+        assertFalse(predicate.test(inheritedMember));
+        assertFalse(predicate.test(null));
     }
 
     @Test
     public void testMembers() throws Exception {
         Predicate<Authorizable> predicate = getDeclaredMembershipPredicate(testGroup.getID());
-        assertTrue(predicate.apply(testMember));
-        assertTrue(predicate.apply(testUser));
+        assertTrue(predicate.test(testMember));
+        assertTrue(predicate.test(testUser));
 
-        assertFalse(predicate.apply(testGroup));
-        assertFalse(predicate.apply(inheritedMember));
-        assertFalse(predicate.apply(null));
+        assertFalse(predicate.test(testGroup));
+        assertFalse(predicate.test(inheritedMember));
+        assertFalse(predicate.test(null));
     }
 
     @Test
     public void testApplyTwice() throws Exception {
         Predicate<Authorizable> predicate = getDeclaredMembershipPredicate(testGroup.getID());
-        predicate.apply(testMember);
-        assertTrue(predicate.apply(testMember));
+        predicate.test(testMember);
+        assertTrue(predicate.test(testMember));
     }
 
     @Test
     public void testApplyTwiceNotMember() throws Exception {
         Predicate<Authorizable> predicate = getDeclaredMembershipPredicate(testGroup.getID());
-        predicate.apply(inheritedMember);
-        assertFalse(predicate.apply(inheritedMember));
+        predicate.test(inheritedMember);
+        assertFalse(predicate.test(inheritedMember));
     }
 
     @Test
@@ -138,6 +139,6 @@ public class DeclaredMembershipPredicateTest extends AbstractSecurityTest {
 
         Authorizable a = Mockito.mock(Authorizable.class);
         when(a.getID()).thenThrow(new RepositoryException());
-        assertFalse(predicate.apply(a));
+        assertFalse(predicate.test(a));
     }
 }

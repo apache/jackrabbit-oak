@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -54,13 +54,13 @@ class MutableNodeState extends AbstractNodeState {
      * Set of added, modified or removed ({@code null} value)
      * property states.
      */
-    private final Map<String, PropertyState> properties = newHashMap();
+    private final Map<String, PropertyState> properties = new HashMap<>();
 
     /**
      * Set of added, modified or removed (non-existent value)
      * child nodes.
      */
-    private final Map<String, MutableNodeState> nodes = newHashMap();
+    private final Map<String, MutableNodeState> nodes = new HashMap<>();
 
     /**
      * Flag to indicate that this child has been replace in its parent.

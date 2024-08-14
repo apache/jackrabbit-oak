@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,7 +87,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
@@ -199,7 +199,7 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = Files.newWriter(referencesTemp, UTF_8);
+                final BufferedWriter writer = Files.newWriter(referencesTemp, StandardCharsets.UTF_8);
 
                 boolean threw = true;
                 try {
@@ -405,7 +405,7 @@ public class DataStoreCommand implements Command {
     }
 
     private static void verboseIds(BlobStoreOptions blobOpts, File readFile, File writeFile) throws IOException {
-        LineIterator idIterator = FileUtils.lineIterator(readFile, UTF_8.name());
+        LineIterator idIterator = FileUtils.lineIterator(readFile, StandardCharsets.UTF_8.name());
 
         try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(idIterator, readFile,
             (Function<String, String>) input -> VerboseIdLogger.encodeId(input, blobOpts.getBlobStoreType()))) {
@@ -687,7 +687,7 @@ public class DataStoreCommand implements Command {
                 File tempFile = new File(outDir, outFile.getName() + "-temp");
                 FileUtils.moveFile(outFile, tempFile);
                 try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(
-                    FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
+                    FileUtils.lineIterator(tempFile, StandardCharsets.UTF_8.toString()), tempFile,
                     (Function<String, String>) input -> encodeId(input, blobStoreType))) {
                     writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
                 }

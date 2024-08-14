@@ -46,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.base.Predicates;
@@ -236,13 +235,8 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void childNodeEntryForMountIsComposite() {
-        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
-
-            @Override
-            public boolean apply(ChildNodeEntry input) {
-                return input.getName().equals("libs");
-            }
-        });
+        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(),
+                input -> input.getName().equals("libs"));
 
         assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));
     }
@@ -658,7 +652,7 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME)));
+        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME::apply)));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 

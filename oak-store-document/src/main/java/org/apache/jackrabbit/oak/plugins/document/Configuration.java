@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -261,6 +262,24 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     String[] persistentCacheIncludes() default {"/"};
 
     @AttributeDefinition(
+            name = "Full GC Include Paths",
+            description = "Paths which should be included in full garbage collection. " +
+                    "Include and exclude paths can overlap. Exclude paths will take precedence. " +
+                    "Note that this value can be overridden with a system property " +
+                    "'oak.documentstore.fullGCIncludePaths' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.fullGCIncludePaths=/content::/var")
+    String[] fullGCIncludePaths() default {"/"};
+
+    @AttributeDefinition(
+            name = "Full GC Exclude Paths",
+            description = "Paths which should be excluded from full Garbage collection. " +
+                    "Include and exclude paths can overlap. Exclude paths will take precedence. " +
+                    "Note that this value can be overridden with a system property " +
+                    "'oak.documentstore.fullGCExcludePaths' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.fullGCExcludePaths=/content::/var")
+    String[] fullGCExcludePaths() default {};
+
+    @AttributeDefinition(
             name = "Lease check mode",
             description = "The lease check mode. 'STRICT' is the default and " +
                     "will stop the DocumentNodeStore as soon as the lease " +
@@ -324,4 +343,14 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.embeddedVerificationEnabled'")
     boolean embeddedVerificationEnabled() default DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC Mode",
+            description = "Integer value indicating which Full GC mode should be enabled for " +
+                    "document node store. The Default value is " + DEFAULT_FULL_GC_MODE +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCMode'. " +
+                    "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled " +
+                    "is set to true, the fullGCMode will be ignored.")
+    int fullGCMode() default DEFAULT_FULL_GC_MODE;
 }

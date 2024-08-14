@@ -38,9 +38,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
@@ -710,10 +710,10 @@ public class LastRevRecoveryAgent {
         ClusterPredicate cp = new ClusterPredicate(clusterId);
 
         Revision lastModified = null;
-        for (String property : Sets.filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+        for (String property : Sets.filter(doc.keySet(), PROPERTY_OR_DELETED::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             // collect committed changes of this cluster node
-            for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp).entrySet()) {
+            for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp::test).entrySet()) {
                 Revision rev = entry.getKey();
                 String cv = revisionContext.getCommitValue(rev, doc);
                 if (isCommitted(cv)) {
@@ -762,13 +762,9 @@ public class LastRevRecoveryAgent {
      */
     public Iterable<Integer> getRecoveryCandidateNodes() {
         return Iterables.transform(filter(missingLastRevUtil.getAllClusters(),
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return revisionContext.getClusterId() != input.getClusterId()
-                        && input.isRecoveryNeeded(revisionContext.getClock().getTime());
-            }
-        }), ClusterNodeInfoDocument::getClusterId);
+                input ->revisionContext.getClusterId() != input.getClusterId()
+                        && input.isRecoveryNeeded(revisionContext.getClock().getTime())),
+                ClusterNodeInfoDocument::getClusterId);
     }
 
     private static class ClusterPredicate implements Predicate<Revision> {
@@ -779,7 +775,7 @@ public class LastRevRecoveryAgent {
         }
 
         @Override
-        public boolean apply(Revision input) {
+        public boolean test(Revision input) {
             return clusterId == input.getClusterId();
         }
     }

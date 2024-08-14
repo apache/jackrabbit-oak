@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
@@ -289,14 +288,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return Iterables.transform(
-                getChildNodeEntries(),
-                new Function<ChildNodeEntry, String>() {
-                    @Override
-                    public String apply(ChildNodeEntry input) {
-                        return input.getName();
-                    }
-                });
+        return Iterables.transform(getChildNodeEntries(), input -> input.getName());
     }
 
     /**

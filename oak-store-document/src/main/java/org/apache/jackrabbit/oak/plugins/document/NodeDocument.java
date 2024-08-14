@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -33,9 +34,9 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -60,7 +61,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static java.util.stream.Collectors.toSet;
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
+
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
@@ -747,7 +748,7 @@ public final class NodeDocument extends Document {
             clusterIds = Sets.newHashSet();
             for (Revision prevRev : getPreviousRanges().keySet()) {
                 if (lower.isRevisionNewer(prevRev) ||
-                        equal(prevRev, lower.getRevision(prevRev.getClusterId()))) {
+                        Objects.equals(prevRev, lower.getRevision(prevRev.getClusterId()))) {
                     clusterIds.add(prevRev.getClusterId());
                 }
             }
@@ -1354,21 +1355,12 @@ public final class NodeDocument extends Document {
             }
 
             // didn't find entry -> scan through remaining head ranges
-            return filter(transform(getPreviousRanges().headMap(revision).entrySet(),
-                    new Function<Map.Entry<Revision, Range>, NodeDocument>() {
-                @Override
-                public NodeDocument apply(Map.Entry<Revision, Range> input) {
+            return filter(transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
                     if (input.getValue().includes(revision)) {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
                     return null;
-                }
-            }), new Predicate<NodeDocument>() {
-                @Override
-                public boolean apply(@Nullable NodeDocument input) {
-                    return input != null && input.getValueMap(property).containsKey(revision);
-                }
-            });
+                }), input ->input != null && input.getValueMap(property).containsKey(revision));
         }
     }
 
@@ -1535,12 +1527,7 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Revision> getChanges(@NotNull final String property,
                                   @NotNull final RevisionVector min) {
-        Predicate<Revision> p = new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return min.isRevisionNewer(input);
-            }
-        };
+        Predicate<Revision> p = input -> min.isRevisionNewer(input);
         List<Iterable<Revision>> changes = Lists.newArrayList();
         changes.add(abortingIterable(getLocalMap(property).keySet(), p));
         for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
@@ -1571,16 +1558,11 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
                                                             @NotNull final RevisionVector readRevision) {
-        Predicate<Map.Entry<Revision, String>> p = new Predicate<Map.Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision, String> input) {
-                return !readRevision.isRevisionNewer(input.getKey());
-            }
-        };
+        Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
         List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
         Map<Revision, String> localChanges = getLocalMap(property);
         if (!localChanges.isEmpty()) {
-            changes.add(filter(localChanges.entrySet(), p));
+            changes.add(filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
@@ -1662,17 +1644,14 @@ public final class NodeDocument extends Document {
         if (ranges.isEmpty()) {
             return Collections.emptyList();
         }
-        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges =
-                new Function<Range, Iterable<Map.Entry<Revision, String>>>() {
-            @Override
-            public Iterable<Map.Entry<Revision, String>> apply(Range input) {
+
+        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges = input -> {
                 NodeDocument doc = getPreviousDoc(input.high, input);
                 if (doc == null) {
                     return Collections.emptyList();
                 }
                 return doc.getVisibleChanges(property, readRev);
-            }
-        };
+            };
 
         Iterable<Map.Entry<Revision, String>> changes;
         if (ranges.size() == 1) {
@@ -1685,14 +1664,9 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges));
+            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, new Predicate<Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Entry<Revision, String> input) {
-                return !readRev.isRevisionNewer(input.getKey());
-            }
-        });
+        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
 
     /**
@@ -1789,12 +1763,7 @@ public final class NodeDocument extends Document {
     @NotNull
     RevisionVector getSweepRevisions() {
         return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
-                new Function<String, Revision>() {
-                    @Override
-                    public Revision apply(String s) {
-                        return Revision.fromString(s);
-                    }
-                }));
+                s -> Revision.fromString(s)));
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------

@@ -25,11 +25,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
@@ -42,7 +42,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -698,7 +697,7 @@ public class Commit {
             return r + " (not yet visible)";
         } else if (baseRevision != null
                 && !baseRevision.isRevisionNewer(r)
-                && !equal(baseRevision.getRevision(r.getClusterId()), r)) {
+                && !Objects.equals(baseRevision.getRevision(r.getClusterId()), r)) {
             return r + " (older than base " + baseRevision + ")";
         } else {
             return r.toString();
@@ -891,16 +890,8 @@ public class Commit {
         return bundledNodes.containsKey(path);
     }
 
-    private static final Function<UpdateOp.Key, String> KEY_TO_NAME =
-            new Function<UpdateOp.Key, String>() {
-        @Override
-        public String apply(UpdateOp.Key input) {
-            return input.getName();
-        }
-    };
-
     private static boolean hasContentChanges(UpdateOp op) {
         return filter(transform(op.getChanges().keySet(),
-                KEY_TO_NAME), Utils.PROPERTY_OR_DELETED).iterator().hasNext();
+                input -> input.getName()), Utils.PROPERTY_OR_DELETED::test).iterator().hasNext();
     }
 }

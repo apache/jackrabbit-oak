@@ -45,12 +45,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
@@ -140,6 +139,7 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
+    static final int DEFAULT_FULL_GC_MODE = 0;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -499,7 +499,10 @@ public class DocumentNodeStoreService {
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setFullGCEnabled(config.fullGCEnabled()).
+                setFullGCIncludePaths(config.fullGCIncludePaths()).
+                setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
+                setFullGCMode(config.fullGCMode()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
@@ -567,10 +570,10 @@ public class DocumentNodeStoreService {
 
     private Predicate<Path> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
         if (Arrays.equals(config.persistentCacheIncludes(), new String[]{"/"})) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
 
         Set<Path> paths = new HashSet<>();

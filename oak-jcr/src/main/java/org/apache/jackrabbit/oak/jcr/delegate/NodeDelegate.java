@@ -61,6 +61,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
@@ -70,9 +71,6 @@ import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -299,12 +297,7 @@ public class NodeDelegate extends ItemDelegate {
     @NotNull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
         return transform(getTree().getProperties().iterator(),
-                new Function<PropertyState, PropertyDelegate>() {
-                    @Override
-                    public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionDelegate, tree, propertyState.getName());
-                    }
-                });
+                propertyState -> new PropertyDelegate(sessionDelegate, tree, propertyState.getName()));
     }
 
     /**
@@ -349,18 +342,8 @@ public class NodeDelegate extends ItemDelegate {
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
         return transform(
-                filter(iterator, new Predicate<Tree>() {
-                    @Override
-                    public boolean apply(Tree tree) {
-                        return tree.exists();
-                    }
-                }),
-                new Function<Tree, NodeDelegate>() {
-                    @Override
-                    public NodeDelegate apply(Tree tree) {
-                        return new NodeDelegate(sessionDelegate, tree);
-                    }
-                });
+                filter(iterator, tree -> tree.exists()),
+                tree -> new NodeDelegate(sessionDelegate, tree));
     }
 
     public void orderBefore(String source, String target)

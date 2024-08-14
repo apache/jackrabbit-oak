@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
@@ -178,12 +177,12 @@ class MemoryNodeState extends AbstractNodeState {
             return (MemoryNodeState) state;
         }
 
-        Map<String, PropertyState> properties = newHashMap();
+        Map<String, PropertyState> properties = new HashMap<>();
         for (PropertyState property : state.getProperties()) {
             properties.put(property.getName(), property);
         }
 
-        Map<String, NodeState> nodes = newHashMap();
+        Map<String, NodeState> nodes = new HashMap<>();
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
             nodes.put(child.getName(), child.getNodeState());
         }

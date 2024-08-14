@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.base.Function;
+
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
@@ -40,12 +40,8 @@ public class CompositeTokenConfiguration extends CompositeConfiguration<TokenCon
     @NotNull
     @Override
     public TokenProvider getTokenProvider(@NotNull final Root root) {
-        List<TokenProvider> providers = Lists.transform(getConfigurations(), new Function<TokenConfiguration, TokenProvider>() {
-            @Override
-            public TokenProvider apply(TokenConfiguration tokenConfiguration) {
-                return tokenConfiguration.getTokenProvider(root);
-            }
-        });
+        List<TokenProvider> providers = Lists.transform(getConfigurations(),
+                tokenConfiguration -> tokenConfiguration.getTokenProvider(root));
         return CompositeTokenProvider.newInstance(providers);
     }
 }

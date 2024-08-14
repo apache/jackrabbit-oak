@@ -69,11 +69,11 @@ public class EntryPredicateTest {
 
         when(pattern.matches()).thenReturn(true);
 
-        assertFalse(pred.apply(null));
+        assertFalse(pred.test(null));
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches();
         verifyNoMoreInteractions(pattern);
@@ -88,10 +88,10 @@ public class EntryPredicateTest {
         when(pattern.matches(anyString())).thenReturn(false);
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(false);
 
-        assertFalse(pred.apply(null));
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(null));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verify(pattern, times(2)).matches(parentPath, false);
@@ -106,11 +106,11 @@ public class EntryPredicateTest {
         when(pattern.matches(anyString())).thenReturn(true);
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
 
-        assertFalse(pred.apply(null));
+        assertFalse(pred.test(null));
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verifyNoMoreInteractions(pattern);
@@ -125,9 +125,9 @@ public class EntryPredicateTest {
         when(pattern.matches(parentPath)).thenReturn(false);
         when(pattern.matches(parentPath, false)).thenReturn(false);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verifyNoMoreInteractions(pattern);
@@ -142,9 +142,9 @@ public class EntryPredicateTest {
         when(pattern.matches(parentPath)).thenReturn(true);
         when(pattern.matches(parentPath, false)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verify(pattern, times(2)).matches(parentPath, false);
@@ -160,9 +160,9 @@ public class EntryPredicateTest {
         when(pattern.matches(anyString())).thenReturn(false);
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verifyNoMoreInteractions(pattern);
@@ -176,11 +176,11 @@ public class EntryPredicateTest {
         when(pattern.matches(anyString())).thenReturn(true);
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
 
-        assertFalse(pred.apply(null));
+        assertFalse(pred.test(null));
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verifyNoMoreInteractions(pattern);
@@ -194,9 +194,9 @@ public class EntryPredicateTest {
         when(pattern.matches(path)).thenReturn(true);
         when(pattern.matches(parentPath)).thenReturn(false);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verifyNoMoreInteractions(pattern);
@@ -211,9 +211,9 @@ public class EntryPredicateTest {
         when(pattern.matches(parentPath)).thenReturn(true);
         when(pattern.matches(parentPath, false)).thenReturn(true);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path);
         verifyNoMoreInteractions(pattern);
@@ -227,9 +227,9 @@ public class EntryPredicateTest {
         // pattern neither matches path nor parent path
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
         
         verify(pattern, times(3)).matches(path, true);
         verify(pattern, times(2)).matches(parentPath, false);
@@ -243,10 +243,10 @@ public class EntryPredicateTest {
         // pattern matches path and parent path
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
 
-        assertFalse(pred.apply(null));
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertFalse(pred.test(null));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
@@ -259,9 +259,9 @@ public class EntryPredicateTest {
         // pattern only matches path
         when(pattern.matches(path, true)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
@@ -274,9 +274,9 @@ public class EntryPredicateTest {
         // pattern only matches parent path
         when(pattern.matches(parentPath, false)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path, true);
         verify(pattern, times(2)).matches(parentPath, false);
@@ -291,9 +291,9 @@ public class EntryPredicateTest {
         // pattern neither matches path nor parent path
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
         
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
@@ -306,11 +306,11 @@ public class EntryPredicateTest {
         // pattern matches path and parent path
         when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
 
-        assertFalse(pred.apply(null));
+        assertFalse(pred.test(null));
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
         
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
@@ -323,9 +323,9 @@ public class EntryPredicateTest {
         // pattern only matches path
         when(pattern.matches(path, true)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
@@ -339,9 +339,9 @@ public class EntryPredicateTest {
         when(pattern.matches(path, true)).thenReturn(false);
         when(pattern.matches(parentPath, false)).thenReturn(true);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(3)).matches(path, true);
         verifyNoMoreInteractions(pattern);
@@ -362,38 +362,38 @@ public class EntryPredicateTest {
         when(pattern.matches(parent, ps)).thenReturn(false);
         when(pattern.matches(parent, null)).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         // pattern matches path and parent path
         when(pattern.matches(tree, ps)).thenReturn(true);
         when(pattern.matches(parent, ps)).thenReturn(true);
         when(pattern.matches(parent, null)).thenReturn(true);
 
-        assertFalse(pred.apply(null));
+        assertFalse(pred.test(null));
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         // pattern only matches path
         when(pattern.matches(tree, ps)).thenReturn(true);
         when(pattern.matches(parent, ps)).thenReturn(false);
         when(pattern.matches(parent, null)).thenReturn(false);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         // pattern only matches parent path
         when(pattern.matches(tree, ps)).thenReturn(false);
         when(pattern.matches(parent, ps)).thenReturn(true);
         when(pattern.matches(parent, null)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(12)).matches(tree, ps);
         verify(pattern, times(4)).matches(parent, null);
@@ -415,38 +415,38 @@ public class EntryPredicateTest {
         when(pattern.matches(parent, ps)).thenReturn(false);
         when(pattern.matches(parent, null)).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         // pattern matches path and parent path
         when(pattern.matches(tree, ps)).thenReturn(true);
         when(pattern.matches(parent, ps)).thenReturn(true);
         when(pattern.matches(parent, null)).thenReturn(true);
 
-        assertFalse(pred.apply(null));
+        assertFalse(pred.test(null));
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         // pattern only matches path
         when(pattern.matches(tree, ps)).thenReturn(true);
         when(pattern.matches(parent, ps)).thenReturn(false);
         when(pattern.matches(parent, null)).thenReturn(false);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         // pattern only matches parent path
         when(pattern.matches(tree, ps)).thenReturn(false);
         when(pattern.matches(parent, ps)).thenReturn(true);
         when(pattern.matches(parent, null)).thenReturn(true);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         verify(pattern, times(12)).matches(tree, ps);
         verify(pattern, never()).matches(parent, ps);
@@ -461,16 +461,16 @@ public class EntryPredicateTest {
         // pattern doesn't match path
         when(pattern.matches(PathUtils.ROOT_PATH)).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         // pattern matches path
         when(pattern.matches(PathUtils.ROOT_PATH)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(6)).matches(PathUtils.ROOT_PATH);
     }
@@ -483,16 +483,16 @@ public class EntryPredicateTest {
         // pattern doesn't match path
         when(pattern.matches(PathUtils.ROOT_PATH)).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         // pattern matches path
         when(pattern.matches(PathUtils.ROOT_PATH)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(pattern, times(6)).matches(PathUtils.ROOT_PATH);
     }
@@ -508,16 +508,16 @@ public class EntryPredicateTest {
         // pattern doesn't match path
         when(pattern.matches(tree, null)).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         // pattern matches path
         when(pattern.matches(tree, null)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(tree, never()).getParent();
         verify(pattern, times(6)).matches(tree, null);
@@ -534,16 +534,16 @@ public class EntryPredicateTest {
         // pattern doesn't match path
         when(pattern.matches(tree, null)).thenReturn(false);
 
-        assertFalse(pred.apply(entry));
-        assertFalse(pred.apply(entry, true));
-        assertFalse(pred.apply(entry, false));
+        assertFalse(pred.test(entry));
+        assertFalse(pred.test(entry, true));
+        assertFalse(pred.test(entry, false));
 
         // pattern matches path
         when(pattern.matches(tree, null)).thenReturn(true);
 
-        assertTrue(pred.apply(entry));
-        assertTrue(pred.apply(entry, true));
-        assertTrue(pred.apply(entry, false));
+        assertTrue(pred.test(entry));
+        assertTrue(pred.test(entry, true));
+        assertTrue(pred.test(entry, false));
 
         verify(tree, never()).getParent();
         verify(pattern, times(6)).matches(tree, null);

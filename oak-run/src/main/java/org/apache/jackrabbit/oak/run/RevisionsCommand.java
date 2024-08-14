@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,6 +126,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Boolean> resetFullGC;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
+        final OptionSpec<String> includePaths;
+        final OptionSpec<String> excludePaths;
         final OptionSpec<?> entireRepo;
         final OptionSpec<?> compact;
         final OptionSpec<Boolean> dryRun;
@@ -158,6 +162,14 @@ public class RevisionsCommand implements Command {
                     .accepts("verbose", "print INFO messages to the console");
             path = parser
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
+            includePaths = parser
+                    .accepts("includePaths", "Paths which should be included in fullGC. " +
+                            "Paths should be separated with '::'. Example: --includePaths=/content::/var")
+                    .withRequiredArg().ofType(String.class).defaultsTo("/");
+            excludePaths = parser
+                    .accepts("excludePaths", "Paths which should be excluded from fullGC. " +
+                            "Paths should be separated with '::'. Example: --excludePaths=/content::/var")
+                    .withRequiredArg().ofType(String.class).defaultsTo("");
             entireRepo = parser
                     .accepts("entireRepo", "run fullGC on the entire repository");
             compact = parser
@@ -214,6 +226,14 @@ public class RevisionsCommand implements Command {
 
         String getPath() {
             return path.value(options);
+        }
+
+        String[] includePaths() {
+            return includePaths.value(options).split("::");
+        }
+
+        String[] excludePaths() {
+            return excludePaths.value(options).split("::");
         }
 
         boolean isResetFullGCOnly() {
@@ -293,6 +313,8 @@ public class RevisionsCommand implements Command {
         }
         // set fullGC
         builder.setFullGCEnabled(fullGCEnabled);
+        builder.setFullGCIncludePaths(options.includePaths());
+        builder.setFullGCExcludePaths(options.excludePaths());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -318,8 +340,10 @@ public class RevisionsCommand implements Command {
         System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
+        System.out.println("IncludePaths are : " + Arrays.toString(options.includePaths()));
+        System.out.println("ExcludePaths are : " + Arrays.toString(options.excludePaths()));
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
-                isEmbeddedVerificationEnabled(builder));
+                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -362,6 +386,8 @@ public class RevisionsCommand implements Command {
 
     private void collect(final RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, fullGCEnabled);
+        // Set a default statistics provider
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
@@ -374,6 +400,10 @@ public class RevisionsCommand implements Command {
                 gc.cancel();
                 finished.acquireUninterruptibly();
                 System.out.println("Stopped Revision GC.");
+                if (fullGCEnabled) {
+                    System.out.println("Full GC Stats:");
+                    System.out.println("    " + gc.getFullGCStatsReport());
+                }
             }));
             if (options.isContinuous()) {
                 while (running.get()) {
@@ -527,6 +557,8 @@ public class RevisionsCommand implements Command {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
         // Set a LoggingGC monitor that will output the fullGC operations
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
+        // Set a default statistics provider
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
         // Run fullGC on the given document
         NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
         if (workingDocument == null) {
@@ -535,8 +567,8 @@ public class RevisionsCommand implements Command {
         }
         gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
-        //TODO: Probably we should output some details of fullGCStats. Could be done after OAK-10378
-        //gc.getFullGCStats();
+        System.out.println("Full GC Stats:");
+        System.out.println("    " + gc.getFullGCStatsReport());
     }
 
     private String fmtTimestamp(long ts) {

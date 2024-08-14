@@ -25,14 +25,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +55,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
 
     @Override
     public Iterator<NodeDocument> iterator() {
-        return ensureOrder(filter(transform(doc.getPreviousRanges().entrySet(),
-                new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
-            @Nullable
-            @Override
-            public Map.Entry<Revision, NodeDocument> apply(Map.Entry<Revision, Range> input) {
+        return ensureOrder(filter(transform(doc.getPreviousRanges().entrySet(), input -> {
                 Revision r = input.getKey();
                 int h = input.getValue().height;
                 String prevId = Utils.getPreviousIdFor(mainPath, r, h);
@@ -72,8 +65,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
                     return null;
                 }
                 return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
-            }
-        }), Predicates.notNull()));
+            }), x -> x != null));
     }
 
     /**

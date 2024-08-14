@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,9 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 /**
  * This editor check if same name sibling nodes are allowed under a given
  * parent. If they are not, they will be renamed by replacing brackets with a
@@ -58,12 +56,7 @@ public class SameNameSiblingsEditor extends DefaultEditor {
 
     private static final Pattern SNS_REGEX = Pattern.compile("^(.+)\\[(\\d+)\\]$");
 
-    private static final Predicate<NodeState> NO_SNS_PROPERTY = new Predicate<NodeState>() {
-        @Override
-        public boolean apply(NodeState input) {
-            return !input.getBoolean(JCR_SAMENAMESIBLINGS);
-        }
-    };
+    private static final Predicate<NodeState> NO_SNS_PROPERTY = input -> !input.getBoolean(JCR_SAMENAMESIBLINGS);
 
     /**
      * List of node type definitions that doesn't allow to have SNS children.
@@ -167,17 +160,9 @@ public class SameNameSiblingsEditor extends DefaultEditor {
      * @return a list of names of children accepting the predicate
      */
     private static Iterable<String> filterChildren(NodeState parent, final Predicate<NodeState> predicate) {
-        return transform(filter(parent.getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
-            @Override
-            public boolean apply(ChildNodeEntry input) {
-                return predicate.apply(input.getNodeState());
-            }
-        }), new Function<ChildNodeEntry, String>() {
-            @Override
-            public String apply(ChildNodeEntry input) {
-                return input.getName();
-            }
-        });
+        return transform(filter(parent.getChildNodeEntries(),
+                input -> predicate.test(input.getNodeState())),
+                input -> input.getName());
     }
 
     /**

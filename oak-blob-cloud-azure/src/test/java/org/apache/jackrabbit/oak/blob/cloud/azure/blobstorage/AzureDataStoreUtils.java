@@ -34,7 +34,6 @@ import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -111,11 +110,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map<String, String> filtered = Maps.filterEntries(Maps.fromProperties(props),
+                    input -> !Strings.isNullOrEmpty((String) input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }
@@ -182,10 +178,12 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         Properties props = getAzureConfig();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
 
-        CloudBlobContainer container = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
-                .build().getBlobContainer();
-        boolean result = container.deleteIfExists();
-        log.info("Container deleted. containerName={} existed={}", containerName, result);
+        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
+                .build()) {
+            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
+            boolean result = container.deleteIfExists();
+            log.info("Container deleted. containerName={} existed={}", containerName, result);
+        }
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {

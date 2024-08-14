@@ -27,7 +27,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -278,11 +277,8 @@ public class UserQueryTest extends AbstractUserTest {
             });
 
             Iterator<Authorizable> members = g.getMembers();
-            Iterator<Authorizable> users = Iterators.filter(members, new Predicate<Authorizable>() {
-                public boolean apply(Authorizable authorizable) {
-                    return !authorizable.isGroup();
-                }
-            });
+            Iterator<Authorizable> users = Iterators.filter(members, 
+                    authorizable -> !authorizable.isGroup());
             assertSameElements(result, users);
         }
     }
@@ -303,11 +299,8 @@ public class UserQueryTest extends AbstractUserTest {
             });
 
             Iterator<Authorizable> members = g.getDeclaredMembers();
-            Iterator<Authorizable> users = Iterators.filter(members, new Predicate<Authorizable>() {
-                public boolean apply(Authorizable authorizable) {
-                    return authorizable.isGroup();
-                }
-            });
+            Iterator<Authorizable> users = Iterators.filter(members,
+                authorizable -> authorizable.isGroup());
             assertSameElements(result, users);
         }
     }
@@ -347,8 +340,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<Authorizable> expected = Iterators.filter(authorizables.iterator(), new Predicate<Authorizable>() {
-            public boolean apply(Authorizable authorizable) {
+        Iterator<Authorizable> expected = Iterators.filter(authorizables.iterator(), authorizable -> {
                 try {
                     String name = authorizable.getID();
                     Principal principal = authorizable.getPrincipal();
@@ -357,8 +349,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -424,8 +415,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] canFly = user.getProperty("canFly");
                     return canFly != null && canFly.length == 1 && canFly[0].getBoolean();
@@ -433,8 +423,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -449,8 +438,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] weight = user.getProperty("profile/weight");
                     return weight != null && weight.length == 1 && weight[0].getDouble() > 2000.0;
@@ -458,8 +446,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -474,8 +461,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] numberOfLegs = user.getProperty("numberOfLegs");
                     return numberOfLegs != null && numberOfLegs.length == 1 && numberOfLegs[0].getLong() == 8;
@@ -483,8 +469,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -499,8 +484,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] poisonous = user.getProperty("poisonous");
                     return poisonous != null && poisonous.length == 1;
@@ -508,8 +492,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -524,8 +507,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] food = user.getProperty("profile/food");
                     if (food == null || food.length != 1) {
@@ -538,8 +520,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -612,8 +593,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] cute = user.getProperty("profile/cute");
                     Value[] black = user.getProperty("color");
@@ -623,8 +603,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -641,8 +620,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), new Predicate<User>() {
-            public boolean apply(User user) {
+        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
                 try {
                     Value[] food = user.getProperty("profile/food");
                     return food != null && food.length == 1 &&
@@ -651,8 +629,7 @@ public class UserQueryTest extends AbstractUserTest {
                     fail(e.getMessage());
                 }
                 return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
@@ -877,8 +854,7 @@ public class UserQueryTest extends AbstractUserTest {
                 }
             });
 
-            Iterator<User> expected = Iterators.filter(sortedUsers.iterator(), new Predicate<User>() {
-                public boolean apply(User user) {
+            Iterator<User> expected = Iterators.filter(sortedUsers.iterator(), user -> {
                     try {
                         Value[] cute = user.getProperty("profile/cute");
                         Value[] weight = user.getProperty("profile/weight");
@@ -889,8 +865,7 @@ public class UserQueryTest extends AbstractUserTest {
                         fail(e.getMessage());
                     }
                     return false;
-                }
-            });
+                });
 
             assertSame(expected, result, count);
             assertFalse(result.hasNext());

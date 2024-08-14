@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,7 @@ class MutableSegmentReferences implements SegmentReferences {
 
     private final List<SegmentId> ids = newArrayList();
 
-    private final Map<SegmentId, Integer> numbers = newHashMap();
+    private final Map<SegmentId, Integer> numbers = new HashMap<>();
 
     @Override
     public SegmentId getSegmentId(int reference) {

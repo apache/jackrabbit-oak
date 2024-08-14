@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -31,7 +29,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.min;
@@ -53,8 +51,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -391,7 +391,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             // if the base map is small, update in memory and write as a new map
             if (base.isLeaf()) {
-                Map<String, MapEntry> map = newHashMap();
+                Map<String, MapEntry> map = new HashMap<>();
                 for (MapEntry entry : base.getEntries()) {
                     map.put(entry.getName(), entry);
                 }
@@ -519,7 +519,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return id; // shortcut if the same string was recently stored
             }
 
-            byte[] data = string.getBytes(UTF_8);
+            byte[] data = string.getBytes(StandardCharsets.UTF_8);
 
             if (data.length < Segment.MEDIUM_LIMIT) {
                 // only cache short strings to avoid excessive memory use
@@ -607,7 +607,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
          * @see Segment#BLOB_ID_SMALL_LIMIT
          */
         private RecordId writeBlobId(String blobId) throws IOException {
-            byte[] data = blobId.getBytes(UTF_8);
+            byte[] data = blobId.getBytes(StandardCharsets.UTF_8);
 
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
                 return writeOperationHandler.execute(gcGeneration, newWriteOperation(
@@ -1037,7 +1037,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private class ChildNodeCollectorDiff extends DefaultNodeStateDiff {
-            private final Map<String, RecordId> childNodes = newHashMap();
+            private final Map<String, RecordId> childNodes = new HashMap<>();
 
             @Nullable
             private MapRecord base;

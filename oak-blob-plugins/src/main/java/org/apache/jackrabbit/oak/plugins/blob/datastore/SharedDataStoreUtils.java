@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
@@ -61,7 +61,7 @@ public class SharedDataStoreUtils {
                     public Long apply(@NotNull DataRecord input) {
                         return input.getLastModified();
                     }
-                }).min(recs);
+                }::apply).min(recs);
     }
 
     /**
@@ -73,22 +73,10 @@ public class SharedDataStoreUtils {
      */
     public static Set<String> refsNotAvailableFromRepos(List<DataRecord> repos,
             List<DataRecord> refs) {
-        return Sets.difference(FluentIterable.from(repos).uniqueIndex(
-                new Function<DataRecord, String>() {
-                    @Override
-                    @Nullable
-                    public String apply(@NotNull DataRecord input) {
-                        return SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString());
-                    }
-                }).keySet(),
-                FluentIterable.from(refs).index(
-                        new Function<DataRecord, String>() {
-                            @Override
-                            @Nullable
-                            public String apply(@NotNull DataRecord input) {
-                                return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
-                            }
-                        }).keySet());
+        return Sets.difference(FluentIterable.from(repos)
+                .uniqueIndex(input -> SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString())).keySet(),
+                FluentIterable.from(refs)
+                        .index(input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString())).keySet());
     }
 
     /**

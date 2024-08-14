@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
@@ -74,6 +73,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -87,7 +87,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -936,19 +935,13 @@ public class DataStoreCommandTest {
     private static Set<String> encodedIdsAndPath(Set<String> ids, Type dsOption, Map<String, String> idToNodes,
         boolean encodeId) {
 
-        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input));
-            }
-        }));
+        return Sets.newHashSet(Iterators.transform(ids.iterator(),
+                input -> Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
     }
 
     private static Set<String> encodeIds(Set<String> ids, Type dsOption) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return encodeId(input, dsOption);
-            }
-        }));
+        return Sets.newHashSet(Iterators.transform(ids.iterator(),
+                input -> encodeId(input, dsOption)));
     }
 
 
@@ -1150,6 +1143,7 @@ public class DataStoreCommandTest {
         class AzureSegmentStoreFixture extends SegmentStoreFixture {
             private static final String AZURE_DIR = "repository";
             private String container;
+            private final AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager();
 
             @Override public NodeStore init(DataStoreBlobStore blobStore, File storeFile) throws Exception {
                 Properties props = AzureDataStoreUtils.getAzureConfig();
@@ -1166,7 +1160,7 @@ public class DataStoreCommandTest {
 
                 // initialize azure segment for test setup
                 SegmentNodeStorePersistence segmentNodeStorePersistence =
-                    ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, storePath);
+                    ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, storePath, azureStorageCredentialManager);
                 fileStore = fileStoreBuilder(storeFile).withBlobStore(blobStore)
                     .withCustomPersistence(segmentNodeStorePersistence).build();
 
@@ -1198,6 +1192,7 @@ public class DataStoreCommandTest {
             public void after() {
                 try {
                     AzureDataStoreUtils.deleteContainer(container);
+                    azureStorageCredentialManager.close();
                 } catch(Exception e) {
                     log.error("Error in cleaning the container {}", container, e);
                 }

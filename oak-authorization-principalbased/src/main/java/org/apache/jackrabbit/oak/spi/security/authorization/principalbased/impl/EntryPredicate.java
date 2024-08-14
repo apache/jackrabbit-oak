@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -30,6 +30,11 @@ final class EntryPredicate {
     private EntryPredicate() {}
 
     @NotNull
+    protected static Predicate<PermissionEntry> ALWAYS_FALSE() {
+        return x -> false;
+    };
+
+    @NotNull
     static Predicate<PermissionEntry> create() {
         return permissionEntry -> permissionEntry.matches();
     }
@@ -38,7 +43,7 @@ final class EntryPredicate {
     static Predicate<PermissionEntry> create(@NotNull String oakPath) {
         return permissionEntry -> permissionEntry.matches(oakPath);
     }
-    
+
     @NotNull
     static Predicate<PermissionEntry> create(@NotNull String oakPath, boolean isProperty) {
         return permissionEntry -> permissionEntry.matches(oakPath, isProperty);
@@ -59,10 +64,10 @@ final class EntryPredicate {
     @NotNull
     static Predicate<PermissionEntry> createParent(@NotNull String treePath, @Nullable Tree parentTree, long permissions) {
         if (!Permissions.respectParentPermissions(permissions)) {
-            return Predicates.alwaysFalse();
+            return ALWAYS_FALSE();
         }
         if (treePath.isEmpty() || PathUtils.denotesRoot(treePath)) {
-            return Predicates.alwaysFalse();
+            return ALWAYS_FALSE();
         } else if (parentTree != null && parentTree.exists()) {
             return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
         } else {
@@ -74,7 +79,7 @@ final class EntryPredicate {
     @NotNull
     static Predicate<PermissionEntry> createParent(@NotNull Tree tree, long permissions) {
         if (!Permissions.respectParentPermissions(permissions)) {
-            return Predicates.alwaysFalse();
+            return ALWAYS_FALSE();
         }
         if (!tree.exists()) {
             return createParent(tree.getPath(), tree.getParent(), permissions);
@@ -83,7 +88,7 @@ final class EntryPredicate {
                 Tree parentTree = tree.getParent();
                 return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
             } else {
-                return Predicates.alwaysFalse();
+                return ALWAYS_FALSE();
             }
         }
     }

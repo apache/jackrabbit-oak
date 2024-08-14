@@ -117,7 +117,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      */
     static final String ASYNC = ":async";
 
-    private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(1000);
+    private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(100);
 
     private static final CommitFailedException INTERRUPTED = new CommitFailedException(
             "Async", 1, "Indexing stopped forcefully");
@@ -1240,6 +1240,62 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         @Override
         public String getReferenceCheckpoint() {
             return referenceCp;
+        }
+
+        @Override
+        public String forceIndexLaneCatchup(String confirmMessage) throws CommitFailedException {
+
+            if (!"CONFIRM".equals(confirmMessage)) {
+                String msg = "Please confirm that you want to force the lane catch-up by passing 'CONFIRM' as argument";
+                log.warn(msg);
+                return msg;
+            }
+
+            if (!this.isFailing()) {
+                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catch up on its own.";
+                log.warn(msg);
+                return msg;
+            }
+
+            try {
+                log.info("Running a forced catch-up for indexing lane [{}]. ", name);
+                // First we need to abort and pause the running indexing task
+                this.abortAndPause();
+                log.info("Aborted and paused async indexing for lane [{}]", name);
+                // Release lease for the paused lane
+                this.releaseLeaseForPausedLane();
+                log.info("Released lease for paused lane [{}]", name);
+                String newReferenceCheckpoint = store.checkpoint(lifetime, Map.of(
+                        "creator", AsyncIndexUpdate.class.getSimpleName(),
+                        "created", now(),
+                        "thread", Thread.currentThread().getName(),
+                        "name", name + "-forceModified"));
+                String existingReferenceCheckpoint = this.referenceCp;
+                log.info("Modifying the referred checkpoint for lane [{}] from {} to {}." +
+                        " This means that any content modifications between these checkpoints will not reflect in the indexes on this lane." +
+                        " Reindexing is needed to get this content indexed.", name, existingReferenceCheckpoint, newReferenceCheckpoint);
+                NodeBuilder builder = store.getRoot().builder();
+                builder.child(ASYNC).setProperty(name, newReferenceCheckpoint);
+                this.referenceCp = newReferenceCheckpoint;
+                mergeWithConcurrencyCheck(store, validatorProviders, builder, existingReferenceCheckpoint, null, name);
+                // Remove the existing reference checkpoint
+                if (store.release(existingReferenceCheckpoint)) {
+                    log.info("Old reference checkpoint {} removed or didn't exist", existingReferenceCheckpoint);
+                } else {
+                    log.warn("Unable to remove old reference checkpoint {}. This can result in orphaned checkpoints and would need to be removed manually.", existingReferenceCheckpoint);
+                }
+                // Resume the paused lane;
+                this.resume();
+                log.info("Resumed async indexing for lane [{}]", name);
+                return "Lane successfully forced to catch-up. New reference checkpoint is " + newReferenceCheckpoint + " . Please make sure to perform reindexing to get the diff content indexed.";
+            } catch (Exception e) {
+                log.error("Exception while trying to force update the indexing lane [{}]", name, e);
+                if (this.isPaused()) {
+                    this.resume();
+                    log.info("Resuming the lane [{}] as it was paused during the operation", name);
+                }
+                return "Unable to complete the force update due to " + e.getMessage() + ".Please check logs for more details";
+            }
         }
 
         void setProcessedCheckpoint(String checkpoint) {

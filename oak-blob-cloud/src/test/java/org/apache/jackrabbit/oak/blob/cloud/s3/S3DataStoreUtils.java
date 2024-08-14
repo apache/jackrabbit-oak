@@ -39,7 +39,7 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -122,11 +122,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map filtered = Maps.filterEntries(Maps.fromProperties(props),
+                    input ->!Strings.isNullOrEmpty((String) input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }

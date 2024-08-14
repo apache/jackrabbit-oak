@@ -67,6 +67,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import javax.jcr.PropertyType;
 
@@ -126,11 +129,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.base.Supplier;
+
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -492,19 +493,6 @@ public final class DocumentNodeStore
         }
     };
 
-    /**
-     * A predicate, which takes a String and returns {@code true} if the String
-     * is a serialized binary value of a {@link DocumentPropertyState}. The
-     * apply method will throw an IllegalArgumentException if the String is
-     * malformed.
-     */
-    private final Function<String, Long> binarySize = new Function<String, Long>() {
-        @Override
-        public Long apply(@Nullable String input) {
-            return getBinarySize(input);
-        }
-    };
-
     private final Clock clock;
 
     private final Checkpoints checkpoints;
@@ -661,9 +649,11 @@ public final class DocumentNodeStore
         this.branches = new UnmergedBranches();
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
-                this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false, isEmbeddedVerificationEnabled(builder));
+                this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
+                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
+        this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
         this.journalGarbageCollector = new JournalGarbageCollector(
                 this, builder.getJournalGCMaxAge());
         this.referencedBlobs =
@@ -1363,7 +1353,7 @@ public final class DocumentNodeStore
 
     @NotNull
     public PropertyState createPropertyState(String name, String value){
-        return new DocumentPropertyState(this, name, checkNotNull(value));
+        return DocumentPropertyStateFactory.createPropertyState(this, name, checkNotNull(value));
     }
 
     /**
@@ -1627,11 +1617,11 @@ public final class DocumentNodeStore
                     return e.toString();
                 }
             }
-        });
+        }::apply);
     }
 
     @Nullable
-    private DocumentNodeState readNode(Path path, RevisionVector readRevision) {
+    DocumentNodeState readNode(Path path, RevisionVector readRevision) {
         final long start = PERFLOG.start();
         String id = Utils.getIdFromPath(path);
         Revision lastRevision = getPendingModifications().get(path);
@@ -2222,17 +2212,8 @@ public final class DocumentNodeStore
         checkOpen();
         final long now = clock.getTime();
         return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
-                new Predicate<Map.Entry<Revision,Checkpoints.Info>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision,Checkpoints.Info> cp) {
-                return cp.getValue().getExpiryTime() > now;
-            }
-        }), new Function<Map.Entry<Revision,Checkpoints.Info>, String>() {
-            @Override
-            public String apply(Map.Entry<Revision,Checkpoints.Info> cp) {
-                return cp.getKey().toString();
-            }
-        });
+                cp -> cp.getValue().getExpiryTime() > now),
+                cp -> cp.getKey().toString());
     }
 
     @Nullable
@@ -2671,7 +2652,7 @@ public final class DocumentNodeStore
                 continue;
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
-            Iterator<UpdateOp> it = doc.split(this, head, binarySize).iterator();
+            Iterator<UpdateOp> it = doc.split(this, head, input -> getBinarySize(input)).iterator();
             while(it.hasNext()) {
                 UpdateOp op = it.next();
                 Path path = doc.getPath();
@@ -3229,8 +3210,7 @@ public final class DocumentNodeStore
         if (json == null) {
             return -1;
         }
-        PropertyState p = new DocumentPropertyState(
-                DocumentNodeStore.this, "p", json);
+        PropertyState p = DocumentPropertyStateFactory.createPropertyState(DocumentNodeStore.this, "p", json);
         if (p.getType().tag() != PropertyType.BINARY) {
             return -1;
         }

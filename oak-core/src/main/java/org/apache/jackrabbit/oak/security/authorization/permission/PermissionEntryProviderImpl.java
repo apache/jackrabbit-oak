@@ -113,7 +113,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
             while (next == null) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
-                    if (predicate.apply(pe)) {
+                    if (predicate.test(pe)) {
                         next = pe;
                     }
                 } else {

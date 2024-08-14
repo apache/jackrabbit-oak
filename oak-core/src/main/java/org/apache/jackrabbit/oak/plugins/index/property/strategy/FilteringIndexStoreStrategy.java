@@ -19,14 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
  * A delegating IndexStoreStrategy that filters out updates that are not
@@ -54,7 +53,7 @@ public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
     public void update(Supplier<NodeBuilder> index, String path, String indexName,
                        NodeBuilder indexMeta, Set<String> beforeKeys, Set<String> afterKeys)
             throws CommitFailedException {
-        if (filter.apply(path)) {
+        if (filter.test(path)) {
             if (readOnly) {
                 throw new CommitFailedException(
                         CommitFailedException.UNSUPPORTED, 0,

@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -49,7 +48,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -481,11 +479,7 @@ public class SharedDataStoreUtilsTest {
         }
 
         Set<String> retrieved = newHashSet(Iterables.transform(newHashSet(dataStore.getAllRecords()),
-            new Function<DataRecord, String>() {
-                @Nullable @Override public String apply(@Nullable DataRecord input) {
-                    return input.getIdentifier().toString();
-                }
-            }));
+            input -> input.getIdentifier().toString()));
         assertEquals(added, retrieved);
     }
 
@@ -515,11 +509,7 @@ public class SharedDataStoreUtilsTest {
         }
 
         Set<String> retrieved = newHashSet(Iterables.transform(newHashSet(dataStore.getAllRecords()),
-            new Function<DataRecord, String>() {
-                @Nullable @Override public String apply(@Nullable DataRecord input) {
-                    return input.getIdentifier().toString();
-                }
-            }));
+                input -> input.getIdentifier().toString()));
         assertEquals(added, retrieved);
     }
 

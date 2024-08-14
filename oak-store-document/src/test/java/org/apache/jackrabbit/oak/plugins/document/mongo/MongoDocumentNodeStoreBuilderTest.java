@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.junit.Test;
 
+import static java.util.Set.of;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -61,6 +63,38 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void fullGCIncludePathsNotEmpty() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCIncludePaths(new String[] {"/foo"});
+        assertFalse(builder.getFullGCIncludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCIncludePaths());
+    }
+
+    @Test
+    public void fullGCIncludePathsWithWrongPath() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCIncludePaths(new String[] {"/foo", "wrongPath/"});
+        assertFalse(builder.getFullGCIncludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCIncludePaths());
+    }
+
+    @Test
+    public void fullGCExcludePathsNotEmpty() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCExcludePaths(new String[] {"/foo"});
+        assertFalse(builder.getFullGCExcludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCExcludePaths());
+    }
+
+    @Test
+    public void fullGCExcludePathsWithWrongPath() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        builder.setFullGCExcludePaths(new String[] {"/foo", "//"});
+        assertFalse(builder.getFullGCExcludePaths().isEmpty());
+        assertEquals(of("/foo"), builder.getFullGCExcludePaths());
+    }
+
+    @Test
     public void embeddedVerificationEnabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertTrue(builder.isEmbeddedVerificationEnabled());
@@ -76,5 +110,12 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void collectionCompressionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());
+    }
+
+    @Test
+    public void fullGCModeDefaultValue() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        final int fullGcModeNone = 0;
+        assertEquals(builder.getFullGCMode(), fullGcModeNone);
     }
 }
