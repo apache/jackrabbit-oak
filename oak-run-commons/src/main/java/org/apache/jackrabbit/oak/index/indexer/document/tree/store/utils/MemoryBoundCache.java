@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
-    extends LinkedHashMap<K, V> {
+public class MemoryBoundCache<K, V extends MemoryObject>
+        extends LinkedHashMap<K, V> {
 
     private static final long serialVersionUID = 1L;
     private volatile long maxMemoryBytes;
@@ -47,6 +49,10 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
         return super.get(key);
     }
 
+    public synchronized Set<K> keys() {
+        return new HashSet<>(super.keySet());
+    }
+
     @Override
     public synchronized V put(K key, V value) {
         V old = super.put(key, value);
@@ -60,7 +66,7 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
     }
 
     @Override
-    public void putAll(Map<? extends K, ? extends V> map) {
+    public synchronized void putAll(Map<? extends K, ? extends V> map) {
         for(Map.Entry<? extends K, ? extends V> e : map.entrySet()) {
             put(e.getKey(), e.getValue());
         }
@@ -81,23 +87,18 @@ public class MemoryBoundCache<K, V extends MemoryBoundCache.MemoryObject>
         memoryUsed.set(0);
     }
 
+    public void entryWasRemoved(K key, V value) {
+        // nothing to do
+    }
+
     @Override
     public synchronized boolean removeEldestEntry(Map.Entry<K, V> eldest) {
         boolean removeEldest = memoryUsed.get() > maxMemoryBytes;
         if (removeEldest) {
             memoryUsed.addAndGet(-eldest.getValue().estimatedMemory());
+            entryWasRemoved(eldest.getKey(), eldest.getValue());
         }
         return removeEldest;
-    }
-
-    public interface MemoryObject {
-        /**
-         * Get the estimate memory size. The value must not change afterwards, otherwise
-         * the memory calculation is wrong.
-         *
-         * @return the memory in bytes
-         */
-        long estimatedMemory();
     }
 
 }

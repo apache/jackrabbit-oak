@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
@@ -68,21 +67,16 @@ public class Session {
         long cacheSizeBytes = cacheSizeMB * 1024 * 1024;
         LOG.info("Cache size {} bytes", cacheSizeBytes);
         this.cache = new MemoryBoundCache<>(cacheSizeBytes)  {
+
             private static final long serialVersionUID = 1L;
 
             @Override
-            public synchronized boolean removeEldestEntry(Map.Entry<String, PageFile> eldest) {
-                boolean result = super.removeEldestEntry(eldest);
-                if (result) {
-                    String key = eldest.getKey();
-                    PageFile value = eldest.getValue();
-                    if (value.isModified()) {
-                        store.put(key, value);
-                        // not strictly needed as it's no longer referenced
-                        value.setModified(false);
-                    }
+            public void entryWasRemoved(String key, PageFile value) {
+                if (value.isModified()) {
+                    store.put(key, value);
+                    // not strictly needed as it's no longer referenced
+                    value.setModified(false);
                 }
-                return result;
             }
         };
     }
@@ -481,7 +475,7 @@ public class Session {
             updateId++;
         }
         PageFile root = getFile(ROOT_NAME);
-        cache.remove(ROOT_NAME);
+        // cache.remove(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
         root = copyPageFile(root);
         root.setFileName(rootFileCopy);
@@ -512,16 +506,15 @@ public class Session {
         // and points to a page that doesn't exist yet -
         // but we don't try to ensure this completely;
         // stored inner nodes might point to pages that are not stored yet
-        Entry<String, PageFile> changedRoot = null;
-        for(Entry<String, PageFile> e : cache.entrySet()) {
-            String k = e.getKey();
-            PageFile v = e.getValue();
-            if (!v.isModified()) {
+        PageFile changedRoot = null;
+        for(String k : cache.keys()) {
+            PageFile v = cache.get(k);
+            if (v == null || !v.isModified()) {
                 continue;
             }
             if (k.equals(ROOT_NAME)) {
                 // don't store the changed root yet
-                changedRoot = e;
+                changedRoot = v;
             } else {
                 store.put(k, v);
                 // here we have to reset the flag
@@ -530,11 +523,9 @@ public class Session {
         }
         // now store the changed root
         if (changedRoot != null) {
-            String k = changedRoot.getKey();
-            PageFile v = changedRoot.getValue();
-            store.put(k, v);
+            store.put(ROOT_NAME, changedRoot);
             // here we have to reset the flag
-            v.setModified(false);
+            changedRoot.setModified(false);
         }
     }
 

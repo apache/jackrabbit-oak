@@ -20,30 +20,57 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.junit.Test;
 
-public class MemoryBoundCacheTest {
+public class CacheTest {
 
     @Test
-    public void test() {
+    public void memoryBoundCacheTest() {
         MemoryBoundCache<String, MemoryValue> cache = new MemoryBoundCache<>(1000);
         for (int i = 0; i < 200; i++) {
-            cache.put("k" + i, new MemoryValue("v" + i));
+            cache.put("k" + i, new MemoryValue("v" + i, 10));
         }
         assertEquals(101, cache.size());
     }
 
-    static class MemoryValue implements MemoryBoundCache.MemoryObject {
+    @Test
+    public void sieveCacheTest() {
+        AtomicLong removed = new AtomicLong();
+        SieveCache<String, MemoryValue> cache = new SieveCache<>(1000) {
+            @Override
+            public void entryWasRemoved(String key, MemoryValue value) {
+                removed.incrementAndGet();
+            }
+        };
+        for (int i = 0; i < 200; i++) {
+            cache.put("k" + i, new MemoryValue("v" + i, 10));
+        }
+        assertEquals(100, removed.get());
+        assertEquals(100, cache.size());
+        for (int j = 0; j < 10; j++) {
+            for (int i = 0; i < 50; i++) {
+                cache.put("k" + i, new MemoryValue("v" + i, 10));
+            }
+        }
+        assertEquals(150, removed.get());
+        assertEquals(100, cache.size());
+    }
+
+    static class MemoryValue implements MemoryObject {
 
         final String value;
+        final int memory;
 
-        MemoryValue(String value) {
+        MemoryValue(String value, int memory) {
             this.value = value;
+            this.memory = memory;
         }
 
         @Override
         public long estimatedMemory() {
-            return 10;
+            return memory;
         }
 
         public String toString() {

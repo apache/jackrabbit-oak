@@ -23,14 +23,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
+
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryObject;
 
 /**
  * A B-tree page (leaf, or inner node).
  * An inner node contains one more value than keys.
  * A leaf page has the same number of keys and values.
  */
-public class PageFile implements MemoryBoundCache.MemoryObject {
+public class PageFile implements MemoryObject {
 
     private static final boolean VERIFY_SIZE = false;
     private static final int INITIAL_SIZE_IN_BYTES = 24;

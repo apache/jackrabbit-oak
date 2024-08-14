@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +50,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
@@ -536,15 +534,7 @@ public class PipelinedTreeStoreIT {
 
     static List<String> readAllEntries(File dir) throws IOException {
         TreeStore treeStore = new TreeStore("test", dir,
-                new NodeStateEntryReader(new MemoryBlobStore()), false);
-        Iterator<NodeStateEntry> it = treeStore.iterator();
-        while (it.hasNext()) {
-            System.out.println("highest " + treeStore.getHighestReadKey());
-            System.out.println("path " + it.next().getPath());
-            treeStore.getNodeStateEntry("/zzz");
-        }
-
-
+                new NodeStateEntryReader(new MemoryBlobStore()), 1);
         ArrayList<String> list = new ArrayList<>();
         Session session = treeStore.getSession();
         for (String k : session.keys()) {

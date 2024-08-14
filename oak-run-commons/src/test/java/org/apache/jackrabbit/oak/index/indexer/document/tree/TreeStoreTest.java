@@ -47,7 +47,7 @@ public class TreeStoreTest {
     @Test
     public void buildAndIterateTest() throws IOException {
         File testFolder = temporaryFolder.newFolder();
-        TreeStore store = new TreeStore("test", testFolder, null, true);
+        TreeStore store = new TreeStore("test", testFolder, null, 1);
         try {
             store.getSession().init();
             PipelinedTreeStoreTask.addEntry("/", "{}", store.getSession());

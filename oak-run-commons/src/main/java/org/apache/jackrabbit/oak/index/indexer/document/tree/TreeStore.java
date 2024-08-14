@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -31,7 +32,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SieveCache;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -44,10 +45,10 @@ public class TreeStore implements IndexStore {
     private static final String STORE_TYPE = "TreeStore";
     private static final String TREE_STORE_CONFIG = "oak.treeStoreConfig";
 
-    public static final long CACHE_SIZE_NODE_MB = 128;
+    public static final long CACHE_SIZE_NODE_MB = 64;
     private static final long CACHE_SIZE_TREE_STORE_MB = 64;
 
-    private static final long MAX_FILE_SIZE_MB = 8;
+    private static final long MAX_FILE_SIZE_MB = 2;
     private static final long MB = 1024 * 1024;
 
     private final String name;
@@ -56,22 +57,22 @@ public class TreeStore implements IndexStore {
     private final File directory;
     private final Session session;
     private final NodeStateEntryReader entryReader;
-    private final MemoryBoundCache<String, TreeStoreNodeState> nodeStateCache;
+    private final SieveCache<String, TreeStoreNodeState> nodeStateCache;
     private long entryCount;
     private volatile String highestReadKey = "";
+    private final AtomicLong nodeCacheHits = new AtomicLong();
+    private final AtomicLong nodeCacheMisses = new AtomicLong();
+    private final AtomicLong nodeCacheFills = new AtomicLong();
+    private int iterationCount;
 
-    public TreeStore(String name, File directory, NodeStateEntryReader entryReader, boolean smallCache) {
+    public TreeStore(String name, File directory, NodeStateEntryReader entryReader, long cacheSizeFactor) {
         this.name = name;
         this.directory = directory;
         this.entryReader = entryReader;
-        long cacheSizeNodeMB = CACHE_SIZE_NODE_MB;
-        long cacheSizeTreeStoreMB = CACHE_SIZE_TREE_STORE_MB;
-        if (smallCache) {
-            cacheSizeNodeMB = 32;
-            cacheSizeTreeStoreMB = 32;
-        }
+        long cacheSizeNodeMB = cacheSizeFactor * CACHE_SIZE_NODE_MB;
+        long cacheSizeTreeStoreMB = cacheSizeFactor * CACHE_SIZE_TREE_STORE_MB;
         this.cacheSizeTreeStoreMB = cacheSizeTreeStoreMB;
-        nodeStateCache = new MemoryBoundCache<>(cacheSizeNodeMB * MB);
+        nodeStateCache = new SieveCache<>(cacheSizeFactor * cacheSizeNodeMB * MB);
         String storeConfig = System.getProperty(TREE_STORE_CONFIG,
                 "type=file\n" +
                 Session.CACHE_SIZE_MB + "=" + cacheSizeTreeStoreMB + "\n" +
@@ -88,7 +89,10 @@ public class TreeStore implements IndexStore {
     public String toString() {
         return name +
                 " cache " + cacheSizeTreeStoreMB +
-                " at " + highestReadKey;
+                " at " + highestReadKey +
+                " cache-hits " + nodeCacheHits.get() +
+                " cache-misses " + nodeCacheMisses.get() +
+                " cache-fills " + nodeCacheFills.get();
     }
 
     public Iterator<String> pathIterator() {
@@ -151,10 +155,16 @@ public class TreeStore implements IndexStore {
             private void fetch() {
                 while (it.hasNext()) {
                     Entry<String, String> e = it.next();
+                    if (++iterationCount % 1_000_000 == 0) {
+                        LOG.info("Fetching {} in {}", iterationCount, TreeStore.this.toString());
+                    }
                     if (e.getValue().isEmpty()) {
                         continue;
                     }
                     current = getNodeStateEntry(e.getKey(), e.getValue());
+                    if (current.getPath().compareTo(highestReadKey) > 0) {
+                        highestReadKey = current.getPath();
+                    }
                     return;
                 }
                 current = null;
@@ -190,8 +200,10 @@ public class TreeStore implements IndexStore {
     NodeState getNodeState(String path) {
         TreeStoreNodeState result = nodeStateCache.get(path);
         if (result != null) {
+            nodeCacheHits.incrementAndGet();
             return result;
         }
+        nodeCacheMisses.incrementAndGet();
         String value = session.get(path);
         if (value == null || value.isEmpty()) {
             result = new TreeStoreNodeState(EmptyNodeState.MISSING_NODE, path, this, path.length() * 2);
@@ -208,16 +220,29 @@ public class TreeStore implements IndexStore {
     TreeStoreNodeState getNodeState(String path, String value) {
         TreeStoreNodeState result = nodeStateCache.get(path);
         if (result != null) {
+            nodeCacheHits.incrementAndGet();
             return result;
         }
-        String line = path + "|" + value;
-        NodeStateEntry entry = entryReader.read(line);
-        result = new TreeStoreNodeState(entry.getNodeState(), path, this, path.length() * 2 + line.length() * 10);
+        nodeCacheMisses.incrementAndGet();
+        result = buildNodeState(path, value);
         if (path.compareTo(highestReadKey) > 0) {
             highestReadKey = path;
         }
         nodeStateCache.put(path, result);
         return result;
+    }
+
+    TreeStoreNodeState buildNodeState(String path, String value) {
+        String line = path + "|" + value;
+        NodeStateEntry entry = entryReader.read(line);
+        return new TreeStoreNodeState(entry.getNodeState(), path, this, path.length() * 2 + line.length() * 10);
+    }
+
+    public void prefillCache(String path, TreeStoreNodeState nse) {
+        TreeStoreNodeState old = nodeStateCache.put(path, nse);
+        if (old == null) {
+            nodeCacheFills.incrementAndGet();
+        }
     }
 
     /**

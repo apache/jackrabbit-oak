@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.tree;
+package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
-import org.junit.Test;
-
-public class BlobPrefetcherTest {
-
-    @Test
-    public void test() {
-
-    }
+public interface MemoryObject {
+    /**
+     * Get the estimate memory size. The value must not change afterwards, otherwise
+     * the memory calculation is wrong.
+     *
+     * @return the memory in bytes
+     */
+    long estimatedMemory();
 }

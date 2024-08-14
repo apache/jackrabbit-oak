@@ -53,7 +53,8 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTreeStoreTask.class);
     private static final String THREAD_NAME = "tree-store-task";
 
-    private static final int MERGE_BATCH = 16;
+    private static final int MERGE_BATCH = 10;
+    private static final boolean SKIP_FINAL_MERGE = false;
 
     private final TreeStore treeStore;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
@@ -99,9 +100,13 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                             session.mergeRoots(MERGE_BATCH);
                             session.runGC();
                         }
-                        LOG.info("Final merge; {} roots", session.getRootCount());
-                        session.mergeRoots(Integer.MAX_VALUE);
-                        session.runGC();
+                        if (SKIP_FINAL_MERGE) {
+                            LOG.info("Final merge is skipped");
+                        } else {
+                            LOG.info("Final merge; {} roots", session.getRootCount());
+                            session.mergeRoots(Integer.MAX_VALUE);
+                            session.runGC();
+                        }
                         long durationSeconds = start.elapsed(TimeUnit.SECONDS);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, 0);

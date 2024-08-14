@@ -38,7 +38,7 @@ public class TreeStoreUtils {
         String dir = args[0];
         MemoryBlobStore blobStore = new MemoryBlobStore();
         NodeStateEntryReader entryReader = new NodeStateEntryReader(blobStore);
-        try (TreeStore treeStore = new TreeStore("utils", new File(dir), entryReader, false)) {
+        try (TreeStore treeStore = new TreeStore("utils", new File(dir), entryReader, 16)) {
             Session session = treeStore.getSession();
             Store store = treeStore.getStore();
             if (store.keySet().isEmpty()) {

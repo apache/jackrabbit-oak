@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryObject;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -34,9 +35,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
 
-public class TreeStoreNodeState implements NodeState, MemoryBoundCache.MemoryObject {
+public class TreeStoreNodeState implements NodeState, MemoryObject {
 
     private final NodeState delegate;
     private final String path;
