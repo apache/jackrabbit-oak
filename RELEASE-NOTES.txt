@@ -98,6 +98,7 @@ Task
     [OAK-11014] - Write test case to prove fullGC working correctly with bundled property nodes
     [OAK-11015] - Create fullGC Mode for empty properties only
     [OAK-11019] - Flaky VersionGCSupportTest with RDB
+    [OAK-11021] - Remove unused instance in VersionGCRecommendations
 
 
 In addition to the above-mentioned changes, this release contains all
