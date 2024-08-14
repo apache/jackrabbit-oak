@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -48,8 +49,14 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     private DocumentStore store;
     private MissingLastRevSeeker seeker;
 
+    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
+
     public MissingLastRevSeekerTest(DocumentStoreFixture dsf) {
         super(dsf);
+        if (dsf instanceof DocumentStoreFixture.RDBFixture) {
+            ((DocumentStoreFixture.RDBFixture) dsf).setRDBOptions(
+                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+        }
     }
 
     @Before
@@ -59,6 +66,10 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         store = ds;
+        if (dsf instanceof DocumentStoreFixture.RDBFixture) {
+            ((DocumentStoreFixture.RDBFixture) dsf).setRDBOptions(
+                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+        }
         if (dsf == DocumentStoreFixture.MONGO) {
             seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock);
         } else if (store instanceof RDBDocumentStore) {
