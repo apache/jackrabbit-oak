@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -55,6 +55,12 @@ public class BranchTest {
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
+    @Before
+    public void before() {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
+    }
 
     @Test
     public void getModifiedPathsUntil() {
@@ -98,8 +104,6 @@ public class BranchTest {
 
     @Test
     public void rootBranchCommitChildTest() throws Exception {
-        Revision.resetClockToDefault();
-        ClusterNodeInfo.resetClockToDefault();
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setClusterId(1)
@@ -115,7 +119,6 @@ public class BranchTest {
     }
 
     @Test
-    @Ignore
     public void unmergedBCOnRoot() throws Exception {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
@@ -404,8 +407,6 @@ public class BranchTest {
 
     @Test
     public void orphanedBranchTest() {
-        Revision.resetClockToDefault();
-        ClusterNodeInfo.resetClockToDefault();
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).build();
@@ -424,8 +425,6 @@ public class BranchTest {
 
     @Test
     public void compareBranchStates() {
-        Revision.resetClockToDefault();
-        ClusterNodeInfo.resetClockToDefault();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setAsyncDelay(0).build();
         ns.runBackgroundOperations();
