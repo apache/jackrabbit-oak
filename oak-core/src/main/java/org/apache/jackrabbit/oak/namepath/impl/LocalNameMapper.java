@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.namepath.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
 

@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static java.util.Objects.requireNonNull;
 import static java.lang.Thread.currentThread;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

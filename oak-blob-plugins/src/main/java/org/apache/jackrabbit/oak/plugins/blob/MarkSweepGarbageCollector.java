@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
 import static java.util.Comparator.comparing;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;

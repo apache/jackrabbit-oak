@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.namepath.impl;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;

@@ -29,11 +29,11 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;

@@ -25,8 +25,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * This utility class provides factory methods to create commonly used types of

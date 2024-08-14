@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

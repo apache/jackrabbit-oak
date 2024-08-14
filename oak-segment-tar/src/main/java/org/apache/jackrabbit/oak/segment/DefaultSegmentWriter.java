@@ -18,9 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.Long.numberOfLeadingZeros;
+import static java.lang.Math.min;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.nCopies;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -29,13 +35,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
-
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
-import static java.lang.Long.numberOfLeadingZeros;
-import static java.lang.Math.min;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;

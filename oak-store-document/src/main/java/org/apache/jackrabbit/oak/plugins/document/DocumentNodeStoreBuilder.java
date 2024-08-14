@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Objects.isNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
-import static java.util.Objects.isNull;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;

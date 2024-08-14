@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static java.util.Objects.requireNonNull;
 import static java.lang.System.nanoTime;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;

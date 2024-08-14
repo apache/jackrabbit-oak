@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
 import java.util.List;

@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;

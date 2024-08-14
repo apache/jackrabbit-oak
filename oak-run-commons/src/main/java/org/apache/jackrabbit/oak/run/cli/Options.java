@@ -32,8 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 public class Options {
     private final Set<OptionsBeanFactory> beanFactories = Sets.newHashSet();

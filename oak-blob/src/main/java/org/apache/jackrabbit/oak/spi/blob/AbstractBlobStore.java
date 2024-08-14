@@ -54,8 +54,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,

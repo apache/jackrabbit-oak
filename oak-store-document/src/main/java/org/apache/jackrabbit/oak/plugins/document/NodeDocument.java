@@ -60,15 +60,14 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;

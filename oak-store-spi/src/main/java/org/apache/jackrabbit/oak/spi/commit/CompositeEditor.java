@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;

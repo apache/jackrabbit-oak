@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.backup.impl;
 
-import static java.util.Objects.requireNonNull;
 import static java.lang.System.nanoTime;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;

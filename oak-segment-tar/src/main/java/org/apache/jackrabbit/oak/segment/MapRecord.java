@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 
 import java.util.Arrays;

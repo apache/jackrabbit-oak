@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;

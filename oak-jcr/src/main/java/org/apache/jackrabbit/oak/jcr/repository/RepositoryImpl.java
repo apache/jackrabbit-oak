@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.repository;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;

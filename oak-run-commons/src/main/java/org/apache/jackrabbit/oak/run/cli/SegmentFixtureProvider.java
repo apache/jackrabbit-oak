@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.File;
@@ -31,8 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 @SuppressWarnings("deprecation")

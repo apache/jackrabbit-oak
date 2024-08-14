@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.numberOfTrailingZeros;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.max;
 import static java.util.Arrays.fill;
+import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;

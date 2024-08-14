@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static java.util.Objects.requireNonNull;
 import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.UUID;

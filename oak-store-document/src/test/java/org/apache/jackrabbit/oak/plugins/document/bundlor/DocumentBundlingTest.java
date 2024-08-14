@@ -67,9 +67,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static java.lang.String.format;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
