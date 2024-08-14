@@ -32,6 +32,7 @@ Technical task
     [OAK-11004] - Remove usage of Guava Supplier interface
     [OAK-11010] - Remove usage of Guava newHashMap
     [OAK-11012] - Remove usage of Guava Objects.equal()
+    [OAK-11013] - Remove usage of Guava Optional
 
 Bug
 
@@ -76,8 +77,10 @@ Improvement
 Task
 
     [OAK-10705] - oak-standalone: update dependencies
+    [OAK-10748] - Improve statistics to collect which type of garbage is present/deleted
     [OAK-10821] - webapp: bump htmlunit to 4.4.0
     [OAK-10848] - commons: remove use of slf4j.event.Level in SystemPropertySupplier API and implementation
+    [OAK-10921] - Fix race condition while resetting fullGC variables from oak-run
     [OAK-10938] - oak-doc: update branch history in roadmap
     [OAK-10940] - oak-jcr: improve error message when mongo test fixture fails
     [OAK-10944] - oak-auth-ldap: update commons-pool2 dependency to 2.12.0
@@ -92,6 +95,10 @@ Task
     [OAK-10993] - commons: add better diagnostics to 'FixturesHelper'
     [OAK-10997] - jcr: OrderableNodeTest with many children may fail with RDB (Derby) due to OOM
     [OAK-11003] - Update commons-codec dependency to 1.17.1
+    [OAK-11014] - Write test case to prove fullGC working correctly with bundled property nodes
+    [OAK-11015] - Create fullGC Mode for empty properties only
+    [OAK-11019] - Flaky VersionGCSupportTest with RDB
+    [OAK-11021] - Remove unused instance in VersionGCRecommendations
 
 
 In addition to the above-mentioned changes, this release contains all

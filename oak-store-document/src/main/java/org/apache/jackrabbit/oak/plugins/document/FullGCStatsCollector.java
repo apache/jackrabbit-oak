@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.GCPhase;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 
 /**
@@ -30,6 +31,34 @@ public interface FullGCStatsCollector {
      * Total No. of documents read during FullGC phase
      */
     void documentRead();
+
+    /**
+     * Total No. of properties detected as garbage during a given GC phase
+     * @param mode GC phase
+     * @param numProps no. of garbage properties found in current cycle
+     */
+    void candidateProperties(GCPhase mode, long numProps);
+
+    /**
+     * Total No. of documents detected as garbage during a given GC phase
+     * @param mode GC phase
+     * @param numDocs no. of garbage documents found in current cycle
+     */
+    void candidateDocuments(GCPhase mode, long numDocs);
+
+    /**
+     * Total No. of revisions detected as garbage during a given GC phase
+     * @param mode GC phase
+     * @param numRevs no. of garbage revisions found in current cycle
+     */
+    void candidateRevisions(GCPhase mode, long numRevs);
+
+    /**
+     * Total No. of internal revisions detected as garbage during a given GC phase
+     * @param mode GC phase
+     * @param numRevs no. of garbage internal revisions found in current cycle
+     */
+    void candidateInternalRevisions(GCPhase mode, long numRevs);
 
     /**
      * No. of orphan nodes deleted during FullGC

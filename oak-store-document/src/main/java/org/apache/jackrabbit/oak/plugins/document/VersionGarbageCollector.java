@@ -293,7 +293,7 @@ public class VersionGarbageCollector {
         this.fullGCExcludePaths = requireNonNull(excludes);
     }
 
-    void setStatisticsProvider(StatisticsProvider provider) {
+    public void setStatisticsProvider(StatisticsProvider provider) {
         this.gcStats = new RevisionGCStats(provider);
         this.fullGCStats = new FullGCStatsCollectorImpl(provider);
     }
@@ -630,7 +630,7 @@ public class VersionGarbageCollector {
         }
     }
 
-    private enum GCPhase {
+    enum GCPhase {
         NONE,
         COLLECTING,
         CHECKING,
@@ -1253,7 +1253,7 @@ public class VersionGarbageCollector {
 
                 // update the deleted properties count Map to calculate the total no. of deleted properties
                 int totalDeletedSystemPropsCount = deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
-                if (AUDIT_LOG.isDebugEnabled()) {
+                if (AUDIT_LOG.isDebugEnabled() && totalDeletedSystemPropsCount > 0) {
                     AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), fullGcMode);
                 }
             }
@@ -1324,6 +1324,7 @@ public class VersionGarbageCollector {
             monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
             orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
             orphanOrDeletedRemovalPathMap.put(doc.getId(), doc.getPath());
+            fullGCStats.candidateDocuments(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES, 1);
 
             if (AUDIT_LOG.isDebugEnabled()) {
                 AUDIT_LOG.debug("<Collected> [{}] orphaned node", doc.getId());
@@ -1363,6 +1364,7 @@ public class VersionGarbageCollector {
                         .sum();
 
                 deletedPropsCountMap.put(doc.getId(), deletedPropsCount);
+                fullGCStats.candidateProperties(GCPhase.FULL_GC_COLLECT_PROPS, deletedPropsCount);
 
                 if (AUDIT_LOG.isDebugEnabled() && deletedPropsCount > 0) {
                     AUDIT_LOG.debug("<Collected> [{}] deleted props in [{}]", deletedPropsCount, doc.getId());
@@ -1433,7 +1435,9 @@ public class VersionGarbageCollector {
 
                 // update the deleted properties count Map to calculate the total no. of deleted properties
                 int totalDeletedSystemPropsCount = deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
-                if (AUDIT_LOG.isDebugEnabled()) {
+                fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, totalDeletedSystemPropsCount);
+
+                if (AUDIT_LOG.isDebugEnabled() && totalDeletedSystemPropsCount > 0) {
                     AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), fullGcMode);
                 }
             }
@@ -1590,9 +1594,11 @@ public class VersionGarbageCollector {
             if (revEntriesCount > 0) {
                 deletedPropRevsCountMap.merge(doc.getId(), revEntriesCount, Integer::sum);
             }
+            fullGCStats.candidateRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, revEntriesCount);
+            fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, internalRevEntriesCount);
 
-            if (AUDIT_LOG.isDebugEnabled()) {
-                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), fullGcMode);
+            if (AUDIT_LOG.isDebugEnabled() && (revEntriesCount > 0 || internalRevEntriesCount > 0)) {
+                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", revEntriesCount, internalRevEntriesCount, doc.getId(), fullGcMode);
             }
 
         }
@@ -1612,9 +1618,12 @@ public class VersionGarbageCollector {
                 if (intRevsDiff > 0) {
                     deletedInternalPropRevsCountMap.merge(doc.getId(), intRevsDiff, Integer::sum);
                 }
-                if (AUDIT_LOG.isDebugEnabled()) {
-                    AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), fullGcMode);
+                if (AUDIT_LOG.isDebugEnabled() && (revsDiff > 0 || intRevsDiff > 0)) {
+                    AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", revsDiff, intRevsDiff, doc.getId(), fullGcMode);
                 }
+                fullGCStats.candidateRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, revsDiff);
+                fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, intRevsDiff);
+
                 phases.stop(GCPhase.FULL_GC_COLLECT_OLD_REVS);
             }
         }
@@ -1659,9 +1668,11 @@ public class VersionGarbageCollector {
                 deletedInternalPropRevsCountMap.merge(doc.getId(), deletedInternalRevsCount, Integer::sum);
             }
 
-            if (AUDIT_LOG.isDebugEnabled()) {
-                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), fullGcMode);
+            if (AUDIT_LOG.isDebugEnabled() && deletedTotalRevsCount > 0) {
+                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedUserRevsCount, deletedInternalRevsCount, doc.getId(), fullGcMode);
             }
+            fullGCStats.candidateRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, deletedUserRevsCount);
+            fullGCStats.candidateInternalRevisions(GCPhase.FULL_GC_COLLECT_OLD_REVS, deletedInternalRevsCount);
 
             phases.stop(GCPhase.FULL_GC_COLLECT_OLD_REVS);
         }
@@ -2134,6 +2145,10 @@ public class VersionGarbageCollector {
                 phases.stop(GCPhase.FULL_GC_CLEANUP);
             }
         }
+    }
+
+    public String getFullGCStatsReport() {
+        return fullGCStats.toString();
     }
 
     /**
