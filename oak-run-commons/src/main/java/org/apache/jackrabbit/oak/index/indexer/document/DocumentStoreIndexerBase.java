@@ -364,31 +364,31 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                             indexer);
                     aheadOfTimeBlobDownloader.start();
                     try {
-                    TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
-                    indexer.onIndexingStarting();
-                    long entryStart = System.nanoTime();
-                    long entriesRead = 0;
-                    for (NodeStateEntry entry : flatFileStore) {
-                        reportDocumentRead(entry.getPath(), progressReporter);
-                        indexer.index(entry);
-                        // Avoid calling System.nanoTime() twice per each entry, by reusing the timestamp taken at the end
-                        // of indexing an entry as the start time of the following entry. This is less accurate, because
-                        // the measured times will also include the bookkeeping at the end of indexing each entry, but
-                        // we are only interested in entries that take a significant time to index, so this extra
-                        // inaccuracy will not significantly change the results.
-                        long entryEnd = System.nanoTime();
-                        long elapsedMillis = (entryEnd - entryStart) / 1_000_000;
-                        entryStart = entryEnd;
-                        slowestTopKElements.add(entry.getPath(), elapsedMillis);
-                        if (elapsedMillis > 1000) {
-                            log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                        TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
+                        indexer.onIndexingStarting();
+                        long entryStart = System.nanoTime();
+                        long entriesRead = 0;
+                        for (NodeStateEntry entry : flatFileStore) {
+                            reportDocumentRead(entry.getPath(), progressReporter);
+                            indexer.index(entry);
+                            // Avoid calling System.nanoTime() twice per each entry, by reusing the timestamp taken at the end
+                            // of indexing an entry as the start time of the following entry. This is less accurate, because
+                            // the measured times will also include the bookkeeping at the end of indexing each entry, but
+                            // we are only interested in entries that take a significant time to index, so this extra
+                            // inaccuracy will not significantly change the results.
+                            long entryEnd = System.nanoTime();
+                            long elapsedMillis = (entryEnd - entryStart) / 1_000_000;
+                            entryStart = entryEnd;
+                            slowestTopKElements.add(entry.getPath(), elapsedMillis);
+                            if (elapsedMillis > 1000) {
+                                log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                            }
+                            entriesRead++;
+                            if (entriesRead % 8192 == 0) {
+                                aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
+                            }
                         }
-                        entriesRead++;
-                        if (entriesRead % 1024 == 0) {
-                            aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
-                        }
-                    }
-                    log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
+                        log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                     } finally {
                         aheadOfTimeBlobDownloader.stop();
                     }
