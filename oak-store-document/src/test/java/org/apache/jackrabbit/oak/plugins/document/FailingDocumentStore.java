@@ -51,9 +51,9 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     private List<String> idIncludeList;
 
-    private List<FailedUpdateOpListener> listeners = new ArrayList<>();
-
     private Thread inThread;
+
+    private List<FailedUpdateOpListener> listeners = new ArrayList<>();
 
     private boolean afterOp = false;
 
