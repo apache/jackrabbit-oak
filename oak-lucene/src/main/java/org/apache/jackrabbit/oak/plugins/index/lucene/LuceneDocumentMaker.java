@@ -61,13 +61,13 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
     
     // warn once every 10 seconds at most
-    private static final long DUPLICATE_WARNING_INTERVAL_MS = 10 * 1000;
+    private static final long ORDERED_PROPERTY_WARNING_INTERVAL_MS = 10 * 1000;
 
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
     
     // when did we warn (static, as we construct new objects quite often)
-    private static long lastDuplicateWarning;
+    private static long lastOrderedPropertyWarning;
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -300,18 +300,42 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                     fieldAdded = true;
                 } else {
                     long now = System.currentTimeMillis();
-                    if (now > lastDuplicateWarning + DUPLICATE_WARNING_INTERVAL_MS) {
+                    if (now > lastOrderedPropertyWarning + ORDERED_PROPERTY_WARNING_INTERVAL_MS) {
                         log.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
-                        lastDuplicateWarning = now;
+                        lastOrderedPropertyWarning = now;
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn(
-                    "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            boolean unknownWarning = true;
+            String message = e.getMessage();
+            if (message.startsWith("Not a date string") ||
+                    message.startsWith("Unable to parse the provided date field") ||
+                    message.startsWith("For input string")) {
+                // This is a known warning, one of:
+                // - IllegalArgumentException: Not a date string
+                // - RuntimeException: Unable to parse the provided date field
+                // - NumberFormatException: For input string
+                // For these we do not log a stack trace, and we only log once every 10 seconds
+                // (the location of the code can be found if needed, as it's in Oak)
+                unknownWarning = false;
+                long now = System.currentTimeMillis();
+                if (now > lastOrderedPropertyWarning + ORDERED_PROPERTY_WARNING_INTERVAL_MS) {
+                    log.warn(
+                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}, message {}",
+                            getIndexName(), pname,
+                            Type.fromTag(property.getType().tag(), false),
+                            Type.fromTag(tag, false), path, e.getMessage());
+                    lastOrderedPropertyWarning = now;
+                }
+            }
+            if (unknownWarning) {
+                log.warn(
+                        "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), false),
+                        Type.fromTag(tag, false), path, e);
+            }
         }
         return fieldAdded;
     }
