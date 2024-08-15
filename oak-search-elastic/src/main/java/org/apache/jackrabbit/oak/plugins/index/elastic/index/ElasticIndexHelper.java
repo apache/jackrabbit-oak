@@ -29,9 +29,7 @@ import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticSemVer;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
 
