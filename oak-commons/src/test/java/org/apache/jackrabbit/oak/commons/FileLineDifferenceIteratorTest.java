@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons;
 
 import static java.util.Arrays.asList;
@@ -37,7 +36,7 @@ import java.util.function.Function;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
@@ -45,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 public class FileLineDifferenceIteratorTest {
-    
+
     @Test
     public void testRandomized() throws Exception {
         Random r = new Random(0);
@@ -175,7 +174,7 @@ public class FileLineDifferenceIteratorTest {
 
     private static LineIterator lineItr(String seq) {
         Iterable<String> seqItr = Splitter.on(',').trimResults().split(seq);
-        String lines = Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(seqItr);
+        String lines = Joiner.on(System.getProperty("line.separator")).join(seqItr);
         return new LineIterator(new StringReader(lines));
     }
 
