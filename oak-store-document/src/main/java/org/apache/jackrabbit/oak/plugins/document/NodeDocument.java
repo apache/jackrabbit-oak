@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
@@ -28,6 +27,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,33 +66,12 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
 /**
  * A document storing data about a node.
