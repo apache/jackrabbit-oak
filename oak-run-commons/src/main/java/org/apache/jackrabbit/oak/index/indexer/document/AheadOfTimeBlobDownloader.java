@@ -2,16 +2,17 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -33,72 +33,63 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class AheadOfTimeBlobDownloader {
     private static final Logger LOG = LoggerFactory.getLogger(AheadOfTimeBlobDownloader.class);
-    private static final Blob POISON_PILL = new BlobStoreBlob(null, null);
+    private static final Blob SENTINEL = new BlobStoreBlob(null, null);
     private final static AtomicInteger threadNameCounter = new AtomicInteger(0);
 
-    private final static long MINIMUM_STAY_AHEAD = 1024;
-    private final int nDownloadThreads = parseEnv("PREFETCH_BLOBS_DOWNLOAD_THREADS", 8);
-    private final ExecutorService executor = Executors.newFixedThreadPool(nDownloadThreads + 1);
-    private final int PREFETCH_BLOBS_SIZE_MB = parseEnv("PREFETCH_BLOBS_WINDOW_SIZE_MB", 16);
+    public final static String BINARY_BLOB_SUFFIX = "jcr:content/renditions/cqdam.text.txt/jcr:content";
 
-    private final LinkedHashMap<String, String> loadedBlobs = new LinkedHashMap<>(8192, 0.75f, true) {
-        final int MAX_ENTRIES = 6 * 1000;
+    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt("oak.indexer.document.prefetchBlobsDownloadThreads", 8);
+    private final int prefetchWindowSizeMB = ConfigHelper.getSystemPropertyAsInt("oak.indexer.document.prefetchWindowSizeMB", 8);
+
+    // Download threads plus thread that scans the FFS
+    private final ExecutorService executor = Executors.newFixedThreadPool(nDownloadThreads + 1);
+    // Set with the ids of blobs that were already enqueued for download. Avoids creating a large number of download
+    // requests for the blobs that are referenced by many nodes. Although this is a HashMap it is used as a set. The
+    // value is just a placeholder, we use Boolean.TRUE for no particular reason.
+    private final LinkedHashMap<String, Boolean> downloadedBlobs = new LinkedHashMap<>(4096, 0.75f, true) {
+        final int MAX_ENTRIES = 3 * 1000;
 
         protected boolean removeEldestEntry(Map.Entry eldest) {
             return size() > MAX_ENTRIES;
         }
     };
 
+    private final File ffsPath;
+    private final Compression algorithm;
+    private final GarbageCollectableBlobStore blobStore;
+    private final CompositeIndexer indexer;
+
     // Statistics
     private final LongAdder totalBytesDownloaded = new LongAdder();
     private final LongAdder totalTimeDownloadingNanos = new LongAdder();
     private final LongAdder totalBlobsDownloaded = new LongAdder();
-    private final CompositeIndexer indexer;
     private long skippedLinesDueToLaggingIndexing = 0;
 
-    private final Iterator<NodeStateEntry> flatFileStore;
-
+    private ScanTask scanTask;
     private Future<?> scanFuture;
     private ArrayList<DownloadTask> downloadTasks;
     private ArrayList<Future<?>> downloadFutures;
 
     private final AheadOfTimeBlobDownloaderThrottler throttler;
-    private ScanTask scanTask;
-
     private volatile long indexerLastKnownPosition;
     private volatile boolean finished = false;
 
-    private static int parseEnv(String env, int defaultValue) {
-        String envVal = System.getenv(env);
-        int val = defaultValue;
-        if (envVal != null) {
-            try {
-                val = Integer.parseInt(envVal);
-            } catch (NumberFormatException e) {
-                LOG.warn("Invalid value for environment variable {}: {}", env, envVal);
-            }
-        }
-        return val;
-    }
 
+    /**
+     * @param ffsPath
+     * @param algorithm
+     * @param blobStore
+     * @param indexer
+     */
     public AheadOfTimeBlobDownloader(File ffsPath, Compression algorithm, GarbageCollectableBlobStore blobStore, CompositeIndexer indexer) {
+        this.ffsPath = ffsPath;
+        this.algorithm = algorithm;
+        this.blobStore = blobStore;
         this.indexer = indexer;
-        LineIterator itr = new LineIterator(FlatFileStoreUtils.createReader(ffsPath, algorithm));
-        NodeStateEntryReader reader = new NodeStateEntryReader(blobStore);
-        this.flatFileStore = new AbstractIterator<>() {
-            @Override
-            protected NodeStateEntry computeNext() {
-                if (itr.hasNext()) {
-                    return reader.read(itr.nextLine());
-                }
-                //End of iterator then close it
-                LineIterator.closeQuietly(itr);
-                return endOfData();
-            }
-        };
-        this.throttler = new AheadOfTimeBlobDownloaderThrottler(PREFETCH_BLOBS_SIZE_MB * FileUtils.ONE_MB);
-        LOG.info("Created AheadOfTimeBlobDownloader. downloadThreads: {}, prefetchMB: {}, minimumStayAhead: {}",
-                nDownloadThreads, PREFETCH_BLOBS_SIZE_MB, MINIMUM_STAY_AHEAD);
+
+        this.throttler = new AheadOfTimeBlobDownloaderThrottler(prefetchWindowSizeMB * FileUtils.ONE_MB);
+        LOG.info("Created AheadOfTimeBlobDownloader. downloadThreads: {}, prefetchMB: {}",
+                nDownloadThreads, prefetchWindowSizeMB);
     }
 
     public void updateIndexed(long positionIndexed) {
@@ -109,6 +100,7 @@ public class AheadOfTimeBlobDownloader {
     }
 
     private class ScanTask implements Runnable {
+        private final NodeStateEntryReader nodeStateEntryReader = new NodeStateEntryReader(blobStore);
         private final ArrayBlockingQueue<Blob> queue;
 
         long blobCacheHit = 0;
@@ -124,50 +116,48 @@ public class AheadOfTimeBlobDownloader {
 
         @Override
         public void run() {
-            try {
+            try (LineIterator ffsLineIterator = new LineIterator(IndexStoreUtils.createReader(ffsPath, algorithm))) {
                 // Scan for renditions
                 String oldName = Thread.currentThread().getName();
                 Thread.currentThread().setName("scanner");
                 try {
-                    while (flatFileStore.hasNext()) {
-                        NodeStateEntry entry = flatFileStore.next();
-                        if (isBehindIndexer(linesScanned)) {
-//                            LOG.warn("Skipping blob at position {} because it was already indexed", linesScanned);
+                    while (ffsLineIterator.hasNext()) {
+                        String ffsLine = ffsLineIterator.next();
+                        int pipeIndex = ffsLine.indexOf(NodeStateEntryWriter.DELIMITER_CHAR);
+                        String entryPath = ffsLine.substring(0, pipeIndex);
+                        if (!entryPath.endsWith(BINARY_BLOB_SUFFIX)) {
+                            doesNotMatchPattern++;
+                        } else if (!indexer.shouldInclude(entryPath)) {
+                            notIncludedInIndex++;
+                            LOG.info("Skipping node: {}. Not included in index", entryPath);
+                        } else if (isBehindIndexer(linesScanned)) {
+                            LOG.warn("Skipping blob at position {} because it was already indexed", linesScanned);
                             skippedLinesDueToLaggingIndexing++;
                         } else {
-                            processEntry(entry);
+                            processEntry(entryPath, ffsLine.substring(pipeIndex + 1));
                         }
                         linesScanned++;
                         if (linesScanned % 100_000 == 0) {
-                            LOG.info("[{}] Last path scanned: {}. Statistics: {}", linesScanned, entry.getPath(), formatStatistics());
+                            LOG.info("[{}] Last path scanned: {}. Statistics: {}", linesScanned, entryPath, formatStatistics());
                         }
                     }
                 } catch (InterruptedException e) {
                     queue.clear();
                     LOG.info("Scan task interrupted, exiting");
                 } finally {
-                    LOG.info("Scanned {} entries, enqueuing POISON_PILL. Statistics: {}", linesScanned, formatStatistics());
+                    LOG.info("Scanned {} entries, enqueuing SENTINEL. Statistics: {}", linesScanned, formatStatistics());
                     Thread.currentThread().setName(oldName);
                     finished = true;
-                    queue.put(POISON_PILL);
+                    queue.put(SENTINEL);
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        private void processEntry(NodeStateEntry entry) throws InterruptedException {
-            String entryPath = entry.getPath();
-            if (!entryPath.endsWith("jcr:content/renditions/cqdam.text.txt/jcr:content")) {
-                doesNotMatchPattern++;
-                return;
-            }
-            if (!indexer.shouldInclude(entryPath)) {
-                notIncludedInIndex++;
-                LOG.info("Skipping node: {}. Not included in index", entryPath);
-                return;
-            }
-            PropertyState ps = entry.getNodeState().getProperty("jcr:data");
+        private void processEntry(String entryPath, String entryStateAsJson) throws InterruptedException {
+            NodeState nodeState = nodeStateEntryReader.parseState(entryStateAsJson);
+            PropertyState ps = nodeState.getProperty("jcr:data");
             if (ps == null || ps.isArray() || ps.getType() != Type.BINARY) {
                 skippedForOtherReasons++;
                 LOG.info("Skipping node: {}. Property \"jcr:data\": {}", entryPath, ps);
@@ -183,14 +173,14 @@ public class AheadOfTimeBlobDownloader {
                     continue;
                 }
                 // Add to a set with all blobs that are already downloaded or enqueued for download
-                boolean present = loadedBlobs.containsValue(blob.getContentIdentity());
+                boolean present = downloadedBlobs.containsKey(blob.getContentIdentity());
                 if (present) {
                     blobCacheHit++;
                     LOG.debug("[{}] Blob already downloaded or enqueued for download: {}", linesScanned, blob.getContentIdentity());
                     continue;
                 }
                 throttler.reserveSpaceForBlob(linesScanned, blob.length());
-                loadedBlobs.put(blob.getContentIdentity(), blob.getContentIdentity());
+                downloadedBlobs.put(blob.getContentIdentity(), Boolean.TRUE);
                 queue.put(blob);
             }
         }
@@ -209,16 +199,15 @@ public class AheadOfTimeBlobDownloader {
             Thread.currentThread().setName("downloader-" + threadNameCounter.getAndIncrement());
             byte[] buffer = new byte[4096];
             try {
-                Stopwatch watch = Stopwatch.createUnstarted();
                 while (true) {
                     Blob blob = queue.take();
-                    if (blob == POISON_PILL) {
-                        LOG.info("Poison pill received, exiting");
-                        queue.put(POISON_PILL);
+                    if (blob == SENTINEL) {
+                        LOG.info("Sentinel received, exiting");
+                        queue.put(SENTINEL);
                         break;
                     }
 
-                    watch.start();
+                    long startNanos = System.nanoTime();
                     InputStream stream = blob.getNewStream();
                     int blobSize = 0;
                     try {
@@ -233,13 +222,13 @@ public class AheadOfTimeBlobDownloader {
                             LOG.error("Blob size mismatch: blob.length(): {}, bytesRead: {}", blob.length(), blobSize);
                         }
                         totalBytesDownloaded.add(blobSize);
-                        long elapsedNanos = watch.stop().elapsed(TimeUnit.NANOSECONDS);
+                        long elapsedNanos = System.nanoTime() - startNanos;
                         totalTimeDownloadingNanos.add(elapsedNanos);
                         totalBlobsDownloaded.increment();
                         if (totalBlobsDownloaded.sum() % 1000 == 0) {
-                            LOG.info("Retrieved blob: {}, size: {}, in {} ms. Global statistics: {}", blob.getContentIdentity(), blob.length(), elapsedNanos / 1000000, formatStatistics());
+                            LOG.info("Retrieved blob: {}, size: {}, in {} ms. Global statistics: {}",
+                                    blob.getContentIdentity(), blob.length(), elapsedNanos / 1_000_000, formatStatistics());
                         }
-                        watch.reset();
                     } catch (IOException e) {
                         LOG.error("Error downloading blob: {}", blob.getContentIdentity(), e);
                     }
@@ -275,14 +264,14 @@ public class AheadOfTimeBlobDownloader {
                 scanTask.inlinedBlobsSkipped, scanTask.skippedForOtherReasons, skippedLinesDueToLaggingIndexing);
     }
 
-    private boolean isBehindIndexer(long position) {
+    private boolean isBehindIndexer(long scannerPosition) {
         // Always try to be ahead of the indexer
-        return position <= indexerLastKnownPosition + MINIMUM_STAY_AHEAD;
+        return scannerPosition <= indexerLastKnownPosition;
     }
 
     public void stop() {
         LOG.info("Stopping BlobDownloader");
-        LOG.info("loadBlobs.size(): {}", loadedBlobs.size());
+        LOG.info("loadBlobs.size(): {}", downloadedBlobs.size());
         scanFuture.cancel(true);
         LOG.info("Waiting for download tasks to finish");
         for (Future<?> downloadFuture : downloadFutures) {

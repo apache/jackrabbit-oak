@@ -43,7 +43,7 @@ public class NodeStateEntryReader {
         return new NodeStateEntry(nodeState, parts[0], memUsage, 0, "");
     }
 
-    protected NodeState parseState(String part) {
+    public NodeState parseState(String part) {
         return des.deserialize(part);
     }
 }

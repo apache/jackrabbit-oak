@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AheadOfTimeBlobDownloaderThrottler {
     private final static Logger LOG = LoggerFactory.getLogger(AheadOfTimeBlobDownloaderThrottler.class);
     public final long downloadBudgetBytes;
-    private final int numberOfBuckets = 16;
+    private final int numberOfBuckets = 8;
     private final long bucketSizeBytes;
 
     static class PrefetchWindow {
@@ -109,14 +109,14 @@ public class AheadOfTimeBlobDownloaderThrottler {
 
     void advanceIndexer(long indexerPosition) {
         try {
-            LOG.info("advanceIndexer. position: {}. {}", indexerPosition, prefetchWindow());
+//            LOG.info("advanceIndexer. position: {}. {}", indexerPosition, prefetchWindow());
             boolean advanced = false;
             lock.lock();
             while (true) {
                 DownloadedBlock head = aotDownloadedBlocks.peekFirst();
                 if (head != null && head.lastIndex < indexerPosition) {
                     advanced = true;
-                    LOG.info("Discarding AOT block: {}", head);
+                    LOG.info("Discarding AOT block: {}, {}", head, prefetchWindow());
                     dataInDownloadedBlocks -= head.dataInBlock;
                     aotDownloadedBlocks.pollFirst();
                 } else {
@@ -127,7 +127,7 @@ public class AheadOfTimeBlobDownloaderThrottler {
                 if (prefetchedWindowSizeInBytes() < 0) {
                     throw new IllegalStateException("AOT downloaded is negative. aotDownloaded: " + prefetchedWindowSizeInBytes());
                 }
-                LOG.info("Signaling");
+                LOG.info("Discarded some AOT blocks, signaling scanner");
                 condition.signalAll();
             }
         } finally {
