@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     private final MountInfoProvider mountInfoProvider;
@@ -39,9 +39,9 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
                                      DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
-        this.mountInfoProvider = checkNotNull(mountInfoProvider);
-        this.directoryFactory = checkNotNull(directoryFactory);
-        this.writerConfig = checkNotNull(writerConfig);
+        this.mountInfoProvider = requireNonNull(mountInfoProvider);
+        this.directoryFactory = requireNonNull(directoryFactory);
+        this.writerConfig = requireNonNull(writerConfig);
     }
 
     @Override

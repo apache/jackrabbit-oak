@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
@@ -230,7 +230,7 @@ public class NodeStoreTest extends OakBaseTest {
             public void contentChanged(
                     @NotNull NodeState root, @NotNull CommitInfo info) {
                 if (root.getChildNode("test").hasChildNode("newNode")) {
-                    observedRoot.set(checkNotNull(root));
+                    observedRoot.set(requireNonNull(root));
                     latch.countDown();
                 }
             }

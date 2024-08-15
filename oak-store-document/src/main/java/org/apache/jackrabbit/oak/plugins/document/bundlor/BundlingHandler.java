@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.META_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -40,7 +40,7 @@ public class BundlingHandler {
     private final NodeState nodeState;
 
     public BundlingHandler(BundledTypesRegistry registry) {
-        this(checkNotNull(registry), BundlingContext.NULL, Path.ROOT, EMPTY_NODE);
+        this(requireNonNull(registry), BundlingContext.NULL, Path.ROOT, EMPTY_NODE);
     }
 
     private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, Path path, NodeState nodeState) {

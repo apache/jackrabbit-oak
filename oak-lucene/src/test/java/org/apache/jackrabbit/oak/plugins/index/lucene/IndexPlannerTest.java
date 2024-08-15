@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -1950,8 +1950,8 @@ public class IndexPlannerTest {
 
     @NotNull
     private static NodeBuilder getNode(@NotNull NodeBuilder node, @NotNull String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            node = node.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            node = node.getChildNode(requireNonNull(name));
         }
         return node;
     }

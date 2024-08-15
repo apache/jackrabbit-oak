@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationHandler;
@@ -308,7 +308,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     @SuppressWarnings("unchecked")
     private static void processConfig(Map config) {
         String home = (String) config.get(REPOSITORY_HOME);
-        checkNotNull(home, "Repository home not defined via [%s]", REPOSITORY_HOME);
+        requireNonNull(home, String.format("Repository home not defined via [%s]", REPOSITORY_HOME));
 
         home = FilenameUtils.normalizeNoEndSeparator(home);
 
@@ -481,7 +481,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 return tracker.getRegistry();
             }
 
-            checkNotNull(obj, "Repository service is not available");
+            requireNonNull(obj, "Repository service is not available");
             return method.invoke(obj, args);
         }
 

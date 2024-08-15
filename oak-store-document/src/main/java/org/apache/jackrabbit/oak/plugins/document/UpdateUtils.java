@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -46,7 +46,7 @@ public class UpdateUtils {
     public static void applyChanges(@NotNull Document doc,
                                     @NotNull UpdateOp update) {
         doc.put(Document.ID, update.getId());
-        for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
+        for (Entry<Key, Operation> e : requireNonNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();
             switch (op.type) {

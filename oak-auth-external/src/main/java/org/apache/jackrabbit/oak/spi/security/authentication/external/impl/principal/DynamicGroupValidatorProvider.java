@@ -42,7 +42,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.findGroupIdInHierarchy;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isGroup;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMemberProperty;
@@ -66,7 +66,7 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         this.treeProvider = treeProvider;
         this.idpNamesWithDynamicGroups = idpNamesWithDynamicGroups;
 
-        this.groupRootPath = checkNotNull(UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.GROUP));
+        this.groupRootPath = requireNonNull(UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.GROUP));
     }
 
     @Override

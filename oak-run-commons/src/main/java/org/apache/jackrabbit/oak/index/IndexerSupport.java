@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IndexerSupport {
@@ -120,7 +120,7 @@ public class IndexerSupport {
             log.warn("Using head state for indexing. Such an index cannot be imported back");
         } else {
             checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
-            checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
+            requireNonNull(checkpointedState, String.format("Not able to retrieve revision referred via checkpoint [%s]", checkpoint));
             checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
         }
         return checkpointedState;
@@ -185,7 +185,7 @@ public class IndexerSupport {
     }
 
     public static NodeBuilder childBuilder(NodeBuilder nb, String path, boolean createNew) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = createNew ? nb.child(name) : nb.getChildNode(name);
         }
         return nb;

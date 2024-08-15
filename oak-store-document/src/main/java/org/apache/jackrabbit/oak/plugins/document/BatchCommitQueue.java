@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Queues updates on a commit root document and batches them into a single
@@ -48,7 +48,7 @@ final class BatchCommitQueue {
     private final DocumentStore store;
 
     BatchCommitQueue(@NotNull DocumentStore store) {
-        this.store = checkNotNull(store);
+        this.store = requireNonNull(store);
     }
 
     Callable<NodeDocument> updateDocument(UpdateOp op) {

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.function.Supplier;
 
@@ -46,9 +46,9 @@ public class RecordCacheStats extends AbstractCacheStats {
             @NotNull Supplier<Long> elementCount,
             @NotNull Supplier<Long> weight) {
         super(name);
-        this.stats = checkNotNull(stats);
-        this.elementCount = checkNotNull(elementCount);
-        this.weight = checkNotNull(weight);
+        this.stats = requireNonNull(stats);
+        this.elementCount = requireNonNull(elementCount);
+        this.weight = requireNonNull(weight);
     }
 
     @Override

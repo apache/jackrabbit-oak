@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.Map;
@@ -91,9 +91,9 @@ public final class CommitInfo {
      * @param external indicates if the commit info is from external change
      */
     public CommitInfo(@NotNull String sessionId, @Nullable String userId, Map<String, Object> info, boolean external) {
-        this.sessionId = checkNotNull(sessionId);
+        this.sessionId = requireNonNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
-        this.info = checkNotNull(info);
+        this.info = requireNonNull(info);
         this.external = external;
     }
 

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
@@ -53,9 +53,9 @@ class MapEntry extends AbstractChildNodeEntry
             @NotNull String name,
             @NotNull RecordId key,
             @Nullable RecordId value) {
-        this.reader = checkNotNull(reader);
-        this.name = checkNotNull(name);
-        this.key = checkNotNull(key);
+        this.reader = requireNonNull(reader);
+        this.name = requireNonNull(name);
+        this.key = requireNonNull(key);
         this.value = value;
     }
 
@@ -72,7 +72,7 @@ class MapEntry extends AbstractChildNodeEntry
             @NotNull String name,
             @NotNull RecordId key,
             @NotNull RecordId value) {
-        return new MapEntry(reader, name, key, checkNotNull(value));
+        return new MapEntry(reader, name, key, requireNonNull(value));
     }
 
     /**

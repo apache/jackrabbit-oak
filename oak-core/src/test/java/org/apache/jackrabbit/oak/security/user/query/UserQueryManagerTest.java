@@ -54,7 +54,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_GROUP_PATH;
@@ -126,7 +126,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
                 g = getUserManager(root).createGroup(id);
             }
         } else {
-            checkNotNull(principal);
+            requireNonNull(principal);
             g = getUserManager(root).createGroup(principal);
         }
         groups.add(g);

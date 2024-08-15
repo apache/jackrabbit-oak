@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.util.function.Predicate;
@@ -258,6 +258,6 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     }
 
     private static String getRequiredProp(NodeState state, String name){
-        return checkNotNull(state.getString(name), "No property [%s] found in [%s]", name, state);
+        return requireNonNull(state.getString(name), String.format("No property [%s] found in [%s]", name, state));
     }
 }

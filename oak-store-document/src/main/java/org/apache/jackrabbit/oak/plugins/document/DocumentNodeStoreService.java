@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
@@ -302,9 +302,9 @@ public class DocumentNodeStoreService {
         if (documentStoreType == DocumentStoreType.RDB) {
             RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
             configureBuilder(builder);
-            checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
+            requireNonNull(dataSource, String.format("DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE));
             if (!customBlobStore) {
-                checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
+                requireNonNull(blobDataSource, String.format("DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE));
                 builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
@@ -550,8 +550,8 @@ public class DocumentNodeStoreService {
 
         //Set blobstore before setting the document store
         if (customBlobStore && !isWrappingCustomBlobStore()) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
-                    "initialized", CUSTOM_BLOB_STORE);
+            requireNonNull(blobStore, String.format("Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE));
             builder.setBlobStore(blobStore);
         }
 
@@ -981,7 +981,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final Registration reg) {
-        checkNotNull(reg);
+        requireNonNull(reg);
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -991,7 +991,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final AbstractServiceTracker t) {
-        checkNotNull(t);
+        requireNonNull(t);
         return new Closeable() {
             @Override
             public void close() throws IOException {

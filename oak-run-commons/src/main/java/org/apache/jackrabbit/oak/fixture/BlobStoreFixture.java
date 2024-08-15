@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
 import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfCloudDataStore;
 
@@ -188,7 +188,7 @@ public abstract class BlobStoreFixture implements Closeable{
             @Override
             public BlobStore setUp() {
                 String className = System.getProperty("dataStore");
-                checkNotNull(className, "No system property named 'dataStore' defined");
+                requireNonNull(className, "No system property named 'dataStore' defined");
                 try {
                     dataStore = Class.forName(className).asSubclass(DataStore.class).newInstance();
                     config = getConfig();

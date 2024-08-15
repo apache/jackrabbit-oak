@@ -53,7 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -89,8 +89,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     public ReadWriteVersionManager(NodeBuilder versionStorageNode,
                             NodeBuilder workspaceRoot) {
-        this.versionStorageNode = checkNotNull(versionStorageNode);
-        this.workspaceRoot = checkNotNull(workspaceRoot);
+        this.versionStorageNode = requireNonNull(versionStorageNode);
+        this.workspaceRoot = requireNonNull(workspaceRoot);
         this.isVersion = new TypePredicate(workspaceRoot.getNodeState(), NT_VERSION);
     }
 
@@ -128,7 +128,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      */
     @NotNull
     public NodeBuilder getOrCreateVersionHistory(@NotNull NodeBuilder versionable, @NotNull Map<String, Object> infoMap) {
-        checkNotNull(versionable);
+        requireNonNull(versionable);
         String vUUID = uuidFromNode(versionable);
         String relPath = getVersionHistoryPath(vUUID);
         NodeBuilder node = versionStorageNode;
@@ -345,8 +345,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     public void removeVersionLabel(@NotNull String historyRelPath,
                                    @NotNull String label)
             throws CommitFailedException {
-        NodeBuilder labels = getVersionLabelsFor(checkNotNull(historyRelPath));
-        if (!labels.hasProperty(checkNotNull(label))) {
+        NodeBuilder labels = getVersionLabelsFor(requireNonNull(historyRelPath));
+        if (!labels.hasProperty(requireNonNull(label))) {
             throw new CommitFailedException(CommitFailedException.VERSION,
                     VersionExceptionCode.NO_SUCH_VERSION_LABEL.ordinal(),
                     "Version label " + label + " does not exist on this version history");
@@ -644,7 +644,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      */
     @NotNull
     private NodeBuilder getVersionHistory(@NotNull NodeState versionable) {
-        checkNotNull(versionable);
+        requireNonNull(versionable);
         String vUUID = uuidFromNode(versionable);
         String relPath = getVersionHistoryPath(vUUID);
         NodeBuilder node = versionStorageNode;

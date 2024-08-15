@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_COUNTER;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_INCREMENT;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
@@ -84,7 +84,7 @@ public class AtomicCounterTest extends AbstractRepositoryTest {
     
     private static void assertCounter(@NotNull final Node counter, final long expectedCount) 
                                     throws RepositoryException {
-        checkNotNull(counter);
+        requireNonNull(counter);
         
         assertTrue(counter.hasProperty(PROP_COUNTER));
         assertEquals(expectedCount, counter.getProperty(PROP_COUNTER).getLong());

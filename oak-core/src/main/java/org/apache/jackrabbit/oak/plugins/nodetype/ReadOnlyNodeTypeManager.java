@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -379,8 +379,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Override
     public NodeDefinition getDefinition(@NotNull Tree parent, @NotNull String nodeName)
             throws RepositoryException {
-        checkNotNull(parent);
-        checkNotNull(nodeName);
+        requireNonNull(parent);
+        requireNonNull(nodeName);
         EffectiveNodeType effective = getEffectiveNodeType(parent);
         return effective.getNodeDefinition(nodeName, null);
     }
@@ -389,8 +389,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Override
     public NodeDefinition getDefinition(@NotNull Tree parent, @NotNull Tree targetNode)
             throws RepositoryException {
-        checkNotNull(parent);
-        checkNotNull(targetNode);
+        requireNonNull(parent);
+        requireNonNull(targetNode);
 
         String name = dropIndexFromName(targetNode.getName());
         EffectiveNodeType eff = getEffectiveNodeType(parent);

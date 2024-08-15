@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.Writer;
 import java.util.List;
@@ -57,7 +57,7 @@ public class IOTracer {
             @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
             @NotNull Writer output,
             @Nullable String contextSpec) {
-        this.fileStoreFactory = checkNotNull(fileStoreFactory);
+        this.fileStoreFactory = requireNonNull(fileStoreFactory);
         ioMonitor = new IOTraceMonitor(new DefaultIOTraceWriter(output), contextSpec);
     }
 
@@ -85,8 +85,8 @@ public class IOTracer {
      * @param trace
      */
     public void collectTrace(@NotNull Trace trace) {
-        checkNotNull(trace);
-        try (FileStore fileStore = checkNotNull(fileStoreFactory).apply(checkNotNull(ioMonitor))) {
+        requireNonNull(trace);
+        try (FileStore fileStore = requireNonNull(fileStoreFactory).apply(requireNonNull(ioMonitor))) {
             trace.run(fileStore.getHead());
         } finally {
             ioMonitor.flush();

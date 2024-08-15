@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.Arrays;
@@ -67,8 +67,8 @@ public abstract class ReaderCache<T> {
      */
     protected ReaderCache(long maxWeight, int averageWeight,
             @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
-        this.name = checkNotNull(name);
-        this.weigher = checkNotNull(weigher);
+        this.name = requireNonNull(name);
+        this.weigher = requireNonNull(weigher);
         fastCache = new FastCache<>();
         cache = CacheLIRS.<CacheKey, T>newBuilder()
                 .module(name)

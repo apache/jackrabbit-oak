@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
@@ -37,8 +37,8 @@ public class SubtreeEditor extends DefaultEditor {
     private final int depth;
 
     private SubtreeEditor(Editor editor, String[] path, int depth) {
-        this.editor = checkNotNull(editor);
-        this.path = checkNotNull(path);
+        this.editor = requireNonNull(editor);
+        this.path = requireNonNull(path);
         checkElementIndex(depth, path.length);
         this.depth = depth;
     }

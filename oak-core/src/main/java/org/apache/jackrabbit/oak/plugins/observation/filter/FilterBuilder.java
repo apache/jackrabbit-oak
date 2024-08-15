@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
@@ -105,7 +105,7 @@ public final class FilterBuilder {
                 return this;
             }
         }
-        subTrees.add(checkNotNull(absPath));
+        subTrees.add(requireNonNull(absPath));
         return this;
     }
     
@@ -180,7 +180,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public FilterBuilder condition(@NotNull Condition condition) {
-        this.condition = checkNotNull(condition);
+        this.condition = requireNonNull(condition);
         return this;
     }
 
@@ -214,7 +214,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition accessControl(@NotNull PermissionProviderFactory permissionProviderFactory) {
-        return new ACCondition(checkNotNull(permissionProviderFactory));
+        return new ACCondition(requireNonNull(permissionProviderFactory));
     }
 
     /**
@@ -225,7 +225,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition path(@NotNull String pathPattern) {
-        return new PathCondition(checkNotNull(pathPattern));
+        return new PathCondition(requireNonNull(pathPattern));
     }
 
     /**
@@ -259,7 +259,7 @@ public final class FilterBuilder {
         } else if (ntNames.length == 0) {
             return excludeAll();
         } else {
-            return new NodeTypeCondition(checkNotNull(selector), ntNames);
+            return new NodeTypeCondition(requireNonNull(selector), ntNames);
         }
     }
 
@@ -277,7 +277,7 @@ public final class FilterBuilder {
         } else if (uuids.length == 0) {
             return excludeAll();
         } else {
-            return new UniversalCondition(checkNotNull(selector), new UuidPredicate(uuids));
+            return new UniversalCondition(requireNonNull(selector), new UuidPredicate(uuids));
         }
     }
 
@@ -293,8 +293,8 @@ public final class FilterBuilder {
             @NotNull Predicate<PropertyState> predicate) {
 
         return new UniversalCondition(
-                checkNotNull(selector),
-                new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
+                requireNonNull(selector),
+                new PropertyPredicate(requireNonNull(name), requireNonNull(predicate)));
     }
 
     /**
@@ -305,7 +305,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition universal(@NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
-        return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
+        return new UniversalCondition(requireNonNull(selector), requireNonNull(predicate));
     }
 
     /**
@@ -341,7 +341,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Condition... conditions) {
-        return new AnyCondition(newArrayList(checkNotNull(conditions)));
+        return new AnyCondition(newArrayList(requireNonNull(conditions)));
     }
 
     /**
@@ -351,7 +351,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull Condition... conditions) {
-        return new AllCondition(newArrayList(checkNotNull(conditions)));
+        return new AllCondition(newArrayList(requireNonNull(conditions)));
     }
 
     /**
@@ -361,7 +361,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull List<Condition> conditions) {
-        return new AllCondition(checkNotNull(conditions));
+        return new AllCondition(requireNonNull(conditions));
     }
 
     /**
@@ -371,7 +371,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition not(@NotNull Condition condition) {
-        return new NotCondition(checkNotNull(condition));
+        return new NotCondition(requireNonNull(condition));
     }
 
     /**
@@ -381,7 +381,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Iterable<Condition> conditions) {
-        return new AnyCondition(checkNotNull(conditions));
+        return new AnyCondition(requireNonNull(conditions));
     }
 
     /**
@@ -391,7 +391,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull Iterable<Condition> conditions) {
-        return new AllCondition(checkNotNull(conditions));
+        return new AllCondition(requireNonNull(conditions));
     }
 
     /**
@@ -416,7 +416,7 @@ public final class FilterBuilder {
             
             @Override
             public boolean includeCommit(@NotNull String sessionId, @Nullable CommitInfo info) {
-                return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
+                return (includeSessionLocal || !isLocal(requireNonNull(sessionId), info))
                     && (includeClusterExternal || !isExternal(info))
                     && (includeClusterLocal || isExternal(info));
             }
@@ -424,7 +424,7 @@ public final class FilterBuilder {
             @NotNull
             @Override
             public EventFilter getFilter(@NotNull NodeState before, @NotNull NodeState after) {
-                return condition.createFilter(checkNotNull(before), checkNotNull(after));
+                return condition.createFilter(requireNonNull(before), requireNonNull(after));
             }
 
             @NotNull

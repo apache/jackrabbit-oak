@@ -45,9 +45,9 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -120,12 +120,12 @@ public final class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder codec(String codecName){
-        tree.setProperty(LuceneIndexConstants.CODEC_NAME, checkNotNull(codecName));
+        tree.setProperty(LuceneIndexConstants.CODEC_NAME, requireNonNull(codecName));
         return this;
     }
 
     public IndexDefinitionBuilder mergePolicy(String mergePolicy) {
-        tree.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, checkNotNull(mergePolicy));
+        tree.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, requireNonNull(mergePolicy));
         return this;
     }
 

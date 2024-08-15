@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 
@@ -199,7 +199,7 @@ public class AstElementFactory {
      */
     @NotNull
     public static AstElement copyElementAndCheckReference(@NotNull final AstElement e) {
-        AstElement clone = checkNotNull(e).copyOf();
+        AstElement clone = requireNonNull(e).copyOf();
         
         if (clone == e && LOG.isDebugEnabled()) {
             LOG.debug(

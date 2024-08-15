@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -83,7 +83,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         if (size <= 0) {
             return Empty.emptyFactory();
         } else {
-            return Default.defaultFactory(size, checkNotNull(weigher));
+            return Default.defaultFactory(size, requireNonNull(weigher));
         }
     }
 
@@ -155,7 +155,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         static <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
-            return () -> new Default<>(size, checkNotNull(weigher));
+            return () -> new Default<>(size, requireNonNull(weigher));
         }
 
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {

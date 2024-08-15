@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.lang.reflect.Field;
@@ -37,8 +36,6 @@ import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
 import joptsimple.internal.Strings;
-
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -64,10 +61,10 @@ public class OakHelpFormatter implements HelpFormatter {
         //TODO Take care of left over options
 
         StringBuilder builder = new StringBuilder();
-        builder.append(new MainSectionFormatter().format(options)).append(LINE_SEPARATOR.value());
+        builder.append(new MainSectionFormatter().format(options)).append(System.getProperty("line.separator"));
 
         for (OptionCategory c : optionCategories){
-            builder.append(c.format()).append(LINE_SEPARATOR.value());
+            builder.append(c.format()).append(System.getProperty("line.separator"));
         }
 
         return builder.toString();
@@ -132,7 +129,7 @@ public class OakHelpFormatter implements HelpFormatter {
             StringBuilder builder = new StringBuilder();
             builder.append(new CategoryFormatter(bean).format(options));
             if (!operations.isEmpty()) {
-                builder.append(LINE_SEPARATOR.value());
+                builder.append(System.getProperty("line.separator"));
                 builder.append(new OperationsFormatter().format(operations));
             }
             return builder.toString();

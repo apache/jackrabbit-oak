@@ -81,7 +81,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.StreamSupport.stream;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
+
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createUnstarted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
@@ -2390,7 +2390,7 @@ public class VersionGarbageCollector {
 
                 if (log.isTraceEnabled()) {
                     StringBuilder sb = new StringBuilder("Performing batch deletion of documents with following ids. \n");
-                    Joiner.on(LINE_SEPARATOR.value()).appendTo(sb, deletionBatch.keySet());
+                    Joiner.on(System.getProperty("line.separator")).appendTo(sb, deletionBatch.keySet());
                     log.trace(sb.toString());
                 }
 
@@ -2480,7 +2480,7 @@ public class VersionGarbageCollector {
 
                 if (log.isDebugEnabled()) {
                     StringBuilder sb = new StringBuilder("Performing batch deletion of previous documents with following ids. \n");
-                    Joiner.on(LINE_SEPARATOR.value()).appendTo(sb, deletionBatch);
+                    Joiner.on(System.getProperty("line.separator")).appendTo(sb, deletionBatch);
                     log.debug(sb.toString());
                 }
 

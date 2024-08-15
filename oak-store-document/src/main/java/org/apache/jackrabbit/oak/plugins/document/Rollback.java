@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
@@ -70,8 +70,8 @@ class Rollback {
              @NotNull String commitRootId,
              int batchSize) {
         this.revision = revision;
-        this.changed = checkNotNull(changed);
-        this.commitRootId = checkNotNull(commitRootId);
+        this.changed = requireNonNull(changed);
+        this.commitRootId = requireNonNull(commitRootId);
         this.batchSize = batchSize;
     }
 
@@ -84,7 +84,7 @@ class Rollback {
      * @throws DocumentStoreException if any of the operations fails.
      */
     void perform(@NotNull DocumentStore store) throws DocumentStoreException {
-        checkNotNull(store);
+        requireNonNull(store);
         List<UpdateOp> reverseOps = new ArrayList<>();
         for (UpdateOp op : changed) {
             UpdateOp reverse = op.getReverseOperation();
