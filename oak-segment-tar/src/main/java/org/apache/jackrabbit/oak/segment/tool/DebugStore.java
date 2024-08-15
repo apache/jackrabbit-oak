@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
@@ -73,7 +73,7 @@ public class DebugStore {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -83,7 +83,7 @@ public class DebugStore {
          * @return an instance of {@link Runnable}.
          */
         public DebugStore build() {
-            checkNotNull(path);
+            requireNonNull(path);
             return new DebugStore(this);
         }
 

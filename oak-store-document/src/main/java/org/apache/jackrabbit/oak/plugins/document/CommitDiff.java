@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -49,9 +49,9 @@ class CommitDiff implements NodeStateDiff {
     CommitDiff(@NotNull BundlingHandler bundlingHandler,
                @NotNull CommitBuilder commitBuilder,
                @NotNull BlobSerializer blobs) {
-        this(checkNotNull(commitBuilder),
-                checkNotNull(bundlingHandler),
-                new JsopBuilder(), checkNotNull(blobs));
+        this(requireNonNull(commitBuilder),
+                requireNonNull(bundlingHandler),
+                new JsopBuilder(), requireNonNull(blobs));
     }
 
     private CommitDiff(CommitBuilder commitBuilder,

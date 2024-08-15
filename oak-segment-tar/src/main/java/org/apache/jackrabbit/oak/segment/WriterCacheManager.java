@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
@@ -115,7 +115,7 @@ public abstract class WriterCacheManager {
     public WriterCacheManager withAccessTracking(
             @NotNull String name,
             @NotNull StatisticsProvider statisticsProvider) {
-        return new AccessTrackingCacheManager(checkNotNull(name), checkNotNull(statisticsProvider), this);
+        return new AccessTrackingCacheManager(requireNonNull(name), requireNonNull(statisticsProvider), this);
     }
 
     /**
@@ -266,7 +266,7 @@ public abstract class WriterCacheManager {
             private final Supplier<T> cacheFactory;
 
             Generations(@NotNull Supplier<T> cacheFactory) {
-                this.cacheFactory = checkNotNull(cacheFactory);
+                this.cacheFactory = requireNonNull(cacheFactory);
             }
 
             T getGeneration(final int generation) {

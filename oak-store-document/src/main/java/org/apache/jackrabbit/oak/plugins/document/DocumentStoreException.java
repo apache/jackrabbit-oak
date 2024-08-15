@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,7 +95,7 @@ public class DocumentStoreException extends RuntimeException {
      */
     public DocumentStoreException(String message, Throwable cause, Type type) {
         super(message, cause);
-        this.type = checkNotNull(type);
+        this.type = requireNonNull(type);
     }
 
     /**

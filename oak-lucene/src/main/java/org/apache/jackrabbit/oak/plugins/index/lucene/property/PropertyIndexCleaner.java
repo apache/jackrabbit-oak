@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
@@ -83,9 +83,9 @@ public class PropertyIndexCleaner implements Runnable{
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
                                 AsyncIndexInfoService asyncIndexInfoService,
                                 StatisticsProvider statsProvider) {
-        this.nodeStore = checkNotNull(nodeStore);
-        this.indexPathService = checkNotNull(indexPathService);
-        this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
+        this.nodeStore = requireNonNull(nodeStore);
+        this.indexPathService = requireNonNull(indexPathService);
+        this.asyncIndexInfoService = requireNonNull(asyncIndexInfoService);
 
         this.cleanupTime = statsProvider.getTimer("HYBRID_PROPERTY_CLEANER", StatsOptions.METRICS_ONLY);
         this.noopMeter = statsProvider.getMeter("HYBRID_PROPERTY_NOOP", StatsOptions.METRICS_ONLY);
@@ -315,7 +315,7 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             //Use getChildNode to avoid creating new entries by default
             nb = nb.getChildNode(name);
         }

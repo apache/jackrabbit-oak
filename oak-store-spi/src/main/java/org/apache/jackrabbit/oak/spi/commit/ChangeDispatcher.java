@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.Closeable;
 
@@ -46,7 +46,7 @@ public class ChangeDispatcher implements Observable, Observer {
      * @param root  current root node state
      */
     public ChangeDispatcher(@NotNull NodeState root) {
-        this.root = checkNotNull(root);
+        this.root = requireNonNull(root);
     }
 
     /**
@@ -74,8 +74,8 @@ public class ChangeDispatcher implements Observable, Observer {
 
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-        checkNotNull(root);
-        checkNotNull(info);
+        requireNonNull(root);
+        requireNonNull(info);
         observers.contentChanged(root, info);
         this.root = root;
     }

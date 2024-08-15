@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.Closeable;
 import java.util.concurrent.Executor;
@@ -70,7 +70,7 @@ public class FilteringObserver implements Observer, Closeable {
      */
     public FilteringObserver(@NotNull Executor executor, int queueLength, @NotNull Filter filter,
             @NotNull FilteringAwareObserver observer) {
-        this(new BackgroundObserver(new FilteringDispatcher(checkNotNull(observer)), checkNotNull(executor),
+        this(new BackgroundObserver(new FilteringDispatcher(requireNonNull(observer)), requireNonNull(executor),
                 queueLength), filter);
     }
 
@@ -81,7 +81,7 @@ public class FilteringObserver implements Observer, Closeable {
      */
     public FilteringObserver(@NotNull BackgroundObserver backgroundObserver, @NotNull Filter filter) {
         this.backgroundObserver = backgroundObserver;
-        this.filter = checkNotNull(filter);
+        this.filter = requireNonNull(filter);
     }
 
     public BackgroundObserver getBackgroundObserver() {

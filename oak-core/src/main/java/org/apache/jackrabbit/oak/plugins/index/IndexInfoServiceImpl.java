@@ -35,7 +35,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 @Component
 public class IndexInfoServiceImpl implements IndexInfoService{
@@ -117,7 +117,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
             service = IndexInfoProvider.class
     )
     public void bindInfoProviders(IndexInfoProvider infoProvider){
-        infoProviders.put(checkNotNull(infoProvider.getType()), infoProvider);
+        infoProviders.put(requireNonNull(infoProvider.getType()), infoProvider);
     }
 
     public void unbindInfoProviders(IndexInfoProvider infoProvider){

@@ -37,7 +37,7 @@ import org.junit.Test;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -56,7 +56,7 @@ public class CugValidatorTest extends AbstractCugTest {
 
     @NotNull
     private Validator createRootValidator(@NotNull NodeState ns) {
-        return checkNotNull(new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid")));
+        return requireNonNull(new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid")));
     }
 
     @Test

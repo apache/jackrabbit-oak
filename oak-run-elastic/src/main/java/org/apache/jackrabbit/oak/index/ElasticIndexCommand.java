@@ -193,7 +193,7 @@ public class ElasticIndexCommand implements Command {
     }
 
     private void reindex(ElasticIndexOptions indexOpts, IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
-        Preconditions.checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+        Objects.requireNonNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch w = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(indexHelper, checkpoint);

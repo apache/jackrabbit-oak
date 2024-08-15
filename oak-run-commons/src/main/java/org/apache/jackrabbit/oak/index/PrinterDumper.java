@@ -30,7 +30,7 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class PrinterDumper {
     private final File outDir;
@@ -58,7 +58,7 @@ class PrinterDumper {
     }
 
     public File getOutFile() {
-        return checkNotNull(outFile);
+        return requireNonNull(outFile);
     }
 
     private OutputStream newOutput() throws IOException {

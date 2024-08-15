@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
@@ -55,7 +55,7 @@ class EffectiveType {
     private final List<NodeState> types;
 
     EffectiveType(@NotNull List<NodeState> types) {
-        this.types = checkNotNull(types);
+        this.types = requireNonNull(types);
     }
 
     /**

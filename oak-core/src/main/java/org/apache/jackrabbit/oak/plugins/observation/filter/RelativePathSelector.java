@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -44,8 +44,8 @@ public class RelativePathSelector implements Selector {
      * @param selector  selector to base {@code path} upon
      */
     public RelativePathSelector(@NotNull String path, @NotNull Selector selector) {
-        this.path = elements(checkNotNull(path));
-        this.selector = checkNotNull(selector);
+        this.path = elements(requireNonNull(path));
+        this.selector = requireNonNull(selector);
     }
 
     @NotNull

@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A builder for a commit, translating modifications into {@link UpdateOp}s.
@@ -76,8 +76,8 @@ class CommitBuilder {
     CommitBuilder(@NotNull DocumentNodeStore nodeStore,
                   @NotNull Revision revision,
                   @Nullable RevisionVector baseRevision) {
-        this.nodeStore = checkNotNull(nodeStore);
-        this.revision = checkNotNull(revision);
+        this.nodeStore = requireNonNull(nodeStore);
+        this.revision = requireNonNull(revision);
         this.baseRevision = baseRevision;
     }
 
@@ -120,7 +120,7 @@ class CommitBuilder {
     @NotNull
     CommitBuilder addNode(@NotNull DocumentNodeState node)
             throws DocumentStoreException {
-        checkNotNull(node);
+        requireNonNull(node);
 
         Path path = node.getPath();
 
@@ -152,8 +152,8 @@ class CommitBuilder {
     @NotNull
     CommitBuilder addBundledNode(@NotNull Path path,
                                  @NotNull Path bundlingRootPath) {
-        checkNotNull(path);
-        checkNotNull(bundlingRootPath);
+        requireNonNull(path);
+        requireNonNull(bundlingRootPath);
 
         bundledNodes.put(path, bundlingRootPath);
         return this;
@@ -172,8 +172,8 @@ class CommitBuilder {
     CommitBuilder removeNode(@NotNull Path path,
                              @NotNull NodeState state)
             throws DocumentStoreException {
-        checkNotNull(path);
-        checkNotNull(state);
+        requireNonNull(path);
+        requireNonNull(state);
 
         if (operations.containsKey(path)) {
             String msg = "Node already removed: " + path;
@@ -201,8 +201,8 @@ class CommitBuilder {
     CommitBuilder updateProperty(@NotNull Path path,
                                  @NotNull String propertyName,
                                  @Nullable String value) {
-        checkNotNull(path);
-        checkNotNull(propertyName);
+        requireNonNull(path);
+        requireNonNull(propertyName);
 
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
@@ -219,7 +219,7 @@ class CommitBuilder {
      */
     @NotNull
     CommitBuilder markNodeHavingBinary(@NotNull Path path) {
-        checkNotNull(path);
+        requireNonNull(path);
 
         nodesWithBinaries.add(path);
         return this;
@@ -234,7 +234,7 @@ class CommitBuilder {
      */
     @NotNull
     CommitBuilder withStartRevisions(@NotNull RevisionVector startRevisions) {
-        this.startRevisions = checkNotNull(startRevisions);
+        this.startRevisions = requireNonNull(startRevisions);
         return this;
     }
 
@@ -265,7 +265,7 @@ class CommitBuilder {
      */
     @NotNull
     Commit build(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
 
         Revision from = this.revision;
         Map<Path, UpdateOp> operations = Maps.transformValues(

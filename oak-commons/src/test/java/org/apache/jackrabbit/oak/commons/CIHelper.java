@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.commons;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getenv;
 
+import java.util.Locale;
 import java.util.Objects;
-
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 
 /**
  * Utility class for ITs to determine the environment running in.
@@ -93,7 +92,6 @@ public final class CIHelper {
      * @return  {@code true} iff running in a Windows environment
      */
     public static boolean windows() {
-        return StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows");
+        return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows");
     }
-
 }

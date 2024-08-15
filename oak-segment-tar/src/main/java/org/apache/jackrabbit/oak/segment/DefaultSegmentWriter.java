@@ -18,9 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.Long.numberOfLeadingZeros;
+import static java.lang.Math.min;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.nCopies;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -29,13 +35,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
-
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
-import static java.lang.Long.numberOfLeadingZeros;
-import static java.lang.Math.min;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -140,12 +140,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @NotNull WriteOperationHandler writeOperationHandler,
             int binariesInlineThreshold
     ) {
-        this.store = checkNotNull(store);
-        this.reader = checkNotNull(reader);
-        this.idProvider = checkNotNull(idProvider);
+        this.store = requireNonNull(store);
+        this.reader = requireNonNull(reader);
+        this.idProvider = requireNonNull(idProvider);
         this.blobStore = blobStore;
-        this.cacheManager = checkNotNull(cacheManager);
-        this.writeOperationHandler = checkNotNull(writeOperationHandler);
+        this.cacheManager = requireNonNull(cacheManager);
+        this.writeOperationHandler = requireNonNull(writeOperationHandler);
         checkArgument(binariesInlineThreshold >= 0);
         checkArgument(binariesInlineThreshold <= Segment.MEDIUM_LIMIT);
         this.binariesInlineThreshold = binariesInlineThreshold;
@@ -333,7 +333,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeMapLeaf(int level, Collection<MapEntry> entries) throws IOException {
-            checkNotNull(entries);
+            requireNonNull(entries);
             int size = entries.size();
             checkElementIndex(size, MapRecord.MAX_SIZE);
             checkPositionIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS);
@@ -453,7 +453,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
          * @return list record identifier
          */
         private RecordId writeList(@NotNull List<RecordId> list) throws IOException {
-            checkNotNull(list);
+            requireNonNull(list);
             checkArgument(!list.isEmpty());
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
@@ -621,7 +621,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
         private RecordId writeBlock(@NotNull byte[] bytes, int offset, int length)
                 throws IOException {
-            checkNotNull(bytes);
+            requireNonNull(bytes);
             checkPositionIndexes(offset, offset + length, bytes.length);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
                 RecordWriters.newBlockWriter(bytes, offset, length)));
@@ -747,7 +747,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeTemplate(Template template) throws IOException {
-            checkNotNull(template);
+            requireNonNull(template);
 
             RecordId id = templateCache.get(template);
             if (id != null) {

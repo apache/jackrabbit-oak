@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
@@ -85,8 +85,8 @@ public class NodeTypeMountedNodeStoreChecker implements
     }
 
     protected void activate(ComponentContext ctx) {
-        invalidNodeType = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
-        errorLabel = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
+        invalidNodeType = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
+        errorLabel = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
         excludedNodeTypes = ImmutableSet.copyOf(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
     }
 

@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
@@ -591,7 +591,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private Blob createBlob(final InternalValue value) {
-        checkArgument(checkNotNull(value).getType() == PropertyType.BINARY);
+        checkArgument(requireNonNull(value).getType() == PropertyType.BINARY);
         return new AbstractBlob() {
             @Override
             public long length() {

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
@@ -31,9 +31,9 @@ public class ColumnImpl extends AstElement {
     private SelectorImpl selector;
 
     public ColumnImpl(String selectorName, String propertyName, String columnName) {
-        this.selectorName = checkNotNull(selectorName);
-        this.propertyName = checkNotNull(propertyName);
-        this.columnName = checkNotNull(columnName);
+        this.selectorName = requireNonNull(selectorName);
+        this.propertyName = requireNonNull(propertyName);
+        this.columnName = requireNonNull(columnName);
     }
     
     public String getColumnName() {

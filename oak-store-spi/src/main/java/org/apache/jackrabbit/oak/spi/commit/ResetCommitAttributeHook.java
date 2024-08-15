@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public enum ResetCommitAttributeHook implements CommitHook {
     INSTANCE;
@@ -40,6 +40,6 @@ public enum ResetCommitAttributeHook implements CommitHook {
     private static void resetAttributes(CommitInfo info) {
         SimpleCommitContext attrs = (SimpleCommitContext) info.getInfo().get(CommitContext.NAME);
         //As per implementation this should not be null
-        checkNotNull(attrs, "No commit attribute instance found in info map").clear();
+        requireNonNull(attrs, "No commit attribute instance found in info map").clear();
     }
 }

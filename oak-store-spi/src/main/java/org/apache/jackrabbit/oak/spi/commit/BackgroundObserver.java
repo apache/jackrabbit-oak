@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
@@ -150,9 +150,9 @@ public class BackgroundObserver implements Observer, Closeable {
             @NotNull Executor executor,
             int queueLength,
             @NotNull UncaughtExceptionHandler exceptionHandler) {
-        this.observer = checkNotNull(observer);
-        this.executor = checkNotNull(executor);
-        this.exceptionHandler = checkNotNull(exceptionHandler);
+        this.observer = requireNonNull(observer);
+        this.executor = requireNonNull(executor);
+        this.exceptionHandler = requireNonNull(exceptionHandler);
         this.maxQueueLength = queueLength;
         this.queue = newArrayBlockingQueue(maxQueueLength);
     }
@@ -255,8 +255,8 @@ public class BackgroundObserver implements Observer, Closeable {
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         checkState(!stopped);
-        checkNotNull(root);
-        checkNotNull(info);
+        requireNonNull(root);
+        requireNonNull(info);
 
         if (alwaysCollapseExternalEvents && info.isExternal() && last != null && last.info.isExternal()) {
             // This is an external change. If the previous change was
@@ -300,7 +300,7 @@ public class BackgroundObserver implements Observer, Closeable {
     //------------------------------------------------------------< internal >---
 
     private static Logger getLogger(@NotNull Observer observer) {
-        return LoggerFactory.getLogger(checkNotNull(observer).getClass());
+        return LoggerFactory.getLogger(requireNonNull(observer).getClass());
     }
 
     

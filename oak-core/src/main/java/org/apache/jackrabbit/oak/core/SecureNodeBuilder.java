@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
@@ -100,8 +100,8 @@ class SecureNodeBuilder implements NodeBuilder {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
-        this.permissionProvider = checkNotNull(permissionProvider);
-        this.builder = checkNotNull(builder);
+        this.permissionProvider = requireNonNull(permissionProvider);
+        this.builder = requireNonNull(builder);
     }
 
     private SecureNodeBuilder(SecureNodeBuilder parent, String name) {

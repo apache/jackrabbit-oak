@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.atomic;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -188,7 +188,7 @@ public class AtomicCounterEditorTest {
      * @param properties
      */
     private static void assertNoCounters(@NotNull final Iterable<? extends PropertyState> properties) {
-        checkNotNull(properties);
+        requireNonNull(properties);
         
         for (PropertyState p : properties) {
             assertFalse("there should be no counter property",
@@ -204,7 +204,7 @@ public class AtomicCounterEditorTest {
     private static void assertTotalCountersValue(@NotNull final Iterable<? extends PropertyState> properties,
                                             int expected) {
         int total = 0;
-        for (PropertyState p : checkNotNull(properties)) {
+        for (PropertyState p : requireNonNull(properties)) {
             if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
                 total += p.getValue(LONG);
             }
@@ -214,15 +214,15 @@ public class AtomicCounterEditorTest {
     }
     
     private static NodeBuilder setMixin(@NotNull final NodeBuilder builder) {
-        return checkNotNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
+        return requireNonNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
     }
     
     
     private static void assertCounterNodeState(@NotNull NodeBuilder builder, 
                                                @NotNull Set<String> hiddenProps, 
                                                long expectedCounter) {
-        checkNotNull(builder);
-        checkNotNull(hiddenProps);
+        requireNonNull(builder);
+        requireNonNull(hiddenProps);
         long totalHiddenValue = 0;
         PropertyState counter = builder.getProperty(PROP_COUNTER);
         Set<String> hp = Sets.newHashSet(hiddenProps);
@@ -246,7 +246,7 @@ public class AtomicCounterEditorTest {
     }
 
     private static NodeBuilder incrementBy(@NotNull NodeBuilder builder, @NotNull PropertyState increment) {
-        return checkNotNull(builder).setProperty(checkNotNull(increment));
+        return requireNonNull(builder).setProperty(requireNonNull(increment));
     }
     
     @Test
@@ -495,8 +495,8 @@ public class AtomicCounterEditorTest {
         public <V> ScheduledFuture<V> schedule(final Callable<V> callable, long delay, TimeUnit unit) {
             LOG.debug("Scheduling with delay: {} and unit: {} the process {}", delay, unit, callable);
             
-            checkNotNull(callable);
-            checkNotNull(unit);
+            requireNonNull(callable);
+            requireNonNull(unit);
             if (delay < 0) {
                 delay = 0;
             }

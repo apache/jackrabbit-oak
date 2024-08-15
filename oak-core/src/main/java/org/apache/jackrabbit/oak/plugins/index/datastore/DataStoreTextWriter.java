@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -124,8 +124,8 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     @Override
     public void write(@NotNull String blobId,@NotNull String text) throws IOException {
         checkIfReadOnlyModeEnabled();
-        checkNotNull(blobId, "BlobId cannot be null");
-        checkNotNull(text, "Text passed for [%s] was null", blobId);
+        requireNonNull(blobId, "BlobId cannot be null");
+        requireNonNull(text, String.format("Text passed for [%s] was null", blobId));
 
         File textFile = getFile(stripLength(blobId));
         ensureParentExists(textFile);

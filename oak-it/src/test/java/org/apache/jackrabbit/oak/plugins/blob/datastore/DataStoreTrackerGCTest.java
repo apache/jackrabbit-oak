@@ -61,7 +61,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
@@ -205,7 +204,7 @@ public class DataStoreTrackerGCTest {
     @Test
     public void consistencyCheckNoActiveDeletion() throws Exception {
         File tmpFolder = folder.newFolder();
-        String previousTmp = System.setProperty(JAVA_IO_TMPDIR.key(), tmpFolder.getAbsolutePath());
+        String previousTmp = System.setProperty("java.io.tmpdir", tmpFolder.getAbsolutePath());
 
         try {
             Cluster cluster = new Cluster("cluster1");
@@ -218,9 +217,9 @@ public class DataStoreTrackerGCTest {
             assertTrue(FileUtils.listFiles(tmpFolder, null, true).size() == 0);
         } finally {
             if (previousTmp != null) {
-                System.setProperty(JAVA_IO_TMPDIR.key(), previousTmp);
+                System.setProperty("java.io.tmpdir", previousTmp);
             } else {
-                System.clearProperty(JAVA_IO_TMPDIR.key());
+                System.clearProperty("java.io.tmpdir");
             }
         }
     }

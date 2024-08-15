@@ -57,7 +57,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * @deprecated Replaced by {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder}
@@ -103,7 +103,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
      * @param configuration security configuration
      */
     public SecurityProviderImpl(@NotNull ConfigurationParameters configuration) {
-        checkNotNull(configuration);
+        requireNonNull(configuration);
         this.configuration = configuration;
 
         authenticationConfiguration = initDefaultConfiguration(new AuthenticationConfigurationImpl(this));

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
@@ -325,7 +325,7 @@ public class RepositoryUpgrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(checkNotNull(includes));
+        this.includePaths = copyOf(requireNonNull(includes));
     }
 
     /**
@@ -335,7 +335,7 @@ public class RepositoryUpgrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(checkNotNull(excludes));
+        this.excludePaths = copyOf(requireNonNull(excludes));
     }
 
     /**
@@ -345,7 +345,7 @@ public class RepositoryUpgrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(checkNotNull(merges));
+        this.mergePaths = copyOf(requireNonNull(merges));
     }
 
     /**

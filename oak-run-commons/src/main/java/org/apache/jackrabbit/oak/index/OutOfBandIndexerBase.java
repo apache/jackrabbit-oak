@@ -39,7 +39,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback{
 
@@ -62,8 +62,8 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     //present in target repository
 
     public OutOfBandIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
-        this.indexHelper = checkNotNull(indexHelper);
-        this.indexerSupport = checkNotNull(indexerSupport);
+        this.indexHelper = requireNonNull(indexHelper);
+        this.indexerSupport = requireNonNull(indexerSupport);
     }
 
     public void reindex() throws CommitFailedException, IOException {

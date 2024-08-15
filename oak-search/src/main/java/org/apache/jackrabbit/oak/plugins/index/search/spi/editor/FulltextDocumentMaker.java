@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getPrimaryTypeName;
 
@@ -89,9 +89,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                  IndexDefinition.IndexingRule indexingRule,
                                  @NotNull String path) {
         this.textExtractor = textExtractor;
-        this.definition = checkNotNull(definition);
-        this.indexingRule = checkNotNull(indexingRule);
-        this.path = checkNotNull(path);
+        this.definition = requireNonNull(definition);
+        this.indexingRule = requireNonNull(indexingRule);
+        this.path = requireNonNull(path);
         this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
                 DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }

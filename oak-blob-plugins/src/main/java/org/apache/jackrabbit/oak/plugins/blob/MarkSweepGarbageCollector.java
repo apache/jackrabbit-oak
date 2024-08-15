@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
 import static java.util.Comparator.comparing;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -98,7 +98,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final Logger LOG = LoggerFactory.getLogger(MarkSweepGarbageCollector.class);
 
-    public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
+    public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 
     public static final int DEFAULT_BATCH_COUNT = 1024;
 
@@ -189,7 +189,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         this.blobStore = blobStore;
         this.checkConsistencyAfterGc = checkConsistencyAfterGc;
         this.sweepIfRefsPastRetention = sweepIfRefsPastRetention;
-        checkNotNull(blobStore, "BlobStore cannot be null");
+        requireNonNull(blobStore, "BlobStore cannot be null");
         this.marker = marker;
         this.batchCount = batchCount;
         this.maxLastModifiedInterval = maxLastModifiedInterval;

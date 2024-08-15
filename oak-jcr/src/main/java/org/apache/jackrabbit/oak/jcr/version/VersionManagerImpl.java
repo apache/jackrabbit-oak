@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -417,8 +417,8 @@ public class VersionManagerImpl implements VersionManager {
                                             @NotNull String absPath)
             throws PathNotFoundException {
         String oakParentPath = getOakPathOrThrowNotFound(
-                PathUtils.getParentPath(checkNotNull(absPath)));
-        NodeDelegate parent = checkNotNull(sessionDelegate).getNode(oakParentPath);
+                PathUtils.getParentPath(requireNonNull(absPath)));
+        NodeDelegate parent = requireNonNull(sessionDelegate).getNode(oakParentPath);
         if (parent == null) {
             throw new PathNotFoundException(PathUtils.getParentPath(absPath));
         }
@@ -514,7 +514,7 @@ public class VersionManagerImpl implements VersionManager {
             @NotNull String absPathVersionable)
             throws RepositoryException, UnsupportedRepositoryOperationException {
         SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        String oakPath = getOakPathOrThrowNotFound(checkNotNull(absPathVersionable));
+        String oakPath = getOakPathOrThrowNotFound(requireNonNull(absPathVersionable));
         NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
         if (nodeDelegate == null) {
             throw new PathNotFoundException(absPathVersionable);

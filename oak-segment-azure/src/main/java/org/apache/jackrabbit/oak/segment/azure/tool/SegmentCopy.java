@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printMessage;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
@@ -108,7 +108,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withSource(String source) {
-            this.source = checkNotNull(source);
+            this.source = requireNonNull(source);
             return this;
         }
 
@@ -121,7 +121,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withDestination(String destination) {
-            this.destination = checkNotNull(destination);
+            this.destination = requireNonNull(destination);
             return this;
         }
 
@@ -133,7 +133,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withSrcPersistencee(SegmentNodeStorePersistence srcPersistence) {
-            this.srcPersistence = checkNotNull(srcPersistence);
+            this.srcPersistence = requireNonNull(srcPersistence);
             return this;
         }
 
@@ -145,7 +145,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withDestPersistence(SegmentNodeStorePersistence destPersistence) {
-            this.destPersistence = checkNotNull(destPersistence);
+            this.destPersistence = requireNonNull(destPersistence);
             return this;
         }
 
@@ -227,8 +227,8 @@ public class SegmentCopy {
          */
         public SegmentCopy build() {
             if (srcPersistence == null && destPersistence == null) {
-                checkNotNull(source);
-                checkNotNull(destination);
+                requireNonNull(source);
+                requireNonNull(destination);
             }
 
             return new SegmentCopy(this);

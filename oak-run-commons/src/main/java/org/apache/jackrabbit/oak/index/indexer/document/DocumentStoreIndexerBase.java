@@ -80,7 +80,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
@@ -466,15 +466,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     private MongoDocumentStore getMongoDocumentStore() {
-        return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
+        return requireNonNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
     private MongoClientURI getMongoClientURI() {
-        return checkNotNull(indexHelper.getService(MongoClientURI.class));
+        return requireNonNull(indexHelper.getService(MongoClientURI.class));
     }
 
     private MongoDatabase getMongoDatabase() {
-        return checkNotNull(indexHelper.getService(MongoDatabase.class));
+        return requireNonNull(indexHelper.getService(MongoDatabase.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {

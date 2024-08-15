@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 
 import javax.jcr.RepositoryException;
@@ -37,7 +37,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 public class VersionDelegate extends NodeDelegate {
 
     private VersionDelegate(SessionDelegate sessionDelegate, Tree tree) {
-        super(checkNotNull(sessionDelegate), checkNotNull(tree));
+        super(requireNonNull(sessionDelegate), requireNonNull(tree));
     }
 
     static VersionDelegate create(@NotNull SessionDelegate sessionDelegate,

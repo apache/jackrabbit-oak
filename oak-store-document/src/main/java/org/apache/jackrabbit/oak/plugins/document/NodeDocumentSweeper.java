@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -97,7 +97,7 @@ final class NodeDocumentSweeper {
      */
     NodeDocumentSweeper(RevisionContext context,
                         boolean sweepNewerThanHead) {
-        this.context = checkNotNull(context);
+        this.context = requireNonNull(context);
         this.clusterId = context.getClusterId();
         this.headRevision= context.getHeadRevision();
         this.sweepNewerThanHead = sweepNewerThanHead;
@@ -121,7 +121,7 @@ final class NodeDocumentSweeper {
     Revision sweep(@NotNull Iterable<NodeDocument> documents,
                    @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        return performSweep(documents, checkNotNull(listener));
+        return performSweep(documents, requireNonNull(listener));
     }
 
     /**

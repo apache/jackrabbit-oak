@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 /**
@@ -42,8 +42,8 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     private final boolean usercaseMappedProfile;
 
     AuthorizableBaseProvider(@NotNull Root root, @NotNull ConfigurationParameters config) {
-        this.root = checkNotNull(root);
-        this.config = checkNotNull(config);
+        this.root = requireNonNull(root);
+        this.config = requireNonNull(config);
 
         identifierManager = new IdentifierManager(root);
         usercaseMappedProfile = config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
