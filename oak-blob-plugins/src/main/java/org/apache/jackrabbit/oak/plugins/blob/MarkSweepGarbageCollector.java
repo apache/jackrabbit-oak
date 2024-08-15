@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -98,7 +98,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final Logger LOG = LoggerFactory.getLogger(MarkSweepGarbageCollector.class);
 
-    public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
+    public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 
     public static final int DEFAULT_BATCH_COUNT = 1024;
 
