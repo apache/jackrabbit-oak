@@ -181,8 +181,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
         this.indexPrefix = indexPrefix;
-
-        this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
+        // the alias contains the internal mapping major version. In case of a breaking change, an index with the new version can
+        // be created without affecting the existing queries of an instance running with the old version.
+        // This strategy has been introduced from version 1. For compatibility reasons, the alias is not changed for the first version.
+        if (MAPPING_VERSION.getMajor() > 1) {
+            this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath() + "_v" + MAPPING_VERSION.getMajor());
+        } else {
+            this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
+        }
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);

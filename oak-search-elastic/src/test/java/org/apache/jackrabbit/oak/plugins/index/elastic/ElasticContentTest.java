@@ -64,8 +64,8 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         String indexName = UUID.randomUUID().toString();
-        String indexNameWithPrefix = esConnection.getIndexPrefix() + "." + indexName;
         Tree index = setIndex(indexName, builder);
+        String indexAlias = getElasticIndexDefinition(index).getIndexAlias();
         root.commit();
 
         assertTrue(exists(index));
@@ -80,8 +80,8 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         content.addChild("not-indexed").setProperty("b", "foo");
         root.commit();
 
-        verify(spyMetricHandler).markSize(eq(indexNameWithPrefix), geq(0L), geq(0L));
-        verify(spyMetricHandler).markDocuments(eq(indexNameWithPrefix), geq(0L));
+        verify(spyMetricHandler).markSize(eq(indexAlias), geq(0L), geq(0L));
+        verify(spyMetricHandler).markDocuments(eq(indexAlias), geq(0L));
         assertEventually(() -> assertThat(countDocuments(index), equalTo(1L)));
 
         content.getChild("indexed").remove();
