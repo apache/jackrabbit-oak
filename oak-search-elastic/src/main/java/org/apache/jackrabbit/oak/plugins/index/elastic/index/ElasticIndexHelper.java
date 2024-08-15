@@ -29,6 +29,7 @@ import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticSemVer;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -57,12 +58,9 @@ class ElasticIndexHelper {
      * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
      * actual version needs to be set in oak-search.
      */
-    protected static final String MAPPING_VERSION;
+    protected static final ElasticSemVer MAPPING_VERSION;
     static {
-        MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        if (MAPPING_VERSION == null) {
-            throw new IllegalStateException("Mapping version is not set");
-        }
+        MAPPING_VERSION = ElasticSemVer.fromString(FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH));
     }
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
