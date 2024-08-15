@@ -559,7 +559,7 @@ public class Session {
 
             @Override
             public Iterator<Entry<String, String>> iterator() {
-                return iterator();
+                return Session.this.iterator();
             }
 
         };

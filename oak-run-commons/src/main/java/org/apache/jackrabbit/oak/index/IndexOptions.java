@@ -56,7 +56,6 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Void> enableCowCor;
     private final OptionSpec<Void> buildFlatFileStoreSeparately;
-    private final OptionSpec<Void> useTreeStore;
     private final OptionSpec<Integer> consistencyCheck;
     private final OptionSpec<Long> asyncDelay;
     protected OptionSet options;
@@ -114,8 +113,6 @@ public class IndexOptions implements OptionsBean {
         enableCowCor = parser.accepts("enable-cow-cor", "Enables COW/COR during async indexing using oak-run");
         buildFlatFileStoreSeparately = parser.accepts("build-flatfilestore-separately", "Builds FlatFileStore as a separate step and then uses it as part of the doc-traversal-mode for reindexing");
 
-        useTreeStore = parser.accepts("use-tree-store", "Use a pre-built tree store");
-
         indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
                 "is required when --index-import operation is selected")
                 .requiredIf(importIndex)
@@ -141,7 +138,7 @@ public class IndexOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "The index command supports the following operations. Most operations are read only.\n" + 
+        return "The index command supports the following operations. Most operations are read only.\n" +
                 "BloStore related options must be provided, as operations access the binaries stored there.\n" +
                 "If no explicit operation is selected, --index-info and --index-definitions operation are performed.\n" +
                 "Use --index-paths to restrict the set of indexes on which the operation needs to be run.";
@@ -234,10 +231,6 @@ public class IndexOptions implements OptionsBean {
 
     public boolean buildFlatFileStoreSeparately() {
         return options.has(buildFlatFileStoreSeparately);
-    }
-
-    public boolean useTreeStore() {
-        return options.has(useTreeStore);
     }
 
     public String getCheckpoint(){

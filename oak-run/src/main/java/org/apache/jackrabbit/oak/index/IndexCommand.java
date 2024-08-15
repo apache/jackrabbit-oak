@@ -251,16 +251,12 @@ public class IndexCommand implements Command {
         if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
-                if (idxOpts.useTreeStore()) {
-                    indexer.reindexUsingTreeStore();
-                } else {
-                    if (idxOpts.buildFlatFileStoreSeparately()) {
-                        IndexStore store = indexer.buildStore();
-                        String pathToFFS = store.getStorePath();
-                        System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
-                    }
-                    indexer.reindex();
+                if (idxOpts.buildFlatFileStoreSeparately()) {
+                    IndexStore store = indexer.buildStore();
+                    String pathToFFS = store.getStorePath();
+                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
                 }
+                indexer.reindex();
             }
         } else {
             try (OutOfBandIndexer indexer = new OutOfBandIndexer(extendedIndexHelper, indexerSupport)) {

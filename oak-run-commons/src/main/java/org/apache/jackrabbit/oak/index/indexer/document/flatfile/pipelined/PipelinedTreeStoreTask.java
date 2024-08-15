@@ -34,7 +34,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedSortBatchTask.Result;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
@@ -208,7 +207,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                 int valueLength = buffer.getInt();
                 String value = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), valueLength, StandardCharsets.UTF_8);
                 textSize += entry.getPath().length() + value.length() + 2;
-                addEntry(entry.getPath(), value, session);
+                treeStore.putNode(entry.getPath(), value);
             }
             session.checkpoint();
             unmergedRoots++;
@@ -231,12 +230,4 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         }
     }
 
-    public static void addEntry(String path, String data, Session target) {
-        target.put(path, data);
-        if (!path.equals("/")) {
-            String nodeName = PathUtils.getName(path);
-            String parentPath = PathUtils.getParentPath(path);
-            target.put(parentPath + "\t" + nodeName, "");
-        }
-    }
 }

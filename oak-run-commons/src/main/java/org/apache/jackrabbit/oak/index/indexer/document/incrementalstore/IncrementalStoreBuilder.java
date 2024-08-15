@@ -74,7 +74,9 @@ public class IncrementalStoreBuilder {
          * Incremental store having nodes updated between initial and final checkpoint
          */
 
-        INCREMENTAL_FFS_STORE
+        INCREMENTAL_FFS_STORE,
+
+        INCREMENTAL_TREE_STORE
     }
 
     public IncrementalStoreBuilder(File workDir, IndexHelper indexHelper,

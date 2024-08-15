@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreTask;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -50,8 +49,8 @@ public class TreeStoreTest {
         TreeStore store = new TreeStore("test", testFolder, null, 1);
         try {
             store.getSession().init();
-            PipelinedTreeStoreTask.addEntry("/", "{}", store.getSession());
-            PipelinedTreeStoreTask.addEntry("/content", "{}", store.getSession());
+            store.putNode("/", "{}");
+            store.putNode("/content", "{}");
             Iterator<String> it = store.pathIterator();
             assertEquals("/", it.next());
             assertEquals("/content", it.next());

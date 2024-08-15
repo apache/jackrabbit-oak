@@ -271,6 +271,15 @@ public class TreeStore implements IndexStore {
         return parentPath + "\t" + childName;
     }
 
+    public void putNode(String path, String json) {
+        session.put(path, json);
+        if (!path.equals("/")) {
+            String nodeName = PathUtils.getName(path);
+            String parentPath = PathUtils.getParentPath(path);
+            session.put(parentPath + "\t" + nodeName, "");
+        }
+    }
+
     public Session getSession() {
         return session;
     }
