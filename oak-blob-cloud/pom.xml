@@ -32,7 +32,7 @@
 
     <properties>
         <netty.version>4.1.107.Final</netty.version>
-        <aws.version>1.12.353</aws.version>
+        <aws.version>1.12.761</aws.version>
     </properties>
 
     <build>
