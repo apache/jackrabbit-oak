@@ -33,7 +33,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalMatchers.geq;
@@ -290,5 +292,22 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             assertThat(indexed2.get("a").get(0).asText(), equalTo("foo"));
             assertThat(indexed2.get("a").get(1).asText(), equalTo("bar"));
         });
+    }
+
+    @Test
+    public void indexAliasContainsMappingVersionWhenGreatestThanOne() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        ElasticIndexDefinition definition = getElasticIndexDefinition(index);
+        String indexAlias = definition.getIndexAlias();
+        if (ElasticIndexDefinition.MAPPING_VERSION.getMajor() > 1) {
+            assertThat(indexAlias, endsWith("_v" + ElasticIndexDefinition.MAPPING_VERSION));
+        } else {
+            assertThat(indexAlias, not(endsWith("_v" + ElasticIndexDefinition.MAPPING_VERSION)));
+        }
     }
 }
