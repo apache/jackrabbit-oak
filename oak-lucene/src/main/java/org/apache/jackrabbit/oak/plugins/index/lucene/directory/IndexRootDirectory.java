@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -152,7 +152,7 @@ public class IndexRootDirectory {
      *               correct local index directory (container dir) can be checked for deletion
      */
     public long gcEmptyDirs(File subDir) throws IOException {
-        File parent = checkNotNull(subDir).getParentFile().getCanonicalFile();
+        File parent = requireNonNull(subDir).getParentFile().getCanonicalFile();
         LocalIndexDir indexDir = findMatchingIndexDir(parent);
         long totalDeletedSize = 0;
         if (indexDir != null) {

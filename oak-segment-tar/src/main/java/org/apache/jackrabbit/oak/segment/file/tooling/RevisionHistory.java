@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.json.JsonSerializer.DEFAULT_FILTER_EXPRESSION;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -53,7 +53,7 @@ public class RevisionHistory {
      * @throws IOException
      */
     public RevisionHistory(@NotNull File directory) throws IOException, InvalidFileStoreVersionException {
-        this.store = fileStoreBuilder(checkNotNull(directory)).buildReadOnly();
+        this.store = fileStoreBuilder(requireNonNull(directory)).buildReadOnly();
     }
 
     private static NodeState getNode(SegmentNodeState root, String path) {
@@ -75,9 +75,9 @@ public class RevisionHistory {
      */
     public Iterator<HistoryElement> getHistory(@NotNull JournalFile journal, @NotNull final String path)
             throws IOException {
-        checkNotNull(path);
+        requireNonNull(path);
 
-        try (JournalReader journalReader = new JournalReader(checkNotNull(journal))) {
+        try (JournalReader journalReader = new JournalReader(requireNonNull(journal))) {
             return Iterators.transform(journalReader, entry -> {
                             store.setRevision(entry.getRevision());
                             NodeState node = getNode(store.getHead(), path);

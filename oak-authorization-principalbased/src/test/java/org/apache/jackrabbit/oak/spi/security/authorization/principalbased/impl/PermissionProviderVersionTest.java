@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import java.security.Principal;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.Session.ACTION_READ;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
@@ -108,7 +108,7 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
         } else {
             path = new IdentifierManager(root).getPath(versionable.getProperty(JCR_BASEVERSION));
         }
-        checkNotNull(path);
+        requireNonNull(path);
         return path;
     }
 
@@ -122,7 +122,7 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
             reference = versionable.getProperty(JCR_BASEVERSION);
         }
         Tree t = new IdentifierManager(root).getTree(reference.getValue(Type.STRING));
-        checkNotNull(t);
+        requireNonNull(t);
         return t;
     }
 

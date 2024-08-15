@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
 
@@ -64,12 +64,12 @@ public abstract class AbstractServiceTracker<T> {
     private volatile Tracker<T> tracker = stopped;
 
     protected AbstractServiceTracker(@NotNull Class<T> type) {
-        this.type = checkNotNull(type);
+        this.type = requireNonNull(type);
         this.filterProperties = null;
     }
 
     protected AbstractServiceTracker(@NotNull Class<T> type, @NotNull Map<String, String> filterProperties) {
-        this.type = checkNotNull(type);
+        this.type = requireNonNull(type);
         this.filterProperties = filterProperties;
     }
 

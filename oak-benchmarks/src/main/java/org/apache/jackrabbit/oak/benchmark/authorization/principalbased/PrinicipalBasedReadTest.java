@@ -59,7 +59,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.security.Privilege.JCR_ALL;
 
 public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
@@ -220,7 +220,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         CompositeAuthorizationConfiguration authorizationConfiguration = (CompositeAuthorizationConfiguration) delegate
                 .getConfiguration((AuthorizationConfiguration.class));
         authorizationConfiguration.withCompositionType(compositionType);
-        AuthorizationConfiguration defaultAuthorization = checkNotNull(authorizationConfiguration.getDefaultConfig());
+        AuthorizationConfiguration defaultAuthorization = requireNonNull(authorizationConfiguration.getDefaultConfig());
         if (testDefault) {
             authorizationConfiguration.addConfiguration(defaultAuthorization);
         } else {

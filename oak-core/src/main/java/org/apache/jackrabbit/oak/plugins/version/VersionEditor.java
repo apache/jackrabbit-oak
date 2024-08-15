@@ -40,7 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
@@ -65,8 +65,8 @@ class VersionEditor implements Editor {
     public VersionEditor(@NotNull NodeBuilder versionStore,
                          @NotNull NodeBuilder workspaceRoot,
                          @NotNull CommitInfo commitInfo) {
-        this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
-                checkNotNull(workspaceRoot)), workspaceRoot, "", commitInfo);
+        this(null, new ReadWriteVersionManager(requireNonNull(versionStore),
+                requireNonNull(workspaceRoot)), workspaceRoot, "", commitInfo);
     }
 
     VersionEditor(@Nullable VersionEditor parent,
@@ -75,9 +75,9 @@ class VersionEditor implements Editor {
                   @NotNull String name,
                   @NotNull CommitInfo commitInfo) {
         this.parent = parent;
-        this.vMgr = checkNotNull(vMgr);
-        this.node = checkNotNull(node);
-        this.name = checkNotNull(name);
+        this.vMgr = requireNonNull(vMgr);
+        this.node = requireNonNull(node);
+        this.name = requireNonNull(name);
         this.commitInfo = commitInfo;
     }
 

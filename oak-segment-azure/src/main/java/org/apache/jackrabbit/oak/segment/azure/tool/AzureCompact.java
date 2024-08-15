@@ -18,8 +18,13 @@
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.*;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createArchiveManager;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createCloudBlobDirectory;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.decorateWithCache;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -110,7 +115,7 @@ public class AzureCompact {
          * @return this builder.
          */
         public Builder withPath(String path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -122,7 +127,7 @@ public class AzureCompact {
          * @return this builder
          */
         public Builder withTargetPath(String targetPath) {
-            this.targetPath = checkNotNull(targetPath);
+            this.targetPath = requireNonNull(targetPath);
             return this;
         }
 
@@ -209,7 +214,7 @@ public class AzureCompact {
          * @return this builder
          */
         public Builder withPersistentCachePath(String persistentCachePath) {
-            this.persistentCachePath = checkNotNull(persistentCachePath);
+            this.persistentCachePath = requireNonNull(persistentCachePath);
             return this;
         }
 
@@ -221,7 +226,7 @@ public class AzureCompact {
          * @return this builder
          */
         public Builder withPersistentCacheSizeGb(Integer persistentCacheSizeGb) {
-            this.persistentCacheSizeGb = checkNotNull(persistentCacheSizeGb);
+            this.persistentCacheSizeGb = requireNonNull(persistentCacheSizeGb);
             return this;
         }
 
@@ -249,12 +254,12 @@ public class AzureCompact {
         }
 
         public Builder withSourceCloudBlobDirectory(CloudBlobDirectory sourceCloudBlobDirectory) {
-            this.sourceCloudBlobDirectory = checkNotNull(sourceCloudBlobDirectory);
+            this.sourceCloudBlobDirectory = requireNonNull(sourceCloudBlobDirectory);
             return this;
         }
 
         public Builder withDestinationCloudBlobDirectory(CloudBlobDirectory destinationCloudBlobDirectory) {
-            this.destinationCloudBlobDirectory = checkNotNull(destinationCloudBlobDirectory);
+            this.destinationCloudBlobDirectory = requireNonNull(destinationCloudBlobDirectory);
             return this;
         }
 
@@ -265,8 +270,8 @@ public class AzureCompact {
          */
         public AzureCompact build() {
             if (sourceCloudBlobDirectory == null || destinationCloudBlobDirectory == null) {
-                checkNotNull(path);
-                checkNotNull(targetPath);
+                requireNonNull(path);
+                requireNonNull(targetPath);
             }
             return new AzureCompact(this);
         }

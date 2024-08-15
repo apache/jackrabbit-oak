@@ -41,7 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
@@ -62,7 +62,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     public void before() throws Exception {
         super.before();
         bitsProvider = new PrivilegeBitsProvider(root);
-        privilegesTree = checkNotNull(bitsProvider.getPrivilegesTree());
+        privilegesTree = requireNonNull(bitsProvider.getPrivilegesTree());
     }
 
     @After

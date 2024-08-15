@@ -87,7 +87,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -1174,12 +1174,12 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         Tree ace2 = children.next();
         assertEquals(NT_REP_DENY_ACE, TreeUtil.getPrimaryTypeName(ace2));
-        assertEquals(EveryonePrincipal.NAME, checkNotNull(ace2.getProperty(REP_PRINCIPAL_NAME)).getValue(Type.STRING));
+        assertEquals(EveryonePrincipal.NAME, requireNonNull(ace2.getProperty(REP_PRINCIPAL_NAME)).getValue(Type.STRING));
         Privilege[] privs = privilegesFromNames(TreeUtil.getNames(ace2, REP_PRIVILEGES));
         assertEquals(newHashSet(testPrivileges), newHashSet(privs));
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
         Tree restr = ace2.getChild(REP_RESTRICTIONS);
-        assertEquals("*/something", checkNotNull(restr.getProperty(REP_GLOB)).getValue(Type.STRING));
+        assertEquals("*/something", requireNonNull(restr.getProperty(REP_GLOB)).getValue(Type.STRING));
     }
 
     @Test

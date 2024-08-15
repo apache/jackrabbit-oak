@@ -92,7 +92,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlManager} interface.
@@ -535,7 +535,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                                             @NotNull Map<String, Principal> principalMap) throws RepositoryException {
         boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, aceTree);
-        Iterable<String> privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
+        Iterable<String> privNames = requireNonNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
         return new Entry(getPrincipal(aceTree, principalMap), getPrivilegeBitsProvider().getBits(privNames), isAllow, restrictions, getNamePathMapper());
     }
 
@@ -574,7 +574,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
     @NotNull
     private Principal getPrincipal(@NotNull Tree aceTree, @NotNull Map<String, Principal> principalMap) {
-        String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+        String principalName = requireNonNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         return principalMap.computeIfAbsent(principalName, pn -> {
             Principal principal = principalManager.getPrincipal(pn);
             if (principal == null) {

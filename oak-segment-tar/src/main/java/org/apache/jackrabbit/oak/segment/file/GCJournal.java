@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.IOException;
@@ -76,7 +76,7 @@ public class GCJournal {
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
-                System.currentTimeMillis(), gcGeneration, nodes, checkNotNull(root));
+                System.currentTimeMillis(), gcGeneration, nodes, requireNonNull(root));
         try {
             journalFile.writeLine(latest.toString());
         } catch (IOException e) {

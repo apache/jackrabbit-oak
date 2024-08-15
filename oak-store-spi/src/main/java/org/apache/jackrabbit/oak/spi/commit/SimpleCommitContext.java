@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class SimpleCommitContext implements CommitContext {
     private final Map<String, Object> attrs = Maps.newHashMap();
@@ -35,17 +35,17 @@ public class SimpleCommitContext implements CommitContext {
     
     @Override
     public void set(String name, Object value) {
-        attrs.put(checkNotNull(name), value);
+        attrs.put(requireNonNull(name), value);
     }
 
     @Override
     public Object get(String name) {
-        return attrs.get(checkNotNull(name));
+        return attrs.get(requireNonNull(name));
     }
 
     @Override
     public void remove(String name) {
-        attrs.remove(checkNotNull(name));
+        attrs.remove(requireNonNull(name));
     }
 
     void clear(){

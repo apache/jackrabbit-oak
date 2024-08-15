@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_COUNTER;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_INCREMENT;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
@@ -95,8 +95,8 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
     private ListenableFutureTask<Void> updateCounter(@NotNull final String counterPath,
                                                      final long delta,
                                                      @NotNull final AtomicLong expected) {
-        checkNotNull(counterPath);
-        checkNotNull(expected);
+        requireNonNull(counterPath);
+        requireNonNull(expected);
         
         ListenableFutureTask<Void> task = ListenableFutureTask.create(new Callable<Void>() {
 

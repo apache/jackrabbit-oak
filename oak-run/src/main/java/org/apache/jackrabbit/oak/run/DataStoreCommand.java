@@ -87,7 +87,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -291,7 +291,7 @@ public class DataStoreCommand implements Command {
 
     private static List<String> getMetadata(NodeStoreFixture fixture) {
         String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
-        checkNotNull(repositoryId);
+        requireNonNull(repositoryId);
 
         SharedDataStore dataStore = (SharedDataStore) fixture.getBlobStore();
         // Get all the start markers available
@@ -357,7 +357,7 @@ public class DataStoreCommand implements Command {
         closer.register(new ExecutorCloser(service));
 
         String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
-        checkNotNull(repositoryId);
+        requireNonNull(repositoryId);
 
         MarkSweepGarbageCollector collector =
             new MarkSweepGarbageCollector(retriever, (GarbageCollectableBlobStore) fixture.getBlobStore(), service,

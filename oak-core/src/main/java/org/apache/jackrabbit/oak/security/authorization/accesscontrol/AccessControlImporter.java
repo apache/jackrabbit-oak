@@ -55,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@link ProtectedNodeImporter} implementation that handles access control lists,
@@ -298,7 +298,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         }
 
         private void applyTo(JackrabbitAccessControlList acl) throws RepositoryException {
-            checkNotNull(acl);
+            requireNonNull(acl);
             if (!ignore) {
                 acl.addEntry(principal, privileges.toArray(new Privilege[0]), isAllow, restrictions, mvRestrictions);
             } else {

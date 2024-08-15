@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
 import java.util.concurrent.Callable;
@@ -292,7 +292,7 @@ public abstract class SegmentCache {
         protected Stats(@NotNull String name, long maximumWeight, @NotNull Supplier<Long> elementCount) {
             super(name);
             this.maximumWeight = maximumWeight;
-            this.elementCount = checkNotNull(elementCount);
+            this.elementCount = requireNonNull(elementCount);
         }
 
         @Override

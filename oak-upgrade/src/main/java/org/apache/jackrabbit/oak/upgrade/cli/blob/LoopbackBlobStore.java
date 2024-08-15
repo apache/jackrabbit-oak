@@ -27,7 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility BlobStore implementation to be used in tooling that can work with a
@@ -95,18 +95,18 @@ public class LoopbackBlobStore implements BlobStore {
 
     @Override
     public InputStream getInputStream(String blobId) throws IOException {
-        checkNotNull(blobId);
+        requireNonNull(blobId);
         return new ByteArrayInputStream(getBlobIdStringAsByteArray(blobId));
     }
 
     @Override
     public String getBlobId(@NotNull String reference) {
-        return checkNotNull(reference);
+        return requireNonNull(reference);
     }
 
     @Override
     public String getReference(@NotNull String blobId) {
-        return checkNotNull(blobId);
+        return requireNonNull(blobId);
     }
 
     @Override

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.security.SecureRandom;
@@ -72,7 +72,7 @@ public class SegmentTracker implements SegmentIdProvider {
     private final SegmentIdFactory segmentIdFactory;
 
     public SegmentTracker(@NotNull SegmentIdFactory segmentIdFactory) {
-        this.segmentIdFactory = checkNotNull(segmentIdFactory);
+        this.segmentIdFactory = requireNonNull(segmentIdFactory);
         for (int i = 0; i < tables.length; i++) {
             tables[i] = new SegmentIdTable();
         }

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -112,7 +112,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
          */
         @NotNull
         public SegmentNodeStoreBuilder withStatisticsProvider(@NotNull StatisticsProvider statisticsProvider) {
-            this.statsProvider = checkNotNull(statisticsProvider);
+            this.statsProvider = requireNonNull(statisticsProvider);
             return this;
         }
 
@@ -154,8 +154,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
             @NotNull SegmentReader reader,
             @NotNull SegmentWriter writer,
             @Nullable BlobStore blobStore) {
-        return new SegmentNodeStoreBuilder(checkNotNull(revisions),
-                checkNotNull(reader), checkNotNull(writer), blobStore);
+        return new SegmentNodeStoreBuilder(requireNonNull(revisions),
+                requireNonNull(reader), requireNonNull(writer), blobStore);
     }
 
     static final String ROOT = "root";
@@ -280,7 +280,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @Override
     public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         Map<String, String> properties = new HashMap<>();
-        checkNotNull(checkpoint);
+        requireNonNull(checkpoint);
         NodeState cp = scheduler.getHeadNodeState()
                 .getChildNode("checkpoints")
                 .getChildNode(checkpoint)
@@ -301,7 +301,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @Nullable
     public NodeState retrieve(@NotNull String checkpoint) {
-        checkNotNull(checkpoint);
+        requireNonNull(checkpoint);
         NodeState cp = scheduler.getHeadNodeState()
                 .getChildNode("checkpoints")
                 .getChildNode(checkpoint)

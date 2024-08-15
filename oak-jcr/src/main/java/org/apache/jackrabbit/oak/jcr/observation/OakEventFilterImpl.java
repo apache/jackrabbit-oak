@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 
@@ -248,7 +248,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     private Set<String> relativeGlobPaths;
 
     public OakEventFilterImpl(@NotNull JackrabbitEventFilter delegate) {
-        checkNotNull(delegate);
+        requireNonNull(delegate);
         this.delegate = delegate;
     }
 
@@ -506,7 +506,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     }
 
     public OakEventFilterImpl aggregator(EventAggregator aggregator) {
-        checkNotNull(aggregator);
+        requireNonNull(aggregator);
         this.aggregator = aggregator;
         return this;
     }

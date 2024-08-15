@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -218,7 +218,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         // member to be imported has already been added before
         Group gr = (Group) ((UserManagerImpl) getUserManager(root)).getAuthorizable(groupTree);
-        checkNotNull(gr).addMembers(TEST_USER_ID);
+        requireNonNull(gr).addMembers(TEST_USER_ID);
 
         assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
         assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));

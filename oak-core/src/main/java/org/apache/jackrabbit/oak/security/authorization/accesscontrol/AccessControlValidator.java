@@ -52,7 +52,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
@@ -128,7 +128,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = requireNonNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
         return newValidator(this, treeAfter);
@@ -136,7 +136,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = requireNonNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
         return newValidator(this, treeAfter);
@@ -278,7 +278,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidRestrictions(@NotNull Tree aceTree) throws CommitFailedException {
         String path;
-        Tree aclTree = checkNotNull(aceTree.getParent());
+        Tree aclTree = requireNonNull(aceTree.getParent());
         String aclPath = aclTree.getPath();
         if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
             path = null;

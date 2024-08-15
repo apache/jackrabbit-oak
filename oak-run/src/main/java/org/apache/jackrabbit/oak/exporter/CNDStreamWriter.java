@@ -29,7 +29,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -150,7 +150,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
         if (arrayState == State.BEGIN || arrayState == State.STARTED) {
             return;
         }
-        checkNotNull(deferredName);
+        requireNonNull(deferredName);
         w.println();
         space();
         w.print('-');

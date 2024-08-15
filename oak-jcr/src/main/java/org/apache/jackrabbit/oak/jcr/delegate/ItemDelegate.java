@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -42,7 +42,7 @@ public abstract class ItemDelegate {
     private long updateCount;
 
     ItemDelegate(SessionDelegate sessionDelegate) {
-        this.sessionDelegate = checkNotNull(sessionDelegate);
+        this.sessionDelegate = requireNonNull(sessionDelegate);
         this.updateCount  = sessionDelegate.getUpdateCount();
     }
 

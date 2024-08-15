@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(reference = {
@@ -313,7 +313,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         } else if (value instanceof ObjectName) {
             name = (ObjectName) value;
         }
-        return checkNotNull(name, "No 'jmx.objectname' property defined for MBean %s", config);
+        return requireNonNull(name, String.format("No 'jmx.objectname' property defined for MBean %s", config));
     }
 
     private static String getListenerId(ObjectName name){

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.UUID;
@@ -74,7 +74,7 @@ public final class RecordId implements Comparable<RecordId> {
     private final int offset;
 
     public RecordId(SegmentId segmentId, int offset) {
-        this.segmentId = checkNotNull(segmentId);
+        this.segmentId = requireNonNull(segmentId);
         this.offset = offset;
     }
 
@@ -115,7 +115,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     @Override
     public int compareTo(@NotNull RecordId that) {
-        checkNotNull(that);
+        requireNonNull(that);
         int diff = segmentId.compareTo(that.segmentId);
         if (diff == 0) {
             diff = offset - that.offset;

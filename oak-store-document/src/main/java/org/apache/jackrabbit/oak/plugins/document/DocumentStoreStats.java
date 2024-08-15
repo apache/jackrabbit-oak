@@ -38,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.List.of;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.isNodesCollectionUpdated;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getJournalStatsConsumer;
@@ -132,7 +132,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final ModifyMetricUpdater modifyMetricUpdater;
 
     public DocumentStoreStats(StatisticsProvider provider) {
-        statisticsProvider = checkNotNull(provider);
+        statisticsProvider = requireNonNull(provider);
         findNodesCachedMeter = provider.getMeter(NODES_FIND_CACHED, StatsOptions.DEFAULT);
         findNodesMissing = provider.getMeter(NODES_FIND_MISSING, StatsOptions.DEFAULT);
         findNodesMissingTimer = provider.getTimer(NODES_FIND_MISSING_TIMER, StatsOptions.METRICS_ONLY);

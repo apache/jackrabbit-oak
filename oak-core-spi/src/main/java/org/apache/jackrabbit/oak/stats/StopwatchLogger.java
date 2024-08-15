@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
 import java.io.Closeable;
@@ -49,7 +49,7 @@ public class StopwatchLogger implements Closeable {
      * @param clazz
      */
     public StopwatchLogger(@NotNull final String clazz) {
-        this(null, checkNotNull(clazz));
+        this(null, requireNonNull(clazz));
     }
 
     /**
@@ -58,7 +58,7 @@ public class StopwatchLogger implements Closeable {
      * @param clazz
      */
     public StopwatchLogger(@NotNull final Class<?> clazz) {
-        this(checkNotNull(clazz).getName().toString());
+        this(requireNonNull(clazz).getName().toString());
     }
 
     /**
@@ -69,7 +69,7 @@ public class StopwatchLogger implements Closeable {
      * @param clazz
      */
     public StopwatchLogger(@Nullable final Logger customLog, @NotNull final Class<?> clazz) {
-        this(customLog, checkNotNull(clazz).getName().toString());
+        this(customLog, requireNonNull(clazz).getName().toString());
     }
 
     /**
@@ -80,7 +80,7 @@ public class StopwatchLogger implements Closeable {
      * @param clazz
      */
     public StopwatchLogger(@Nullable final Logger customLog, @NotNull final String clazz) {
-        this.clazz = checkNotNull(clazz);
+        this.clazz = requireNonNull(clazz);
         this.customLog = customLog;
     }
 
@@ -122,7 +122,7 @@ public class StopwatchLogger implements Closeable {
     private static void track(@NotNull final StopwatchLogger swl,
                               @Nullable final String message) {
 
-        checkNotNull(swl);
+        requireNonNull(swl);
         
         if (swl.isEnabled()) {
             Logger l = swl.getLogger();
@@ -134,7 +134,7 @@ public class StopwatchLogger implements Closeable {
                 
                 l.debug(
                     "{} - {} {}ms",
-                    new Object[] { checkNotNull(swl.clazz), message == null ? "" : message,
+                    new Object[] { requireNonNull(swl.clazz), message == null ? "" : message,
                                   c.getTimeMonotonic() - swl.start});
             }
         }

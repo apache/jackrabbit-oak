@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 import java.text.ParseException;
@@ -327,7 +327,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
     private Query prepareAndSelect(@NotNull List<Query> queries) {
         Query result = null;
         
-        if (checkNotNull(queries).size() == 1) {
+        if (requireNonNull(queries).size() == 1) {
             // we only have the original query so we prepare and return it.
             result = queries.iterator().next();
             result.prepare();
@@ -341,7 +341,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // can more easily analyze problems. The querySelectionMode flag can
             // be used to override the cheapest.
             boolean isPotentiallySlow = true;
-            for (Query q : checkNotNull(queries)) {
+            for (Query q : requireNonNull(queries)) {
                 q.prepare();
                 if (!q.isPotentiallySlow()) {
                     isPotentiallySlow = false;

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.json;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -55,7 +55,7 @@ public final class TypeCodes {
      * @return  type code prefixed json string
      */
     public static String encode(int propertyType, String propertyName) {
-        String typeCode = checkNotNull(TYPE2CODE.get(propertyType));
+        String typeCode = requireNonNull(TYPE2CODE.get(propertyType));
         return typeCode + ':' + propertyName;
     }
 

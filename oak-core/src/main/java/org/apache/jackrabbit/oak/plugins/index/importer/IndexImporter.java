@@ -56,7 +56,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
@@ -114,8 +114,8 @@ public class IndexImporter {
         indexerInfo = IndexerInfo.fromDirectory(indexDir);
         this.indexerLock = indexerLock;
         indexes = indexerInfo.getIndexes();
-        indexedState = checkNotNull(nodeStore.retrieve(indexerInfo.checkpoint), "Cannot retrieve " +
-                "checkpointed state [%s]", indexerInfo.checkpoint);
+        indexedState = requireNonNull(nodeStore.retrieve(indexerInfo.checkpoint), String.format("Cannot retrieve " +
+                "checkpointed state [%s]", indexerInfo.checkpoint));
         this.indexDefinitionUpdater = new IndexDefinitionUpdater(new File(indexDir, INDEX_DEFINITIONS_JSON));
         this.asyncLaneToIndexMapping = mapIndexesToLanes(indexes);
         this.indexPathsToUpdate = new HashSet<>();
@@ -265,12 +265,12 @@ public class IndexImporter {
         boolean success = false;
         try {
             String checkpoint = getAsync().getString(laneName);
-            checkNotNull(checkpoint, "No current checkpoint found for lane [%s]", laneName);
+            requireNonNull(checkpoint, String.format("No current checkpoint found for lane [%s]", laneName));
 
             //TODO Support case where checkpoint got lost or complete reindexing is done
 
             NodeState after = nodeStore.retrieve(checkpoint);
-            checkNotNull(after, "No state found for checkpoint [%s] for lane [%s]", checkpoint, laneName);
+            requireNonNull(after, String.format("No state found for checkpoint [%s] for lane [%s]", checkpoint, laneName));
             LOG.info("Proceeding to update imported indexes {} to checkpoint [{}] for lane [{}]",
                     indexInfos, checkpoint, laneName);
 
@@ -375,7 +375,7 @@ public class IndexImporter {
 
     private IndexImporterProvider getImporter(String type) {
         IndexImporterProvider provider = importers.get(type);
-        return checkNotNull(provider, "No IndexImporterProvider found for type [%s]", type);
+        return requireNonNull(provider, String.format("No IndexImporterProvider found for type [%s]", type));
     }
 
     private ListMultimap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
@@ -391,7 +391,7 @@ public class IndexImporter {
             boolean newIndex = !NodeStateUtils.getNode(rootState, indexPath).exists();
 
             String type = indexState.getString(IndexConstants.TYPE_PROPERTY_NAME);
-            checkNotNull(type, "No 'type' property found for index at path [%s]", indexPath);
+            requireNonNull(type, String.format("No 'type' property found for index at path [%s]", indexPath));
 
             String asyncName = getAsyncLaneName(indexPath, indexState);
             if (asyncName == null) {

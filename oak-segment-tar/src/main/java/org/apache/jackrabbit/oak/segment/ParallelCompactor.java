@@ -45,7 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -118,9 +118,9 @@ public class ParallelCompactor extends CheckpointCompactor {
         private @Nullable Future<CompactedNodeState> compactionFuture;
 
         CompactionTree(@NotNull NodeState before, @NotNull NodeState after, @NotNull NodeState onto) {
-            this.before = checkNotNull(before);
-            this.after = checkNotNull(after);
-            this.onto = checkNotNull(onto);
+            this.before = requireNonNull(before);
+            this.after = requireNonNull(after);
+            this.onto = requireNonNull(onto);
         }
 
         private class Property {
@@ -202,7 +202,7 @@ public class ParallelCompactor extends CheckpointCompactor {
          */
         void compactAsync(@NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) {
             if (compactionFuture == null) {
-                checkNotNull(executorService);
+                requireNonNull(executorService);
                 if (softCanceller == null) {
                     compactionFuture = executorService.submit(() ->
                             compactor.compact(before, after, onto, hardCanceller));
@@ -309,7 +309,7 @@ public class ParallelCompactor extends CheckpointCompactor {
         }
 
         @Nullable CompactedNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
-            checkNotNull(executorService);
+            requireNonNull(executorService);
             checkState(!executorService.isShutdown());
 
             gcListener.info("compacting with {} threads.", numWorkers + 1);

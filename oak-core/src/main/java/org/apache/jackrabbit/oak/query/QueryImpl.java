@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
@@ -1495,7 +1495,7 @@ public class QueryImpl implements Query {
     }
     
     private static String recomposeStatement(@NotNull QueryImpl query) {
-        checkNotNull(query);
+        requireNonNull(query);
         String original = query.getStatement();
         String origUpper = original.toUpperCase(Locale.ENGLISH);
         StringBuilder recomputed = new StringBuilder();
@@ -1525,8 +1525,8 @@ public class QueryImpl implements Query {
     private UnionQueryImpl newAlternativeUnionQuery(@NotNull Query left, @NotNull Query right) {
         UnionQueryImpl u = new UnionQueryImpl(
             false, 
-            checkNotNull(left, "`left` cannot be null"), 
-            checkNotNull(right, "`right` cannot be null"),
+            requireNonNull(left, "`left` cannot be null"), 
+            requireNonNull(right, "`right` cannot be null"),
             this.settings);
         u.setExplain(explain);
         u.setMeasure(measure);

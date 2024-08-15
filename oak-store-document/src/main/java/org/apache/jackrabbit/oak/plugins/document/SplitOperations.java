@@ -42,7 +42,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Sets.filter;
@@ -102,12 +102,12 @@ class SplitOperations {
                             @NotNull final RevisionVector headRev,
                             @NotNull final Function<String, Long> binarySize,
                             int numRevsThreshold) {
-        this.doc = checkNotNull(doc);
-        this.context = checkNotNull(context);
-        this.binarySize = checkNotNull(binarySize);
+        this.doc = requireNonNull(doc);
+        this.context = requireNonNull(context);
+        this.binarySize = requireNonNull(binarySize);
         this.path = doc.getPath();
         this.id = doc.getId();
-        this.headRevision = checkNotNull(headRev).getRevision(context.getClusterId());
+        this.headRevision = requireNonNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
         this.nodeExistsAtHeadRevision = Suppliers.memoize(() -> doc.getLiveRevision(context, headRev,
                         Maps.<Revision, String>newHashMap(),
@@ -593,12 +593,12 @@ class SplitOperations {
 
     private static void setSplitDocType(@NotNull UpdateOp op,
                                         @NotNull SplitDocType type) {
-        checkNotNull(op).set(NodeDocument.SD_TYPE, type.type);
+        requireNonNull(op).set(NodeDocument.SD_TYPE, type.type);
     }
 
     private static void setSplitDocMaxRev(@NotNull UpdateOp op,
                                           @NotNull Revision maxRev) {
-        checkNotNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
+        requireNonNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
     }
 
 }

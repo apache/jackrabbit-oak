@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 
@@ -255,15 +255,15 @@ public class ModifiedNodeState extends AbstractNodeState {
             @NotNull NodeState base,
             @NotNull Map<String, PropertyState> properties,
             @NotNull Map<String, MutableNodeState> nodes) {
-        this.base = checkNotNull(base);
+        this.base = requireNonNull(base);
 
-        if (checkNotNull(properties).isEmpty()) {
+        if (requireNonNull(properties).isEmpty()) {
             this.properties = emptyMap();
         } else {
             this.properties = new HashMap<>(properties);
         }
 
-        if (checkNotNull(nodes).isEmpty()) {
+        if (requireNonNull(nodes).isEmpty()) {
             this.nodes = emptyMap();
         } else {
             this.nodes = new HashMap<>();

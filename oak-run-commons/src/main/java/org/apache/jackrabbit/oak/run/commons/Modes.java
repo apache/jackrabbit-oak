@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.run.commons;
 
 import java.util.Map;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * represent an individual Mode for running a COMMAND. It's a substitution for the old Mode enum we
@@ -31,7 +31,7 @@ public final class Modes {
     private final Map<String, Command> MODES;
 
     public Modes(Map<String, Command> modes) {
-        this.MODES = checkNotNull(modes, "Provided map of Modes cannot be null");
+        this.MODES = requireNonNull(modes, "Provided map of Modes cannot be null");
     }
 
     public Command getCommand(String name) {
