@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -60,15 +62,15 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
     
-    // warn once every 10 seconds at most
-    private static final long DUPLICATE_WARNING_INTERVAL_MS = 10 * 1000;
-
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
     
-    // when did we warn (static, as we construct new objects quite often)
-    private static long lastDuplicateWarning;
-
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(10).toMillis(), 10);
+    private static final String LOG_KEY_DUPLICATE = "Duplicate value";
+    private static final String LOG_KEY_NOT_A_DATE_STRING = "Not a date string";
+    private static final String LOG_KEY_UNABLE_TO_PARSE = "Unable to parse the provided date field";
+    private static final String LOG_KEY_FOR_INPUT_STRING = "For input string";
+    
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
                                String path) {
@@ -299,19 +301,43 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                     doc.add(f);
                     fieldAdded = true;
                 } else {
-                    long now = System.currentTimeMillis();
-                    if (now > lastDuplicateWarning + DUPLICATE_WARNING_INTERVAL_MS) {
+                    if (!LOG_SILENCER.silence(LOG_KEY_DUPLICATE)) {
                         log.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
-                        lastDuplicateWarning = now;
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn(
-                    "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            String message = e.getMessage();
+            String key = null;
+            // This is a known warning, one of:
+            // - IllegalArgumentException: Not a date string
+            // - RuntimeException: Unable to parse the provided date field
+            // - NumberFormatException: For input string
+            // For these we do not log a stack trace, and we only log once every 10 seconds
+            // (the location of the code can be found if needed, as it's in Oak)
+            if (message.startsWith("Not a date string")) {
+                key = LOG_KEY_NOT_A_DATE_STRING;
+            } else if (message.startsWith("Unable to parse the provided date field")) {
+                key = LOG_KEY_UNABLE_TO_PARSE;
+            } else if (message.startsWith("For input string")) {
+                key = LOG_KEY_FOR_INPUT_STRING;
+            }
+            if (key != null) {
+                if (!LOG_SILENCER.silence(key)) {
+                    // log without stack trace (as it is known)
+                    log.warn(
+                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}, message {}",
+                            getIndexName(), pname,
+                            Type.fromTag(property.getType().tag(), false),
+                            Type.fromTag(tag, false), path, e.getMessage());
+                }
+            } else {
+                log.warn(
+                        "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), false),
+                        Type.fromTag(tag, false), path, e);
+            }
         }
         return fieldAdded;
     }
