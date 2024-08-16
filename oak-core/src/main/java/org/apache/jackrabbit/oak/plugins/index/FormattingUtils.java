@@ -22,11 +22,11 @@ import java.util.concurrent.TimeUnit;
 
 public class FormattingUtils {
     public static String formatNanosToSeconds(long nanos) {
-        return formatToSeconds(nanos/1_000_000_000);
+        return formatToSeconds(nanos / 1_000_000_000);
     }
 
     public static String formatMillisToSeconds(long millis) {
-        return formatToSeconds(millis/1000);
+        return formatToSeconds(millis / 1000);
     }
 
     public static String formatToSeconds(Stopwatch stopwatch) {
@@ -58,6 +58,6 @@ public class FormattingUtils {
     }
 
     public static double safeComputeAverage(long totalTime, long numberOfEvents) {
-        return numberOfEvents == 0 ? -1 : ((double)totalTime / numberOfEvents);
+        return numberOfEvents == 0 ? -1 : ((double) totalTime / numberOfEvents);
     }
 }
