@@ -45,11 +45,11 @@ import static org.junit.Assert.assertTrue;
 
 public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
+    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
     private Clock clock;
     private DocumentStore store;
     private MissingLastRevSeeker seeker;
 
-    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
 
     public MissingLastRevSeekerTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -66,10 +66,10 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         store = ds;
-        if (dsf instanceof DocumentStoreFixture.RDBFixture) {
-            ((DocumentStoreFixture.RDBFixture) dsf).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
-        }
+//        if (dsf instanceof DocumentStoreFixture.RDBFixture) {
+//            ((DocumentStoreFixture.RDBFixture) dsf).setRDBOptions(
+//                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+//        }
         if (dsf == DocumentStoreFixture.MONGO) {
             seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock);
         } else if (store instanceof RDBDocumentStore) {
