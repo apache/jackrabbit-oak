@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import javax.jcr.AccessDeniedException;
@@ -39,11 +40,9 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
@@ -705,7 +704,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
             if (obj instanceof NodeACL) {
                 NodeACL other = (NodeACL) obj;
-                return Objects.equal(getOakPath(), other.getOakPath())
+                return Objects.equals(getOakPath(), other.getOakPath())
                         && getEntries().equals(other.getEntries());
             }
             return false;
@@ -781,7 +780,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             if (obj instanceof PrincipalACL) {
                 PrincipalACL other = (PrincipalACL) obj;
                 return principal.equals(other.principal)
-                        && Objects.equal(getOakPath(), other.getOakPath())
+                        && Objects.equals(getOakPath(), other.getOakPath())
                         && getEntries().equals(other.getEntries());
             }
             return false;

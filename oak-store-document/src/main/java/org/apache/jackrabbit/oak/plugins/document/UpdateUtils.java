@@ -21,8 +21,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
 
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -144,7 +143,7 @@ public class UpdateUtils {
                         value = null;
                     }
                 }
-                boolean equal = Objects.equal(value, c.value);
+                boolean equal = Objects.equals(value, c.value);
                 if (c.type == Condition.Type.EQUALS && !equal) {
                     return false;
                 } else if (c.type == Condition.Type.NOTEQUALS && equal) {

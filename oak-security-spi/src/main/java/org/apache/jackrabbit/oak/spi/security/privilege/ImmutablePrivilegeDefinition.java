@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Objects;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.base.Objects;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +42,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
             builder.addAll(declaredAggregateNames);
         }
         this.declaredAggregateNames = builder.build();
-        hashcode = Objects.hashCode(this.name, this.isAbstract, this.declaredAggregateNames);
+        hashcode = Objects.hash(this.name, this.isAbstract, this.declaredAggregateNames);
     }
 
     //------------------------------------------------< PrivilegeDefinition >---

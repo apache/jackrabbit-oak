@@ -29,8 +29,8 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -296,10 +296,10 @@ public class Template {
             return true;
         } else if (object instanceof Template) {
             Template that = (Template) object;
-            return Objects.equal(primaryType, that.primaryType)
-                    && Objects.equal(mixinTypes, that.mixinTypes)
+            return Objects.equals(primaryType, that.primaryType)
+                    && Objects.equals(mixinTypes, that.mixinTypes)
                     && Arrays.equals(properties, that.properties)
-                    && Objects.equal(childName, that.childName);
+                    && Objects.equals(childName, that.childName);
         } else {
             return false;
         }
@@ -307,7 +307,7 @@ public class Template {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(primaryType, mixinTypes,
+        return Objects.hash(primaryType, mixinTypes,
                 Arrays.asList(properties), getTemplateType(), childName);
     }
 

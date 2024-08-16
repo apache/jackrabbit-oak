@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.jetbrains.annotations.NotNull;
@@ -58,7 +59,7 @@ public class RestrictionImpl implements Restriction {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(definition, property, PropertyValues.create(property));
+            hashCode = Objects.hash(definition, property, PropertyValues.create(property));
         }
         return hashCode;
     }
