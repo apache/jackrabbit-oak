@@ -108,8 +108,9 @@ public class ElasticIndexHelperTest {
                 new ElasticIndexDefinition(nodeState, defn, "path", "prefix");
         CreateIndexRequest req = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
 
-        IndexSettings indexSettings = req.settings().index();
-        assertThat(expectedNumberOfShards, is(indexSettings.numberOfShards()));
+        // number of shards not configurable in elastic serverless
+        //IndexSettings indexSettings = req.settings().index();
+        //assertThat(expectedNumberOfShards, is(indexSettings.numberOfShards()));
 
         WordDelimiterGraphTokenFilter wdgfDef = req.settings()
                 .analysis()
@@ -120,8 +121,9 @@ public class ElasticIndexHelperTest {
         assertThat(wdgfDef.splitOnCaseChange(), is(expectedSplitOnCaseChange));
         assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
 
-        Map<String, JsonData> otherSettings = req.settings().otherSettings();
-        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).to(Boolean.class), is(true));
+        // external plugin not available in elastic serverless
+        //Map<String, JsonData> otherSettings = req.settings().otherSettings();
+        //assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).to(Boolean.class), is(true));
     }
 
     @Test

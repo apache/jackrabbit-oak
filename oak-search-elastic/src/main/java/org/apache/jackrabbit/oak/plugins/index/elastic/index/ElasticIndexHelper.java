@@ -144,10 +144,10 @@ class ElasticIndexHelper {
      */
     public static PutIndicesSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
         IndexSettings indexSettings = IndexSettings.of(is -> is
-                .numberOfReplicas(Integer.toString(indexDefinition.numberOfReplicas))
+                //.numberOfReplicas(Integer.toString(indexDefinition.numberOfReplicas))
                 // TODO: we should pass null to reset the refresh interval to the default value but the following bug prevents it. We need to wait for a fix
                 // <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
-                .refreshInterval(Time.of(t -> t.time("1s"))));
+                .refreshInterval(Time.of(t -> t.time("5s"))));
 
         return PutIndicesSettingsRequest.of(pisr -> pisr
                 .index(remoteIndexName)
@@ -156,9 +156,9 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
-        }
+//        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
+//            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
+//        }
 
         // collect analyzer settings
         IndexSettingsAnalysis.Builder analyzerBuilder =
@@ -199,10 +199,10 @@ class ElasticIndexHelper {
                         // the entire document will fail to update. Instead, only the specific field won't be updated.
                         .mapping(mf -> mf.ignoreMalformed(true))
                         // static setting: cannot be changed after the index gets created
-                        .numberOfShards(Integer.toString(indexDefinition.numberOfShards))
+                        //.numberOfShards(Integer.toString(indexDefinition.numberOfShards))
                         // dynamic settings: see #enableIndexRequest
-                        .refreshInterval(INITIAL_REFRESH_INTERVAL)
-                        .numberOfReplicas(INITIAL_NUMBER_OF_REPLICAS))
+                        .refreshInterval(INITIAL_REFRESH_INTERVAL))
+                        //.numberOfReplicas(INITIAL_NUMBER_OF_REPLICAS))
                 .analysis(analyzerBuilder.build());
 
         return builder;
@@ -259,25 +259,25 @@ class ElasticIndexHelper {
                 );
             }
 
-            for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
-                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-                int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
-
-                Reader eknnConfig = new StringReader(
-                        "{" +
-                                "  \"type\": \"elastiknn_dense_float_vector\"," +
-                                "  \"elastiknn\": {" +
-                                "    \"dims\": " + denseVectorSize + "," +
-                                "    \"model\": \"lsh\"," +
-                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
-                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
-                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
-                                "  }" +
-                                "}");
-
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
-            }
+//            for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
+//                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+//                int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
+//
+//                Reader eknnConfig = new StringReader(
+//                        "{" +
+//                                "  \"type\": \"elastiknn_dense_float_vector\"," +
+//                                "  \"elastiknn\": {" +
+//                                "    \"dims\": " + denseVectorSize + "," +
+//                                "    \"model\": \"lsh\"," +
+//                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
+//                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
+//                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
+//                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
+//                                "  }" +
+//                                "}");
+//
+//                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
+//            }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,
                     b1 -> b1.text(
