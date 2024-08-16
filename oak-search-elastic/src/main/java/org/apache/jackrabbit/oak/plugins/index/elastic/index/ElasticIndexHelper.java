@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,25 +44,6 @@ import java.util.stream.Collectors;
  * Provides utility functions around Elasticsearch indexing
  */
 class ElasticIndexHelper {
-
-    /**
-     * Mapping version that uses <a href="https://semver.org/">SemVer Specification</a> to allow changes without
-     * breaking existing queries.
-     * Changes breaking compatibility should increment the major version (indicating that a reindex is mandatory).
-     * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
-     * use the new feature).
-     * Changes that do not affect queries should increment the patch version (eg: bug fixes).
-     * <p>
-     * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
-     * actual version needs to be set in oak-search.
-     */
-    protected static final String MAPPING_VERSION;
-    static {
-        MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        if (MAPPING_VERSION == null) {
-            throw new IllegalStateException("Mapping version is not set");
-        }
-    }
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
