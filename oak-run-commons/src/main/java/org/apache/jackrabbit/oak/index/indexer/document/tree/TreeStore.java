@@ -95,7 +95,7 @@ public class TreeStore implements IndexStore {
                 " cache-fills " + nodeCacheFills.get();
     }
 
-    public Iterator<String> pathIterator() {
+    public Iterator<String> iteratorOverPaths() {
         Iterator<Entry<String, String>> it = session.iterator();
         return new Iterator<String>() {
 

@@ -51,7 +51,7 @@ public class TreeStoreTest {
             store.getSession().init();
             store.putNode("/", "{}");
             store.putNode("/content", "{}");
-            Iterator<String> it = store.pathIterator();
+            Iterator<String> it = store.iteratorOverPaths();
             assertEquals("/", it.next());
             assertEquals("/content", it.next());
         } finally {

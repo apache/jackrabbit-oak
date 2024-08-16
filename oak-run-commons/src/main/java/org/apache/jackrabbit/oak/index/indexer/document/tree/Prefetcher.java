@@ -123,7 +123,7 @@ public class Prefetcher {
 
     Runnable iterator(PrefetchType prefetchType) {
         return () -> {
-            Iterator<String> it = prefetchStore.pathIterator();
+            Iterator<String> it = prefetchStore.iteratorOverPaths();
             HyperLogLog estimatedUniqueBlobCount = new HyperLogLog(1024, 0);
             AtomicLong prefetched = new AtomicLong();
             long count = 0;
