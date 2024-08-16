@@ -33,7 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.junit.Assert.assertEquals;
@@ -106,13 +106,13 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetVersionable() throws Exception {
-        Tree versionHistory = checkNotNull(versionManager.getVersionHistory(root.getTree("/a")));
+        Tree versionHistory = requireNonNull(versionManager.getVersionHistory(root.getTree("/a")));
         assertVersionable("/a", versionHistory);
 
         Tree rootVersion = versionHistory.getChild(JcrConstants.JCR_ROOTVERSION);
         assertVersionable("/a", rootVersion);
 
-        Tree baseVersion = checkNotNull(versionManager.getBaseVersion(versionable));
+        Tree baseVersion = requireNonNull(versionManager.getBaseVersion(versionable));
         assertVersionable("/a", baseVersion);
 
         Tree frozen = baseVersion.getChild(VersionConstants.JCR_FROZENNODE);
@@ -144,7 +144,7 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetVersionableMissingPathProperty() throws Exception {
-        Tree versionHistory = checkNotNull(versionManager.getVersionHistory(root.getTree("/a")));
+        Tree versionHistory = requireNonNull(versionManager.getVersionHistory(root.getTree("/a")));
         versionHistory.removeProperty(workspaceName);
 
         assertNull(versionManager.getVersionable(versionHistory, workspaceName));
@@ -153,7 +153,7 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetVersionableNonExistingWorkspace() throws Exception {
-        Tree versionHistory = checkNotNull(versionManager.getVersionHistory(root.getTree("/a")));
+        Tree versionHistory = requireNonNull(versionManager.getVersionHistory(root.getTree("/a")));
 
         assertNull(versionManager.getVersionable(versionHistory, "nonExistingWorkspaceName"));
         assertNull(versionManager.getVersionable(versionHistory.getChild(JcrConstants.JCR_ROOTVERSION), "nonExistingWorkspaceName"));
@@ -161,7 +161,7 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetVersionableTargetRemoved() throws Exception {
-        Tree baseVersion = checkNotNull(versionManager.getBaseVersion(versionable));
+        Tree baseVersion = requireNonNull(versionManager.getBaseVersion(versionable));
 
         versionable.remove();
         root.commit();

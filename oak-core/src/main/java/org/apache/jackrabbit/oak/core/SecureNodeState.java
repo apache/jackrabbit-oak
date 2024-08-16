@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
@@ -53,8 +53,8 @@ class SecureNodeState extends AbstractNodeState {
     private long propertyCount = -1;
 
     SecureNodeState(@NotNull NodeState state, @NotNull TreePermission treePermission) {
-        this.state = checkNotNull(state);
-        this.treePermission = checkNotNull(treePermission);
+        this.state = requireNonNull(state);
+        this.treePermission = requireNonNull(treePermission);
     }
 
     @Override

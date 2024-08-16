@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -96,7 +96,7 @@ public class Template {
              @Nullable PropertyState mixinTypes,
              @Nullable  PropertyTemplate[] properties,
              @Nullable String childName) {
-        this.reader = checkNotNull(reader);
+        this.reader = requireNonNull(reader);
         this.primaryType = primaryType;
         this.mixinTypes = mixinTypes;
         if (properties != null) {
@@ -109,8 +109,8 @@ public class Template {
     }
 
     Template(@NotNull SegmentReader reader, @NotNull NodeState state) {
-        this.reader = checkNotNull(reader);
-        checkNotNull(state);
+        this.reader = requireNonNull(reader);
+        requireNonNull(state);
         PropertyState primary = null;
         PropertyState mixins = null;
         List<PropertyTemplate> templates = Lists.newArrayList();
@@ -191,7 +191,7 @@ public class Template {
 
     SegmentPropertyState getProperty(RecordId recordId, int index) {
         checkElementIndex(index, properties.length);
-        Segment segment = checkNotNull(recordId).getSegment();
+        Segment segment = requireNonNull(recordId).getSegment();
 
         int offset = 2 * RECORD_ID_BYTES;
         if (childName != ZERO_CHILD_NODES) {
@@ -245,8 +245,8 @@ public class Template {
     }
 
     public boolean compare(RecordId thisId, RecordId thatId) {
-        checkNotNull(thisId);
-        checkNotNull(thatId);
+        requireNonNull(thisId);
+        requireNonNull(thatId);
 
         // Compare properties
         for (int i = 0; i < properties.length; i++) {

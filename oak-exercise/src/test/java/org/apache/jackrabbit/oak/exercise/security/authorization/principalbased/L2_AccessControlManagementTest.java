@@ -41,7 +41,7 @@ import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.Iterator;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -211,12 +211,12 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicies() throws Exception {
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
+        JackrabbitAccessControlList acl = requireNonNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
         acl.addAccessControlEntry(supportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES));
         acl.addAccessControlEntry(unsupportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
+        PrincipalAccessControlList pacl = requireNonNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
         pacl.addEntry(testPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
         root.commit();
@@ -250,11 +250,11 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePoliciesByPath() throws Exception {
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
+        JackrabbitAccessControlList acl = requireNonNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
         acl.addAccessControlEntry(unsupportedPrincipal, privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
+        PrincipalAccessControlList pacl = requireNonNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
         pacl.addEntry(testPath, privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
         root.commit();

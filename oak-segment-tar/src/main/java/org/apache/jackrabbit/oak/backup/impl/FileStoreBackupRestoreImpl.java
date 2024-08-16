@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.backup.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
@@ -80,11 +79,11 @@ public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
             @NotNull File file,
             @NotNull Executor executor
     ) {
-        this.store = checkNotNull(store);
-        this.revisions = checkNotNull(revisions);
-        this.reader = checkNotNull(reader);
-        this.file = checkNotNull(file);
-        this.executor = checkNotNull(executor);
+        this.store = requireNonNull(store);
+        this.revisions = requireNonNull(revisions);
+        this.reader = requireNonNull(reader);
+        this.file = requireNonNull(file);
+        this.executor = requireNonNull(executor);
 
         this.fileStoreBackup = new FileStoreBackupImpl();
         this.fileStoreRestore = new FileStoreRestoreImpl();

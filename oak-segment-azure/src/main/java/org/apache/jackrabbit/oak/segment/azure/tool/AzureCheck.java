@@ -35,7 +35,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
@@ -97,7 +97,7 @@ public class AzureCheck {
          * @return this builder.
          */
         public Builder withPath(String path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -110,7 +110,7 @@ public class AzureCheck {
          * @return this builder.
          */
         public Builder withJournal(String journal) {
-            this.journal = checkNotNull(journal);
+            this.journal = requireNonNull(journal);
             return this;
         }
 
@@ -259,7 +259,7 @@ public class AzureCheck {
          * @return this builder
          */
         public Builder withPersistentCachePath(String persistentCachePath) {
-            this.persistentCachePath = checkNotNull(persistentCachePath);
+            this.persistentCachePath = requireNonNull(persistentCachePath);
             return this;
         }
 
@@ -271,7 +271,7 @@ public class AzureCheck {
          * @return this builder
          */
         public Builder withPersistentCacheSizeGb(Integer persistentCacheSizeGb) {
-            this.persistentCacheSizeGb = checkNotNull(persistentCacheSizeGb);
+            this.persistentCacheSizeGb = requireNonNull(persistentCacheSizeGb);
             return this;
         }
 
@@ -282,7 +282,7 @@ public class AzureCheck {
          * @return this builder
          */
         public Builder withCloudBlobDirectory(CloudBlobDirectory cloudBlobDirectory) {
-            this.cloudBlobDirectory = checkNotNull(cloudBlobDirectory);
+            this.cloudBlobDirectory = requireNonNull(cloudBlobDirectory);
             return this;
         }
 
@@ -293,7 +293,7 @@ public class AzureCheck {
          */
         public AzureCheck build() {
             if (cloudBlobDirectory == null) {
-                checkNotNull(path);
+                requireNonNull(path);
             }
             return new AzureCheck(this);
         }

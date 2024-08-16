@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -41,8 +41,8 @@ public class EditorDiff implements NodeStateDiff {
     public static CommitFailedException process(
             @Nullable Editor editor,
             @NotNull NodeState before, @NotNull NodeState after) {
-        checkNotNull(before);
-        checkNotNull(after);
+        requireNonNull(before);
+        requireNonNull(after);
         if (editor != null) {
             try {
                 editor.enter(before, after);

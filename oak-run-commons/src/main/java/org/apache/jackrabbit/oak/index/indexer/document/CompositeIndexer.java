@@ -27,14 +27,14 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class CompositeIndexer implements NodeStateIndexer {
 
     private final List<NodeStateIndexer> indexers;
 
     public CompositeIndexer(List<NodeStateIndexer> indexers) {
-        this.indexers = checkNotNull(indexers);
+        this.indexers = requireNonNull(indexers);
     }
 
     public boolean isEmpty() {

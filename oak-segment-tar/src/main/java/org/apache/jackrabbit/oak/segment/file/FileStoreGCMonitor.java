@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 import java.io.PrintWriter;
@@ -45,7 +45,7 @@ public class FileStoreGCMonitor implements GCMonitor {
     private String status = SegmentGCStatus.IDLE.message();
 
     public FileStoreGCMonitor(@NotNull Clock clock) {
-        this.clock = checkNotNull(clock);
+        this.clock = requireNonNull(clock);
     }
 
     //------------------------------------------------------------< GCMonitor >---

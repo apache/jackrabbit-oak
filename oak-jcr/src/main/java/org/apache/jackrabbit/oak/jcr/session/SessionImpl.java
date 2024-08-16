@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;

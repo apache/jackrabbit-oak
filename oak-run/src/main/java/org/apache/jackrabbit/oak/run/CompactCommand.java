@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
 
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -159,7 +157,7 @@ class CompactCommand implements Command {
                     .withPath(new File(path))
                     .withForce(options.has(forceArg))
                     .withMmap(mmapArg.value(options))
-                    .withOs(StandardSystemProperty.OS_NAME.value())
+                    .withOs(System.getProperty("os.name"))
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
                     .withConcurrency(nThreads.value(options));

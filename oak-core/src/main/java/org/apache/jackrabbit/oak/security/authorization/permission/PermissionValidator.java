@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
@@ -134,7 +134,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree child = checkNotNull(parentAfter.getChild(name));
+        Tree child = requireNonNull(parentAfter.getChild(name));
         if (isVersionstorageTree(child)) {
             child = getVersionHistoryTree(child);
             if (child == null) {

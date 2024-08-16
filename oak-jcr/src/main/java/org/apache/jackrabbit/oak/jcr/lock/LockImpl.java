@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -39,8 +39,8 @@ public final class LockImpl implements Lock {
     private final NodeDelegate delegate;
 
     public LockImpl(@NotNull SessionContext context, @NotNull NodeDelegate delegate) {
-        this.context = checkNotNull(context);
-        this.delegate = checkNotNull(delegate);
+        this.context = requireNonNull(context);
+        this.delegate = requireNonNull(delegate);
     }
 
     @Override

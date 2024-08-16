@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Test the effect of multiple authorization configurations on the general read
@@ -86,7 +86,7 @@ public class CugTest extends ReadDeepTreeTest {
         SecurityProvider delegate = SecurityProviderBuilder.newBuilder().with(params).build();
         CompositeAuthorizationConfiguration authorizationConfiguration = (CompositeAuthorizationConfiguration) delegate
                 .getConfiguration((AuthorizationConfiguration.class));
-        AuthorizationConfiguration defaultAuthorization = checkNotNull(authorizationConfiguration.getDefaultConfig());
+        AuthorizationConfiguration defaultAuthorization = requireNonNull(authorizationConfiguration.getDefaultConfig());
         if (reverseOrder) {
             authorizationConfiguration.addConfiguration(defaultAuthorization);
             authorizationConfiguration.addConfiguration(new CugConfiguration(delegate));

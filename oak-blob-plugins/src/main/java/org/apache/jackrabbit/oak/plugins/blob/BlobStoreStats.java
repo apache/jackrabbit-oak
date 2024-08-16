@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.util.concurrent.TimeUnit;
@@ -225,7 +225,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     public BlobStoreStats(@NotNull  StatisticsProvider sp) {
         super(BlobStoreStatsMBean.class);
-        this.statisticsProvider = checkNotNull(sp);
+        this.statisticsProvider = requireNonNull(sp);
 
         this.uploadHisto = sp.getHistogram(BLOB_UPLOADS, StatsOptions.DEFAULT);
         this.uploadCount = sp.getMeter(BLOB_UPLOAD_COUNT, StatsOptions.DEFAULT);

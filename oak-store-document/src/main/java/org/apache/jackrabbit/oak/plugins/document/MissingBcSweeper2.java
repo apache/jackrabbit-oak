@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -87,8 +87,8 @@ final class MissingBcSweeper2 {
                     CommitValueResolver commitValueResolver,
                     List<Integer> includedClusterIds,
                     AtomicBoolean isDisposed) {
-        this.context = checkNotNull(context);
-        this.commitValueResolver = checkNotNull(commitValueResolver);
+        this.context = requireNonNull(context);
+        this.commitValueResolver = requireNonNull(commitValueResolver);
         this.executingClusterId = context.getClusterId();
         this.includedClusterIds = includedClusterIds == null ? new LinkedList<>() : Collections.unmodifiableList(includedClusterIds);
         this.headRevision= context.getHeadRevision();
@@ -107,7 +107,7 @@ final class MissingBcSweeper2 {
     void sweep2(@NotNull Iterable<NodeDocument> documents,
                    @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        performSweep2(documents, checkNotNull(listener));
+        performSweep2(documents, requireNonNull(listener));
     }
 
     //----------------------------< internal >----------------------------------

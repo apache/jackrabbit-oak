@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonMember;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonString;
@@ -147,7 +147,7 @@ public class RDBDocumentSerializer {
     public <T extends Document> T fromRow(@NotNull Collection<T> collection, @NotNull RDBRow row) throws DocumentStoreException {
 
         final String charData = row.getData();
-        checkNotNull(charData, "RDBRow.getData() is null for collection " + collection + ", id: " + row.getId());
+        requireNonNull(charData, "RDBRow.getData() is null for collection " + collection + ", id: " + row.getId());
 
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());

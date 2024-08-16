@@ -61,12 +61,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -362,17 +362,17 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         protected IndexFormatVersion version;
 
         public Builder root(NodeState root) {
-            this.root = Objects.requireNonNull(root);
+            this.root = requireNonNull(root);
             return this;
         }
 
         public Builder defn(NodeState defn) {
-            this.defn = Objects.requireNonNull(defn);
+            this.defn = requireNonNull(defn);
             return this;
         }
 
         public Builder indexPath(String indexPath) {
-            this.indexPath = Objects.requireNonNull(indexPath);
+            this.indexPath = requireNonNull(indexPath);
             return this;
         }
 
@@ -423,10 +423,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     protected IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
         try {
             this.root = root;
-            this.version = Objects.requireNonNull(version);
+            this.version = requireNonNull(version);
             this.uid = uid;
             this.definition = defn;
-            this.indexPath = Objects.requireNonNull(indexPath);
+            this.indexPath = requireNonNull(indexPath);
             this.indexName = indexPath;
             this.indexTags = getOptionalValues(defn, IndexConstants.INDEX_TAGS, Type.STRINGS, String.class);
             this.indexSelectionPolicy

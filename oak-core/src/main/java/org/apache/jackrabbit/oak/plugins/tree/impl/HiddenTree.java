@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 
@@ -120,7 +120,7 @@ class HiddenTree implements Tree {
     @NotNull
     @Override
     public Tree getChild(@NotNull String name) {
-        return new HiddenTree(this, checkNotNull(name));
+        return new HiddenTree(this, requireNonNull(name));
     }
 
     @Override

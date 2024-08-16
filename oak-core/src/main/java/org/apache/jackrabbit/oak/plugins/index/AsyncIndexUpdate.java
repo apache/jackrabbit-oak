@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
@@ -225,8 +225,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                             @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
         this.name = checkValidName(name);
         this.lastIndexedTo = lastIndexedTo(name);
-        this.store = checkNotNull(store);
-        this.provider = checkNotNull(provider);
+        this.store = requireNonNull(store);
+        this.provider = requireNonNull(provider);
         this.switchOnSync = switchOnSync;
         this.leaseTimeOut = DEFAULT_ASYNC_TIMEOUT;
         this.statisticsProvider = statsProvider;
@@ -240,7 +240,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     public static String checkValidName(String asyncName){
-        checkNotNull(asyncName, "async name should not be null");
+        requireNonNull(asyncName, "async name should not be null");
         if (IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName)){
             return asyncName;
         }
@@ -423,7 +423,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
-            this.validatorProviders = checkNotNull(validatorProviders);
+            this.validatorProviders = requireNonNull(validatorProviders);
         }
 
         private void checkIfStopped() throws CommitFailedException {
@@ -705,7 +705,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private static NodeBuilder childBuilder(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;
@@ -982,11 +982,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
-        this.validatorProviders = checkNotNull(validatorProviders);
+        this.validatorProviders = requireNonNull(validatorProviders);
     }
 
     public void setCorruptIndexHandler(TrackingCorruptIndexHandler corruptIndexHandler) {
-        this.corruptIndexHandler = checkNotNull(corruptIndexHandler);
+        this.corruptIndexHandler = requireNonNull(corruptIndexHandler);
     }
 
     TrackingCorruptIndexHandler getCorruptIndexHandler() {

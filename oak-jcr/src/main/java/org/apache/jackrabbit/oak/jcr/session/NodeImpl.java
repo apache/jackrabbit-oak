@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -961,7 +961,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @Override
     public void setPrimaryType(final String nodeTypeName) throws RepositoryException {
-        final String oakTypeName = getOakName(checkNotNull(nodeTypeName));
+        final String oakTypeName = getOakName(requireNonNull(nodeTypeName));
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("setPrimaryType") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -980,7 +980,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
-        final String oakTypeName = getOakName(checkNotNull(mixinName));
+        final String oakTypeName = getOakName(requireNonNull(mixinName));
         if (JcrConstants.MIX_LOCKABLE.equals(oakTypeName)) {
             LockDeprecation.handleCall("addMixin " + JcrConstants.MIX_LOCKABLE);
         }
@@ -1002,7 +1002,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @Override
     public void removeMixin(final String mixinName) throws RepositoryException {
-        final String oakTypeName = getOakName(checkNotNull(mixinName));
+        final String oakTypeName = getOakName(requireNonNull(mixinName));
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("removeMixin") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1394,7 +1394,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     private Property internalSetProperty(
             final String jcrName, final Value value, final boolean exactTypeMatch)
             throws RepositoryException {
-        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(requireNonNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
         if (value.getType() == PropertyType.STRING) {
@@ -1434,7 +1434,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             final String jcrName, final Value[] values,
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
-        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(requireNonNull(jcrName));
         final PropertyState state = createMultiState(
                 oakName, compact(values), Type.fromTag(type, true));
 
@@ -1489,7 +1489,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     private Property internalRemoveProperty(final String jcrName)
             throws RepositoryException {
-        final String oakName = getOakName(checkNotNull(jcrName));
+        final String oakName = getOakName(requireNonNull(jcrName));
         return perform(new ItemWriteOperation<Property>("internalRemoveProperty") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1617,7 +1617,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     public void setMixins(String[] mixinNames) throws RepositoryException {
         final Set<String> oakTypeNames = newLinkedHashSet();
         for (String mixinName : mixinNames) {
-            oakTypeNames.add(getOakName(checkNotNull(mixinName)));
+            oakTypeNames.add(getOakName(requireNonNull(mixinName)));
         }
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("setMixins") {
             @Override

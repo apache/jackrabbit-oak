@@ -99,7 +99,6 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -950,8 +949,8 @@ public class DataStoreCommandTest {
         String blobId = idLengthSepList.get(0);
 
         if (dsType == Type.FDS) {
-            return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
-                .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+            return String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
+                    blobId.substring(4, 6), blobId);
         } else if (dsType == Type.S3 || dsType == Type.AZURE) {
             return (blobId.substring(0, 4) + DASH + blobId.substring(4));
         }

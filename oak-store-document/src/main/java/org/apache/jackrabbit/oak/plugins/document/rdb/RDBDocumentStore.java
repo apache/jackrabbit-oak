@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
@@ -2322,7 +2322,7 @@ public class RDBDocumentStore implements DocumentStore {
         if (!USECMODCOUNT) {
             return false;
         } else {
-            for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
+            for (Entry<Key, Operation> e : requireNonNull(update).getChanges().entrySet()) {
                 Key k = e.getKey();
                 Operation op = e.getValue();
                 if (op.type == Operation.Type.SET_MAP_ENTRY) {

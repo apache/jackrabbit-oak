@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -232,7 +232,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
 
         public TestContext(@NotNull final String title) {
             LOG.trace("Setting title - {} for test context", title);
-            this.title = checkNotNull(title);
+            this.title = requireNonNull(title);
         }
     }
 

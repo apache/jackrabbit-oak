@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -44,7 +44,7 @@ public class VisibleEditor implements Editor {
     private final Editor editor;
 
     public VisibleEditor(Editor editor) {
-        this.editor = checkNotNull(editor);
+        this.editor = requireNonNull(editor);
     }
 
     @Override

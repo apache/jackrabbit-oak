@@ -46,7 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -134,7 +134,7 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;

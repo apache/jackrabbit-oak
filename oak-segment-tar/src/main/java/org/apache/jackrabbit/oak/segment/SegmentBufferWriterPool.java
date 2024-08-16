@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
@@ -67,10 +67,10 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
             @NotNull SegmentReader reader,
             @NotNull String wid,
             @NotNull Supplier<GCGeneration> gcGeneration) {
-        this.idProvider = checkNotNull(idProvider);
-        this.reader = checkNotNull(reader);
-        this.wid = checkNotNull(wid);
-        this.gcGeneration = checkNotNull(gcGeneration);
+        this.idProvider = requireNonNull(idProvider);
+        this.reader = requireNonNull(reader);
+        this.wid = requireNonNull(wid);
+        this.gcGeneration = requireNonNull(gcGeneration);
     }
 
     public enum PoolType {
@@ -93,10 +93,10 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
                 @NotNull SegmentReader reader,
                 @NotNull String wid,
                 @NotNull Supplier<GCGeneration> gcGeneration) {
-            this.idProvider = checkNotNull(idProvider);
-            this.reader = checkNotNull(reader);
-            this.wid = checkNotNull(wid);
-            this.gcGeneration = checkNotNull(gcGeneration);
+            this.idProvider = requireNonNull(idProvider);
+            this.reader = requireNonNull(reader);
+            this.wid = requireNonNull(wid);
+            this.gcGeneration = requireNonNull(gcGeneration);
         }
 
         @NotNull

@@ -77,7 +77,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -721,7 +721,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 throw new RepositoryException(userPath + " does not represent a valid user.");
             }
 
-            Impersonation imp = checkNotNull(((User) a).getImpersonation());
+            Impersonation imp = requireNonNull(((User) a).getImpersonation());
 
             // 1. collect principals to add and to remove.
             Map<String, Principal> toRemove = new HashMap<>();

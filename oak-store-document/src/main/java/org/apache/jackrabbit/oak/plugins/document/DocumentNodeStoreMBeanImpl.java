@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -169,7 +169,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public int recover(String path, int clusterId) {
-        checkNotNull(path, "path must not be null");
+        requireNonNull(path, "path must not be null");
         checkArgument(PathUtils.isAbsolute(path), "path must be absolute");
         checkArgument(clusterId >= 0, "clusterId must not be a negative");
 

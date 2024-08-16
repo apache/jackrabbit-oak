@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * Linked list implementation which supports multiple iterators. The iterator's state
@@ -112,7 +113,7 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
         }
 
         ListNode(@NotNull NodeStateEntry data) {
-            Preconditions.checkNotNull(data);
+            Objects.requireNonNull(data);
             this.data = data;
             this.next = null;
         }
@@ -122,12 +123,12 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
         private ListNode current;
 
         static NodeIterator iteratorFor(@NotNull ListNode node) {
-            Preconditions.checkNotNull(node);
+            Objects.requireNonNull(node);
             return new NodeIterator(node);
         }
 
         NodeIterator(@NotNull ListNode start) {
-            Preconditions.checkNotNull(start);
+            Objects.requireNonNull(start);
             this.current = start;
         }
 
