@@ -25,7 +25,7 @@ public class ElasticSemVer {
 
     public ElasticSemVer(int major, int minor, int patch) {
         if (major < 0 || minor < 0 || patch < 0) {
-            throw new IllegalArgumentException("Version parts cannot be negative");
+            throw new IllegalArgumentException("Version parts cannot be negative. Major: " + major + ", Minor: " + minor + ", Patch: " + patch);
         }
         this.major = major;
         this.minor = minor;
