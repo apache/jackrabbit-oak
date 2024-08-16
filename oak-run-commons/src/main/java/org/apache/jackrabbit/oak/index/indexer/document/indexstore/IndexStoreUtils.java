@@ -117,15 +117,10 @@ public class IndexStoreUtils {
         if (algorithm.equals(Compression.NONE)) {
             metadataFile = new File(indexStoreFile.getAbsolutePath() + METADATA_SUFFIX);
         } else {
-            String fileNameWithoutCompressionSuffix;
-            if (indexStoreFile.isFile()) {
-                String fileName = indexStoreFile.getName();
-                String compressionSuffix = getCompressionSuffix(indexStoreFile);
-                checkState(algorithm.addSuffix("").equals(compressionSuffix));
-                fileNameWithoutCompressionSuffix = fileName.substring(0, fileName.lastIndexOf("."));
-            } else {
-                fileNameWithoutCompressionSuffix = indexStoreFile.getName();
-            }
+            String fileName = indexStoreFile.getName();
+            String compressionSuffix = getCompressionSuffix(indexStoreFile);
+            checkState(algorithm.addSuffix("").equals(compressionSuffix));
+            String fileNameWithoutCompressionSuffix = fileName.substring(0, fileName.lastIndexOf("."));
             metadataFile = new File(algorithm.addSuffix(indexStoreFile.getParent() + "/"
                     + fileNameWithoutCompressionSuffix + METADATA_SUFFIX));
         }

@@ -85,6 +85,10 @@ public class TreeStore implements IndexStore {
         LOG.info("Open " + toString());
     }
 
+    public void init() {
+        session.init();
+    }
+
     @Override
     public String toString() {
         return name +

@@ -24,7 +24,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMet
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,34 +49,36 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static final Logger LOG = LoggerFactory.getLogger(MergeIncrementalTreeStore.class);
 
-    private final File baseDir;
+    private final File baseFile;
     private final File incrementalFile;
-    private final File mergedDir;
+    private final File mergedFile;
     private final Compression algorithm;
 
     private final static Map<String, IncrementalStoreOperand> OPERATION_MAP = Arrays.stream(IncrementalStoreOperand.values())
             .collect(Collectors.toUnmodifiableMap(IncrementalStoreOperand::toString, k -> IncrementalStoreOperand.valueOf(k.name())));
 
-
-    public MergeIncrementalTreeStore(File baseDir, File incrementalFile, File mergedDir, Compression algorithm) throws IOException {
-        this.baseDir = baseDir;
+    public MergeIncrementalTreeStore(File baseFile, File incrementalFile, File mergedFile, Compression algorithm) throws IOException {
+        this.baseFile = baseFile;
         this.incrementalFile = incrementalFile;
-        this.mergedDir = mergedDir;
+        this.mergedFile = mergedFile;
         this.algorithm = algorithm;
-        if (mergedDir.exists()) {
-            LOG.warn("merged dir {} exists; it will be replaced", mergedDir.getAbsolutePath());
-        } else {
-            Files.createDirectories(mergedDir.toPath());
-        }
     }
 
     @Override
     public void doMerge() throws IOException {
-        LOG.info("base dir " + baseDir.getAbsolutePath());
-        LOG.info("incremental file " + incrementalFile.getAbsolutePath());
-        LOG.info("merged dir " + mergedDir.getAbsolutePath());
+        LOG.info("Merging " + baseFile.getAbsolutePath());
+        LOG.info("and " + incrementalFile.getAbsolutePath());
+        File baseDir = new File(baseFile.getAbsolutePath() + ".files");
+        LOG.info("Unpacking into " + baseDir.getAbsolutePath());
+        FilePacker.unpack(baseFile, baseDir, true);
+        LOG.info("Merging " + baseDir.getAbsolutePath());
+        File mergedDir = new File(mergedFile.getAbsolutePath() + ".files");
+        LOG.info("into " + mergedDir.getAbsolutePath());
         mergeMetadataFiles();
-        mergeIndexStore();
+        mergeIndexStore(baseDir, mergedDir);
+        LOG.info("Packing into " + mergedFile.getAbsolutePath());
+        FilePacker.pack(mergedDir, mergedFile, true);
+        LOG.info("Done");
     }
 
     @Override
@@ -91,7 +93,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
      * as we are not getting consistent data from checkpoint diff
      * and we need to handle cases differently.
      */
-    private void mergeIndexStore() throws IOException {
+    private void mergeIndexStore(File baseDir, File mergedDir) throws IOException {
         TreeStore baseStore = new TreeStore("base", baseDir, new NodeStateEntryReader(null), 10);
         TreeStore mergedStore = new TreeStore("merged", mergedDir, new NodeStateEntryReader(null), 10);
         mergedStore.getSession().init();
@@ -205,7 +207,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
 
 
     private IndexStoreMetadata getIndexStoreMetadataForMergedFile() throws IOException {
-        File baseFFSMetadataFile = IndexStoreUtils.getMetadataFile(baseDir, algorithm);
+        File baseFFSMetadataFile = IndexStoreUtils.getMetadataFile(baseFile, algorithm);
         File incrementalMetadataFile = IndexStoreUtils.getMetadataFile(incrementalFile, algorithm);
 
         if (baseFFSMetadataFile.exists() && incrementalMetadataFile.exists()) {
@@ -223,7 +225,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
     }
 
     private void mergeMetadataFiles() throws IOException {
-        try (BufferedWriter writer = IndexStoreUtils.createWriter(IndexStoreUtils.getMetadataFile(mergedDir, algorithm), algorithm)) {
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(IndexStoreUtils.getMetadataFile(mergedFile, algorithm), algorithm)) {
             JSON_MAPPER.writeValue(writer, getIndexStoreMetadataForMergedFile());
         }
     }

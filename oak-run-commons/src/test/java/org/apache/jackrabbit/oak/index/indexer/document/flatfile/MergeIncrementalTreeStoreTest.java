@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.MergeIncrementalTreeStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,10 +47,11 @@ public class MergeIncrementalTreeStoreTest {
     @Test
     public void test1() throws IOException {
         File baseDir = folder.newFolder("base");
+        File baseFile = folder.newFile("base.gz");
         File baseMetadata = folder.newFile("base.metadata.gz");
 
         TreeStore base = new TreeStore("base", baseDir, null, 1);
-        base.getSession().init();
+        base.init();
         base.putNode("/tmp", "{prop1=\"foo\"}");
         base.putNode("/tmp/a", "{prop2=\"foo\"}");
         base.putNode("/tmp/a/b", "{prop3=\"foo\"}");
@@ -58,8 +60,11 @@ public class MergeIncrementalTreeStoreTest {
         base.putNode("/tmp/c", "{prop3=\"foo\"}");
         base.close();
 
+        FilePacker.pack(baseDir, baseFile, true);
+
         File increment = folder.newFile("inc.gz");
         File incrementMetadata = folder.newFile("inc.metadata.gz");
+        File mergedFile = folder.newFile("merged.gz");
         File mergedDir = folder.newFolder("merged");
         File mergedMetadata = folder.newFile("merged.metadata.gz");
 
@@ -102,12 +107,13 @@ public class MergeIncrementalTreeStoreTest {
         expectedMergedList.add("/tmp/e|{prop3=\"bar\"}");
 
         MergeIncrementalTreeStore merge = new MergeIncrementalTreeStore(
-                baseDir, increment, mergedDir, algorithm);
+                baseFile, increment, mergedFile, algorithm);
         merge.doMerge();
         List<String> expectedMergedMetadataList = new LinkedList<>();
         expectedMergedMetadataList.add("{\"checkpoint\":\"" + "r1" + "\",\"storeType\":\"TreeStore\"," +
                 "\"strategy\":\"" + merge.getStrategyName() + "\",\"preferredPaths\":[]}");
 
+        FilePacker.unpack(mergedFile, mergedDir, true);
         TreeStore merged = new TreeStore("merged", mergedDir, null, 1);
         int i = 0;
         for (Entry<String, String> e : merged.getSession().entrySet()) {
