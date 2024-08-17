@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.nullToEmpty;
 import static java.lang.Thread.currentThread;
 
 import java.io.BufferedInputStream;
@@ -40,6 +38,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
@@ -853,8 +852,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             String cacheKey = identifier.toString()
                     + domain
-                    + nullToEmpty(downloadOptions.getContentTypeHeader())
-                    + nullToEmpty(downloadOptions.getContentDispositionHeader());
+                    + Objects.toString(downloadOptions.getContentTypeHeader(), "")
+                    + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
             if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(cacheKey);
             }

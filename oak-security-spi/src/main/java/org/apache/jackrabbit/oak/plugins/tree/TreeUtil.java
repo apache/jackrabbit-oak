@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.tree;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -26,7 +27,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -443,7 +443,7 @@ public final class TreeUtil {
                 return PropertyStates.createProperty(name, ISO8601.format(Calendar.getInstance()), DATE);
             case JCR_CREATEDBY:
             case JCR_LASTMODIFIEDBY:
-                return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
+                return PropertyStates.createProperty(name, Objects.toString(userID, ""), STRING);
             default:
                 // no default, continue inspecting the definition
         }
