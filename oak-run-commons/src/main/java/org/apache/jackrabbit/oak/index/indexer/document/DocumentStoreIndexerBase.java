@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +110,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     private static final int TOP_SLOWEST_PATHS_TO_LOG = ConfigHelper.getSystemPropertyAsInt(
             "oak.indexer.topSlowestPathsToLog", 20);
+
+    public static final String OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX = "oak.indexer.blobPrefetch.binaryNodesSuffix";
+    public static final String DOWNLOAD_THREADS = "oak.indexer.blobPrefetch.downloadThreads";
+    public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB = "oak.indexer.blobPrefetch.downloadAheadWindowMB";
+    private final String blobPrefetchBinaryNodeSuffix = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
+    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(DOWNLOAD_THREADS, 8);
+    private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 8);
+
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
@@ -357,11 +366,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexParallel(flatFileStores, indexer, progressReporter);
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
-                    AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = new AheadOfTimeBlobDownloader(
-                            flatFileStore.getStoreFile(),
-                            flatFileStore.getAlgorithm(),
-                            indexHelper.getGCBlobStore(),
-                            indexer);
+                    AheadOfTimeBlobDownloaderInterface aheadOfTimeBlobDownloader = getAheadOfTimeBlobDownloaderInterface(flatFileStore, indexer);
                     aheadOfTimeBlobDownloader.start();
                     try {
                         TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
@@ -390,7 +395,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         }
                         log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                     } finally {
-                        aheadOfTimeBlobDownloader.stop();
+                        aheadOfTimeBlobDownloader.close();
                     }
                 }
 
@@ -431,6 +436,22 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
                     MetricsFormatter.createMetricsWithDurationOnly(indexJobWatch), t.toString());
             throw t;
+        }
+    }
+
+    private @NotNull AheadOfTimeBlobDownloaderInterface getAheadOfTimeBlobDownloaderInterface(FlatFileStore flatFileStore, CompositeIndexer indexer) {
+        if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isEmpty()) {
+            log.info("Ahead of time blob downloader is disabled");
+            return AheadOfTimeBlobDownloaderInterface.NOOP;
+        } else {
+            return new AheadOfTimeBlobDownloader(
+                    blobPrefetchBinaryNodeSuffix,
+                    flatFileStore.getStoreFile(),
+                    flatFileStore.getAlgorithm(),
+                    indexHelper.getGCBlobStore(),
+                    indexer,
+                    nDownloadThreads,
+                    maxPrefetchWindowMB);
         }
     }
 
