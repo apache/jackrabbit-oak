@@ -70,7 +70,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final String LOG_KEY_NOT_A_DATE_STRING = "Not a date string";
     private static final String LOG_KEY_UNABLE_TO_PARSE = "Unable to parse the provided date field";
     private static final String LOG_KEY_FOR_INPUT_STRING = "For input string";
-    
+
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
                                String path) {

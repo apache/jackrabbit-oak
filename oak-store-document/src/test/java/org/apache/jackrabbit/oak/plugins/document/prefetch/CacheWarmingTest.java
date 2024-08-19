@@ -54,7 +54,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 public class CacheWarmingTest {
@@ -67,6 +68,8 @@ public class CacheWarmingTest {
 
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
+    private static Logger LOG = LoggerFactory.getLogger(CacheWarmingTest.class);
 
     private @Nullable MongoConnection mongoConnection;
 
@@ -170,7 +173,7 @@ public class CacheWarmingTest {
 
     private void doSimple(boolean cleanCaches, boolean prefetch)
             throws InterruptedException, CommitFailedException {
-        System.out.println("=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
+        LOG.info("=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
         Stopwatch sw = Stopwatch.createStarted();
         DocumentStore ds = newMongoDocumentStore();
         final CountingDocumentStore cds = new CountingDocumentStore(ds);
@@ -233,7 +236,7 @@ public class CacheWarmingTest {
     private void logAndReset(String context,
                              CountingDocumentStore cds,
                              Stopwatch sw) {
-        System.out.println(context
+        LOG.info(context
                 + " -> createOrUpdateCalls = " + cds.getNumCreateOrUpdateCalls(Collection.NODES)
                 + ", findCalls = " + cds.getNumFindCalls(Collection.NODES)
                 + ", queryCalls = " + cds.getNumQueryCalls(Collection.NODES)
