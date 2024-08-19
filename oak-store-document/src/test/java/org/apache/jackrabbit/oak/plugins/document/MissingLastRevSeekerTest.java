@@ -66,10 +66,6 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         store = ds;
-//        if (dsf instanceof DocumentStoreFixture.RDBFixture) {
-//            ((DocumentStoreFixture.RDBFixture) dsf).setRDBOptions(
-//                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
-//        }
         if (dsf == DocumentStoreFixture.MONGO) {
             seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock);
         } else if (store instanceof RDBDocumentStore) {
