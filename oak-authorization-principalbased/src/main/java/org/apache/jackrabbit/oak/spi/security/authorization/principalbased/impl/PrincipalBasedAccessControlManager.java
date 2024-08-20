@@ -444,7 +444,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
                 return privilegeBitsProvider;
             }
-        
+
             @Override
             public Privilege[] getPrivileges() {
                 Set<String> names =  privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
