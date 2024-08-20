@@ -43,7 +43,7 @@ public class TimeUuid implements Comparable<TimeUuid> {
     // least significant bits
     private final long lsb;
 
-    private TimeUuid(long msb, long lsb) {
+    public TimeUuid(long msb, long lsb) {
         this.msb = msb;
         this.lsb = lsb;
     }
@@ -136,7 +136,7 @@ public class TimeUuid implements Comparable<TimeUuid> {
      * @param lastMillisAndCount the last returned value
      * @return the new value
      */
-    private static long getMillisAndCountIncreasing(long now, AtomicLong lastMillisAndCount) {
+    public static long getMillisAndCountIncreasing(long now, AtomicLong lastMillisAndCount) {
         long result = now << 12;
         while (true) {
             long last = lastMillisAndCount.get();
@@ -151,7 +151,7 @@ public class TimeUuid implements Comparable<TimeUuid> {
         }
     }
 
-    private static TimeUuid newUuid(long millisAndCount,
+    static TimeUuid newUuid(long millisAndCount,
             long random) {
         long millis = millisAndCount >>> 12;
         long counter = millisAndCount & ((1L << 12) - 1);

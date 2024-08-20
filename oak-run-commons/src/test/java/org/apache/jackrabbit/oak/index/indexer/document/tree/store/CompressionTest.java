@@ -19,23 +19,29 @@
 package org.apache.jackrabbit.oak.index.indexer.document.tree.store;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Random;
 
 import org.junit.Test;
 
-public class SessionCacheTest {
+public class CompressionTest {
 
     @Test
-    public void test() {
-        Store store = StoreBuilder.build("type:memory\n" +
-                Store.MAX_FILE_SIZE_BYTES + "=1000\n" +
-                Session.CACHE_SIZE_MB + "=1");
-        Session s = new Session(store);
-        s.init();
-        for (int i = 0; i < 50_000; i++) {
-            s.put("k" + i, "v" + i);
+    public void randomized() {
+        Random r = new Random();
+        for (int i = 0; i < 2000; i++) {
+            byte[] data = new byte[r.nextInt(1000)];
+            for (int j = 0; j < data.length; j++) {
+                // less random first, and then more random
+                data[j] = (byte) r.nextInt(1 + (i / 10));
+            }
+            byte[] comp = Compression.LZ4.compress(data);
+            byte[] test = Compression.LZ4.expand(comp);
+            assertEquals(data.length, test.length);
+            assertTrue(Arrays.equals(data, test));
         }
-        s.flush();
-        assertEquals("root #0 contains 1756 files (file name root)\n"
-                + "cache entries:1049 max:1048576 used:1049000", s.getInfo());
+
     }
 }

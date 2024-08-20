@@ -26,7 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Properties;
 
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryBoundCache;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.ConcurrentLRUCache;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Position;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SortedStream;
 import org.slf4j.Logger;
@@ -51,7 +51,7 @@ public class Session {
     static final boolean MULTI_ROOT = true;
 
     private final Store store;
-    private final MemoryBoundCache<String, PageFile> cache;
+    private final ConcurrentLRUCache<String, PageFile> cache;
     private long updateId;
     private int maxRoots = DEFAULT_MAX_ROOTS;
     private long fileReadCount;
@@ -66,7 +66,7 @@ public class Session {
                 CACHE_SIZE_MB, "" + DEFAULT_CACHE_SIZE_MB));
         long cacheSizeBytes = cacheSizeMB * 1024 * 1024;
         LOG.info("Cache size {} bytes", cacheSizeBytes);
-        this.cache = new MemoryBoundCache<>(cacheSizeBytes)  {
+        this.cache = new ConcurrentLRUCache<>(cacheSizeBytes)  {
 
             private static final long serialVersionUID = 1L;
 
@@ -842,6 +842,10 @@ public class Session {
         GarbageCollection gc = new GarbageCollection(store);
         int rootId = 0;
         for (String r : getRootFileNames()) {
+            if (store.getIfExists(r) == null) {
+                // not yet stored - ignore
+                continue;
+            }
             buff.append(String.format("root #%d contains %d files (file name %s)\n",
                     rootId, gc.mark(Collections.singletonList(r)).size(), r));
             rootId++;

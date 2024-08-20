@@ -24,14 +24,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MemoryBoundCache<K, V extends MemoryObject>
+public class ConcurrentLRUCache<K, V extends MemoryObject>
         extends LinkedHashMap<K, V> {
 
     private static final long serialVersionUID = 1L;
     private volatile long maxMemoryBytes;
     private AtomicLong memoryUsed = new AtomicLong();
 
-    public MemoryBoundCache(long maxMemoryBytes) {
+    public ConcurrentLRUCache(long maxMemoryBytes) {
         super(16, 0.75f, true);
         this.maxMemoryBytes = maxMemoryBytes;
     }

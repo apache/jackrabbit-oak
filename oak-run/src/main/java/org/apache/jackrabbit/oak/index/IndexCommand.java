@@ -253,8 +253,8 @@ public class IndexCommand implements Command {
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
                 if (idxOpts.buildFlatFileStoreSeparately()) {
                     IndexStore store = indexer.buildStore();
-                    String pathToFFS = store.getStorePath();
-                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
+                    String pathToStore = store.getStorePath();
+                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToStore);
                 }
                 indexer.reindex();
             }

@@ -338,6 +338,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
+        @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
         TreeStore treeStore = new TreeStore("dump", getStoreDir(), null, 1);
         treeStore.getSession().init();
@@ -362,6 +363,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:START] Starting to build TreeStore");
             Stopwatch start = Stopwatch.createStarted();
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
@@ -376,7 +378,8 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                transformFutures.add(ecs.submit(new PipelinedTransformTask(
+                @SuppressWarnings("unchecked")
+                Future<PipelinedTransformTask.Result> future = ecs.submit(new PipelinedTransformTask(
                         docStore,
                         documentNodeStore,
                         rootRevision,
@@ -386,9 +389,11 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                         emptyBatchesQueue,
                         nonEmptyBatchesQueue,
                         transformStageStatistics
-                )));
+                ));
+                transformFutures.add(future);
             }
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedSortBatchTask.Result> sortBatchFuture = ecs.submit(new PipelinedTreeStoreTask(
                     treeStore,
                     emptyBatchesQueue,

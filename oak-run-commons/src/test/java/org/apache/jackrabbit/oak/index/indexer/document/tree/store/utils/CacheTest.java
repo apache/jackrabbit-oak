@@ -28,7 +28,7 @@ public class CacheTest {
 
     @Test
     public void memoryBoundCacheTest() {
-        MemoryBoundCache<String, MemoryValue> cache = new MemoryBoundCache<>(1000);
+        ConcurrentLRUCache<String, MemoryValue> cache = new ConcurrentLRUCache<>(1000);
         for (int i = 0; i < 200; i++) {
             cache.put("k" + i, new MemoryValue("v" + i, 10));
         }

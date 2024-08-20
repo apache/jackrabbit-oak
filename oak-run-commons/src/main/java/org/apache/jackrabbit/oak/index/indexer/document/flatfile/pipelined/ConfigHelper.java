@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigHelper {
-    private static final Logger LOG = LoggerFactory.getLogger(BoundedHistogram.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigHelper.class);
 
     public static int getSystemPropertyAsInt(String name, int defaultValue) {
         int result = Integer.getInteger(name, defaultValue);
