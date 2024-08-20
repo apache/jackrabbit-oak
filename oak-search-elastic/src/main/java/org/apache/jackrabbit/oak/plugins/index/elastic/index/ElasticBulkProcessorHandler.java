@@ -87,6 +87,7 @@ class ElasticBulkProcessorHandler {
 
     protected long totalOperations;
 
+    // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
     private final ScheduledExecutorService scheduler;
 
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
@@ -161,7 +162,11 @@ class ElasticBulkProcessorHandler {
             if (indexDefinition.bulkFlushIntervalMs > 0) {
                 b = b.flushInterval(indexDefinition.bulkFlushIntervalMs, TimeUnit.MILLISECONDS);
             }
-            return b.scheduler(scheduler).maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
+
+            // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
+            b = b.scheduler(scheduler);
+
+            return b.maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
         });
     }
 
@@ -217,6 +222,7 @@ class ElasticBulkProcessorHandler {
             }
         }
 
+        // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
         scheduler.shutdownNow();
 
         checkFailures();
