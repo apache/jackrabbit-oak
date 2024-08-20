@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import java.util.Objects;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 
@@ -73,7 +73,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, type, isMandatory);
+        return Objects.hash(name, type, isMandatory);
     }
 
     @Override

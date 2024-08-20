@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import java.util.Arrays;
@@ -25,6 +24,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.MalformedObjectNameException;
@@ -39,7 +39,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
@@ -157,7 +156,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                 EventListenerMBean mbean = e.getValue();
                 FilterConfigMBean filterConfigMBean = null;
                 for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                    if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                    if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                         filterConfigMBean = ef.getValue();
                         break;
                     }
@@ -210,17 +209,17 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             ListenerMBeans m = new ListenerMBeans();
             m.eventListenerMBean = e.getValue();
             for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.filterConfigMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, BackgroundObserverMBean> ef : bgObservers.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.observerMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, ChangeProcessorMBean> ef : changeProcessors.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.changeProcessorMBean = ef.getValue();
                 }
             }

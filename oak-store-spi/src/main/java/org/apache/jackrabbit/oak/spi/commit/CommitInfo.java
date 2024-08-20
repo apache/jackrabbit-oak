@@ -23,8 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;
@@ -176,7 +175,7 @@ public final class CommitInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(sessionId, userId, date, info, external);
+        return Objects.hash(sessionId, userId, date, info, external);
     }
 
     @Override

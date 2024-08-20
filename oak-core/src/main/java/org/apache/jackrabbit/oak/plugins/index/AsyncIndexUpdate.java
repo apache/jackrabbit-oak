@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -97,7 +98,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -930,7 +930,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     throws CommitFailedException {
                 // check for concurrent updates by this async task
                 NodeState async = before.getChildNode(ASYNC);
-                if ((checkpoint == null || Objects.equal(checkpoint, async.getString(name)))
+                if ((checkpoint == null || Objects.equals(checkpoint, async.getString(name)))
                         &&
                         (lease == null      || lease == async.getLong(leasify(name)))) {
                     return after;

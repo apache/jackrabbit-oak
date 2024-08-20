@@ -38,13 +38,13 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -437,7 +437,7 @@ public class TypeEditor extends DefaultEditor {
 
     private static boolean primaryChanged(NodeState before, String after) {
         String pre = before.getName(JCR_PRIMARYTYPE);
-        return !Objects.equal(pre, after);
+        return !Objects.equals(pre, after);
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {

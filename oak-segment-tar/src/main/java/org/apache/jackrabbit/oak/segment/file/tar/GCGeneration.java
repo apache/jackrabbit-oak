@@ -15,12 +15,12 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static java.util.Objects.requireNonNull;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -157,7 +157,7 @@ public final class GCGeneration {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(generation, fullGeneration, isCompacted);
+        return Objects.hash(generation, fullGeneration, isCompacted);
     }
 
     @Override
