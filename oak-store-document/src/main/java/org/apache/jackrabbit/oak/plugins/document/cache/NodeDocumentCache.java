@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -41,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -130,8 +130,8 @@ public class NodeDocumentCache implements Closeable {
             if (doc == null) {
                 continue;
             }
-            if (!Objects.equal(stamp.modCount, doc.getModCount())
-                    || !Objects.equal(stamp.modified, doc.getModified())) {
+            if (!Objects.equals(stamp.modCount, doc.getModCount())
+                    || !Objects.equals(stamp.modified, doc.getModified())) {
                 invalidate(id);
                 invalidatedCount++;
             }
@@ -304,7 +304,7 @@ public class NodeDocumentCache implements Closeable {
         try {
             NodeDocument cached = getIfPresent(key);
             if (cached != null) {
-                if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
+                if (Objects.equals(cached.getModCount(), oldDoc.getModCount())) {
                     putInternal(newDoc);
                 } else {
                     // the cache entry was modified by some other thread in

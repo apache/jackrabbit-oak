@@ -30,8 +30,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -568,7 +568,7 @@ public class MapRecord extends Record {
         MapRecord[] beforeBuckets = before.getBuckets();
         MapRecord[] afterBuckets = after.getBuckets();
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
-            if (Objects.equal(beforeBuckets[i], afterBuckets[i])) {
+            if (Objects.equals(beforeBuckets[i], afterBuckets[i])) {
                 // these buckets are equal (or both empty), so no changes
             } else if (beforeBuckets[i] == null) {
                 // before bucket is empty, so all after entries were added

@@ -34,8 +34,8 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -441,7 +441,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private static String getSourcePathAnnotation(MemoryNodeBuilder builder) {
         PropertyState base = builder.getBaseState().getProperty(MoveDetector.SOURCE_PATH);
         PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
-        if (Objects.equal(base, head)) {
+        if (Objects.equals(base, head)) {
             // Both null: no source path annotation
             // Both non-null but equals: source path annotation is from a previous commit
             return null;

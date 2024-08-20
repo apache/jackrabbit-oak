@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class ValidationEntry {
@@ -50,7 +50,7 @@ public class ValidationEntry {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(principalName, privilegeBits, restrictions, isAllow);
+        return Objects.hash(principalName, privilegeBits, restrictions, isAllow);
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ValidationEntry {
         if (o instanceof ValidationEntry) {
             ValidationEntry other = (ValidationEntry) o;
             return isAllow ==  other.isAllow
-                    && Objects.equal(principalName, other.principalName)
+                    && Objects.equals(principalName, other.principalName)
                     && privilegeBits.equals(other.privilegeBits)
                     && restrictions.equals(other.restrictions);
         }
