@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 class EntryCache implements Constants {
 
@@ -63,7 +64,7 @@ class EntryCache implements Constants {
             for (Tree child : policyTree.getChildren()) {
                 if (Constants.NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(child))) {
                     PermissionEntryImpl entry = new PermissionEntryImpl(child);
-                    String key = Strings.nullToEmpty(entry.effectivePath);
+                    String key = Objects.toString(entry.effectivePath, "");
                     List<PermissionEntry> list = entries.computeIfAbsent(key, k -> new ArrayList<>());
                     list.add(entry);
                 }

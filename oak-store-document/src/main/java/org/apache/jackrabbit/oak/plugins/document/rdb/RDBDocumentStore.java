@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -89,7 +90,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -1131,13 +1131,13 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private static String asQualifiedDbName(String one, String two) {
-        one = Strings.nullToEmpty(one).trim();
-        two = Strings.nullToEmpty(two).trim();
+        one = Objects.toString(one, "").trim();
+        two = Objects.toString(two, "").trim();
 
         if (one.isEmpty() && two.isEmpty()) {
             return null;
         } else {
-            one = Strings.nullToEmpty(one).trim();
+            one = Objects.toString(one, "").trim();
             two = two == null ? "" : two.trim();
             return one.isEmpty() ? two : one + "." + two;
         }
@@ -1164,12 +1164,12 @@ public class RDBDocumentStore implements DocumentStore {
         try {
             // if the result set metadata provides a table name, use that (the
             // other one might be inaccurate due to case insensitivity issues)
-            String rmetTableName = Strings.nullToEmpty(rmet.getTableName(1)).trim();
+            String rmetTableName = Objects.toString(rmet.getTableName(1), "").trim();
             if (!rmetTableName.isEmpty()) {
                 tableName = rmetTableName;
             }
 
-            String rmetSchemaName = Strings.nullToEmpty(rmet.getSchemaName(1)).trim();
+            String rmetSchemaName = Objects.toString(rmet.getSchemaName(1), "").trim();
 
             rs = met.getIndexInfo(null, null, tableName, false, true);
 
@@ -1239,8 +1239,8 @@ public class RDBDocumentStore implements DocumentStore {
                 info.nonunique = rs.getBoolean("NON_UNIQUE");
                 info.type = indexTypeAsString(rs.getInt("TYPE"));
                 String inSchema = rs.getString("TABLE_SCHEM");
-                inSchema = Strings.nullToEmpty(inSchema).trim();
-                String filterCondition = Strings.nullToEmpty(rs.getString("FILTER_CONDITION")).trim();
+                inSchema = Objects.toString(inSchema, "").trim();
+                String filterCondition = Objects.toString(rs.getString("FILTER_CONDITION"), "").trim();
                 if (!filterCondition.isEmpty()) {
                     info.filterCondition = filterCondition;
                 }
