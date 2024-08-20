@@ -68,7 +68,7 @@
     <jackson.version>2.17.1</jackson.version>
     <testcontainers.version>1.19.7</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>3.0.21</groovy.version>
+    <groovy.version>3.0.22</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
