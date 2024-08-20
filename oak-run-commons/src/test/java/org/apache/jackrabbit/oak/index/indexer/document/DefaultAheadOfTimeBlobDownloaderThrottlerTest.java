@@ -29,7 +29,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
-public class AheadOfTimeBlobDownloaderThrottlerTest {
+public class DefaultAheadOfTimeBlobDownloaderThrottlerTest {
 
     private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
