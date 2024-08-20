@@ -37,7 +37,7 @@ import static java.util.Map.of;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.DGC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.FGC;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.RGC;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
@@ -230,7 +230,7 @@ public class VersionGCRecommendations {
         scope = gcResult.gcScope;
         ignoreDueToCheckPoint = gcResult.ignoreGC;
 
-        final GCResult fullGCResult = getResult(options, checkpoint, clock, DGC, scopeFullGC);
+        final GCResult fullGCResult = getResult(options, checkpoint, clock, FGC, scopeFullGC);
         scopeFullGC = fullGCResult.gcScope;
         ignoreFullGCDueToCheckPoint = fullGCResult.ignoreGC;
 
@@ -428,6 +428,18 @@ public class VersionGCRecommendations {
     }
 
     enum GcType {
-        RGC, DGC
+        RGC("Revision GC"), // revision GC
+        FGC("Full GC"); // full GC
+
+        private final String name;
+
+        GcType(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
     }
 }

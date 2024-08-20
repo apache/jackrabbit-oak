@@ -68,7 +68,7 @@
     <jackson.version>2.17.1</jackson.version>
     <testcontainers.version>1.19.7</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>3.0.21</groovy.version>
+    <groovy.version>3.0.22</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -125,7 +125,7 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <doclint>none</doclint>
-            <detectJavaApiLink>false</detectJavaApiLink>
+            <detectJavaApiLink>true</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
@@ -564,7 +564,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.2.0</version>
+        <version>5.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
