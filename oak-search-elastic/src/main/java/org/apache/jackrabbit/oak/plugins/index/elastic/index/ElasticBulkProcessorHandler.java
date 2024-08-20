@@ -42,7 +42,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -85,6 +87,8 @@ class ElasticBulkProcessorHandler {
 
     protected long totalOperations;
 
+    private final ScheduledExecutorService scheduler;
+
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                         @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
@@ -95,6 +99,13 @@ class ElasticBulkProcessorHandler {
         this.indexDefinition = indexDefinition;
         this.definitionBuilder = definitionBuilder;
         this.waitForESAcknowledgement = waitForESAcknowledgement;
+        // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
+        this.scheduler = Executors.newScheduledThreadPool(BULK_PROCESSOR_CONCURRENCY + 1, (r) -> {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setName("oak-bulk-ingester#");
+            t.setDaemon(true);
+            return t;
+        });
         this.bulkIngester = initBulkIngester();
     }
 
@@ -150,7 +161,7 @@ class ElasticBulkProcessorHandler {
             if (indexDefinition.bulkFlushIntervalMs > 0) {
                 b = b.flushInterval(indexDefinition.bulkFlushIntervalMs, TimeUnit.MILLISECONDS);
             }
-            return b.maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
+            return b.scheduler(scheduler).maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
         });
     }
 
@@ -205,6 +216,8 @@ class ElasticBulkProcessorHandler {
                 Thread.currentThread().interrupt();  // restore interrupt status
             }
         }
+
+        scheduler.shutdownNow();
 
         checkFailures();
 
