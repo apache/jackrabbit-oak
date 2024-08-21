@@ -24,8 +24,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-
 import static org.junit.Assert.assertNotNull;
 
 /**
@@ -42,7 +40,7 @@ public class MongoDocumentStoreLimitsTest extends AbstractMongoConnectionTest {
         builder.child("test");
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        String longName = Strings.repeat("foo_", 10000);
+        String longName = "foo_".repeat(10000);
         String longPath = String.format("/test/%s", longName);
 
         builder = ns.getRoot().builder();

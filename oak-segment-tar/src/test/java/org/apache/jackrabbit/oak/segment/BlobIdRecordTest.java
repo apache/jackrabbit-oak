@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
@@ -28,7 +27,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -119,7 +117,7 @@ public class BlobIdRecordTest {
 
         @Override
         protected String generateId() {
-            return Strings.repeat("0", Segment.BLOB_ID_SMALL_LIMIT) + Integer.toString(next++);
+            return "0".repeat(Segment.BLOB_ID_SMALL_LIMIT) + Integer.toString(next++);
         }
 
     }

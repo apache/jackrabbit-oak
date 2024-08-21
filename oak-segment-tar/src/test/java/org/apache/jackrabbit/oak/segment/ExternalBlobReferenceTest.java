@@ -29,9 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.oak.segment.SegmentBlob;
-import org.apache.jackrabbit.oak.segment.SegmentTestConstants;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.After;
@@ -99,7 +96,7 @@ public class ExternalBlobReferenceTest {
     }
 
     private void testBlobIdWithLength(int blobIdLength) throws Exception {
-        String blobId = Strings.repeat("x", blobIdLength);
+        String blobId = "x".repeat(blobIdLength);
         long blobLength = SegmentTestConstants.MEDIUM_LIMIT;
 
         doReturn(blobId).when(blobStore).writeBlob(any(InputStream.class));
