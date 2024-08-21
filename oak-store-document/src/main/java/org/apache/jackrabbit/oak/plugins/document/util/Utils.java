@@ -1067,6 +1067,36 @@ public class Utils {
     }
 
     /**
+     * Returns the minimum timestamp to use for a query for child documents that
+     * have been modified between {@code fromRev} and {@code toRev}.
+     * We use a different calculation method for for DocumentNodeStore#diffManyChildren(), see OAK-10812
+     *
+     * @param fromRev the from revision.
+     * @param toRev the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These
+     *                     are derived from the startTime of a cluster node.
+     * @return the minimum timestamp.
+     */
+    public static long getMinTimestampForDiffManyChildren(@NotNull RevisionVector fromRev,
+                                                          @NotNull RevisionVector toRev,
+                                                          @NotNull RevisionVector minRevisions) {
+        // make sure we have minimum revisions for all known cluster nodes
+        toRev = toRev.pmax(minRevisions);
+        // keep only revision entries that changed
+        RevisionVector from = fromRev.difference(toRev);
+        RevisionVector to = toRev.difference(fromRev);
+        // now calculate minimum timestamp
+        long min = Long.MAX_VALUE;
+        for (Revision r : from) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        for (Revision r : to) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        return min;
+    }
+
+    /**
      * Check whether throttling is enabled or not for document store.
      *
      * @param builder instance for DocumentNodeStoreBuilder

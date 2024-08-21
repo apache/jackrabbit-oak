@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -199,7 +200,7 @@ public class FilterProviderImpl implements FilterProvider {
                 return true;
             } else {
                 validatedPrincipalNamesPathMap.remove(principalName);
-                unsupportedPrincipalNames.put(principalName, Strings.nullToEmpty(principalPath));
+                unsupportedPrincipalNames.put(principalName, Objects.toString(principalPath, ""));
                 return false;
             }
         }

@@ -18,8 +18,9 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.base.Strings;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -57,7 +58,7 @@ public final class PermissionUtil implements PermissionConstants {
 
     @NotNull
     public static String getEntryName(@Nullable String accessControlledPath) {
-        String path = Strings.nullToEmpty(accessControlledPath);
+        String path = Objects.toString(accessControlledPath, "");
         return String.valueOf(path.hashCode());
     }
 

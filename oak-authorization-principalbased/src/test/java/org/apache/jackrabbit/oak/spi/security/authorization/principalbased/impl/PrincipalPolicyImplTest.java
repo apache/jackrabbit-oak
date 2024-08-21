@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -56,6 +55,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_ITEM_NAMES;
@@ -117,7 +117,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     private Tree createEntryTree(@NotNull PrincipalPolicyImpl.EntryImpl entry) {
         Tree t = mock(Tree.class);
-        PropertyState path = PropertyStates.createProperty(REP_EFFECTIVE_PATH, Strings.nullToEmpty(entry.getOakPath()));
+        PropertyState path = PropertyStates.createProperty(REP_EFFECTIVE_PATH, Objects.toString(entry.getOakPath(), ""));
         when(t.getProperty(REP_EFFECTIVE_PATH)).thenReturn(path);
         PropertyState privs = PropertyStates.createProperty(REP_PRIVILEGES, privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
         when(t.getProperty(REP_PRIVILEGES)).thenReturn(privs);
