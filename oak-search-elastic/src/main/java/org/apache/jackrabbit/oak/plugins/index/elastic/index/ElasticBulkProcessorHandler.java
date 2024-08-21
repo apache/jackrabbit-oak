@@ -25,6 +25,7 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -199,38 +200,40 @@ class ElasticBulkProcessorHandler {
      * @throws IOException if an error happened while processing the bulk requests
      */
     public boolean close() throws IOException {
-        LOG.trace("Calling close on bulk ingester {}", bulkIngester);
-        bulkIngester.close();
-        LOG.trace("Bulk Ingester {} closed", bulkIngester);
+        try {
+            LOG.trace("Calling close on bulk ingester {}", bulkIngester);
+            bulkIngester.close();
+            LOG.trace("Bulk Ingester {} closed", bulkIngester);
 
-        // de-register main controller
-        int phase = phaser.arriveAndDeregister();
+            // de-register main controller
+            int phase = phaser.arriveAndDeregister();
 
-        if (totalOperations == 0) { // no need to invoke phaser await if we already know there were no operations
-            LOG.debug("No operations executed in this processor. Close immediately");
-            return false;
-        }
-
-        if (waitForESAcknowledgement) {
-            try {
-                phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
-            } catch (TimeoutException e) {
-                LOG.error("Error waiting for bulk requests to return", e);
-            } catch (InterruptedException e) {
-                LOG.warn("Interrupted while waiting for bulk processor to close", e);
-                Thread.currentThread().interrupt();  // restore interrupt status
+            if (totalOperations == 0) { // no need to invoke phaser await if we already know there were no operations
+                LOG.debug("No operations executed in this processor. Close immediately");
+                return false;
             }
+
+            if (waitForESAcknowledgement) {
+                try {
+                    phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    LOG.error("Error waiting for bulk requests to return", e);
+                } catch (InterruptedException e) {
+                    LOG.warn("Interrupted while waiting for bulk processor to close", e);
+                    Thread.currentThread().interrupt();  // restore interrupt status
+                }
+            }
+
+            checkFailures();
+
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Bulk identifier -> update status = {}", updatesMap);
+            }
+            return updatesMap.containsValue(Boolean.TRUE);
+        } finally {
+            // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
+            new ExecutorCloser(scheduler).close();
         }
-
-        // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
-        scheduler.shutdownNow();
-
-        checkFailures();
-
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Bulk identifier -> update status = {}", updatesMap);
-        }
-        return updatesMap.containsValue(Boolean.TRUE);
     }
 
     private class OakBulkListener implements BulkListener<String> {
