@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -58,7 +57,6 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 import ch.qos.logback.classic.Level;
@@ -391,12 +389,11 @@ public class DefaultSegmentWriterTest {
                 // 16516 = (Segment.MEDIUM_LIMIT - 1 + 2 + 3)
                 // 1 byte per char, 2 byte to store the length and 3 bytes for the
                 // alignment to the integer boundary
-                writer.writeString(Strings.repeat("abcdefghijklmno".substring(k, k + 1),
-                    SegmentTestConstants.MEDIUM_LIMIT - 1));
+                writer.writeString("abcdefghijklmno".substring(k, k + 1).repeat(SegmentTestConstants.MEDIUM_LIMIT - 1));
             }
 
             // adding 14280 bytes. 1 byte per char, and 2 bytes to store the length
-            RecordId x = writer.writeString(Strings.repeat("x", 14278));
+            RecordId x = writer.writeString("x".repeat(14278));
             // writer.length == 262052
 
             // Adding 765 bytes (255 recordIds)
