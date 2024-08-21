@@ -610,7 +610,8 @@ public final class NodeDocument extends Document {
             if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 uniqueRevisions.add(r);
                 removeBranchCommit(op, r);
-                if (op.getId().equals(Utils.getIdFromPath("/"))) {
+                if (op.getId().equals(Utils.getIdFromPath(Path.ROOT))
+                        && getLocalCommitRoot().containsKey(r)) {
                     removeCommitRoot(op, r);
                 }
             }
