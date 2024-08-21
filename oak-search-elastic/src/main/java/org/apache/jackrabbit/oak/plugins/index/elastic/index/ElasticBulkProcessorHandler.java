@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
-    private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
+    private static final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
 
     private static final int BULK_PROCESSOR_CONCURRENCY =
         Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
