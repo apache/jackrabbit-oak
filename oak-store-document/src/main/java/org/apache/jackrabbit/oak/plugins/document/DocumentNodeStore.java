@@ -3480,7 +3480,7 @@ public final class DocumentNodeStore
     void diffManyChildren(JsopWriter w, Path path,
                                   RevisionVector fromRev,
                                   RevisionVector toRev) {
-        long minTimestamp = Utils.getMinTimestampForDiff(
+        long minTimestamp = Utils.getMinTimestampForDiffManyChildren(
                 fromRev, toRev, getMinExternalRevisions());
         for (RevisionVector r : new RevisionVector[]{fromRev, toRev}) {
             if (r.isBranch()) {
