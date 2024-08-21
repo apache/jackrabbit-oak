@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCJournal;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -360,16 +361,27 @@ public class AzureCompact {
 
         printArchives(System.out, beforeArchives);
 
+        CloudBlobContainer targetContainer = null;
+        if (targetPath != null) {
+            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManager);
+            targetContainer = targetDirectory.getContainer();
+        } else {
+            targetContainer = destinationCloudBlobDirectory.getContainer();
+        }
+
+        GCGeneration gcGeneration = null;
+        String root = null;
+
         try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType, concurrency)) {
             if (garbageThresholdGb > 0 && garbageThresholdPercentage > 0) {
                 System.out.printf("    -> minimum garbage threshold set to %d GB or %d%%\n", garbageThresholdGb, garbageThresholdPercentage);
                 long currentSize = store.size();
                 if (!isGarbageOverMinimumThreshold(currentSize, roPersistence)) {
+                    targetContainer.delete();
                     return 0;
                 }
             }
-
             System.out.printf("    -> compacting\n");
 
             boolean success = false;
@@ -388,6 +400,8 @@ public class AzureCompact {
             }
 
             System.out.printf("    -> [skipping] cleaning up\n");
+            gcGeneration = store.getHead().getGcGeneration();
+            root = store.getHead().getRecordId().toString10();
         } catch (Exception e) {
             watch.stop();
             e.printStackTrace(System.err);
@@ -406,18 +420,20 @@ public class AzureCompact {
         printArchives(System.out, afterArchives);
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
 
-        CloudBlobContainer targetContainer = null;
-        if (targetPath != null) {
-            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManager);
-            targetContainer = targetDirectory.getContainer();
-        } else {
-            targetContainer = destinationCloudBlobDirectory.getContainer();
-        }
-        printTargetRepoSizeInfo(targetContainer);
+        long newSize = printTargetRepoSizeInfo(targetContainer);
+        persistGCJournal(rwPersistence, newSize, gcGeneration, root);
 
         // close azure storage credential manager
         azureStorageCredentialManager.close();
         return 0;
+    }
+
+    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, String root) throws IOException {
+        GCJournalFile gcJournalFile = rwPersistence.getGCJournalFile();
+        if (gcJournalFile != null) {
+            GCJournal gcJournal = new GCJournal(gcJournalFile);
+            gcJournal.persist(0, newSize, gcGeneration, 0, root);
+        }
     }
 
     private boolean isGarbageOverMinimumThreshold(long currentSize, SegmentNodeStorePersistence roPersistence) throws IOException {
