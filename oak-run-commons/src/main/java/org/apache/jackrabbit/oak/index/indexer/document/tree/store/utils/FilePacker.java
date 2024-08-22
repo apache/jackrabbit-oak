@@ -32,22 +32,57 @@ import java.util.stream.Collectors;
 public class FilePacker {
 
     /**
+     * The header of pack files ("PACK").
+     */
+    public static final String PACK_HEADER = "PACK";
+
+    public static void main(String... args) throws IOException {
+        if (args.length <= 2) {
+            System.out.println("Usage:\n" +
+                    "  java -jar target/oak-run-commons-*.jar " +
+                    FilePacker.class.getCanonicalName() + " -d <fileName>\n" +
+                    "  expands a file into the contained files");
+            return;
+        }
+        if (args[0].equals("-d")) {
+            File packFile = new File(args[1]);
+            unpack(packFile, packFile.getParentFile(), false);
+        }
+    }
+
+    /**
+     * Check whether the file starts with the magic header.
+     * @param file
+     * @return
+     * @throws IOException
+     */
+    public static boolean isPackFile(File file) throws IOException {
+        RandomAccessFile source = new RandomAccessFile(file, "rw");
+        byte[] magic = new byte[4];
+        source.readFully(magic);
+        source.close();
+        return PACK_HEADER.equals(new String(magic, StandardCharsets.UTF_8));
+    }
+
+    /**
      * Packs all the files in the source directory into a target file.
-     * The file header is "PACK".
      *
+     * @param sourceDirectory the source directory
+     * @param fileNameRegex the file name regular expression
      * @param deleteSource whether the source files are deleted while copying
      */
-    public static void pack(File sourceDirectory, File targetFile, boolean deleteSource) throws IOException {
+    public static void pack(File sourceDirectory, String fileNameRegex, File targetFile, boolean deleteSource) throws IOException {
         if (!sourceDirectory.exists() || !sourceDirectory.isDirectory()) {
             throw new IOException("Source directory doesn't exist or is a file: " + sourceDirectory.getAbsolutePath());
         }
         List<FileEntry> list = Files.list(sourceDirectory.toPath()).
                 map(p -> p.toFile()).
                 filter(f -> f.isFile()).
+                filter(f -> f.getName().matches(fileNameRegex)).
                 map(f -> new FileEntry(f)).
                 collect(Collectors.toList());
         RandomAccessFile target = new RandomAccessFile(targetFile, "rw");
-        target.writeUTF("PACK");
+        target.write(PACK_HEADER.getBytes(StandardCharsets.UTF_8));
         for (FileEntry f : list) {
             target.write(1);
             byte[] name = f.fileName.getBytes(StandardCharsets.UTF_8);
@@ -90,9 +125,11 @@ public class FilePacker {
             targetDirectory.mkdirs();
         }
         RandomAccessFile source = new RandomAccessFile(sourceFile, "rw");
-        if (!"PACK".equals(source.readUTF())) {
+        byte[] magic = new byte[4];
+        source.readFully(magic);
+        if (!PACK_HEADER.equals(new String(magic, StandardCharsets.UTF_8))) {
             source.close();
-            throw new IOException("File header is not 'PACK': " + sourceFile.getAbsolutePath());
+            throw new IOException("File header is not '" + PACK_HEADER + "': " + sourceFile.getAbsolutePath());
         }
         ArrayList<FileEntry> list = new ArrayList<>();
         long offset = 0;

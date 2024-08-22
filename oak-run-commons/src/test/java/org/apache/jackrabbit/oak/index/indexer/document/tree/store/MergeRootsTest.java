@@ -31,7 +31,7 @@ public class MergeRootsTest {
     @Test
     public void gcTest() {
         Store store = StoreBuilder.build("");
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         session.runGC();
     }
@@ -39,7 +39,7 @@ public class MergeRootsTest {
     @Test
     public void simpleTest() {
         Store store = StoreBuilder.build("");
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         for (int i = 0; i < 10; i++) {
             session.put("x" + i, "y" + i);
@@ -57,7 +57,7 @@ public class MergeRootsTest {
     @Test
     public void multipleRootAppendTest() {
         Store store = StoreBuilder.build("");
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         for(int j = 1; j <= 3; j++) {
             for (int i = 0; i < 10 * j; i++) {
@@ -81,7 +81,7 @@ public class MergeRootsTest {
     @Test
     public void multipleRootRandomOverwriteTest() {
         Store store = StoreBuilder.build("");
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         TreeMap<String, String> map = new TreeMap<>();
         Random r = new Random(42);
@@ -111,7 +111,7 @@ public class MergeRootsTest {
         Store store = StoreBuilder.build(
                 "type=memory\n" +
                 "maxFileSizeBytes=10000");
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         for (int batch = 1; batch <= 200; batch++) {
             // System.out.println("batch " + batch);

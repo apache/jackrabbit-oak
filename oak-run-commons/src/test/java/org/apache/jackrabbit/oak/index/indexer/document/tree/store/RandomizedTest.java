@@ -34,7 +34,7 @@ public class RandomizedTest {
                 "type=memory\n" +
                 "cacheSizeMB=1\n" +
                 "maxFileSizeBytes=100");
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         HashMap<String, String> verify = new HashMap<>();
         Random r = new Random(1);
@@ -75,7 +75,7 @@ public class RandomizedTest {
         assertEquals("53", median);
     }
 
-    private void verify(HashMap<String, String> verify, Session session, String key) {
+    private void verify(HashMap<String, String> verify, TreeSession session, String key) {
         String a = verify.get(key);
         String b = session.get(key);
         if (a == null || b == null) {

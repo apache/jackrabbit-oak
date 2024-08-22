@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.MergeIncrementalTreeStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -60,7 +61,7 @@ public class MergeIncrementalTreeStoreTest {
         base.putNode("/tmp/c", "{prop3=\"foo\"}");
         base.close();
 
-        FilePacker.pack(baseDir, baseFile, true);
+        FilePacker.pack(baseDir, TreeSession.getFileNameRegex(), baseFile, true);
 
         File increment = folder.newFile("inc.gz");
         File incrementMetadata = folder.newFile("inc.metadata.gz");

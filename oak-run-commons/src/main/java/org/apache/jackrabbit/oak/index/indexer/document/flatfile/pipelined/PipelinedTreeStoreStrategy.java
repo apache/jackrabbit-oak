@@ -340,7 +340,8 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // to detect this failure.
         @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
-        TreeStore treeStore = new TreeStore("dump", getStoreDir(), null, 1);
+        File resultDir = getStoreDir();
+        TreeStore treeStore = new TreeStore("dump", resultDir, null, 1);
         treeStore.getSession().init();
         try {
             // download -> transform thread.
@@ -491,7 +492,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                 throw new RuntimeException(e);
             }
             treeStore.close();
-            return getStoreDir();
+            return resultDir;
         } finally {
             LOG.info("Shutting down build FFS thread pool");
             new ExecutorCloser(threadPool).close();

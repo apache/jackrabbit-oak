@@ -53,7 +53,7 @@ public class GarbageCollection {
 
     private void mark(String fileName, HashSet<String> used) {
         used.add(fileName);
-        if (fileName.startsWith(Session.LEAF_PREFIX)) {
+        if (fileName.startsWith(TreeSession.LEAF_PREFIX)) {
             return;
         }
         // root or inner node

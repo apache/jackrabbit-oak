@@ -64,7 +64,7 @@ public class CrudMultiRootTest {
 
     public void testAdd(Store store) {
         store.removeAll();
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         int count = 100;
         TreeMap<String, String> map = new TreeMap<>();
@@ -80,7 +80,7 @@ public class CrudMultiRootTest {
         session.mergeRoots(Integer.MAX_VALUE);
         session.flush();
 
-        session = new Session(store);
+        session = new TreeSession(store);
         TreeMap<String, String> map2 = new TreeMap<>();
         for(String k : session.keys()) {
             map2.put(k, session.get(k));
@@ -90,7 +90,7 @@ public class CrudMultiRootTest {
 
     public void test(Store store) {
         store.removeAll();
-        Session session = new Session(store);
+        TreeSession session = new TreeSession(store);
         session.init();
         int count = 100;
         TreeMap<String, String> verify = new TreeMap<>();
@@ -134,7 +134,7 @@ public class CrudMultiRootTest {
             previous = k;
         }
 
-        session = new Session(store);
+        session = new TreeSession(store);
         for (int i = 0; i < count; i++) {
             String key = "hello" + i;
             assertEquals("world" + i, session.get(key));
@@ -142,7 +142,7 @@ public class CrudMultiRootTest {
         }
         session.flush();
 
-        session = new Session(store);
+        session = new TreeSession(store);
         for (int i = 0; i < count; i++) {
             String key = "hello" + i;
             assertEquals("World " + i, session.get(key));
@@ -150,7 +150,7 @@ public class CrudMultiRootTest {
         }
         session.flush();
 
-        session = new Session(store);
+        session = new TreeSession(store);
         for (int i = 0; i < count; i++) {
             String key = "hello" + i;
             assertEquals(null, session.get(key));

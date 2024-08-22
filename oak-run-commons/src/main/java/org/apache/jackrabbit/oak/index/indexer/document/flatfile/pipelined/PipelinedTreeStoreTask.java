@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedSortBatchTask.Result;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
@@ -91,7 +91,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
                     synchronized (treeStore) {
-                        Session session = treeStore.getSession();
+                        TreeSession session = treeStore.getSession();
                         Stopwatch start = Stopwatch.createStarted();
                         while (session.getRootCount() > MERGE_BATCH) {
                             LOG.info("Merging {} roots; there are {} roots",
@@ -198,7 +198,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         long textSize = 0;
         batchesProcessed++;
         synchronized (treeStore) {
-            Session session = treeStore.getSession();
+            TreeSession session = treeStore.getSession();
             for (SortKeyPath entry : sortBuffer) {
                 entriesProcessed++;
                 // Retrieve the entry from the buffer

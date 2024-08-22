@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SieveCache;
@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 public class TreeStore implements IndexStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(TreeStore.class);
+
+    public static final String DIRECTORY_NAME = "tree";
 
     private static final String STORE_TYPE = "TreeStore";
     private static final String TREE_STORE_CONFIG = "oak.treeStoreConfig";
@@ -55,7 +57,7 @@ public class TreeStore implements IndexStore {
     private final Store store;
     private final long cacheSizeTreeStoreMB;
     private final File directory;
-    private final Session session;
+    private final TreeSession session;
     private final NodeStateEntryReader entryReader;
     private final SieveCache<String, TreeStoreNodeState> nodeStateCache;
     private long entryCount;
@@ -75,11 +77,11 @@ public class TreeStore implements IndexStore {
         nodeStateCache = new SieveCache<>(cacheSizeFactor * cacheSizeNodeMB * MB);
         String storeConfig = System.getProperty(TREE_STORE_CONFIG,
                 "type=file\n" +
-                Session.CACHE_SIZE_MB + "=" + cacheSizeTreeStoreMB + "\n" +
+                TreeSession.CACHE_SIZE_MB + "=" + cacheSizeTreeStoreMB + "\n" +
                 Store.MAX_FILE_SIZE_BYTES + "=" + MAX_FILE_SIZE_MB * MB + "\n" +
                 "dir=" + directory.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
-        this.session = new Session(store);
+        this.session = new TreeSession(store);
         // we don not want to merge too early during the download
         session.setMaxRoots(1000);
         LOG.info("Open " + toString());
@@ -284,7 +286,7 @@ public class TreeStore implements IndexStore {
         }
     }
 
-    public Session getSession() {
+    public TreeSession getSession() {
         return session;
     }
 

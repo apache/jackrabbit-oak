@@ -316,7 +316,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
         IndexStore indexStore = buildFlatFileStoreList(checkpointedState, null, predicate,
                 preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions, indexingReporter).get(0);
-        log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
+        log.info("Store built at {}. To use this store in a reindex step, set the system property {} to {}",
                 indexStore.getStorePath(), OAK_INDEXER_SORTED_FILE_PATH, indexStore.getStorePath());
         return indexStore;
     }

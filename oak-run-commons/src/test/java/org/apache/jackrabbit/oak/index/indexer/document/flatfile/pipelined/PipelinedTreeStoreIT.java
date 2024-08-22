@@ -52,7 +52,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
@@ -536,7 +536,7 @@ public class PipelinedTreeStoreIT {
         TreeStore treeStore = new TreeStore("test", dir,
                 new NodeStateEntryReader(new MemoryBlobStore()), 1);
         ArrayList<String> list = new ArrayList<>();
-        Session session = treeStore.getSession();
+        TreeSession session = treeStore.getSession();
         for (String k : session.keys()) {
             String v = session.get(k);
             if (!v.isEmpty()) {

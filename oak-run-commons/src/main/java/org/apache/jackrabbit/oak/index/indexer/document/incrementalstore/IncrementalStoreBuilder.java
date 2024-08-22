@@ -111,8 +111,9 @@ public class IncrementalStoreBuilder {
     public IndexStore build() throws IOException, CompositeException {
         logFlags();
         File dir = createStoreDir();
-
-        if (Objects.requireNonNull(sortStrategyType) == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE) {
+        Objects.requireNonNull(sortStrategyType);
+        if (sortStrategyType == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE ||
+                sortStrategyType == IncrementalSortStrategyType.INCREMENTAL_TREE_STORE) {
             IncrementalFlatFileStoreNodeStateEntryWriter entryWriter = new IncrementalFlatFileStoreNodeStateEntryWriter(blobStore);
             IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
                     indexHelper.getNodeStore(),

@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Read and write keys and values.
  */
-public class Session {
+public class TreeSession {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Session.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TreeSession.class);
 
     public static final String CACHE_SIZE_MB = "cacheSizeMB";
     private static final int DEFAULT_CACHE_SIZE_MB = 256;
@@ -56,11 +56,17 @@ public class Session {
     private int maxRoots = DEFAULT_MAX_ROOTS;
     private long fileReadCount;
 
-    public Session() {
+    public TreeSession() {
         this(new MemoryStore(new Properties()));
     }
 
-    public Session(Store store) {
+    public static String getFileNameRegex() {
+        return "(" + ROOT_NAME + ".*|" +
+                LEAF_PREFIX + ".*|" +
+                INNER_NODE_PREFIX + ".*)";
+    }
+
+    public TreeSession(Store store) {
         this.store = store;
         long cacheSizeMB = Long.parseLong(store.getConfig().getProperty(
                 CACHE_SIZE_MB, "" + DEFAULT_CACHE_SIZE_MB));
@@ -559,7 +565,7 @@ public class Session {
 
             @Override
             public Iterator<Entry<String, String>> iterator() {
-                return Session.this.iterator();
+                return TreeSession.this.iterator();
             }
 
         };

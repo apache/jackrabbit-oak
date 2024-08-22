@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMet
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
         mergeMetadataFiles();
         mergeIndexStore(baseDir, mergedDir);
         LOG.info("Packing into " + mergedFile.getAbsolutePath());
-        FilePacker.pack(mergedDir, mergedFile, true);
+        FilePacker.pack(mergedDir, TreeSession.getFileNameRegex(), mergedFile, true);
         LOG.info("Done");
     }
 

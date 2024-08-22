@@ -28,8 +28,8 @@ public class SessionCacheTest {
     public void test() {
         Store store = StoreBuilder.build("type:memory\n" +
                 Store.MAX_FILE_SIZE_BYTES + "=1000\n" +
-                Session.CACHE_SIZE_MB + "=1");
-        Session s = new Session(store);
+                TreeSession.CACHE_SIZE_MB + "=1");
+        TreeSession s = new TreeSession(store);
         s.init();
         for (int i = 0; i < 50_000; i++) {
             s.put("k" + i, "v" + i);

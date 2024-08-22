@@ -28,7 +28,7 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 
@@ -39,7 +39,7 @@ public class TreeStoreUtils {
         MemoryBlobStore blobStore = new MemoryBlobStore();
         NodeStateEntryReader entryReader = new NodeStateEntryReader(blobStore);
         try (TreeStore treeStore = new TreeStore("utils", new File(dir), entryReader, 16)) {
-            Session session = treeStore.getSession();
+            TreeSession session = treeStore.getSession();
             Store store = treeStore.getStore();
             if (store.keySet().isEmpty()) {
                 session.init();

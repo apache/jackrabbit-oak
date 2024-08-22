@@ -33,6 +33,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Random;
 
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -110,7 +111,7 @@ public class FilePackerTest {
         Random r = new Random(1);
         for (int i = 0; i < 5; i++) {
             FileEntry f = new FileEntry();
-            f.file = File.createTempFile("test", ".txt", dir);
+            f.file = File.createTempFile("root_", ".txt", dir);
             list.add(f);
             CRC32 crc = new CRC32();
             CheckedOutputStream out = new CheckedOutputStream(
@@ -128,7 +129,7 @@ public class FilePackerTest {
         // for debugging
         // System.out.println(pack.getAbsolutePath());
         // System.out.println(dir.getAbsolutePath());
-        FilePacker.pack(dir, pack, delete);
+        FilePacker.pack(dir, TreeSession.getFileNameRegex(), pack, delete);
 
         for (FileEntry f : list) {
             if (delete) {
