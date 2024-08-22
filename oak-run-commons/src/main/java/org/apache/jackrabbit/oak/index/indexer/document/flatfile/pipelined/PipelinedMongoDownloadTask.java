@@ -502,12 +502,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // to Mongo fails, the descending thread starts a new query in Mongo to continue downloading down
                         // from the last document that it had downloaded. The document that was modified will not be
                         // retrieved by this query. See https://issues.apache.org/jira/browse/OAK-10903 for more details.
-                        long highestModifiedSeen = Math.max(
-                                ascendingDownloadTask.getHighestModifiedDownloaded(),
-                                descendingDownloadTask.getHighestModifiedDownloaded()
-                        );
+                        long highestModifiedSeen = descendingDownloadTask.getFirstModifiedValueSeen();
                         if (highestModifiedSeen == -1) {
-                            LOG.warn("No documents downloaded by either of the queries.");
+                            LOG.warn("No documents downloaded by descending download task.");
                         } else {
                             // Include also the documents with _modified == highestModifiedSeen, because there may have
                             // been documents written to Mongo with this _modified value after the descending
@@ -620,8 +617,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private long documentsDownloadedTotal;
         private long nextLastModified;
         private String lastIdDownloaded;
-
-        private volatile long highestModifiedDownloaded = -1;
+        // Accessed from the main download thread
+        private volatile long firstModifiedValueSeen = -1;
         private volatile MongoCursor<NodeDocument> mongoCursor = null;
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
@@ -655,8 +652,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             return documentsDownloadedTotal;
         }
 
-        public long getHighestModifiedDownloaded() {
-            return highestModifiedDownloaded;
+        public long getFirstModifiedValueSeen() {
+            return firstModifiedValueSeen;
         }
 
         private void download(Bson mongoQueryFilter) throws InterruptedException, TimeoutException {
@@ -773,8 +770,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
                         this.nextLastModified = next.getModified();
-                        if (nextLastModified > highestModifiedDownloaded) {
-                            this.highestModifiedDownloaded = this.nextLastModified;
+                        if (this.firstModifiedValueSeen == -1) {
+                            this.firstModifiedValueSeen = this.nextLastModified;
                         }
                         this.lastIdDownloaded = id;
                         this.documentsDownloadedTotal++;
