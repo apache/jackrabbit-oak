@@ -35,7 +35,6 @@ import joptsimple.BuiltinHelpFormatter;
 import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
-import joptsimple.internal.Strings;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -164,7 +163,7 @@ public class OakHelpFormatter implements HelpFormatter {
             String title = bean.title();
             if (title != null) {
                 addNonOptionRow(title);
-                addNonOptionRow(Strings.repeat('=', title.length()));
+                addNonOptionRow("=".repeat(title.length()));
             }
 
             if (bean.description() != null) {
@@ -187,7 +186,7 @@ public class OakHelpFormatter implements HelpFormatter {
         @Override
         protected void addHeaders(Collection<? extends OptionDescriptor> options) {
             addOptionRow(OPERATIONS, message( "description.header" ) );
-            addOptionRow( Strings.repeat('-', OPERATIONS.length()), message( "description.divider" ) );
+            addOptionRow("-".repeat(OPERATIONS.length()), message( "description.divider" ) );
         }
 
         @Override

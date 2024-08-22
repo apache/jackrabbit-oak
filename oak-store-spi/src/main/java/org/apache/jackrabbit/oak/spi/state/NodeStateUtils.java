@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -92,7 +91,7 @@ public final class NodeStateUtils {
     private static String toString(NodeState ns, int level, String prepend,
             String name) {
         StringBuilder node = new StringBuilder();
-        node.append(repeat(prepend, level)).append(name);
+        node.append(prepend.repeat(level)).append(name);
 
         StringBuilder props = new StringBuilder();
         boolean first = true;

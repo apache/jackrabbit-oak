@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
@@ -49,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -77,7 +75,7 @@ public class SegmentParserTest {
         when(shortIdBlobStore.writeBlob(any())).thenReturn("shortId");
 
         BlobStore longIdBlobStore = mock(BlobStore.class);
-        when(longIdBlobStore.writeBlob(any())).thenReturn(Strings.repeat("shortId", 1000));
+        when(longIdBlobStore.writeBlob(any())).thenReturn("shortId".repeat(1000));
 
         return newArrayList(
                 new Object[]{null, "No BlobStore"},
@@ -401,7 +399,7 @@ public class SegmentParserTest {
 
     @Test
     public void mediumString() throws IOException {
-        RecordId stringId = writer.writeString(repeat("s", SMALL_LIMIT));
+        RecordId stringId = writer.writeString("s".repeat(SMALL_LIMIT));
         BlobInfo blobInfo = new TestParser(store.getReader(), "mediumString").parseString(stringId);
         assertEquals(stringId, blobInfo.blobId);
         assertEquals(MEDIUM, blobInfo.blobType);
@@ -409,7 +407,7 @@ public class SegmentParserTest {
 
     @Test
     public void longString() throws IOException {
-        RecordId stringId = writer.writeString(repeat("s", MEDIUM_LIMIT));
+        RecordId stringId = writer.writeString("s".repeat(MEDIUM_LIMIT));
         BlobInfo blobInfo = new TestParser(store.getReader(), "longString"){
             @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
         }.parseString(stringId);

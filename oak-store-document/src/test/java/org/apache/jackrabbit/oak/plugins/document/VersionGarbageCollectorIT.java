@@ -51,7 +51,7 @@ import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
-import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
+
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -412,7 +412,7 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void gcLongPathSplitDocs() throws Exception {
-        gcSplitDocsInternal(repeat("sub", 120));
+        gcSplitDocsInternal("sub".repeat(120));
     }
 
     private VersionGCStats gc(VersionGarbageCollector gc, long maxRevisionAge, TimeUnit unit) throws IOException {
@@ -544,7 +544,7 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testGCDeletedLongPathPropsInclExcl_excludes() throws Exception {
-        String longName = repeat("p", PATH_LONG + 1);
+        String longName = "p".repeat(PATH_LONG + 1);
         createEmptyProps("/a/b/" + longName + "/x", "/b/c/" + longName + "/x",
                 "/c/d/" + longName + "/x");
         setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b/c", "/c"));
@@ -1093,7 +1093,7 @@ public class VersionGarbageCollectorIT {
     public void testGCDeletedLongPathProps() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
-        String longPath = repeat("p", PATH_LONG + 1);
+        String longPath = "p".repeat(PATH_LONG + 1);
         b1.child(longPath);
 
         // Add property to node & save
@@ -2093,7 +2093,7 @@ public class VersionGarbageCollectorIT {
      */
     @Test
     public void lateWriteCreateChildGCLargePath() throws Exception {
-        String longPath = repeat("p", PATH_LONG + 1);
+        String longPath = "p".repeat(PATH_LONG + 1);
         String path = "/grand/parent/" + longPath + "/longPathChild";
         doLateWriteCreateChildrenGC(of("/grand/parent"), of(path), "/d",
               gapOrphOnly(),

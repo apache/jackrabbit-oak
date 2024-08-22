@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.upgrade;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
 
 public class SimpleTicker implements ProgressTicker {
     private final int maxTicks;
@@ -39,6 +36,6 @@ public class SimpleTicker implements ProgressTicker {
         if(dotCount == maxTicks){
             decreasing = true;
         }
-        return Strings.repeat(".", noOfDots);
+        return ".".repeat(noOfDots);
     }
 }
