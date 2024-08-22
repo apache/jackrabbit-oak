@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
@@ -59,7 +59,8 @@ class ChildNodeStateProvider {
     @NotNull
     public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         boolean isPreferred = preferredPathElements.contains(name);
-        Optional<NodeStateEntry> o = Iterators.tryFind(children(isPreferred), p -> name.equals(name(p)));
+        Iterable<NodeStateEntry> it = () -> children(isPreferred);
+        Optional<NodeStateEntry> o = StreamSupport.stream(it.spliterator(), false).filter(p -> name.equals(name(p))).findFirst();
         return o.isPresent() ? o.get().getNodeState() : MISSING_NODE;
     }
 

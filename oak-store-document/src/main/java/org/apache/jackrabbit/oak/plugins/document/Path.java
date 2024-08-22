@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
 
 /**
@@ -66,7 +66,7 @@ public final class Path implements CacheValue, Comparable<Path> {
      * @throws IllegalArgumentException if the {@code name} is empty.
      */
     public Path(@NotNull Path parent, @NotNull String name) {
-        this(checkNotNull(parent), checkNotNull(name), -1);
+        this(requireNonNull(parent), requireNonNull(name), -1);
         checkArgument(!name.isEmpty(), "name cannot be the empty String");
     }
 
@@ -78,7 +78,7 @@ public final class Path implements CacheValue, Comparable<Path> {
      * @throws IllegalArgumentException if the {@code name} is empty.
      */
     public Path(@NotNull String name) {
-        this(null, checkNotNull(name), -1);
+        this(null, requireNonNull(name), -1);
         checkArgument(!name.isEmpty(), "name cannot be the empty String");
         checkArgument(name.indexOf('/') == -1, "name must not contain path separator: {}", name);
     }
@@ -185,7 +185,7 @@ public final class Path implements CacheValue, Comparable<Path> {
      * @return whether this path is an ancestor of the other path.
      */
     public boolean isAncestorOf(@NotNull Path other) {
-        checkNotNull(other);
+        requireNonNull(other);
         int depthDiff = other.getDepth() - getDepth();
         return depthDiff > 0
                 && elementsEqual(elements(true), other.getAncestor(depthDiff).elements(true));
@@ -212,7 +212,7 @@ public final class Path implements CacheValue, Comparable<Path> {
      */
     @NotNull
     public static Path fromString(@NotNull String path) throws IllegalArgumentException {
-        checkNotNull(path);
+        requireNonNull(path);
         Path p = null;
         if (PathUtils.isAbsolute(path)) {
             p = ROOT;
@@ -267,7 +267,7 @@ public final class Path implements CacheValue, Comparable<Path> {
         }
         Path t = this;
         int off = t.getNumberOfPathElements(true) -
-                checkNotNull(other).getNumberOfPathElements(true);
+                requireNonNull(other).getNumberOfPathElements(true);
         int corrected = off;
         while (corrected > 0) {
             t = t.parent;

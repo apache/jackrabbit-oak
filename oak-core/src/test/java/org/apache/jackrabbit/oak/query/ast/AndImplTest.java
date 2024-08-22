@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
 import static org.hamcrest.CoreMatchers.is;
@@ -73,8 +73,8 @@ public class AndImplTest {
      */
     private static ConstraintImpl mockConstraint(@NotNull String toString, 
                                                  @NotNull Class<? extends ConstraintImpl> clazz) {
-        ConstraintImpl c = mock(checkNotNull(clazz));
-        when(c.toString()).thenReturn(checkNotNull(toString));
+        ConstraintImpl c = mock(requireNonNull(clazz));
+        when(c.toString()).thenReturn(requireNonNull(toString));
         return c;
     }
 }

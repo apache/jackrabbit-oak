@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -44,7 +44,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
@@ -67,8 +66,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
         this.ntMgr = ntMgr;
         this.valueFactory = new PartialValueFactory(ntMgr.getNamePathMapper());
 
-        addNodeType(checkNotNull(primary));
-        for (NodeTypeImpl mixin : checkNotNull(mixins)) {
+        addNodeType(requireNonNull(primary));
+        for (NodeTypeImpl mixin : requireNonNull(mixins)) {
             addNodeType(mixin);
         }
         if (!nodeTypes.containsKey(NT_BASE)) {
@@ -176,45 +175,25 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getAutoCreateNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
-            @Override
-            public boolean apply(NodeDefinition nodeDefinition) {
-                return nodeDefinition.isAutoCreated();
-            }
-        });
+        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isAutoCreated());
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getAutoCreatePropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
-            @Override
-            public boolean apply(PropertyDefinition propertyDefinition) {
-                return propertyDefinition.isAutoCreated();
-            }
-        });
+        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isAutoCreated());
     }
 
     @NotNull
     @Override
     public Iterable<NodeDefinition> getMandatoryNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
-            @Override
-            public boolean apply(NodeDefinition nodeDefinition) {
-                return nodeDefinition.isMandatory();
-            }
-        });
+        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isMandatory());
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getMandatoryPropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
-            @Override
-            public boolean apply(PropertyDefinition propertyDefinition) {
-                return propertyDefinition.isMandatory();
-            }
-        });
+        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isMandatory());
     }
 
     /**

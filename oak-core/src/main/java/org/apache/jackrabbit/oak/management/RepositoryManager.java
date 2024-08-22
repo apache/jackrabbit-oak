@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.management;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
@@ -59,7 +59,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
 
     public RepositoryManager(@NotNull Whiteboard whiteboard) {
         super(RepositoryManagementMBean.class);
-        this.whiteboard = checkNotNull(whiteboard);
+        this.whiteboard = requireNonNull(whiteboard);
     }
 
     public String getName() {

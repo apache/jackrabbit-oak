@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -329,7 +329,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
         Authorizable admin = getUserManager(root).getAuthorizable(adminId);
 
-        Tree userTree = root.getTree(checkNotNull(admin).getPath());
+        Tree userTree = root.getTree(requireNonNull(admin).getPath());
         UserValidator validator = createUserValidator(userTree, userTree);
         userTree.remove();
 

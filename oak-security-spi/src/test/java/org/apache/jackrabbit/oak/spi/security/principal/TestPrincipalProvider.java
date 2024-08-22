@@ -21,7 +21,8 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -131,7 +132,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-        return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)).iterator();
+        return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)::test).iterator();
     }
 
     @NotNull
@@ -151,7 +152,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
 
         @Override
-        public boolean apply(Principal principal) {
+        public boolean test(Principal principal) {
             if (nameHint != null && principal != null && !principal.getName().startsWith(nameHint)) {
                 return false;
             }

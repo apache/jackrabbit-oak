@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
 /**
@@ -134,7 +134,7 @@ public final class JournalEntry extends Document {
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");
 
-        final DiffCache.Entry entry = checkNotNull(diffCache).newEntry(from, to, false);
+        final DiffCache.Entry entry = requireNonNull(diffCache).newEntry(from, to, false);
 
         final Iterator<String> it = changedPaths.iterator();
         if (!it.hasNext()) {
@@ -279,8 +279,8 @@ public final class JournalEntry extends Document {
                                    @Nullable ChangeSetBuilder changeSetBuilder,
                                    @Nullable JournalPropertyHandler journalPropertyHandler)
             throws IOException {
-        checkNotNull(path);
-        checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
+        requireNonNull(path);
+        checkArgument(requireNonNull(from).getClusterId() == requireNonNull(to).getClusterId());
 
         if (from.compareRevisionTime(to) >= 0) {
             return 0;
@@ -648,7 +648,7 @@ public final class JournalEntry extends Document {
     }
 
     static String asId(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         String s = String.format(REVISION_FORMAT, revision.getClusterId(), revision.getTimestamp(), revision.getCounter());
         if (revision.isBranch()) {
             s = "b" + s;

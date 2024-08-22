@@ -16,21 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -40,7 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 
 /**
@@ -104,12 +105,12 @@ public class ModifiedNodeState extends AbstractNodeState {
      */
     public static NodeState squeeze(NodeState state) {
         if (state instanceof ModifiedNodeState) {
-            Map<String, PropertyState> properties = newHashMap();
+            Map<String, PropertyState> properties = new HashMap<>();
             for (PropertyState property : state.getProperties()) {
                 properties.put(property.getName(), property);
             }
 
-            Map<String, NodeState> nodes = newHashMap();
+            Map<String, NodeState> nodes = new HashMap<>();
             for (ChildNodeEntry child : state.getChildNodeEntries()) {
                 nodes.put(child.getName(), squeeze(child.getNodeState()));
             }
@@ -166,13 +167,13 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getProperties(); // shortcut
         } else {
             if (copy) {
-                properties = newHashMap(properties);
+                properties = new HashMap<>(properties);
             }
             Predicate<PropertyState> predicate = Predicates.compose(
                     not(in(properties.keySet())), GET_NAME::apply);
             return concat(
-                    filter(base.getProperties(), predicate),
-                    filter(properties.values(), notNull()));
+                    filter(base.getProperties(), predicate::test),
+                    filter(properties.values(), x -> x != null));
         }
     }
 
@@ -217,11 +218,11 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getChildNodeNames(); // shortcut
         } else {
             if (copy) {
-                nodes = newHashMap(nodes);
+                nodes = new HashMap<>(nodes);
             }
             return concat(
                     filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
-                    filterValues(nodes, NodeState.EXISTS).keySet());
+                    filterValues(nodes, NodeState.EXISTS::test).keySet());
         }
     }
 
@@ -254,18 +255,18 @@ public class ModifiedNodeState extends AbstractNodeState {
             @NotNull NodeState base,
             @NotNull Map<String, PropertyState> properties,
             @NotNull Map<String, MutableNodeState> nodes) {
-        this.base = checkNotNull(base);
+        this.base = requireNonNull(base);
 
-        if (checkNotNull(properties).isEmpty()) {
+        if (requireNonNull(properties).isEmpty()) {
             this.properties = emptyMap();
         } else {
-            this.properties = newHashMap(properties);
+            this.properties = new HashMap<>(properties);
         }
 
-        if (checkNotNull(nodes).isEmpty()) {
+        if (requireNonNull(nodes).isEmpty()) {
             this.nodes = emptyMap();
         } else {
-            this.nodes = newHashMap();
+            this.nodes = new HashMap<>();
             for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
                 this.nodes.put(entry.getKey(), entry.getValue().snapshot());
             }
@@ -352,8 +353,8 @@ public class ModifiedNodeState extends AbstractNodeState {
             Predicate<ChildNodeEntry> predicate = Predicates.compose(
                     not(in(nodes.keySet())), ChildNodeEntry.GET_NAME::apply);
             return concat(
-                    filter(base.getChildNodeEntries(), predicate),
-                    iterable(filterValues(nodes, NodeState.EXISTS).entrySet()));
+                    filter(base.getChildNodeEntries(), predicate::test),
+                    iterable(filterValues(nodes, NodeState.EXISTS::test).entrySet()));
         }
     }
 

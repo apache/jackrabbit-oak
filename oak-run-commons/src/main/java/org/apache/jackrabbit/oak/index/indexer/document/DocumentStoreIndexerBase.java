@@ -80,7 +80,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
@@ -106,6 +106,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
+
+    private static final int TOP_SLOWEST_PATHS_TO_LOG = ConfigHelper.getSystemPropertyAsInt(
+            "oak.indexer.topSlowestPathsToLog", 20);
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
@@ -350,15 +353,30 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
             Stopwatch indexerWatch = Stopwatch.createStarted();
             try {
-
                 if (flatFileStores.size() > 1) {
                     indexParallel(flatFileStores, indexer, progressReporter);
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
+                    TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
+                    indexer.onIndexingStarting();
+                    long entryStart = System.nanoTime();
                     for (NodeStateEntry entry : flatFileStore) {
                         reportDocumentRead(entry.getPath(), progressReporter);
                         indexer.index(entry);
+                        // Avoid calling System.nanoTime() twice per each entry, by reusing the timestamp taken at the end
+                        // of indexing an entry as the start time of the following entry. This is less accurate, because
+                        // the measured times will also include the bookkeeping at the end of indexing each entry, but
+                        // we are only interested in entries that take a significant time to index, so this extra
+                        // inaccuracy will not significantly change the results.
+                        long entryEnd = System.nanoTime();
+                        long elapsedMillis = (entryEnd - entryStart) / 1_000_000;
+                        entryStart = entryEnd;
+                        slowestTopKElements.add(entry.getPath(), elapsedMillis);
+                        if (elapsedMillis > 1000) {
+                            log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                        }
                     }
+                    log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                 }
 
                 progressReporter.reindexingTraversalEnd();
@@ -433,15 +451,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     private MongoDocumentStore getMongoDocumentStore() {
-        return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
+        return requireNonNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
     private MongoClientURI getMongoClientURI() {
-        return checkNotNull(indexHelper.getService(MongoClientURI.class));
+        return requireNonNull(indexHelper.getService(MongoClientURI.class));
     }
 
     private MongoDatabase getMongoDatabase() {
-        return checkNotNull(indexHelper.getService(MongoDatabase.class));
+        return requireNonNull(indexHelper.getService(MongoDatabase.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {

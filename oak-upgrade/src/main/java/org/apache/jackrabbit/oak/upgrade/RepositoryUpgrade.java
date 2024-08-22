@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,6 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
-
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.HashBiMap;
@@ -325,7 +325,7 @@ public class RepositoryUpgrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(checkNotNull(includes));
+        this.includePaths = copyOf(requireNonNull(includes));
     }
 
     /**
@@ -335,7 +335,7 @@ public class RepositoryUpgrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(checkNotNull(excludes));
+        this.excludePaths = copyOf(requireNonNull(excludes));
     }
 
     /**
@@ -345,7 +345,7 @@ public class RepositoryUpgrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(checkNotNull(merges));
+        this.mergePaths = copyOf(requireNonNull(merges));
     }
 
     /**
@@ -667,7 +667,7 @@ public class RepositoryUpgrade {
 
     protected ConfigurationParameters mapConfigurationParameters(
             BeanConfig config, String... mapping) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = new HashMap<>();
         if (config != null) {
             Properties properties = config.getParameters();
             for (int i = 0; i + 1 < mapping.length; i += 2) {

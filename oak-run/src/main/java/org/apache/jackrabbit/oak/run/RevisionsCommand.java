@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -385,6 +386,8 @@ public class RevisionsCommand implements Command {
 
     private void collect(final RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, fullGCEnabled);
+        // Set a default statistics provider
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
@@ -397,6 +400,10 @@ public class RevisionsCommand implements Command {
                 gc.cancel();
                 finished.acquireUninterruptibly();
                 System.out.println("Stopped Revision GC.");
+                if (fullGCEnabled) {
+                    System.out.println("Full GC Stats:");
+                    System.out.println("    " + gc.getFullGCStatsReport());
+                }
             }));
             if (options.isContinuous()) {
                 while (running.get()) {
@@ -550,6 +557,8 @@ public class RevisionsCommand implements Command {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
         // Set a LoggingGC monitor that will output the fullGC operations
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
+        // Set a default statistics provider
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
         // Run fullGC on the given document
         NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
         if (workingDocument == null) {
@@ -558,8 +567,8 @@ public class RevisionsCommand implements Command {
         }
         gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
-        //TODO: Probably we should output some details of fullGCStats. Could be done after OAK-10378
-        //gc.getFullGCStats();
+        System.out.println("Full GC Stats:");
+        System.out.println("    " + gc.getFullGCStatsReport());
     }
 
     private String fmtTimestamp(long ts) {

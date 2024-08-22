@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
 import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.io.File.createTempFile;
@@ -44,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
@@ -178,7 +175,7 @@ public class DataStoreCheckCommand implements Command {
                 return 0;
             }
 
-            String dumpPath = JAVA_IO_TMPDIR.value();
+            String dumpPath = System.getProperty("java.io.tmpdir");
             if (options.has(dump)) {
                 dumpPath = options.valueOf(dump);
             }
@@ -323,8 +320,8 @@ public class DataStoreCheckCommand implements Command {
         String blobId = idLengthSepList.get(0);
 
         if (dsType.equals(FDS)) {
-            return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
-                .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+            return String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
+                    blobId.substring(4, 6), blobId);
         } else if (dsType.equals(S3DS) || dsType.equals(AZUREDS)) {
             return (blobId.substring(0, 4) + DASH + blobId.substring(4));
         }
@@ -332,7 +329,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static String decodeId(String id) {
-        List<String> list = Splitter.on(FILE_SEPARATOR.value()).trimResults().omitEmptyStrings().splitToList(id);
+        List<String> list = Splitter.on(System.getProperty("file.separator")).trimResults().omitEmptyStrings().splitToList(id);
         String pathStrippedId = list.get(list.size() -1);
         return Joiner.on("").join(Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
     }

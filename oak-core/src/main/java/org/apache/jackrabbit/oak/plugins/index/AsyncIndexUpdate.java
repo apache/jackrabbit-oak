@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -97,7 +98,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -225,8 +225,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                             @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
         this.name = checkValidName(name);
         this.lastIndexedTo = lastIndexedTo(name);
-        this.store = checkNotNull(store);
-        this.provider = checkNotNull(provider);
+        this.store = requireNonNull(store);
+        this.provider = requireNonNull(provider);
         this.switchOnSync = switchOnSync;
         this.leaseTimeOut = DEFAULT_ASYNC_TIMEOUT;
         this.statisticsProvider = statsProvider;
@@ -240,7 +240,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     public static String checkValidName(String asyncName){
-        checkNotNull(asyncName, "async name should not be null");
+        requireNonNull(asyncName, "async name should not be null");
         if (IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName)){
             return asyncName;
         }
@@ -423,7 +423,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
-            this.validatorProviders = checkNotNull(validatorProviders);
+            this.validatorProviders = requireNonNull(validatorProviders);
         }
 
         private void checkIfStopped() throws CommitFailedException {
@@ -705,7 +705,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private static NodeBuilder childBuilder(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;
@@ -930,7 +930,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     throws CommitFailedException {
                 // check for concurrent updates by this async task
                 NodeState async = before.getChildNode(ASYNC);
-                if ((checkpoint == null || Objects.equal(checkpoint, async.getString(name)))
+                if ((checkpoint == null || Objects.equals(checkpoint, async.getString(name)))
                         &&
                         (lease == null      || lease == async.getLong(leasify(name)))) {
                     return after;
@@ -982,11 +982,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
-        this.validatorProviders = checkNotNull(validatorProviders);
+        this.validatorProviders = requireNonNull(validatorProviders);
     }
 
     public void setCorruptIndexHandler(TrackingCorruptIndexHandler corruptIndexHandler) {
-        this.corruptIndexHandler = checkNotNull(corruptIndexHandler);
+        this.corruptIndexHandler = requireNonNull(corruptIndexHandler);
     }
 
     TrackingCorruptIndexHandler getCorruptIndexHandler() {

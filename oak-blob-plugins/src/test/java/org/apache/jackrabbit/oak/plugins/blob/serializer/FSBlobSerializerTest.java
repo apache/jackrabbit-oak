@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +43,7 @@ public class FSBlobSerializerTest {
     public void blobs() throws Exception{
         int maxInlineSize = 100;
         FSBlobSerializer serializer = new FSBlobSerializer(folder.getRoot(), maxInlineSize);
-        String data = Strings.repeat("x", maxInlineSize * 10);
+        String data = "x".repeat(maxInlineSize * 10);
 
         Blob b = new ArrayBasedBlob(data.getBytes(StandardCharsets.UTF_8));
 

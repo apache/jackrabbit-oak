@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.io.InputStream;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
@@ -99,8 +100,8 @@ class SecureNodeBuilder implements NodeBuilder {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
-        this.permissionProvider = checkNotNull(permissionProvider);
-        this.builder = checkNotNull(builder);
+        this.permissionProvider = requireNonNull(permissionProvider);
+        this.builder = requireNonNull(builder);
     }
 
     private SecureNodeBuilder(SecureNodeBuilder parent, String name) {
@@ -176,7 +177,7 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
-        if (new ReadablePropertyPredicate().apply(property)) {
+        if (new ReadablePropertyPredicate().test(property)) {
             return property;
         } else {
             return null;
@@ -195,7 +196,7 @@ class SecureNodeBuilder implements NodeBuilder {
         } else {
             return size(filter(
                     builder.getProperties(),
-                    new ReadablePropertyPredicate()));
+                    new ReadablePropertyPredicate()::test));
         }
     }
 
@@ -207,7 +208,7 @@ class SecureNodeBuilder implements NodeBuilder {
         } else {
             return filter(
                     builder.getProperties(),
-                    new ReadablePropertyPredicate());
+                    new ReadablePropertyPredicate()::test);
         }
     }
 
@@ -376,7 +377,7 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean apply(@Nullable PropertyState property) {
+        public boolean test(@Nullable PropertyState property) {
             if (property != null) {
                 String propertyName = property.getName();
                 return NodeStateUtils.isHidden(propertyName) ||

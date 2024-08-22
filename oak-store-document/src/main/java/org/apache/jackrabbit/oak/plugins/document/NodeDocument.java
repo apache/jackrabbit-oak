@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -34,46 +49,29 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.guava.common.collect.Queues;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
-import static java.util.stream.Collectors.toSet;
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
 /**
  * A document storing data about a node.
@@ -378,7 +376,7 @@ public final class NodeDocument extends Document {
      *                     in case of being resurrected from a serialized for
      */
     public NodeDocument(@NotNull DocumentStore store, long creationTime) {
-        this.store = checkNotNull(store);
+        this.store = requireNonNull(store);
         this.creationTime = creationTime;
     }
 
@@ -609,6 +607,10 @@ public final class NodeDocument extends Document {
             if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 uniqueRevisions.add(r);
                 removeBranchCommit(op, r);
+                if (op.getId().equals(Utils.getIdFromPath(Path.ROOT))
+                        && getLocalCommitRoot().containsKey(r)) {
+                    removeCommitRoot(op, r);
+                }
             }
             if (op.getChanges().size() >= batchSize) {
                 store.findAndUpdate(Collection.NODES, op);
@@ -664,7 +666,7 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     Set<Revision> getConflictsFor(@NotNull Iterable<Revision> changes) {
-        checkNotNull(changes);
+        requireNonNull(changes);
 
         Set<Revision> conflicts = Sets.newHashSet();
         Map<Revision, String> collisions = getLocalMap(COLLISIONS);
@@ -744,7 +746,7 @@ public final class NodeDocument extends Document {
             clusterIds = Sets.newHashSet();
             for (Revision prevRev : getPreviousRanges().keySet()) {
                 if (lower.isRevisionNewer(prevRev) ||
-                        equal(prevRev, lower.getRevision(prevRev.getClusterId()))) {
+                        Objects.equals(prevRev, lower.getRevision(prevRev.getClusterId()))) {
                     clusterIds.add(prevRev.getClusterId());
                 }
             }
@@ -1356,12 +1358,7 @@ public final class NodeDocument extends Document {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
                     return null;
-                }), new Predicate<NodeDocument>() {
-                @Override
-                public boolean apply(@Nullable NodeDocument input) {
-                    return input != null && input.getValueMap(property).containsKey(revision);
-                }
-            });
+                }), input ->input != null && input.getValueMap(property).containsKey(revision));
         }
     }
 
@@ -1528,12 +1525,7 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Revision> getChanges(@NotNull final String property,
                                   @NotNull final RevisionVector min) {
-        Predicate<Revision> p = new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return min.isRevisionNewer(input);
-            }
-        };
+        Predicate<Revision> p = input -> min.isRevisionNewer(input);
         List<Iterable<Revision>> changes = Lists.newArrayList();
         changes.add(abortingIterable(getLocalMap(property).keySet(), p));
         for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
@@ -1564,16 +1556,11 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
                                                             @NotNull final RevisionVector readRevision) {
-        Predicate<Map.Entry<Revision, String>> p = new Predicate<Map.Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision, String> input) {
-                return !readRevision.isRevisionNewer(input.getKey());
-            }
-        };
+        Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
         List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
         Map<Revision, String> localChanges = getLocalMap(property);
         if (!localChanges.isEmpty()) {
-            changes.add(filter(localChanges.entrySet(), p));
+            changes.add(filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
@@ -1677,12 +1664,7 @@ public final class NodeDocument extends Document {
         } else {
             changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, new Predicate<Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Entry<Revision, String> input) {
-                return !readRev.isRevisionNewer(input.getKey());
-            }
-        });
+        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
 
     /**
@@ -1786,24 +1768,24 @@ public final class NodeDocument extends Document {
 
     public static void setChildrenFlag(@NotNull UpdateOp op,
                                        boolean hasChildNode) {
-        checkNotNull(op).set(CHILDREN_FLAG, hasChildNode);
+        requireNonNull(op).set(CHILDREN_FLAG, hasChildNode);
     }
 
     public static void setModified(@NotNull UpdateOp op,
                                    @NotNull Revision revision) {
-        checkNotNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(checkNotNull(revision).getTimestamp()));
+        requireNonNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(requireNonNull(revision).getTimestamp()));
     }
 
     public static void setRevision(@NotNull UpdateOp op,
                                    @NotNull Revision revision,
                                    @NotNull String commitValue) {
-        checkNotNull(op).setMapEntry(REVISIONS,
-                checkNotNull(revision), checkNotNull(commitValue));
+        requireNonNull(op).setMapEntry(REVISIONS,
+                requireNonNull(revision), requireNonNull(commitValue));
     }
 
     public static void unsetRevision(@NotNull UpdateOp op,
                                      @NotNull Revision revision) {
-        checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
+        requireNonNull(op).unsetMapEntry(REVISIONS, requireNonNull(revision));
     }
 
     public static boolean isRevisionsEntry(String name) {
@@ -1824,7 +1806,7 @@ public final class NodeDocument extends Document {
 
     public static void removeRevision(@NotNull UpdateOp op,
                                       @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(REVISIONS, requireNonNull(revision));
     }
 
     /**
@@ -1837,18 +1819,18 @@ public final class NodeDocument extends Document {
     public static void addCollision(@NotNull UpdateOp op,
                                     @NotNull Revision revision,
                                     @NotNull Revision other) {
-        checkNotNull(op).setMapEntry(COLLISIONS, checkNotNull(revision),
+        requireNonNull(op).setMapEntry(COLLISIONS, requireNonNull(revision),
                 other.toString());
     }
 
     public static void removeCollision(@NotNull UpdateOp op,
                                        @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(COLLISIONS, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(COLLISIONS, requireNonNull(revision));
     }
 
     public static void setLastRev(@NotNull UpdateOp op,
                                   @NotNull Revision revision) {
-        checkNotNull(op).setMapEntry(LAST_REV,
+        requireNonNull(op).setMapEntry(LAST_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
@@ -1856,18 +1838,18 @@ public final class NodeDocument extends Document {
     public static void setCommitRoot(@NotNull UpdateOp op,
                                      @NotNull Revision revision,
                                      int commitRootDepth) {
-        checkNotNull(op).setMapEntry(COMMIT_ROOT, checkNotNull(revision),
+        requireNonNull(op).setMapEntry(COMMIT_ROOT, requireNonNull(revision),
                 String.valueOf(commitRootDepth));
     }
 
     public static void removeCommitRoot(@NotNull UpdateOp op,
                                         @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
+        requireNonNull(op).removeMapEntry(COMMIT_ROOT, revision);
     }
 
     public static void unsetCommitRoot(@NotNull UpdateOp op,
                                        @NotNull Revision revision) {
-        checkNotNull(op).unsetMapEntry(COMMIT_ROOT, revision);
+        requireNonNull(op).unsetMapEntry(COMMIT_ROOT, revision);
     }
 
     public static void setDeleted(@NotNull UpdateOp op,
@@ -1878,71 +1860,71 @@ public final class NodeDocument extends Document {
             //possibly we can avoid that
             setDeletedOnce(op);
         }
-        checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision), String.valueOf(deleted));
+        requireNonNull(op).setMapEntry(DELETED, requireNonNull(revision), String.valueOf(deleted));
     }
 
     public static void setDeletedOnce(@NotNull UpdateOp op) {
-        checkNotNull(op).set(DELETED_ONCE, Boolean.TRUE);
+        requireNonNull(op).set(DELETED_ONCE, Boolean.TRUE);
     }
 
     public static void removeDeleted(@NotNull UpdateOp op,
                                      @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(DELETED, revision);
+        requireNonNull(op).removeMapEntry(DELETED, revision);
     }
 
     public static void setPrevious(@NotNull UpdateOp op,
                                    @NotNull Range range) {
-        checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(range).high,
+        requireNonNull(op).setMapEntry(PREVIOUS, requireNonNull(range).high,
                 range.getLowValue());
     }
 
     public static void removePrevious(@NotNull UpdateOp op,
                                       @NotNull Range range) {
-        removePrevious(op, checkNotNull(range).high);
+        removePrevious(op, requireNonNull(range).high);
     }
 
     public static void removePrevious(@NotNull UpdateOp op,
                                       @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(PREVIOUS, requireNonNull(revision));
     }
 
     public static void setStalePrevious(@NotNull UpdateOp op,
                                         @NotNull Revision revision,
                                         int height) {
-        checkNotNull(op).setMapEntry(STALE_PREV,
-                checkNotNull(revision), String.valueOf(height));
+        requireNonNull(op).setMapEntry(STALE_PREV,
+                requireNonNull(revision), String.valueOf(height));
     }
 
     public static void removeStalePrevious(@NotNull UpdateOp op,
                                            @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(STALE_PREV, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(STALE_PREV, requireNonNull(revision));
     }
 
     public static void setHasBinary(@NotNull UpdateOp op) {
-        checkNotNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
+        requireNonNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
     }
 
     public static void setBranchCommit(@NotNull UpdateOp op,
                                        @NotNull Revision revision) {
-        checkNotNull(op).setMapEntry(BRANCH_COMMITS,
+        requireNonNull(op).setMapEntry(BRANCH_COMMITS,
                 revision, String.valueOf(true));
     }
 
     public static void removeBranchCommit(@NotNull UpdateOp op,
                                           @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
+        requireNonNull(op).removeMapEntry(BRANCH_COMMITS, revision);
     }
 
     public static void setSweepRevision(@NotNull UpdateOp op,
                                         @NotNull Revision revision) {
-        checkNotNull(op).setMapEntry(SWEEP_REV,
+        requireNonNull(op).setMapEntry(SWEEP_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
 
     public static void hasLastRev(@NotNull UpdateOp op,
                                   @NotNull Revision revision) {
-        checkNotNull(op).equals(LAST_REV,
+        requireNonNull(op).equals(LAST_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
@@ -2106,7 +2088,7 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     private Path getPathAtDepth(@NotNull String depth) {
-        if (checkNotNull(depth).equals("0")) {
+        if (requireNonNull(depth).equals("0")) {
             return Path.ROOT;
         }
         Path p = getPath();
@@ -2407,7 +2389,7 @@ public final class NodeDocument extends Document {
         final Map.Entry<Revision, String> valueEntry;
 
         Value(@NotNull Revision mergeRevision, @NotNull Map.Entry<Revision, String> valueEntry) {
-            this.revision = checkNotNull(mergeRevision);
+            this.revision = requireNonNull(mergeRevision);
             this.valueEntry = valueEntry;
         }
     }

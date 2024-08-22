@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
@@ -27,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.security.AccessControlException;
 import java.security.Principal;
+import java.util.Objects;
 import java.util.Set;
 
 abstract class AbstractEntry extends ACE implements PrincipalAccessControlList.Entry {
@@ -57,7 +57,7 @@ abstract class AbstractEntry extends ACE implements PrincipalAccessControlList.E
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(oakPath, getPrincipal().getName(), getPrivilegeBits(), Boolean.TRUE, getRestrictions());
+            hashCode = Objects.hash(oakPath, getPrincipal().getName(), getPrivilegeBits(), Boolean.TRUE, getRestrictions());
         }
         return hashCode;
     }

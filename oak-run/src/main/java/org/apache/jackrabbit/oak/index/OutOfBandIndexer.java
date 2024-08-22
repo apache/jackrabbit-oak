@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
@@ -27,8 +26,8 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 public class OutOfBandIndexer extends OutOfBandIndexerBase {
     private final ExtendedIndexHelper extendedIndexHelper;
@@ -38,7 +37,7 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
 
     public OutOfBandIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
         super(extendedIndexHelper,indexerSupport);
-        this.extendedIndexHelper = checkNotNull(extendedIndexHelper);
+        this.extendedIndexHelper = requireNonNull(extendedIndexHelper);
     }
 
     protected IndexEditorProvider createIndexEditorProvider() throws IOException {

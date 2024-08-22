@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 
@@ -43,10 +42,10 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -144,7 +143,7 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withDirectory(File directory) {
-            this.directory = checkNotNull(directory);
+            this.directory = requireNonNull(directory);
             return this;
         }
 
@@ -159,22 +158,22 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withTarRecovery(TarRecovery tarRecovery) {
-            this.tarRecovery = checkNotNull(tarRecovery);
+            this.tarRecovery = requireNonNull(tarRecovery);
             return this;
         }
 
         public Builder withIOMonitor(IOMonitor ioMonitor) {
-            this.ioMonitor = checkNotNull(ioMonitor);
+            this.ioMonitor = requireNonNull(ioMonitor);
             return this;
         }
 
         public Builder withFileStoreMonitor(FileStoreMonitor fileStoreStats) {
-            this.fileStoreMonitor = checkNotNull(fileStoreStats);
+            this.fileStoreMonitor = requireNonNull(fileStoreStats);
             return this;
         }
 
         public Builder withRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-            this.remoteStoreMonitor = checkNotNull(remoteStoreMonitor);
+            this.remoteStoreMonitor = requireNonNull(remoteStoreMonitor);
             return this;
         }
 
@@ -309,14 +308,14 @@ public class TarFiles implements Closeable {
     }
 
     private static Map<Integer, Map<Character, String>> collectFiles(SegmentArchiveManager archiveManager) throws IOException {
-        Map<Integer, Map<Character, String>> dataFiles = newHashMap();
+        Map<Integer, Map<Character, String>> dataFiles = new HashMap<>();
         for (String file : archiveManager.listArchives()) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file);
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
                 Map<Character, String> files = dataFiles.get(index);
                 if (files == null) {
-                    files = newHashMap();
+                    files = new HashMap<>();
                     dataFiles.put(index, files);
                 }
                 Character generation = 'a';

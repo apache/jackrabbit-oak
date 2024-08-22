@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.nonNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.fromString;
@@ -60,7 +60,7 @@ public class ClusterNodeInfoDocument extends Document {
     }
 
     public long getLeaseEndTime(){
-        return checkNotNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
+        return requireNonNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
     }
 
     /**

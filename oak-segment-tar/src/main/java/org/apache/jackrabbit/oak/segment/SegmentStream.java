@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -67,15 +67,15 @@ public class SegmentStream extends InputStream {
     private long mark = 0;
 
     SegmentStream(RecordId recordId, ListRecord blocks, long length) {
-        this.recordId = checkNotNull(recordId);
+        this.recordId = requireNonNull(recordId);
         this.inline = null;
-        this.blocks = checkNotNull(blocks);
+        this.blocks = requireNonNull(blocks);
         checkArgument(length >= 0);
         this.length = length;
     }
 
     SegmentStream(RecordId recordId, Buffer inline, int length) {
-        this.recordId = checkNotNull(recordId);
+        this.recordId = requireNonNull(recordId);
         this.inline = inline.duplicate();
         this.blocks = null;
         this.length = length;
@@ -139,7 +139,7 @@ public class SegmentStream extends InputStream {
 
     @Override
     public int read(@NotNull byte[] b, int off, int len) {
-        checkNotNull(b);
+        requireNonNull(b);
         checkPositionIndexes(off, off + len, b.length);
 
         if (len == 0) {

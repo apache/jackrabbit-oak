@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -41,7 +41,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
      * @param name  The name of the property state.
      */
     protected EmptyPropertyState(@NotNull String name) {
-        this.name = checkNotNull(name);
+        this.name = requireNonNull(name);
     }
 
     /**

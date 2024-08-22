@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.nullToEmpty;
 import static java.lang.Thread.currentThread;
 
 import java.io.BufferedInputStream;
@@ -40,6 +38,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
@@ -100,7 +99,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String REF_KEY = "reference.key";
     private static final String LAST_MODIFIED_KEY = "lastModified";
 
-    private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
+    private static final long BUFFERED_STREAM_THRESHOLD = 1024 * 1024;
     static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
     static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 100; // 100MB
     static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024 * 1024 * 256; // 256MB, Azure limit
@@ -131,8 +130,17 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         this.properties = properties;
     }
 
+    private volatile CloudBlobContainer azureContainer = null;
+
     protected CloudBlobContainer getAzureContainer() throws DataStoreException {
-        return azureBlobContainerProvider.getBlobContainer(getBlobRequestOptions());
+        if (azureContainer == null) {
+            synchronized (this) {
+                if (azureContainer == null) {
+                    azureContainer = azureBlobContainerProvider.getBlobContainer(getBlobRequestOptions());
+                }
+            }
+        }
+        return azureContainer;
     }
 
     @NotNull
@@ -210,8 +218,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 } else {
                     LOG.info("Reusing existing container. containerName={}", getContainerName());
                 }
-                LOG.debug("Backend initialized. duration={}",
-                          +(System.currentTimeMillis() - start));
+                LOG.debug("Backend initialized. duration={}", (System.currentTimeMillis() - start));
 
                 // settings pertaining to DataRecordAccessProvider functionality
                 String putExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
@@ -322,7 +329,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 BlobRequestOptions options = new BlobRequestOptions();
                 options.setConcurrentRequestCount(concurrentRequestCount);
-                boolean useBufferedStream = len < BUFFERED_STREAM_THRESHHOLD;
+                boolean useBufferedStream = len < BUFFERED_STREAM_THRESHOLD;
                 final InputStream in = useBufferedStream  ? new BufferedInputStream(new FileInputStream(file)) : new FileInputStream(file);
                 try {
                     blob.upload(in, len, null, options, null);
@@ -460,28 +467,23 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     @Override
-    public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(
+    public Iterator<DataIdentifier> getAllIdentifiers() {
+        return new RecordsIterator<>(
                 input -> new DataIdentifier(getIdentifierName(input.getName())));
     }
 
 
 
     @Override
-    public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+    public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
-        return new RecordsIterator<DataRecord>(
-                new Function<AzureBlobInfo, DataRecord>() {
-                    @Override
-                    public DataRecord apply(AzureBlobInfo input) {
-                        return new AzureBlobStoreDataRecord(
-                            backend,
-                                azureBlobContainerProvider,
-                            new DataIdentifier(getIdentifierName(input.getName())),
-                            input.getLastModified(),
-                            input.getLength());
-                    }
-                }
+        return new RecordsIterator<>(
+                input -> new AzureBlobStoreDataRecord(
+                        backend,
+                        azureBlobContainerProvider,
+                        new DataIdentifier(getIdentifierName(input.getName())),
+                        input.getLastModified(),
+                        input.getLength())
         );
     }
 
@@ -850,8 +852,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             String cacheKey = identifier.toString()
                     + domain
-                    + nullToEmpty(downloadOptions.getContentTypeHeader())
-                    + nullToEmpty(downloadOptions.getContentDispositionHeader());
+                    + Objects.toString(downloadOptions.getContentTypeHeader(), "")
+                    + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
             if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(cacheKey);
             }

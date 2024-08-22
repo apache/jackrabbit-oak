@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -33,6 +32,7 @@ import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -153,11 +153,11 @@ public class FilteringNodeStateTest {
         { // access via getProperties()
             final Predicate<PropertyState> isChildOrderProperty = new Predicate<PropertyState>() {
                 @Override
-                public boolean apply(PropertyState propertyState) {
+                public boolean test(PropertyState propertyState) {
                     return OAK_CHILD_ORDER.equals(propertyState.getName());
                 }
             };
-            final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty);
+            final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
             assertEquals(newArrayList("football"), newArrayList(values));
         }

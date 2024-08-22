@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.json;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -83,12 +83,12 @@ public class JsonSerializer {
     private JsonSerializer(
             JsopWriter json, int depth, long offset, int maxChildNodes,
             JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
-        this.json = checkNotNull(json);
+        this.json = requireNonNull(json);
         this.depth = depth;
         this.offset = offset;
         this.maxChildNodes = maxChildNodes;
-        this.filter = checkNotNull(filter);
-        this.blobs = checkNotNull(blobs);
+        this.filter = requireNonNull(filter);
+        this.blobs = requireNonNull(blobs);
         this.catchExceptions = catchExceptions;
     }
 

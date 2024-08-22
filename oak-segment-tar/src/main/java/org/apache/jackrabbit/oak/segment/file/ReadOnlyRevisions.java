@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
@@ -44,7 +44,7 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
     private final JournalFile journalFile;
 
     public ReadOnlyRevisions(@NotNull SegmentNodeStorePersistence persistence) {
-        this.journalFile = checkNotNull(persistence).getJournalFile();
+        this.journalFile = requireNonNull(persistence).getJournalFile();
         this.head = new AtomicReference<>(null);
     }
 

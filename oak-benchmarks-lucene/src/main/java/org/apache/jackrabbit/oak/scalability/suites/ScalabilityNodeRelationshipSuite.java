@@ -49,7 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
@@ -196,7 +196,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
             // define lucene index on properties
             case LUCENE_FILE:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
                         new String[]{SOURCE_ID, CREATED},
@@ -205,7 +205,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
                 Map<String, String> propMap = Maps.newHashMap();

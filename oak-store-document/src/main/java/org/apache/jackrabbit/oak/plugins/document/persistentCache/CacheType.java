@@ -34,7 +34,7 @@ import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.StringDataType;
 
 public enum CacheType {
-    
+
     NODE {
 
         @Override
@@ -70,13 +70,13 @@ public enum CacheType {
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
             Path path = ((PathRev) key).getPath();
-            if (!store.getNodeCachePredicate().apply(path)){
+            if (!store.getNodeCachePredicate().test(path)){
                 return false;
             }
             return !store.getNodeStateCache().isCached(path);
         }
     },
-    
+
     CHILDREN {
 
         @Override
@@ -112,13 +112,13 @@ public enum CacheType {
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
             Path path = ((NamePathRev) key).getPath();
-            if (!store.getNodeCachePredicate().apply(path)){
+            if (!store.getNodeCachePredicate().test(path)){
                 return false;
             }
             return !store.getNodeStateCache().isCached(path);
         }
     }, 
-    
+
     DIFF {
 
         @Override
@@ -279,7 +279,7 @@ public enum CacheType {
             return true;
         }
     };
-    
+
     public static final CacheType[] VALUES = CacheType.values();
 
     public String getMapName() {

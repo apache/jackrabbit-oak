@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 
@@ -34,11 +34,11 @@ public class CompositeObserver implements Observer {
     private final Set<Observer> observers = newIdentityHashSet();
 
     public synchronized void addObserver(@NotNull Observer observer) {
-        checkState(observers.add(checkNotNull(observer)));
+        checkState(observers.add(requireNonNull(observer)));
     }
 
     public synchronized void removeObserver(@NotNull Observer observer) {
-        checkState(observers.remove(checkNotNull(observer)));
+        checkState(observers.remove(requireNonNull(observer)));
     }
 
     //----------------------------------------------------------< Observer >--
@@ -46,7 +46,7 @@ public class CompositeObserver implements Observer {
     @Override
     public synchronized void contentChanged(
             @NotNull NodeState root, @NotNull CommitInfo info) {
-        checkNotNull(root);
+        requireNonNull(root);
         for (Observer observer : observers) {
             observer.contentChanged(root, info);
         }

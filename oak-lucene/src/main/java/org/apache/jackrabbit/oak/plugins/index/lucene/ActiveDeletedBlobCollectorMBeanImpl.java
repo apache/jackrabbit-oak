@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
@@ -119,13 +119,13 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
             @NotNull AsyncIndexInfoService asyncIndexInfoService,
             @NotNull GarbageCollectableBlobStore blobStore,
             @NotNull Executor executor) {
-        this.activeDeletedBlobCollector = checkNotNull(activeDeletedBlobCollector);
-        this.whiteboard = checkNotNull(whiteboard);
+        this.activeDeletedBlobCollector = requireNonNull(activeDeletedBlobCollector);
+        this.whiteboard = requireNonNull(whiteboard);
         this.store = store;
         this.indexPathService = indexPathService;
         this.asyncIndexInfoService = asyncIndexInfoService;
-        this.blobStore = checkNotNull(blobStore);
-        this.executor = checkNotNull(executor);
+        this.blobStore = requireNonNull(blobStore);
+        this.executor = requireNonNull(executor);
 
         LOG.info("Active blob collector initialized with minAge: {}", MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
     }

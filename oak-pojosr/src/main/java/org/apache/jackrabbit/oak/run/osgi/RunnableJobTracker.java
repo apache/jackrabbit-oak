@@ -23,8 +23,8 @@ import java.io.Closeable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -43,12 +43,7 @@ public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
      * Lazily loaded executor
      */
     private final Supplier<ScheduledExecutorService> executor =
-            Suppliers.memoize(new Supplier<ScheduledExecutorService>() {
-        @Override
-        public ScheduledExecutorService get() {
-            return Oak.defaultScheduledExecutor();
-        }
-    });
+            Suppliers.memoize(() -> Oak.defaultScheduledExecutor());
 
     public RunnableJobTracker(BundleContext context) {
         super(context, createFilter(), null);

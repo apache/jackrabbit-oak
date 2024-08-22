@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.UnsupportedEncodingException;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.segment.util.SafeEncode;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -81,7 +80,7 @@ public class CachingSegmentReader implements SegmentReader {
         long templateCacheMB,
         MeterStats readStats
     ) {
-        this.writer = checkNotNull(writer);
+        this.writer = requireNonNull(writer);
         this.blobStore = blobStore;
         stringCache = new StringCache(stringCacheMB * 1024 * 1024);
         templateCache = new TemplateCache(templateCacheMB * 1024 * 1024);

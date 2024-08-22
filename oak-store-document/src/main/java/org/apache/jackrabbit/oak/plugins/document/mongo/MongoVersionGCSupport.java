@@ -72,8 +72,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
@@ -335,12 +334,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     input -> store.convertFromDBObject(NODES, input)),
-                    new Predicate<NodeDocument>() {
-                        @Override
-                        public boolean apply(NodeDocument input) {
-                            return !isDefaultNoBranchSplitNewerThan(input, sweepRevs);
-                        }
-                    });
+                    input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));
             allResults = concat(allResults, iterable);
         }
         return allResults;
@@ -468,7 +462,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
 
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
-        Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, ids);
+        Joiner.on(System.getProperty("line.separator")).appendTo(sb, ids);
         LOG.debug(sb.toString());
     }
 

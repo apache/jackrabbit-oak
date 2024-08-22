@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.composite;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.INTEGRITY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -88,7 +89,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.parent = null;
         this.path = "/";
         this.mip = mip;
-        this.newReferencableNodes = newHashMap();
+        this.newReferencableNodes = new HashMap<>();
         this.newReferences = ArrayListMultimap.create();
         this.uuidDefinition = root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("uuid");
         this.uuidStores = Multiplexers.getStrategies(true, mip, uuidDefinition, INDEX_CONTENT_NODE_NAME);

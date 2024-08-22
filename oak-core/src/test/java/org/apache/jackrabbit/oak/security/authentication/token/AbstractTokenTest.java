@@ -37,7 +37,7 @@ import org.junit.Before;
 
 import java.util.Collections;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertNotNull;
 
 /**
@@ -103,7 +103,7 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
 
     @NotNull
     Tree getUserTree(@NotNull String uid) throws RepositoryException {
-        return root.getTree(checkNotNull(getUserManager(root).getAuthorizable(uid)).getPath());
+        return root.getTree(requireNonNull(getUserManager(root).getAuthorizable(uid)).getPath());
     }
 
     @NotNull

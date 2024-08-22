@@ -41,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class BundlingConfigHandler implements Observer, Closeable {
@@ -89,7 +89,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
     }
 
     public BackgroundObserverMBean getMBean(){
-        return checkNotNull(backgroundObserver).getMBean();
+        return requireNonNull(backgroundObserver).getMBean();
     }
 
     public boolean isEnabled() {

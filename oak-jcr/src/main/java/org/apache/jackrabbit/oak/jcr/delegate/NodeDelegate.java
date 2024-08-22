@@ -72,8 +72,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -344,12 +342,7 @@ public class NodeDelegate extends ItemDelegate {
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
         return transform(
-                filter(iterator, new Predicate<Tree>() {
-                    @Override
-                    public boolean apply(Tree tree) {
-                        return tree.exists();
-                    }
-                }),
+                filter(iterator, tree -> tree.exists()),
                 tree -> new NodeDelegate(sessionDelegate, tree));
     }
 

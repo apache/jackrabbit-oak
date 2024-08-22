@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -56,7 +55,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 final class Delegatee {
 
@@ -361,7 +360,7 @@ final class Delegatee {
                 if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
                     try {
                         // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'
-                        ExternalIdentity extId = idp.getIdentity(checkNotNull(syncedIdentity.getExternalIdRef()));
+                        ExternalIdentity extId = idp.getIdentity(requireNonNull(syncedIdentity.getExternalIdRef()));
                         if (extId == null) {
                             return syncedIdentity.getId();
                         }
@@ -370,7 +369,7 @@ final class Delegatee {
                     }
                 }
                 return null;
-            }), Predicates.notNull());
+            }), x -> x != null);
         } catch (RepositoryException e) {
             log.error("Error while listing orphaned users", e);
             return Collections.emptyIterator();

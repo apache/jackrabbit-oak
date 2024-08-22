@@ -31,13 +31,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -360,7 +361,8 @@ public class MongoDocumentStore implements DocumentStore {
         final boolean throttlingEnabled = isThrottlingEnabled(builder);
         if (throttlingEnabled) {
             MongoDatabase localDb = connection.getDatabase("local");
-            Optional<String> ol = Iterables.tryFind(localDb.listCollectionNames(), s -> Objects.equals(OPLOG_RS, s));
+            Optional<String> ol = StreamSupport.stream(localDb.listCollectionNames().spliterator(), false)
+                    .filter(s -> Objects.equals(OPLOG_RS, s)).findFirst();
 
             if (ol.isPresent()) {
                 // oplog window based on current oplog filling rate

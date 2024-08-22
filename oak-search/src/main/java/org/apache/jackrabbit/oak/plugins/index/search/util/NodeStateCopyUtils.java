@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 /**
@@ -153,6 +153,6 @@ public class NodeStateCopyUtils {
     }
 
     private static String primaryType(NodeState state){
-        return checkNotNull(state.getName(JcrConstants.JCR_PRIMARYTYPE), "jcr:primaryType not defined for %s", state);
+        return requireNonNull(state.getName(JcrConstants.JCR_PRIMARYTYPE), String.format("jcr:primaryType not defined for %s", state));
     }
 }

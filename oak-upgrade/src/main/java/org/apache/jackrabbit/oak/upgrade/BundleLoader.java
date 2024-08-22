@@ -30,7 +30,7 @@ import org.apache.jackrabbit.core.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.name.NameConstants;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class BundleLoader {
 
@@ -59,8 +59,8 @@ class BundleLoader {
     NodePropBundle loadBundle(NodeId id) throws ItemStateException {
         if (loadBundle != null) {
             try {
-                return checkNotNull((NodePropBundle) loadBundle.invoke(pm, id),
-                        "Could not load NodePropBundle for id [%s]", id);
+                return requireNonNull((NodePropBundle) loadBundle.invoke(pm, id),
+                        String.format("Could not load NodePropBundle for id [%s]", id));
             } catch (InvocationTargetException e) {
                 if (e.getCause() instanceof ItemStateException) {
                     throw (ItemStateException) e.getCause();
@@ -74,7 +74,7 @@ class BundleLoader {
         }
 
         NodeState state = pm.load(id);
-        checkNotNull(state, "Could not load NodeState for id [%s]", id);
+        requireNonNull(state, String.format("Could not load NodeState for id [%s]", id));
         NodePropBundle bundle = new NodePropBundle(state);
         for (Name name : state.getPropertyNames()) {
             if (NameConstants.JCR_UUID.equals(name)) {

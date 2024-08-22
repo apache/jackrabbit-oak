@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -68,6 +68,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import javax.jcr.PropertyType;
 
@@ -127,11 +129,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.base.Supplier;
+
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -1059,7 +1059,7 @@ public final class DocumentNodeStore
      */
     @NotNull
     private MergeCommit newMergeCommit(@NotNull RevisionVector base, int numBranchCommits) {
-        checkNotNull(base);
+        requireNonNull(base);
         backgroundOperationLock.readLock().lock();
         boolean success = false;
         MergeCommit c;
@@ -1353,7 +1353,7 @@ public final class DocumentNodeStore
 
     @NotNull
     public PropertyState createPropertyState(String name, String value){
-        return new DocumentPropertyState(this, name, checkNotNull(value));
+        return DocumentPropertyStateFactory.createPropertyState(this, name, requireNonNull(value));
     }
 
     /**
@@ -1368,8 +1368,8 @@ public final class DocumentNodeStore
     @Nullable
     public DocumentNodeState getNode(@NotNull final Path path,
                                      @NotNull final RevisionVector rev) {
-        checkNotNull(rev);
-        checkNotNull(path);
+        requireNonNull(rev);
+        requireNonNull(path);
         final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
@@ -1430,10 +1430,10 @@ public final class DocumentNodeStore
                                            @NotNull final String name,
                                            final int limit)
             throws DocumentStoreException {
-        if (checkNotNull(parent).hasNoChildren()) {
+        if (requireNonNull(parent).hasNoChildren()) {
             return DocumentNodeState.NO_CHILDREN;
         }
-        final Path path = checkNotNull(parent).getPath();
+        final Path path = requireNonNull(parent).getPath();
         final RevisionVector readRevision = parent.getLastRevision();
         try {
             NamePathRev key = childNodeCacheKey(path, readRevision, name);
@@ -1542,7 +1542,7 @@ public final class DocumentNodeStore
     private Iterable<NodeDocument> readChildDocs(@NotNull final Path path,
                                                  @NotNull String name,
                                                  final int limit) {
-        final String to = Utils.getKeyUpperLimit(checkNotNull(path));
+        final String to = Utils.getKeyUpperLimit(requireNonNull(path));
         final String from;
         if (name.isEmpty()) {
             from = Utils.getKeyLowerLimit(path);
@@ -1569,7 +1569,7 @@ public final class DocumentNodeStore
                     final int limit) {
         // Preemptive check. If we know there are no children then
         // return straight away
-        if (checkNotNull(parent).hasNoChildren()) {
+        if (requireNonNull(parent).hasNoChildren()) {
             return Collections.emptyList();
         }
 
@@ -1888,8 +1888,8 @@ public final class DocumentNodeStore
     @NotNull
     RevisionVector rebase(@NotNull RevisionVector branchHead,
                           @NotNull RevisionVector base) {
-        checkNotNull(branchHead);
-        checkNotNull(base);
+        requireNonNull(branchHead);
+        requireNonNull(base);
         if (disableBranches) {
             return branchHead;
         }
@@ -1912,8 +1912,8 @@ public final class DocumentNodeStore
     @NotNull
     RevisionVector reset(@NotNull RevisionVector branchHead,
                          @NotNull RevisionVector ancestor) {
-        checkNotNull(branchHead);
-        checkNotNull(ancestor);
+        requireNonNull(branchHead);
+        requireNonNull(ancestor);
         Branch b = getBranches().getBranch(branchHead);
         if (b == null) {
             throw new DocumentStoreException("Empty branch cannot be reset");
@@ -2212,12 +2212,8 @@ public final class DocumentNodeStore
         checkOpen();
         final long now = clock.getTime();
         return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
-                new Predicate<Map.Entry<Revision,Checkpoints.Info>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision,Checkpoints.Info> cp) {
-                return cp.getValue().getExpiryTime() > now;
-            }
-        }), cp -> cp.getKey().toString());
+                cp -> cp.getValue().getExpiryTime() > now),
+                cp -> cp.getKey().toString());
     }
 
     @Nullable
@@ -3214,8 +3210,7 @@ public final class DocumentNodeStore
         if (json == null) {
             return -1;
         }
-        PropertyState p = new DocumentPropertyState(
-                DocumentNodeStore.this, "p", json);
+        PropertyState p = DocumentPropertyStateFactory.createPropertyState(DocumentNodeStore.this, "p", json);
         if (p.getType().tag() != PropertyType.BINARY) {
             return -1;
         }
@@ -3256,7 +3251,7 @@ public final class DocumentNodeStore
 
     private Commit newTrunkCommit(@NotNull Changes changes,
                                   @NotNull RevisionVector base) {
-        checkArgument(!checkNotNull(base).isBranch(),
+        checkArgument(!requireNonNull(base).isBranch(),
                 "base must not be a branch revision: " + base);
 
         // build commit before revision is created by the commit queue (OAK-7869)
@@ -3283,7 +3278,7 @@ public final class DocumentNodeStore
     private Commit newBranchCommit(@NotNull Changes changes,
                                    @NotNull RevisionVector base,
                                    @Nullable DocumentNodeStoreBranch branch) {
-        checkArgument(checkNotNull(base).isBranch(),
+        checkArgument(requireNonNull(base).isBranch(),
                 "base must be a branch revision: " + base);
 
         checkOpen();
@@ -3464,10 +3459,10 @@ public final class DocumentNodeStore
         return diff;
     }
 
-    private void diffManyChildren(JsopWriter w, Path path,
+    void diffManyChildren(JsopWriter w, Path path,
                                   RevisionVector fromRev,
                                   RevisionVector toRev) {
-        long minTimestamp = Utils.getMinTimestampForDiff(
+        long minTimestamp = Utils.getMinTimestampForDiffManyChildren(
                 fromRev, toRev, getMinExternalRevisions());
         for (RevisionVector r : new RevisionVector[]{fromRev, toRev}) {
             if (r.isBranch()) {
@@ -3569,8 +3564,8 @@ public final class DocumentNodeStore
                 // a change is detected if the node changed recently,
                 // even if the revisions are well in the past
                 // if this is a problem it would need to be changed
-                checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", path, fromRev);
-                checkNotNull(n2, "Node at [%s] not found for toRev [%s]", path, toRev);
+                requireNonNull(n1, String.format("Node at [%s] not found for fromRev [%s]", path, fromRev));
+                requireNonNull(n2, String.format("Node at [%s] not found for toRev [%s]", path, toRev));
                 if (!n1.getLastRevision().equals(n2.getLastRevision())) {
                     w.tag('^').key(n).object().endObject();
                 }

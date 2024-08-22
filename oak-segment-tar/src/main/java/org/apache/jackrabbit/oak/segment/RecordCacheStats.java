@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.base.Supplier;
 
 /**
  * Statistics for {@link RecordCache}.
@@ -47,9 +46,9 @@ public class RecordCacheStats extends AbstractCacheStats {
             @NotNull Supplier<Long> elementCount,
             @NotNull Supplier<Long> weight) {
         super(name);
-        this.stats = checkNotNull(stats);
-        this.elementCount = checkNotNull(elementCount);
-        this.weight = checkNotNull(weight);
+        this.stats = requireNonNull(stats);
+        this.elementCount = requireNonNull(elementCount);
+        this.weight = requireNonNull(weight);
     }
 
     @Override

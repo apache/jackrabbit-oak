@@ -37,7 +37,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -61,7 +61,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -1118,12 +1117,7 @@ public class RDBDocumentStoreJDBC {
 
     private static <T extends Document> List<T> sortDocuments(Collection<T> documents) {
         List<T> result = new ArrayList<T>(documents);
-        Collections.sort(result, new Comparator<T>() {
-            @Override
-            public int compare(T o1, T o2) {
-                return Strings.nullToEmpty(o1.getId()).compareTo(Strings.nullToEmpty(o2.getId()));
-            }
-        });
+        Collections.sort(result, (o1, o2) ->  Objects.toString(o1.getId(), "").compareTo(Objects.toString(o2.getId(), "")));
         return result;
     }
 }

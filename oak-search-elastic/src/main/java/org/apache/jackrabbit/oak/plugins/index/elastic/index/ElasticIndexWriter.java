@@ -80,7 +80,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
                 // let's store the current mapping version in the index definition
-                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_MAPPING_VERSION, ElasticIndexHelper.MAPPING_VERSION);
+                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_MAPPING_VERSION, ElasticIndexDefinition.MAPPING_VERSION.toString());
 
                 indexName = ElasticIndexNameHelper.
                         getRemoteIndexName(elasticConnection.getIndexPrefix(), indexDefinition.getIndexPath(), seed);

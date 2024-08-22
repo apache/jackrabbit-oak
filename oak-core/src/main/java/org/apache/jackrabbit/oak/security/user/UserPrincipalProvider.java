@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -185,7 +184,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             Iterator<Principal> principals = Iterators.filter(
                     Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
-                    Predicates.notNull());
+                    x -> x != null);
 
             // everyone is injected only in complete set, not on pages
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);

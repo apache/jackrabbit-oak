@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
@@ -36,8 +35,6 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
@@ -69,7 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
-    
+
     private static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
@@ -159,7 +156,7 @@ public class FileStoreBuilder {
     }
 
     private FileStoreBuilder(@NotNull File directory) {
-        this.directory = checkNotNull(directory);
+        this.directory = requireNonNull(directory);
         this.gcListener.registerGCMonitor(new LoggingGCMonitor(LOG));
         this.persistence = new TarPersistence(directory);
     }
@@ -172,7 +169,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withBlobStore(@NotNull BlobStore blobStore) {
-        this.blobStore = checkNotNull(blobStore);
+        this.blobStore = requireNonNull(blobStore);
         return this;
     }
 
@@ -303,7 +300,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withGCMonitor(@NotNull GCMonitor gcMonitor) {
-        this.gcListener.registerGCMonitor(checkNotNull(gcMonitor));
+        this.gcListener.registerGCMonitor(requireNonNull(gcMonitor));
         return this;
     }
 
@@ -315,7 +312,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withStatisticsProvider(@NotNull StatisticsProvider statisticsProvider) {
-        this.statsProvider = checkNotNull(statisticsProvider);
+        this.statsProvider = requireNonNull(statisticsProvider);
         return this;
     }
 
@@ -327,7 +324,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withGCOptions(SegmentGCOptions gcOptions) {
-        this.gcOptions = checkNotNull(gcOptions);
+        this.gcOptions = requireNonNull(gcOptions);
         return this;
     }
 
@@ -339,13 +336,13 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withSnfeListener(@NotNull SegmentNotFoundExceptionListener snfeListener) {
-        this.snfeListener = checkNotNull(snfeListener);
+        this.snfeListener = requireNonNull(snfeListener);
         return this;
     }
 
     @NotNull
     public FileStoreBuilder withIOMonitor(@NotNull IOMonitor ioMonitor) {
-        ioMonitors.add(checkNotNull(ioMonitor));
+        ioMonitors.add(requireNonNull(ioMonitor));
         return this;
     }
 
@@ -625,21 +622,11 @@ public class FileStoreBuilder {
         }
 
         void evictOldGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation < newGeneration;
-                }
-            });
+            evictCaches(generation -> generation < newGeneration);
         }
 
         void evictGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation == newGeneration;
-                }
-            });
+            evictCaches(generation -> generation == newGeneration);
         }
     }
 }

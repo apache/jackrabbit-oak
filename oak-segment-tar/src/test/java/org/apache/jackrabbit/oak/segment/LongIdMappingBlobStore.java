@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
 
 public class LongIdMappingBlobStore extends IdMappingBlobStore {
 
@@ -25,7 +22,6 @@ public class LongIdMappingBlobStore extends IdMappingBlobStore {
 
     @Override
     protected String generateId() {
-        return Strings.repeat("0", Segment.BLOB_ID_SMALL_LIMIT * 20) + next++;
+        return "0".repeat(Segment.BLOB_ID_SMALL_LIMIT * 20) + next++;
     }
-
 }

@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -78,8 +77,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -332,7 +329,7 @@ public class DataStoreBlobStore
         try {
             long start = System.nanoTime();
 
-            checkNotNull(stream);
+            requireNonNull(stream);
             DataRecord dr = writeStream(stream, options);
             String id = getBlobId(dr);
             updateTracker(id);
@@ -384,7 +381,7 @@ public class DataStoreBlobStore
     @Override
     public long getBlobLength(String encodedBlobId) throws IOException {
         try {
-            checkNotNull(encodedBlobId, "BlobId must be specified");
+            requireNonNull(encodedBlobId, "BlobId must be specified");
             BlobId id = BlobId.of(encodedBlobId);
             if (encodeLengthInId && id.hasLengthInfo()) {
                 return id.length;
@@ -397,7 +394,7 @@ public class DataStoreBlobStore
 
     @Override
     public String getBlobId(@NotNull String reference) {
-        checkNotNull(reference);
+        requireNonNull(reference);
         DataRecord record;
         try {
             record = delegate.getRecordFromReference(reference);
@@ -412,7 +409,7 @@ public class DataStoreBlobStore
 
     @Override
     public String getReference(@NotNull String encodedBlobId) {
-        checkNotNull(encodedBlobId);
+        requireNonNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
         if (InMemoryDataRecord.isInstance(blobId)) {
@@ -516,16 +513,13 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        return transform(filter(getAllRecords(), new Predicate<DataRecord>() {
-            @Override
-            public boolean apply(@Nullable DataRecord input) {
+        return transform(filter(getAllRecords(), input -> {
                 if (input != null && (maxLastModifiedTime <= 0
                         || input.getLastModified() < maxLastModifiedTime)) {
                     return true;
                 }
                 return false;
-            }
-        }), input -> {
+            }), input -> {
                 if (encodeLengthInId) {
                     return BlobId.of(input).encodedValue();
                 }
@@ -904,7 +898,7 @@ public class DataStoreBlobStore
         } else {
             id = delegate.getRecord(new DataIdentifier(blobId));
         }
-        checkNotNull(id, "No DataRecord found for blobId [%s]", blobId);
+        requireNonNull(id, String.format("No DataRecord found for blobId [%s]", blobId));
         return id;
     }
 

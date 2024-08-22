@@ -53,7 +53,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
@@ -114,7 +114,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                              @Nullable RevisionVector lastRevision,
                              boolean fromExternalChange) {
         this(store, path, lastRevision, rootRevision,
-                fromExternalChange, createBundlingContext(checkNotNull(properties), hasChildren), memory);
+                fromExternalChange, createBundlingContext(requireNonNull(properties), hasChildren), memory);
     }
 
     protected DocumentNodeState(@NotNull DocumentNodeStore store,
@@ -124,9 +124,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                                 boolean fromExternalChange,
                                 BundlingContext bundlingContext,
                                 int memory) {
-        this.store = checkNotNull(store);
-        this.path = checkNotNull(path);
-        this.rootRevision = checkNotNull(rootRevision);
+        this.store = requireNonNull(store);
+        this.path = requireNonNull(path);
+        this.rootRevision = requireNonNull(rootRevision);
         this.lastRevision = lastRevision;
         this.fromExternalChange = fromExternalChange;
         this.properties = bundlingContext.getProperties();
@@ -253,7 +253,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         //Filter out the meta properties related to bundling from
         //generic listing of props
         if (bundlingContext.isBundled()){
-            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS);
+            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS::test);
         }
         return properties.values();
     }

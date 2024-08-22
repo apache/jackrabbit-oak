@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,12 +47,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
@@ -157,7 +158,7 @@ public class IndexTracker {
         }
 
         Map<String, LuceneIndexNodeManager> original = indices;
-        final Map<String, LuceneIndexNodeManager> updates = newHashMap();
+        final Map<String, LuceneIndexNodeManager> updates = new HashMap<>();
 
         Set<String> indexPaths = Sets.newHashSet();
         indexPaths.addAll(original.keySet());
@@ -188,7 +189,7 @@ public class IndexTracker {
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
                     .putAll(Maps.filterKeys(original, not(in(updates.keySet()))))
-                    .putAll(Maps.filterValues(updates, notNull()))
+                    .putAll(Maps.filterValues(updates, x -> x != null))
                     .build();
 
             badIndexTracker.markGoodIndexes(updates.keySet());
@@ -245,7 +246,7 @@ public class IndexTracker {
         LuceneIndexNodeManager index = indices.get(path);
         if (index != null) {
             LuceneIndexNode indexNode = index.acquire();
-            return checkNotNull(indexNode);
+            return requireNonNull(indexNode);
         }
 
         if (badIndexTracker.isIgnoredBadIndex(path)){
@@ -262,7 +263,7 @@ public class IndexTracker {
                 index = LuceneIndexNodeManager.open(path, root, node, readerFactory, nrtFactory);
                 if (index != null) {
                     LuceneIndexNode indexNode = index.acquire();
-                    checkNotNull(indexNode);
+                    requireNonNull(indexNode);
                     indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
                             .putAll(indices)
                             .put(path, index)
