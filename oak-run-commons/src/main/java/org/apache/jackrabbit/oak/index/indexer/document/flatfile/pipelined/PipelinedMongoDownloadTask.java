@@ -507,7 +507,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                 descendingDownloadTask.getHighestModifiedDownloaded()
                         );
                         if (highestModifiedSeen == -1) {
-                            LOG.warn("No documents downloaded by descending download task.");
+                            LOG.warn("No documents downloaded by either of the queries.");
                         } else {
                             // Include also the documents with _modified == highestModifiedSeen, because there may have
                             // been documents written to Mongo with this _modified value after the descending
