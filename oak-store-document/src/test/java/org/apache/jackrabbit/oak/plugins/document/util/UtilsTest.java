@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
@@ -125,7 +124,7 @@ public class UtilsTest {
 
     @Test
     public void getParentId() throws Exception{
-        Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
+        Path longPath = Path.fromString(PathUtils.concat("/" + "p".repeat(Utils.PATH_LONG + 1), "foo"));
         assertTrue(Utils.isLongPath(longPath));
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));

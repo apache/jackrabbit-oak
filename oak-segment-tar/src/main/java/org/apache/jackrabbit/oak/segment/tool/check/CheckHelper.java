@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.tool.check;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -406,7 +405,7 @@ public class CheckHelper {
         Optional<ConsistencyChecker.Revision> r = Optional.ofNullable(revision);
         print(
                 "{0}Latest good revision for path {1} is {2} from {3}",
-                Strings.repeat(" ", indent),
+                " ".repeat(indent),
                 path,
                 r.map(ConsistencyChecker.Revision::getRevision).orElse("none"),
                 r.map(ConsistencyChecker.Revision::getTimestamp).map(CheckHelper::timestampToString).orElse("unknown time")

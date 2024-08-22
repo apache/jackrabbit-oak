@@ -64,11 +64,11 @@
     <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <derby.version>10.14.2.0</derby.version>
+    <derby.version>10.15.2.0</derby.version>
     <jackson.version>2.17.1</jackson.version>
     <testcontainers.version>1.19.7</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>3.0.21</groovy.version>
+    <groovy.version>3.0.22</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -125,7 +125,7 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <doclint>none</doclint>
-            <detectJavaApiLink>false</detectJavaApiLink>
+            <detectJavaApiLink>true</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
@@ -564,7 +564,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.2.0</version>
+        <version>5.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
@@ -1000,6 +1000,11 @@
          <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derby</artifactId>
+            <version>${derby.version}</version>
+         </dependency>
+         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyshared</artifactId>
             <version>${derby.version}</version>
          </dependency>
       </dependencies>

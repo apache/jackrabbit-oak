@@ -33,11 +33,11 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -439,18 +439,18 @@ public final class FilterBuilder {
             }
 
             private boolean isLocal(String sessionId, CommitInfo info) {
-                return info != null && Objects.equal(info.getSessionId(), sessionId);
+                return info != null && Objects.equals(info.getSessionId(), sessionId);
             }
 
             private boolean isExternal(CommitInfo info) {
                 return info.isExternal();
             }
-            
+
             @Override
             public EventAggregator getEventAggregator() {
                 return aggregator;
             }
-            
+
             @Override
             public boolean excludes(ChangeSet changeSet) {
                 return changeSetFilter.excludes(changeSet);

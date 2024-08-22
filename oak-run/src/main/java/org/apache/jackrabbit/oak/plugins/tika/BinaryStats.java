@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
@@ -28,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
@@ -120,7 +118,7 @@ class BinaryStats {
                 center("Size", 10);
 
         pw.println(header);
-        pw.println(Strings.repeat("_", header.length() + 5));
+        pw.println("_".repeat(header.length() + 5));
 
         for (MimeTypeStats s : stats) {
             pw.printf("%-" + maxWidth + "s|%10s|%10s|  %-8d|%10s%n",

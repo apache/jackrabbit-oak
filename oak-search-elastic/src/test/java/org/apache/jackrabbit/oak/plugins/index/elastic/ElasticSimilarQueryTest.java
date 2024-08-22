@@ -182,14 +182,13 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_TABLES, 10);
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_FUNCTIONS, 12);
 
-        setIndex(indexName, builder);
+        Tree index = setIndex(indexName, builder);
         root.commit();
 
-        String alias = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
         GetFieldMappingResponse mappingsResponse = esConnection.getClient()
                 .indices()
                 .getFieldMapping(b -> b
-                        .index(alias)
+                        .index(getElasticIndexDefinition(index).getIndexAlias())
                         .fields(similarityFieldName1)
                 );
 

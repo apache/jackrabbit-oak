@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -161,7 +160,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
     }
 
     private void space() {
-        w.print(Strings.repeat(indent, depth));
+        w.print(indent.repeat(depth));
     }
 
     private void optionalResetArrayState() {

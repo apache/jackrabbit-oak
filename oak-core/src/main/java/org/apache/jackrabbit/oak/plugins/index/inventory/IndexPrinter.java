@@ -28,7 +28,6 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
@@ -257,7 +256,7 @@ public class IndexPrinter implements InventoryPrinter {
             newLine();
             appendLine(section);
             if (topLevel) {
-                appendLine(Strings.repeat("=", section.length()));
+                appendLine("=".repeat(section.length()));
                 newLine();
             } else {
                 leftPadding += 4;

@@ -26,12 +26,13 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
 
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
-import org.apache.jackrabbit.guava.common.base.Objects;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
@@ -308,8 +309,8 @@ public class EventFactory {
                         && getPath().equals(that.getPath())
                         && getIdentifier().equals(that.getIdentifier())
                         && getInfo().equals(that.getInfo())
-                        && Objects.equal(getUserID(), that.getUserID())
-                        && Objects.equal(getUserData(), that.getUserData())
+                        && Objects.equals(getUserID(), that.getUserID())
+                        && Objects.equals(getUserData(), that.getUserData())
                         && getDate() == that.getDate()
                         && isExternal() == that.isExternal();
             } else {
@@ -319,7 +320,7 @@ public class EventFactory {
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(
+            return Objects.hash(
                     getType(), getPath(), getIdentifier(), getInfo(),
                     getUserID(), getUserData(), getDate(), isExternal());
         }
