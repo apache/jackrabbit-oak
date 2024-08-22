@@ -620,8 +620,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private long documentsDownloadedTotal;
         private long nextLastModified;
         private String lastIdDownloaded;
-        private long highestModifiedDownloaded = -1;
 
+        private volatile long highestModifiedDownloaded = -1;
         private volatile MongoCursor<NodeDocument> mongoCursor = null;
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
@@ -845,12 +845,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         private boolean tryEnqueueCopy(NodeDocument[] batch, int sizeOfBatch) throws TimeoutException, InterruptedException {
-            if (sizeOfBatch == 0) {
-                LOG.info("Enqueuing: {} elements.", sizeOfBatch);
-            } else {
-                LOG.info("Enqueuing: {} elements. firstId: {}, firstModified: {}, lastId: {}, lastModified: {}",
-                        sizeOfBatch, batch[0].getId(), batch[0].getModified(), batch[sizeOfBatch - 1].getId(), batch[sizeOfBatch - 1].getModified());
-            }
             // Find the first element that was not yet added
             boolean completedDownload = false;
             int effectiveSize = sizeOfBatch;
