@@ -186,7 +186,8 @@ public abstract class DocumentStoreFixture {
             try {
                 dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
-                LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.debug("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.info("Database instance not available at {} because of '{}', skipping tests...", url, ex.getMessage());
             }
         }
 
