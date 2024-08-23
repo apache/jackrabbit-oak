@@ -2295,7 +2295,7 @@ public final class NodeDocument extends Document {
     Map<Revision, String> getDeleted() {
         return ValueMap.create(this, DELETED);
     }
-
+    
     public String asString() {
         JsopWriter json = new JsopBuilder();
         toJson(json, data);
