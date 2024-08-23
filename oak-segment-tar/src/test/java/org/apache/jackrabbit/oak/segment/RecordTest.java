@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -52,8 +53,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecordTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RecordTest.class);
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -234,6 +240,25 @@ public class RecordTest {
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
         NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:mixinTypes"));
+    }
+
+    @Test
+    public void testReadPropertyPerformance() throws IOException {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        assertNotNull(state.getProperty("jcr:mixinTypes"));
+
+        // warmup
+        for (int i = 0; i < 1_000_000; i++) {
+            state.getProperties().forEach(PropertyState::getName);
+        }
+
+        Stopwatch sw = Stopwatch.createStarted();
+        for (int i = 0; i < 10_000_000; i++) {
+            state.getProperties().forEach(PropertyState::getName);
+        }
+        LOG.info("Read properties in: {}", sw.stop());
     }
 
 }
