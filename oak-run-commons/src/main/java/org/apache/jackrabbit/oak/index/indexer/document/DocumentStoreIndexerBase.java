@@ -114,9 +114,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     public static final String OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX = "oak.indexer.blobPrefetch.binaryNodesSuffix";
     public static final String DOWNLOAD_THREADS = "oak.indexer.blobPrefetch.downloadThreads";
     public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB = "oak.indexer.blobPrefetch.downloadAheadWindowMB";
+    public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE = "oak.indexer.blobPrefetch.downloadAheadWindowSize";
     private final String blobPrefetchBinaryNodeSuffix = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
     private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(DOWNLOAD_THREADS, 8);
     private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 8);
+    private final int maxPrefetchWindowSize = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE, 4096);
+
 
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
@@ -388,10 +391,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                                 log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
                             }
                             entriesRead++;
-                            if (entriesRead % 8192 == 0) {
+                            // No need to update the progress reporter for each entry
+                            if (entriesRead % 256 == 0) {
                                 aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
                             }
                         }
+                        aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
                         log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                     }
                 }
@@ -448,6 +453,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexHelper.getGCBlobStore(),
                     indexer,
                     nDownloadThreads,
+                    maxPrefetchWindowSize,
                     maxPrefetchWindowMB);
         }
     }

@@ -47,7 +47,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -111,6 +110,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
     private final LongAdder totalBytesDownloaded = new LongAdder();
     private final LongAdder totalTimeDownloadingNanos = new LongAdder();
     private final LongAdder totalBlobsDownloaded = new LongAdder();
+    private long blobsEnqueuedForDownload = 0;
     private long skippedLinesDueToLaggingIndexing = 0;
 
     // Download threads plus thread that scans the FFS
@@ -136,7 +136,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                                             @NotNull File ffsPath, @NotNull Compression algorithm,
                                             @NotNull GarbageCollectableBlobStore blobStore,
                                             @NotNull CompositeIndexer indexer,
-                                            int nDownloadThreads, int maxPrefetchWindowMB) {
+                                            int nDownloadThreads, int maxPrefetchWindowSize, int maxPrefetchWindowMB) {
         if (nDownloadThreads < 1) {
             throw new IllegalArgumentException("nDownloadThreads must be greater than 0. Was: " + nDownloadThreads);
         }
@@ -149,7 +149,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
         this.blobStore = blobStore;
         this.indexer = indexer;
         this.nDownloadThreads = nDownloadThreads;
-        this.throttler = new AheadOfTimeBlobDownloaderThrottler(maxPrefetchWindowMB * FileUtils.ONE_MB);
+        this.throttler = new AheadOfTimeBlobDownloaderThrottler(maxPrefetchWindowSize, maxPrefetchWindowMB * FileUtils.ONE_MB);
         LOG.info("Created AheadOfTimeBlobDownloader. downloadThreads: {}, prefetchMB: {}", nDownloadThreads, maxPrefetchWindowMB);
     }
 
@@ -168,9 +168,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
 
     public void updateIndexed(long positionIndexed) {
         this.indexerLastKnownPosition = positionIndexed;
-        if (!scanFuture.isDone()) {
-            throttler.advanceIndexer(positionIndexed);
-        }
+        throttler.advanceIndexer(positionIndexed);
     }
 
     public void close() {
@@ -181,7 +179,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
         if (executor == null) {
             return;
         }
-        LOG.info("Stopping AheadOfTimeBlobDownloader. Statistics: {}", formatStatistics());
+        LOG.info("Stopping AheadOfTimeBlobDownloader. Statistics: {}", formatAggregateStatistics());
         scanFuture.cancel(true);
         for (Future<?> downloadFuture : downloadFutures) {
             downloadFuture.cancel(true);
@@ -192,14 +190,14 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
         LOG.info("All download tasks finished");
     }
 
-    public String formatStatistics() {
+    public String formatAggregateStatistics() {
         long totalBytesDownloadedSum = totalBytesDownloaded.sum();
         return String.format(
-                "Downloaded %d blobs, %d bytes (%s). Aggregated download time across threads: %d seconds. " +
-                        "cacheHits: %d, linesScanned: %d, notIncludedInIndex: %d, " +
-                        "doesNotMatchPattern: %d, inlinedBlobsSkipped: %d, skippedForOtherReasons: %d, skippedLinesDueToLaggingIndexing: %d",
+                "Downloaded %d blobs, %d bytes (%s). aggregatedDownloadTime: %s, cacheHits: %d, linesScanned: %d, " +
+                        "notIncludedInIndex: %d, doesNotMatchPattern: %d, inlinedBlobsSkipped: %d, " +
+                        "skippedForOtherReasons: %d, skippedLinesDueToLaggingIndexing: %d",
                 totalBlobsDownloaded.sum(), totalBytesDownloadedSum, IOUtils.humanReadableByteCountBin(totalBytesDownloadedSum),
-                TimeUnit.NANOSECONDS.toSeconds(totalTimeDownloadingNanos.sum()),
+                FormattingUtils.formatNanosToSeconds(totalTimeDownloadingNanos.sum()),
                 scanTask.blobCacheHit, scanTask.linesScanned, scanTask.notIncludedInIndex, scanTask.doesNotMatchPattern,
                 scanTask.inlinedBlobsSkipped, scanTask.skippedForOtherReasons, skippedLinesDueToLaggingIndexing);
     }
@@ -249,14 +247,14 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                         }
                         linesScanned++;
                         if (linesScanned % 100_000 == 0) {
-                            LOG.info("[{}] Last path scanned: {}. Aggregated statistics: {}", linesScanned, entryPath, formatStatistics());
+                            LOG.info("[{}] Last path scanned: {}. Aggregated statistics: {}", linesScanned, entryPath, formatAggregateStatistics());
                         }
                     }
                 } catch (InterruptedException e) {
                     queue.clear();
                     LOG.info("Scan task interrupted, exiting");
                 } finally {
-                    LOG.info("Scanner reached end of FFS, stopping download threads. Statistics: {}", formatStatistics());
+                    LOG.info("Scanner reached end of FFS, stopping download threads. Statistics: {}", formatAggregateStatistics());
                     Thread.currentThread().setName(oldName);
                     queue.put(SENTINEL);
                 }
@@ -304,6 +302,13 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                 throttler.reserveSpaceForBlob(linesScanned, blob.length());
                 downloadedBlobs.put(blob.getContentIdentity(), Boolean.TRUE);
                 queue.put(blob);
+                blobsEnqueuedForDownload++;
+                // Log progress
+                if (blobsEnqueuedForDownload % 100 == 0) {
+                    LOG.info("[{}] Enqueued blob for download: {}, size: {}, Statistics: {}, {}",
+                            linesScanned, blob.getContentIdentity(), blob.length(),
+                            formatAggregateStatistics(), throttler.formatStats());
+                }
             }
         }
     }
@@ -334,7 +339,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                 while (true) {
                     Blob blob = queue.take();
                     if (blob == SENTINEL) {
-                        LOG.info("Sentinel received, exiting. Statistics: {}", formatStats());
+                        LOG.info("Sentinel received, exiting. Statistics: {}", formatDownloaderStats());
                         queue.put(SENTINEL);
                         break;
                     }
@@ -363,29 +368,25 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                         totalTimeDownloadingNanos.add(elapsedNanos);
                         totalBlobsDownloaded.increment();
                         // Log progress
-                        if (blobsDownloaded % 1000 == 0) {
-                            LOG.info("Retrieved blob: {}, size: {}, in {} ms. " +
-                                            "Downloader thread statistics: blobsDownloaded: {}, bytesDownloaded: {} ({}), timeDownloading: {},  " +
-                                            "Aggregate statistics: {}",
-                                    blob.getContentIdentity(), blob.length(), elapsedNanos / 1_000_000,
-                                    blobsDownloaded, bytesDownloaded, IOUtils.humanReadableByteCountBin(bytesDownloaded), FormattingUtils.formatNanosToSeconds(timeDownloadingNanos),
-                                    formatStats());
+                        if (blobsDownloaded % 100 == 0) {
+                            LOG.info("Retrieved blob: {}, size: {}, in {} ms. Downloader thread statistics: {}",
+                                    blob.getContentIdentity(), blob.length(), elapsedNanos / 1_000_000, formatDownloaderStats());
                         }
                     } catch (IOException e) {
                         LOG.error("Error downloading blob: {}", blob.getContentIdentity(), e);
                     }
                 }
             } catch (InterruptedException e) {
-                LOG.info("Download task interrupted, exiting. Statistics: {}", formatStats());
+                LOG.info("Download task interrupted, exiting. Statistics: {}", formatDownloaderStats());
             } finally {
                 Thread.currentThread().setName(oldName);
             }
         }
 
-        private String formatStats() {
-            return String.format("Downloaded %d blobs, %d bytes (%s) in %d seconds",
+        private String formatDownloaderStats() {
+            return String.format("Downloaded %d blobs, %d bytes (%s) in %s",
                     blobsDownloaded, bytesDownloaded, IOUtils.humanReadableByteCountBin(bytesDownloaded),
-                    TimeUnit.NANOSECONDS.toSeconds(timeDownloadingNanos));
+                    FormattingUtils.formatNanosToSeconds(timeDownloadingNanos));
         }
     }
 }
