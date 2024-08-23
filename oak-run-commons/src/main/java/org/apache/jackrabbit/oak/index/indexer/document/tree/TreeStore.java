@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeState
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SieveCache;
@@ -50,7 +51,7 @@ public class TreeStore implements IndexStore {
     public static final long CACHE_SIZE_NODE_MB = 64;
     private static final long CACHE_SIZE_TREE_STORE_MB = 64;
 
-    private static final long MAX_FILE_SIZE_MB = 2;
+    private static final long MAX_FILE_SIZE_MB = 4;
     private static final long MB = 1024 * 1024;
 
     private final String name;
@@ -81,6 +82,7 @@ public class TreeStore implements IndexStore {
                 Store.MAX_FILE_SIZE_BYTES + "=" + MAX_FILE_SIZE_MB * MB + "\n" +
                 "dir=" + directory.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
+        store.setWriteCompression(Compression.LZ4);
         this.session = new TreeSession(store);
         // we don not want to merge too early during the download
         session.setMaxRoots(1000);
