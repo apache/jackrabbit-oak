@@ -116,8 +116,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB = "oak.indexer.blobPrefetch.downloadAheadWindowMB";
     public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE = "oak.indexer.blobPrefetch.downloadAheadWindowSize";
     private final String blobPrefetchBinaryNodeSuffix = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
-    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(DOWNLOAD_THREADS, 8);
-    private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 8);
+    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(DOWNLOAD_THREADS, 4);
+    private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 32);
     private final int maxPrefetchWindowSize = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE, 4096);
 
 
@@ -391,8 +391,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                                 log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
                             }
                             entriesRead++;
-                            // No need to update the progress reporter for each entry
-                            if (entriesRead % 256 == 0) {
+                            // No need to update the progress reporter for each entry. This should reduce a bit the
+                            // overhead of updating the AOT downloader, which sets a volatile field internally.
+                            if (entriesRead % 128 == 0) {
                                 aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
                             }
                         }
