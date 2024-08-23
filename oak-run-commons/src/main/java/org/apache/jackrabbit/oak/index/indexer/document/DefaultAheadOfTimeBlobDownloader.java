@@ -304,7 +304,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                 queue.put(blob);
                 blobsEnqueuedForDownload++;
                 // Log progress
-                if (blobsEnqueuedForDownload % 100 == 0) {
+                if (blobsEnqueuedForDownload % 1000 == 0) {
                     LOG.info("[{}] Enqueued blob for download: {}, size: {}, Statistics: {}, {}",
                             linesScanned, blob.getContentIdentity(), blob.length(),
                             formatAggregateStatistics(), throttler.formatStats());
