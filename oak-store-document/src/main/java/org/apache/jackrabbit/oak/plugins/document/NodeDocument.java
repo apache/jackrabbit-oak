@@ -2296,15 +2296,6 @@ public final class NodeDocument extends Document {
         return ValueMap.create(this, DELETED);
     }
 
-    public void writeTo(JsopWriter writer, boolean sorted) {
-        if (sorted) {
-            var sortedMap = new TreeMap<>(data);
-            toJson(writer, sortedMap);
-        } else {
-            toJson(writer, data);
-        }
-    }
-
     public String asString() {
         JsopWriter json = new JsopBuilder();
         toJson(json, data);
