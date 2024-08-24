@@ -23,6 +23,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -236,6 +237,9 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
+
+        private static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
+
         protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
@@ -257,7 +261,7 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            return MongoUtils.isAvailable();
+            return !SKIP_MONGO && MongoUtils.isAvailable();
         }
 
         @Override
