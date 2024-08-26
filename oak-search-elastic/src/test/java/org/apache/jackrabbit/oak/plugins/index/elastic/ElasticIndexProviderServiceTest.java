@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceServiceManager;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -86,6 +87,7 @@ public class ElasticIndexProviderServiceTest {
 
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
+        assertNotNull(context.getService(InferenceServiceManager.class));
 
         // With the default setup and no elastic cluster available at localhost:9200 the index cleaner will not be registered.
         // This check can potentially fail if a local cluster is up and running.
