@@ -42,8 +42,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AheadOfTimeBlobDownloaderThrottler {
     private final static Logger LOG = LoggerFactory.getLogger(AheadOfTimeBlobDownloaderThrottler.class);
 
-    // A segment of data downloaded
     private static class DownloadedBlob {
+        // Position (line number) in the FFS
         final long position;
         final long size;
 
@@ -61,40 +61,42 @@ public class AheadOfTimeBlobDownloaderThrottler {
         }
     }
 
-    private final int maximumSize;
-    private final long maximumSizeBytes;
+    // Maximum number of blobs that can be downloaded ahead of time
+    private final int maxWindowSizeNumberOfBlobs;
+    // Maximum number of bytes that can be downloaded ahead of the indexer
+    private final long maxWindowSizeBytes;
 
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
 
-    // The window is stored as a list of full segments plus the data that was not yet added to a segment. That is, we
-    // first accumulate data until reaching targetSegmentSizeBytes, before creating a segment.
+    // List of blobs downloaded ahead of the indexer
     private final ArrayDeque<DownloadedBlob> aotDownloadedBlobs;
-    // How much data is in the downloaded segments. This is just an optimization to avoid traversing the list of segments
-    // every time we need the total window size.
-    private long aotDownloadedBytes = 0;
+    // How much data is currently downloaded ahead of time. This is just an optimization to avoid traversing the list of
+    // downloaded blobs every time we need the total window size.
+    private long currentWindowSizeBytes = 0;
     // Top of the prefetch window
     private long windowLastPosition = -1;
     // Position of the indexer
     private long indexerPosition = -1;
 
-    private int maxAotDownloadedBlobsSize = 0;
-    private long maxAotDownloadedBlobsSizeBytes = 0;
+    // Statistics, the maximum size ever reached by the window
+    private int highestWindowSizeNumberOfBlobs = 0;
+    private long highestWindowSizeBytes = 0;
 
     /**
-     * @param maximumSizeBytes How many bytes can be downloaded ahead of the indexer.
-     * @param maximumSize      How many blobs can be downloaded ahead of the indexer.
+     * @param maxWindowSizeBytes How many bytes can be downloaded ahead of the indexer.
+     * @param maxWindowSizeNumberOfBlobs      How many blobs can be downloaded ahead of the indexer.
      */
-    public AheadOfTimeBlobDownloaderThrottler(int maximumSize, long maximumSizeBytes) {
-        if (maximumSize <= 0) {
-            throw new IllegalArgumentException("maximumSize must be positive");
+    public AheadOfTimeBlobDownloaderThrottler(int maxWindowSizeNumberOfBlobs, long maxWindowSizeBytes) {
+        if (maxWindowSizeNumberOfBlobs <= 0) {
+            throw new IllegalArgumentException("windowSizeNumberOfBlobs must be positive");
         }
-        if (maximumSizeBytes <= 0) {
+        if (maxWindowSizeBytes <= 0) {
             throw new IllegalArgumentException("maximumSizeBytes must be positive");
         }
-        this.maximumSize = maximumSize;
-        this.maximumSizeBytes = maximumSizeBytes;
-        this.aotDownloadedBlobs = new ArrayDeque<>(maximumSize);
+        this.maxWindowSizeNumberOfBlobs = maxWindowSizeNumberOfBlobs;
+        this.maxWindowSizeBytes = maxWindowSizeBytes;
+        this.aotDownloadedBlobs = new ArrayDeque<>(maxWindowSizeNumberOfBlobs);
     }
 
     /**
@@ -106,9 +108,9 @@ public class AheadOfTimeBlobDownloaderThrottler {
      * @return true if space was reserved, false if the indexer is already ahead of the position of the blob.
      */
     public boolean reserveSpaceForBlob(long position, long length) throws InterruptedException {
-        if (length > maximumSizeBytes) {
-            LOG.warn("Blob length {} is higher than the maximum size of the window {}. Proceeding with a reservation for the maximumSize of the throttler.", length, maximumSizeBytes);
-            length = maximumSizeBytes;
+        if (length > maxWindowSizeBytes) {
+            LOG.warn("Blob length {} is higher than the maximum size of the window {}. Proceeding with a reservation for the maximumSize of the throttler.", length, maxWindowSizeBytes);
+            length = maxWindowSizeBytes;
         }
         lock.lock();
         try {
@@ -121,23 +123,23 @@ public class AheadOfTimeBlobDownloaderThrottler {
                 return false;
             }
 
-            while (aotDownloadedBytes + length > maximumSizeBytes || aotDownloadedBlobs.size() >= maximumSize) {
+            while (currentWindowSizeBytes + length > maxWindowSizeBytes || aotDownloadedBlobs.size() >= maxWindowSizeNumberOfBlobs) {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Waiting until indexer catches up. Downloader position: {}, AOT data downloader: {}, number of aot downloaded blobs: {}",
-                            firstPosition(), IOUtils.humanReadableByteCount(aotDownloadedBytes), aotDownloadedBlobs.size()
+                            firstPosition(), IOUtils.humanReadableByteCount(currentWindowSizeBytes), aotDownloadedBlobs.size()
                     );
                 }
                 condition.await();
             }
             windowLastPosition = position;
             aotDownloadedBlobs.addLast(new DownloadedBlob(position, length));
-            aotDownloadedBytes += length;
+            currentWindowSizeBytes += length;
             // Update maximum values
-            if (aotDownloadedBlobs.size() > maxAotDownloadedBlobsSize) {
-                maxAotDownloadedBlobsSize = aotDownloadedBlobs.size();
+            if (aotDownloadedBlobs.size() > highestWindowSizeNumberOfBlobs) {
+                highestWindowSizeNumberOfBlobs = aotDownloadedBlobs.size();
             }
-            if (aotDownloadedBytes > maxAotDownloadedBlobsSizeBytes) {
-                maxAotDownloadedBlobsSizeBytes = aotDownloadedBytes;
+            if (currentWindowSizeBytes > highestWindowSizeBytes) {
+                highestWindowSizeBytes = currentWindowSizeBytes;
             }
             return true;
         } finally {
@@ -148,7 +150,7 @@ public class AheadOfTimeBlobDownloaderThrottler {
     public long getAvailableWindowSize() {
         lock.lock();
         try {
-            return maximumSize - aotDownloadedBlobs.size();
+            return maxWindowSizeNumberOfBlobs - aotDownloadedBlobs.size();
         } finally {
             lock.unlock();
         }
@@ -157,15 +159,14 @@ public class AheadOfTimeBlobDownloaderThrottler {
     public long getAvailableWindowBytes() {
         lock.lock();
         try {
-            return maximumSizeBytes - aotDownloadedBytes;
+            return maxWindowSizeBytes - currentWindowSizeBytes;
         } finally {
             lock.unlock();
         }
     }
 
     /**
-     * Advances the indexer to the given position. This method will remove from the prefetch window any segments that
-     * are before the given position.
+     * Advances the indexer to the given position.
      *
      * @param indexerPosition The new position of the indexer.
      */
@@ -173,12 +174,12 @@ public class AheadOfTimeBlobDownloaderThrottler {
         lock.lock();
         try {
             int oldWindowSize = aotDownloadedBlobs.size();
-            long oldWindowBytes = aotDownloadedBytes;
+            long oldWindowBytes = currentWindowSizeBytes;
             while (true) {
                 DownloadedBlob head = aotDownloadedBlobs.peekFirst();
                 if (head != null && head.position <= indexerPosition) {
                     aotDownloadedBlobs.pollFirst();
-                    aotDownloadedBytes -= head.size;
+                    currentWindowSizeBytes -= head.size;
                 } else {
                     break;
                 }
@@ -186,9 +187,9 @@ public class AheadOfTimeBlobDownloaderThrottler {
             if (oldWindowSize != aotDownloadedBlobs.size()) {
                 LOG.debug("Window size reduced. Indexer position: {}. windowSize: {} -> {}, windowSizeBytes: {} -> {}",
                         indexerPosition, oldWindowSize, aotDownloadedBlobs.size(),
-                        IOUtils.humanReadableByteCountBin(oldWindowBytes), IOUtils.humanReadableByteCountBin(aotDownloadedBytes));
-                if (aotDownloadedBytes < 0) {
-                    throw new IllegalStateException("AOT downloaded bytes is negative. aotDownloaded: " + aotDownloadedBytes);
+                        IOUtils.humanReadableByteCountBin(oldWindowBytes), IOUtils.humanReadableByteCountBin(currentWindowSizeBytes));
+                if (currentWindowSizeBytes < 0) {
+                    throw new IllegalStateException("AOT downloaded bytes is negative. aotDownloaded: " + currentWindowSizeBytes);
                 }
                 condition.signalAll();
             }
@@ -205,8 +206,8 @@ public class AheadOfTimeBlobDownloaderThrottler {
     public String formatStats() {
         lock.lock();
         try {
-            return String.format("AOT Downloader throttler: {aotDownloadedBlobsSize: %s, aotDownloadedBlobsSizeBytes: %s, maxAotDownloadedBlobsSize: %s, maxAotDownloadedBlobsSizeBytes: %s}",
-                    aotDownloadedBlobs.size(), IOUtils.humanReadableByteCount(aotDownloadedBytes), maxAotDownloadedBlobsSize, IOUtils.humanReadableByteCount(maxAotDownloadedBlobsSizeBytes));
+            return String.format("AOT Downloader throttler: {aotDownloadedBlobsSize: %s, aotDownloadedBlobsSizeBytes: %s, maxWindowSizeNumberOfBlobs: %s, maxWindowSizeBytes: %s}",
+                    aotDownloadedBlobs.size(), IOUtils.humanReadableByteCount(currentWindowSizeBytes), highestWindowSizeNumberOfBlobs, IOUtils.humanReadableByteCount(highestWindowSizeBytes));
         } finally {
             lock.unlock();
         }
