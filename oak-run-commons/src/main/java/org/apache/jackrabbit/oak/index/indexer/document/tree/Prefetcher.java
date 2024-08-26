@@ -133,7 +133,7 @@ public class Prefetcher {
                 long totalBlobSize = 0;
                 while (it.hasNext()) {
                     String path = it.next();
-                    if (++count % 100_000 == 0) {
+                    if (++count % 1_000_000 == 0) {
                         int available = semaphore.availablePermits();
                         LOG.info("Iterated {} type {} inlinedCount {} totalCount {} " +
                                 "totalSize {} maxSize {} max {} availableThreads {} " +

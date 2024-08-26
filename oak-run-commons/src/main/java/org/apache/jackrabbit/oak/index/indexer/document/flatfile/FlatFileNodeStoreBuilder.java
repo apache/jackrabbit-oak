@@ -216,14 +216,18 @@ public class FlatFileNodeStoreBuilder {
         File file = indexStoreFiles.storeFiles.get(0);
         IndexStore store;
         if (file.isDirectory()) {
-            // use a separate tree store (with a smaller cache)
-            // to avoid concurrency issues
             TreeStore indexingTreeStore = new TreeStore(
                     "indexing", file,
                     new NodeStateEntryReader(blobStore), 10);
+            indexingTreeStore.setIndexDefinitions(indexDefinitions);
+
+            // use a separate tree store (with a smaller cache)
+            // for prefetching, to avoid cache evictions
             TreeStore prefetchTreeStore = new TreeStore(
                     "prefetch", file,
                     new NodeStateEntryReader(blobStore), 3);
+            prefetchTreeStore.setIndexDefinitions(indexDefinitions);
+
             Prefetcher prefetcher = new Prefetcher(prefetchTreeStore, indexingTreeStore);
             prefetcher.startPrefetch();
             store = indexingTreeStore;

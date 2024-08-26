@@ -21,7 +21,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -34,7 +37,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SieveCache;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +72,7 @@ public class TreeStore implements IndexStore {
     private final AtomicLong nodeCacheMisses = new AtomicLong();
     private final AtomicLong nodeCacheFills = new AtomicLong();
     private int iterationCount;
+    private PathIteratorFilter filter = new PathIteratorFilter();
 
     public TreeStore(String name, File directory, NodeStateEntryReader entryReader, long cacheSizeFactor) {
         this.name = name;
@@ -93,6 +99,16 @@ public class TreeStore implements IndexStore {
         session.init();
     }
 
+    public void setIndexDefinitions(Set<IndexDefinition> indexDefs) {
+        if (indexDefs == null) {
+            return;
+        }
+        List<PathFilter> pathFilters = PathIteratorFilter.extractPathFilters(indexDefs);
+        SortedSet<String> includedPaths = PathIteratorFilter.getAllIncludedPaths(pathFilters);
+        LOG.info("Included paths {}", includedPaths.toString());
+        filter = new PathIteratorFilter(includedPaths);
+    }
+
     @Override
     public String toString() {
         return name +
@@ -104,9 +120,10 @@ public class TreeStore implements IndexStore {
     }
 
     public Iterator<String> iteratorOverPaths() {
-        Iterator<Entry<String, String>> it = session.iterator();
+        final Iterator<Entry<String, String>> firstIterator = session.iterator();
         return new Iterator<String>() {
 
+            Iterator<Entry<String, String>> it = firstIterator;
             String current;
 
             {
@@ -116,10 +133,34 @@ public class TreeStore implements IndexStore {
             private void fetch() {
                 while (it.hasNext()) {
                     Entry<String, String> e = it.next();
-                    if (e.getValue().isEmpty()) {
+                    String key = e.getKey();
+                    String value = e.getValue();
+                    // if the value is empty (not null!) this is a child node reference,
+                    // without node data
+                    if (value.isEmpty()) {
                         continue;
                     }
-                    current = e.getKey();
+                    if (!filter.includes(key)) {
+                        // if the path is not, see if there is a next included path
+                        String next = filter.nextIncludedPath(key);
+                        if (next == null) {
+                            // it was the last one
+                            break;
+                        }
+                        // this node itself could be a match
+                        key = next;
+                        value = session.get(key);
+                        // for the next fetch operation, we use the new iterator
+                        it = session.iterator(next);
+                        if (value == null || value.isEmpty()) {
+                            // no such node, or it's a child node reference
+                            continue;
+                        }
+                    }
+                    if (++iterationCount % 1_000_000 == 0) {
+                        LOG.info("Fetching {} in {}", iterationCount, TreeStore.this.toString());
+                    }
+                    current = key;
                     if (current.compareTo(highestReadKey) > 0) {
                         highestReadKey = current;
                     }
@@ -144,14 +185,8 @@ public class TreeStore implements IndexStore {
     }
 
     @Override
-    public void close() throws IOException {
-        session.flush();
-        store.close();
-    }
-
-    @Override
     public Iterator<NodeStateEntry> iterator() {
-        Iterator<Entry<String, String>> it = session.iterator();
+        Iterator<String> it = iteratorOverPaths();
         return new Iterator<NodeStateEntry>() {
 
             NodeStateEntry current;
@@ -161,21 +196,7 @@ public class TreeStore implements IndexStore {
             }
 
             private void fetch() {
-                while (it.hasNext()) {
-                    Entry<String, String> e = it.next();
-                    if (++iterationCount % 1_000_000 == 0) {
-                        LOG.info("Fetching {} in {}", iterationCount, TreeStore.this.toString());
-                    }
-                    if (e.getValue().isEmpty()) {
-                        continue;
-                    }
-                    current = getNodeStateEntry(e.getKey(), e.getValue());
-                    if (current.getPath().compareTo(highestReadKey) > 0) {
-                        highestReadKey = current.getPath();
-                    }
-                    return;
-                }
-                current = null;
+                current = it.hasNext() ? getNodeStateEntry(it.next()) : null;
             }
 
             @Override
@@ -191,6 +212,12 @@ public class TreeStore implements IndexStore {
             }
 
         };
+    }
+
+    @Override
+    public void close() throws IOException {
+        session.flush();
+        store.close();
     }
 
     public String getHighestReadKey() {
@@ -317,7 +344,6 @@ public class TreeStore implements IndexStore {
 
     @Override
     public boolean isIncremental() {
-        // TODO support diff and use Session.checkpoint() / flush().
         return false;
     }
 

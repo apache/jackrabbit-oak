@@ -19,14 +19,30 @@
 package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.OakInitializer;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
 public class TreeStoreTest {
 
@@ -54,10 +70,61 @@ public class TreeStoreTest {
             Iterator<String> it = store.iteratorOverPaths();
             assertEquals("/", it.next());
             assertEquals("/content", it.next());
+            assertFalse(it.hasNext());
         } finally {
             store.close();
         }
     }
 
+    @Test
+    public void includedPathTest() throws IOException {
+        File testFolder = temporaryFolder.newFolder();
+        TreeStore store = new TreeStore("test", testFolder, null, 1);
+        try {
+            store.getSession().init();
+            store.putNode("/", "{}");
+            store.putNode("/content", "{}");
+            store.putNode("/content/abc", "{}");
+            store.putNode("/jcr:system", "{}");
+            store.putNode("/jcr:system/jcr:version", "{}");
+            store.putNode("/var/abc", "{}");
+            store.putNode("/var/def", "{}");
+            store.putNode("/zero", "{}");
+
+            Set<IndexDefinition> defs = inMemoryIndexDefinitions("/content", "/var", "/tmp");
+            store.setIndexDefinitions(defs);
+
+            Iterator<String> it = store.iteratorOverPaths();
+            assertEquals("/content", it.next());
+            assertEquals("/content/abc", it.next());
+            assertEquals("/var/abc", it.next());
+            assertEquals("/var/def", it.next());
+            assertFalse(it.hasNext());
+        } finally {
+            store.close();
+        }
+    }
+
+    private static Set<IndexDefinition> inMemoryIndexDefinitions(String... includedPaths) {
+        NodeStore store = new MemoryNodeStore();
+        EditorHook hook = new EditorHook(
+                new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
+        OakInitializer.initialize(store, new InitialContent(), hook);
+
+        Set<IndexDefinition> defns = new HashSet<>();
+        IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
+        defnBuilder.includedPaths(includedPaths);
+        defnBuilder.indexRule("dam:Asset");
+        defnBuilder.aggregateRule("dam:Asset");
+        IndexDefinition defn = IndexDefinition.newBuilder(store.getRoot(), defnBuilder.build(), "/foo").build();
+        defns.add(defn);
+
+        NodeTypeInfoProvider mockNodeTypeInfoProvider = Mockito.mock(NodeTypeInfoProvider.class);
+        NodeTypeInfo mockNodeTypeInfo = Mockito.mock(NodeTypeInfo.class, "dam:Asset");
+        Mockito.when(mockNodeTypeInfo.getNodeTypeName()).thenReturn("dam:Asset");
+        Mockito.when(mockNodeTypeInfoProvider.getNodeTypeInfo("dam:Asset")).thenReturn(mockNodeTypeInfo);
+
+        return defns;
+    }
 
 }
