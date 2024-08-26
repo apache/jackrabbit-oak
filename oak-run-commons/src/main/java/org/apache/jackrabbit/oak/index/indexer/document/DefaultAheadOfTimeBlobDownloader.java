@@ -65,7 +65,7 @@ import java.util.concurrent.atomic.LongAdder;
  * </ul>
  * The indexer should periodically call {@link #updateIndexed(long)} to inform the AOT downlaoder of the last line
  * indexed. This is necessary to keep the AOT downloader more or less in sync with the indexer, that is, to prevent it
- * from falling behind and to prevent it from going to far ahead. *
+ * from falling behind and to prevent it from going to far ahead.
  * <p>
  * This AOT downloader should be configured with enough threads that it is able to stay ahead of the indexer. Whether it
  * can remain ahead or not, will depend on the number of blobs to download and the speed of the connection to the blob
@@ -223,7 +223,6 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
         @Override
         public void run() {
             try (LineIterator ffsLineIterator = new LineIterator(IndexStoreUtils.createReader(ffsPath, algorithm))) {
-                // Scan for renditions
                 String oldName = Thread.currentThread().getName();
                 Thread.currentThread().setName("scanner");
                 try {
@@ -368,7 +367,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                         totalTimeDownloadingNanos.add(elapsedNanos);
                         totalBlobsDownloaded.increment();
                         // Log progress
-                        if (blobsDownloaded % 100 == 0) {
+                        if (blobsDownloaded % 500 == 0) {
                             LOG.info("Retrieved blob: {}, size: {}, in {} ms. Downloader thread statistics: {}",
                                     blob.getContentIdentity(), blob.length(), elapsedNanos / 1_000_000, formatDownloaderStats());
                         }
