@@ -369,7 +369,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexParallel(flatFileStores, indexer, progressReporter);
                 } else if (flatFileStores.size() == 1) {
                     FlatFileStore flatFileStore = flatFileStores.get(0);
-                    try (AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = getAheadOfTimeBlobDownloaderInterface(flatFileStore, indexer)) {
+                    try (AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = createAheadOfTimeBlobDownloader(flatFileStore, indexer)) {
                         aheadOfTimeBlobDownloader.start();
                         TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
                         indexer.onIndexingStarting();
@@ -442,7 +442,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private @NotNull AheadOfTimeBlobDownloader getAheadOfTimeBlobDownloaderInterface(FlatFileStore flatFileStore, CompositeIndexer indexer) {
+    private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader(FlatFileStore flatFileStore, CompositeIndexer indexer) {
         if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isEmpty()) {
             log.info("Ahead of time blob downloader is disabled, no binary node suffix provided");
             return AheadOfTimeBlobDownloader.NOOP;
