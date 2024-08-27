@@ -160,7 +160,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     for (NodeDocument nodeDoc : nodeDocumentBatch) {
                         statistics.incrementMongoDocumentsTraversed();
                         mongoObjectsProcessed++;
-                        if (mongoObjectsProcessed % 50000 == 0) {
+                        if (mongoObjectsProcessed % 200_000 == 0) {
                             LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
                                     mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
                                     nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
