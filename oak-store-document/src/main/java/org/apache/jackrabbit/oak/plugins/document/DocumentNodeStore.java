@@ -3411,7 +3411,7 @@ public final class DocumentNodeStore
                         "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
                     LOG.warn("diffJournalChildren failed with " +
                             e.getClass().getSimpleName() +
-                            ", falling back to classic diff");
+                            ", falling back to classic diff : " + e.getMessage());
                 } else {
                     LOG.warn("diffJournalChildren failed with " +
                             e.getClass().getSimpleName() +
