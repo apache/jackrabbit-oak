@@ -842,7 +842,7 @@ public class FulltextIndexPlanner {
             }
             PropertyRestriction pr = filter.getPropertyRestriction(key);
             // for "is not null" we can use an asterisk query
-            if (pr.isNullRestriction()) {
+            if (pr != null && pr.isNullRestriction()) {
                 key = FieldNames.NULL_PROPS;
             }
             int docCntForField = indexStatistics.getDocCountFor(key);
