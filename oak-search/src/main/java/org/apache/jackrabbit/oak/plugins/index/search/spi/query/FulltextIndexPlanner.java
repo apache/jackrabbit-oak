@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
@@ -246,7 +247,8 @@ public class FulltextIndexPlanner {
                 }
 
                 if (pd != null && pd.propertyIndexEnabled()) {
-                    if (pr.isNullRestriction() && !pd.nullCheckEnabled){
+                    // for "is not null" we can use an asterisk query
+                    if (pr.isNullRestriction() && !pd.nullCheckEnabled) {
                         continue;
                     }
 
@@ -838,6 +840,11 @@ public class FulltextIndexPlanner {
             if (result.relPropMapping.containsKey(key)) {
                 key = getName(key);
             }
+            PropertyRestriction pr = filter.getPropertyRestriction(key);
+            // for "is not null" we can use an asterisk query
+            if (pr.isNullRestriction()) {
+                key = FieldNames.NULL_PROPS;
+            }
             int docCntForField = indexStatistics.getDocCountFor(key);
             if (docCntForField == -1) {
                 continue;
@@ -845,10 +852,12 @@ public class FulltextIndexPlanner {
 
             int weight = propDef.getValue().weight;
 
-            PropertyRestriction pr = filter.getPropertyRestriction(key);
             if (pr != null) {
-                if (pr.isNotNullRestriction()) {
-                    // don't use weight for "is not null" restrictions
+                if (pr.isNotNullRestriction() || pr.isNullRestriction()) {
+                    // don't use weight for "is not null" restrictions,
+                    // as all documents with this field can match;
+                    // and don't use the weight for "is not null" restrictions,
+                    // as all documents with ":nullProps" can match
                     weight = 1;
                 } else {
                     if (weight > 1) {

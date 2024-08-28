@@ -154,6 +154,10 @@ public final class FieldNames {
                 && !field.endsWith("_facet");
     }
 
+    public static boolean isNullPropsField(String field) {
+        return field.equals(NULL_PROPS);
+    }
+
     public static String createSimilarityFieldName(String name) {
         return SIMILARITY_PREFIX + name;
     }
