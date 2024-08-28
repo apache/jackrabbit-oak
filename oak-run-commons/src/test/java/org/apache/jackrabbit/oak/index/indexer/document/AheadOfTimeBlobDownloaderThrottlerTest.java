@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.AheadOfTimeBlobDownloaderThrottler;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 
 import org.apache.jackrabbit.oak.commons.IOUtils;

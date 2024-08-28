@@ -1,0 +1,129 @@
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.apache.jackrabbit.oak.index.IndexHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
+    
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private final FlatFileStore ffs;
+    private final CompositeIndexer indexer;
+    private final IndexHelper indexHelper;
+
+    public static final String OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX = "oak.indexer.blobPrefetch.binaryNodesSuffix";
+    public static final String DOWNLOAD_THREADS = "oak.indexer.blobPrefetch.downloadThreads";
+    public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB = "oak.indexer.blobPrefetch.downloadAheadWindowMB";
+    public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE = "oak.indexer.blobPrefetch.downloadAheadWindowSize";
+    private final String blobPrefetchBinaryNodeSuffix = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
+    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(DOWNLOAD_THREADS, 4);
+    private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 32);
+    private final int maxPrefetchWindowSize = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE, 4096);
+
+    static AheadOfTimeBlobDownloadingFlatFileStore wrap(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
+        return new AheadOfTimeBlobDownloadingFlatFileStore(ffs, indexer, indexHelper);
+    }
+    
+    private AheadOfTimeBlobDownloadingFlatFileStore(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
+        this.ffs = ffs;
+        this.indexer = indexer;
+        this.indexHelper = indexHelper;
+    }
+    
+    private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader(
+            CompositeIndexer indexer,
+            IndexHelper indexHelper
+            ) {
+        if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isEmpty()) {
+            log.info("Ahead of time blob downloader is disabled, no binary node suffix provided");
+            return AheadOfTimeBlobDownloader.NOOP;
+        } else {
+            return new DefaultAheadOfTimeBlobDownloader(
+                    blobPrefetchBinaryNodeSuffix,
+                    ffs.getStoreFile(),
+                    ffs.getAlgorithm(),
+                    indexHelper.getGCBlobStore(),
+                    indexer,
+                    nDownloadThreads,
+                    maxPrefetchWindowSize,
+                    maxPrefetchWindowMB);
+        }
+    }    
+
+    @Override
+    public Iterator<NodeStateEntry> iterator() {
+        final AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = createAheadOfTimeBlobDownloader(indexer, indexHelper);
+        aheadOfTimeBlobDownloader.start();
+        return new Iterator<>() {
+
+            final Iterator<NodeStateEntry> it = ffs.iterator();
+            long entriesRead;
+            
+            @Override
+            public boolean hasNext() {
+                boolean result = it.hasNext();
+                if (!result) {
+                    aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
+                    try {
+                        aheadOfTimeBlobDownloader.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public NodeStateEntry next() {
+                entriesRead++;
+                // No need to update the progress reporter for each entry. This should reduce a bit the
+                // overhead of updating the AOT downloader, which sets a volatile field internally.
+                if (entriesRead % 128 == 0) {
+                    aheadOfTimeBlobDownloader.updateIndexed(entriesRead);
+                }
+                return it.next();
+            }
+            
+        };
+    }
+
+    @Override
+    public String getStorePath() {
+        return ffs.getStorePath();
+    }
+
+    @Override
+    public long getEntryCount() {
+        return ffs.getEntryCount();
+    }
+
+    @Override
+    public void setEntryCount(long entryCount) {
+        ffs.setEntryCount(entryCount);
+    }
+
+    @Override
+    public void close() throws IOException {
+        ffs.close();
+    }
+
+    @Override
+    public String getIndexStoreType() {
+        return ffs.getIndexStoreType();
+    }
+
+    @Override
+    public boolean isIncremental() {
+        return ffs.isIncremental();
+    }
+
+}
