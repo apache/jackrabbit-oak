@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.security.user.PrincipalMembershipReader.GroupPrincipalFactory;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -79,11 +80,11 @@ public class PrincipalMembershipReaderTest extends AbstractSecurityTest {
         }
     }
 
-    @NotNull PrincipalMembershipReader.GroupPrincipalFactory createFactory(@NotNull Root root) throws Exception {
+    @NotNull GroupPrincipalFactory createFactory(@NotNull Root root) throws Exception {
         UserPrincipalProvider userPrincipalProvider = (UserPrincipalProvider) createPrincipalProvider(root);
         Method m = UserPrincipalProvider.class.getDeclaredMethod("createGroupPrincipalFactory");
         m.setAccessible(true);
-        return (PrincipalMembershipReader.GroupPrincipalFactory) m.invoke(userPrincipalProvider);
+        return (GroupPrincipalFactory) m.invoke(userPrincipalProvider);
     }
     
     @NotNull PrincipalProvider createPrincipalProvider(@NotNull Root root) {
@@ -95,7 +96,7 @@ public class PrincipalMembershipReaderTest extends AbstractSecurityTest {
     }
     
     @NotNull PrincipalMembershipReader createPrincipalMembershipReader(@NotNull Root root) throws Exception {
-        return new PrincipalMembershipReader(createMembershipProvider(root), createFactory(root));
+        return new PrincipalMembershipReaderImpl(createMembershipProvider(root), createFactory(root));
     }
     
     @NotNull Tree getTree(@NotNull String id, @NotNull Root root) throws Exception {
@@ -104,15 +105,16 @@ public class PrincipalMembershipReaderTest extends AbstractSecurityTest {
     
     @Test
     public void testReadMembershipForUser() throws Exception {
-        Set<Principal> result = new HashSet<>();
-        createPrincipalMembershipReader(root).readMembership(getTree(getTestUser().getID(), root), result);
+        PrincipalMembershipReader principalMembershipReader = createPrincipalMembershipReader(root);
+        Set<Principal> result = new HashSet<>(principalMembershipReader.readMembership(getTree(getTestUser().getID(),
+                root)));
         assertEquals(1, result.size());
     }
     
     @Test
     public void testReadMembershipForGroup() throws Exception {
-        Set<Principal> result = new HashSet<>();
-        createPrincipalMembershipReader(root).readMembership(getTree(groupId2, root), result);
+        PrincipalMembershipReader principalMembershipReader = createPrincipalMembershipReader(root);
+        Set<Principal> result = new HashSet<>(principalMembershipReader.readMembership(getTree(groupId2, root)));
         assertEquals(1, result.size());
     }
     
@@ -122,9 +124,8 @@ public class PrincipalMembershipReaderTest extends AbstractSecurityTest {
         Tree mockTree = when(mock(Tree.class).getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(ps).getMock();
         MembershipProvider mp = when(mock(MembershipProvider.class).getMembership(any(Tree.class), anyBoolean())).thenReturn(Iterators.singletonIterator(mockTree)).getMock();
         
-        PrincipalMembershipReader reader = new PrincipalMembershipReader(mp, createFactory(root));
-        Set<Principal> result = new HashSet<>();
-        reader.readMembership(root.getTree(getTestUser().getPath()), result);
+        PrincipalMembershipReader reader = new PrincipalMembershipReaderImpl(mp, createFactory(root));
+        Set<Principal> result = new HashSet<>(reader.readMembership(root.getTree(getTestUser().getPath())));
         assertTrue(result.isEmpty());
     }
 }

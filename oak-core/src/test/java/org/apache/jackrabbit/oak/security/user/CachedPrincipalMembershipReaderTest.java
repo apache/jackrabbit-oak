@@ -18,26 +18,17 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.slf4j.event.Level;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
-import javax.security.auth.Subject;
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
@@ -49,17 +40,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import javax.security.auth.Subject;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.security.user.PrincipalMembershipReader.GroupPrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.event.Level;
 
 @RunWith(Parameterized.class)
 public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipReaderTest {
@@ -81,7 +81,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
     private String userPath;
     private Root mockedRoot;
     private Tree mockedUser;
-    private PrincipalMembershipReader.GroupPrincipalFactory mockedGroupPrincipalFactory;
+    private PrincipalMembershipReaderImpl.GroupPrincipalFactory mockedGroupPrincipalFactory;
     private MembershipProvider mockedMembershipProvider;
 
     public CachedPrincipalMembershipReaderTest(long cacheMaxStale, @NotNull String name) {
@@ -113,7 +113,17 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
     }
 
     @NotNull CachedPrincipalMembershipReader createPrincipalMembershipReader(@NotNull Root root, @NotNull UserConfiguration userConfiguration) throws Exception {
-        return new CachedPrincipalMembershipReader(createMembershipProvider(root), createFactory(root), userConfiguration, root);
+        PrincipalMembershipReader principalMembershipReader = super.createPrincipalMembershipReader(root);
+        return new CachedPrincipalMembershipReader(createFactory(root), userConfiguration, root, principalMembershipReader::readMembership);
+    }
+
+    CachedPrincipalMembershipReader createMockedPrincipalMembershipReader(GroupPrincipalFactory groupPrincipalFactory,
+            UserConfiguration userConfiguration, Root root) {
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("groupPrincipal");
+
+        return new CachedPrincipalMembershipReader(groupPrincipalFactory, userConfiguration, root,
+                (Tree tree) -> Set.of(principal));
     }
 
     @Override
@@ -139,7 +149,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(root);
 
         Set<Principal> groupPrincipals = new HashSet<>();
-        cachedGroupMembershipReader.readMembership(root.getTree(userPath), groupPrincipals);
+        groupPrincipals.addAll(cachedGroupMembershipReader.readMembership(root.getTree(userPath)));
 
         Set<Principal> expected = Collections.singleton(getUserManager(root).getAuthorizable(groupId).getPrincipal());
         assertEquals(expected, groupPrincipals);
@@ -159,13 +169,13 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
         Set<Principal> groupPrincipals = new HashSet<>();
         Tree groupTree = getTree(groupId2, root);
-        cachedGroupMembershipReader.readMembership(groupTree, groupPrincipals);
+        groupPrincipals.addAll(cachedGroupMembershipReader.readMembership(groupTree));
 
         Set<Principal> expected = Collections.singleton(getUserManager(root).getAuthorizable(groupId).getPrincipal());
         assertEquals(expected, groupPrincipals);
 
         assertEquals(0, logCustomizer.getLogs().size());
-        verify(cachedGroupMembershipReader).readMembership(groupTree, groupPrincipals);
+        verify(cachedGroupMembershipReader).readMembership(groupTree);
         verifyNoMoreInteractions(cachedGroupMembershipReader);
     }
 
@@ -179,14 +189,14 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(systemRoot);
 
         Set<Principal> groupPrincipal = new HashSet<>();
-        cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), groupPrincipal);
+        groupPrincipal.addAll(cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath)));
 
         //Assert that the first time the cache was created
         assertEquals(2, logCustomizer.getLogs().size());
         assertEquals("Attempting to create new membership cache at " + userPath, logCustomizer.getLogs().get(0));
         assertEquals(1, groupPrincipal.size());
 
-        cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), groupPrincipal);
+        groupPrincipal.addAll(cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath)));
         assertEquals(3, logCustomizer.getLogs().size());
         //Assert that the cache was used
         assertEquals("Reading membership from cache for '" + userPath + "'", logCustomizer.getLogs().get(2));
@@ -197,7 +207,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
     /**
      * This test checks the behavior for an expired cache when the commit is 3 second longs and NUM_THREADS threads execute readMembership:
-     * - if UserPrincipalProvider.PARAM_CACHE_MAX_STALE is 0, no stale cache should be provided during a long commit when 
+     * - if UserPrincipalProvider.PARAM_CACHE_MAX_STALE is 0, no stale cache should be provided during a long commit when
      * - if UserPrincipalProvider.PARAM_CACHE_MAX_STALE is >0, the stale cache must be returned during a long commit.
      * @throws Exception
      */
@@ -211,9 +221,8 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         Thread[] getMembershipThreads = new Thread[NUM_THREADS];
         for (int i = 0; i < getMembershipThreads.length; i++) {
             getMembershipThreads[i] = new Thread(() -> {
-                Set<Principal> groupPrincipals = new HashSet<>();
-                CachedPrincipalMembershipReader cachedGroupMembershipReader = new CachedPrincipalMembershipReader(mockedMembershipProvider, mockedGroupPrincipalFactory, getUserConfiguration(), mockedRoot);
-                cachedGroupMembershipReader.readMembership(mockedUser, groupPrincipals);
+                CachedPrincipalMembershipReader membershipReader = createMockedPrincipalMembershipReader(mockedGroupPrincipalFactory, getUserConfiguration(), mockedRoot);
+                Set<Principal> groupPrincipals = new HashSet<>(membershipReader.readMembership(mockedUser));
                 assertEquals(groupPrincipals.size(),1);
             });
             getMembershipThreads[i].start();
@@ -241,7 +250,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         }).when(mockedRoot).commit(CacheValidatorProvider.asCommitAttributes());
 
         mockedMembershipProvider = mock(MembershipProvider.class);
-        mockedGroupPrincipalFactory = mock(PrincipalMembershipReader.GroupPrincipalFactory.class);
+        mockedGroupPrincipalFactory = mock(PrincipalMembershipReaderImpl.GroupPrincipalFactory.class);
 
         // Mock user Tree
         mockedUser = mock(Tree.class);
@@ -291,7 +300,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
             userConfigurations.add(uc);
 
             CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(systemRoot, uc);
-            cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), new HashSet<>());
+            cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath));
         }
 
         Field f = CachedPrincipalMembershipReader.class.getDeclaredField("CACHE_UPDATES");
@@ -309,7 +318,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         try {
             Root systemRoot = getSystemRoot();
             CachedPrincipalMembershipReader membershipReader = createPrincipalMembershipReader(systemRoot, uc);
-            membershipReader.readMembership(systemRoot.getTree(userPath), new HashSet<>());
+            membershipReader.readMembership(systemRoot.getTree(userPath));
 
             Field f = CachedPrincipalMembershipReader.class.getDeclaredField("CACHE_UPDATES");
             f.setAccessible(true);

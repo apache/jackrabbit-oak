@@ -128,6 +128,22 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
     }
 
+    ExternalGroupPrincipalProvider(@NotNull Root root,
+                                   @NotNull UserConfiguration userConfiguration,
+                                   @NotNull NamePathMapper namePathMapper,
+                                   @NotNull SyncConfigTracker syncConfigTracker) {
+        this.root = root;
+        this.namePathMapper = namePathMapper;
+        this.userManager = userConfiguration.getUserManager(root, namePathMapper);
+        //TODO How to make this work as the user configuration is not available here
+
+        idpNamesWithDynamicGroups = syncConfigTracker.getIdpNamesWithDynamicGroups();
+        hasOnlyDynamicGroups = (idpNamesWithDynamicGroups.size() == syncConfigTracker.getServiceReferences().length);
+
+        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
+        groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
+    }
+
     // Tests only
     ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserConfiguration userConfiguration,
                                    @NotNull NamePathMapper namePathMapper, 

@@ -86,10 +86,16 @@ class UserPrincipalProvider implements PrincipalProvider {
         MembershipProvider membershipProvider = new MembershipProvider(root, config.getParameters());
         long expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
         boolean cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
+        GroupPrincipalFactory groupPrincipalFactory = createGroupPrincipalFactory();
+        PrincipalMembershipReaderImpl repositoryReader = new PrincipalMembershipReaderImpl(membershipProvider, groupPrincipalFactory);
         if (cacheEnabled) {
-            principalMembershipReader = new CachedPrincipalMembershipReader(membershipProvider, createGroupPrincipalFactory(), config, root);
+            principalMembershipReader = new CachedPrincipalMembershipReader(
+                    groupPrincipalFactory,
+                    config,
+                    root,
+                    repositoryReader::readMembership);
         } else {
-            principalMembershipReader = new PrincipalMembershipReader(membershipProvider, createGroupPrincipalFactory());
+            principalMembershipReader = repositoryReader;
         }
     }
 
@@ -273,7 +279,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
         Set<Principal> groupPrincipals = new HashSet<>();
-        principalMembershipReader.readMembership(authorizableTree, groupPrincipals);
+        groupPrincipals.addAll(principalMembershipReader.readMembership(authorizableTree));
 
         // add the dynamic everyone principal group which is not included in
         // the 'getMembership' call.
