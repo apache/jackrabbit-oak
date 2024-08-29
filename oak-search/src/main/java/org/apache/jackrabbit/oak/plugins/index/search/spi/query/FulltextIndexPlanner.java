@@ -842,13 +842,14 @@ public class FulltextIndexPlanner {
                 key = getName(key);
             }
             PropertyRestriction pr = filter.getPropertyRestriction(key);
+            String fieldName = key;
             // for "is not null" we can use an asterisk query
             if (improvedIsNullCost) {
                 if (pr != null && pr.isNullRestriction()) {
-                    key = FieldNames.NULL_PROPS;
+                    fieldName = FieldNames.NULL_PROPS;
                 }
             }
-            int docCntForField = indexStatistics.getDocCountFor(key);
+            int docCntForField = indexStatistics.getDocCountFor(fieldName);
             if (docCntForField == -1) {
                 continue;
             }
@@ -1178,7 +1179,7 @@ public class FulltextIndexPlanner {
             nodeNameRestriction = true;
         }
 
-        public void disableUniquePaths(){
+        public void disableUniquePaths() {
             uniquePathsRequired = false;
         }
     }
