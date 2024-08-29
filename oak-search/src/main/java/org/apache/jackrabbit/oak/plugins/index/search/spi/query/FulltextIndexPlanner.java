@@ -249,8 +249,7 @@ public class FulltextIndexPlanner {
                 }
 
                 if (pd != null && pd.propertyIndexEnabled()) {
-                    // for "is not null" we can use an asterisk query
-                    if (pr.isNullRestriction() && !pd.nullCheckEnabled) {
+                    if (pr.isNullRestriction() && !pd.nullCheckEnabled){
                         continue;
                     }
 
@@ -858,11 +857,11 @@ public class FulltextIndexPlanner {
 
             if (pr != null) {
                 if (pr.isNotNullRestriction()) {
-                    // don't use weight for "is not null" restrictions,
+                    // don't use weight for "is not null" restrictions
                     // as all documents with this field can match;
                     weight = 1;
                 } else if (improvedIsNullCost && pr.isNullRestriction()) {
-                    // don't use the weight for "is not null" restrictions,
+                    // don't use the weight for "is not null" restrictions
                     // as all documents with ":nullProps" can match
                     weight = 1;
                 } else {
