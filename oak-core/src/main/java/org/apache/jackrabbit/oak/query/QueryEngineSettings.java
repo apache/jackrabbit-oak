@@ -218,7 +218,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     @Override
     public boolean getImprovedIsNullCost() {
-        return improvedIsNullCostFeature != null && improvedIsNullCostFeature.isEnabled();
+        // enabled if the feature toggle is not used
+        return improvedIsNullCostFeature == null || improvedIsNullCostFeature.isEnabled();
     }
 
     public String getStrictPathRestriction() {
