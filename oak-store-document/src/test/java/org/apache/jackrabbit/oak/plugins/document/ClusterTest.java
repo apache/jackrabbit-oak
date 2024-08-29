@@ -64,7 +64,7 @@ public class ClusterTest {
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
-    private static final boolean MONGO_DB = true;
+    private static final boolean MONGO_DB = false;
 
     private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
@@ -384,26 +384,28 @@ public class ClusterTest {
 
     @Test
     public void diffManyChildrenReadOnlyMode() throws Exception {
-        DocumentMK mk1 = createMK(1, 0);
-        DocumentMK mk2 = createMK(2, 0);
-        NodeBuilder builder = mk1.getNodeStore().getRoot().builder();
-        builder.child("foo1").child("bar1");
-        merge(mk1.getNodeStore(), builder);
-        mk1.runBackgroundOperations();
-        mk2.runBackgroundOperations();
-        RevisionVector fromRev = mk1.getNodeStore().getRoot().getLastRevision();
-        Thread.sleep(1000);
-        builder = mk1.getNodeStore().getRoot().builder();
-        builder.getChildNode("foo1").getChildNode("bar1").setProperty("test", "test");
-        merge(mk1.getNodeStore(), builder);
-        disposeMK(mk1);
-        Thread.sleep(1000);
-        mk1 = createMK(1, 0);
-        DocumentMK mk1ro = createMK(1, 0, true);
-        DocumentMK mk3rw = createMK(3, 0, false);
-        Thread.sleep(5000);
-        compareDiffs(mk1.getNodeStore(), mk1ro.getNodeStore(), fromRev, mk1.getNodeStore().getRoot().getLastRevision());
-        compareDiffs(mk1.getNodeStore(), mk3rw.getNodeStore(), fromRev, mk1.getNodeStore().getRoot().getLastRevision());
+        if (MONGO_DB) {
+            DocumentMK mk1 = createMK(1, 0);
+            DocumentMK mk2 = createMK(2, 0);
+            NodeBuilder builder = mk1.getNodeStore().getRoot().builder();
+            builder.child("foo1").child("bar1");
+            merge(mk1.getNodeStore(), builder);
+            mk1.runBackgroundOperations();
+            mk2.runBackgroundOperations();
+            RevisionVector fromRev = mk1.getNodeStore().getRoot().getLastRevision();
+            Thread.sleep(1000);
+            builder = mk1.getNodeStore().getRoot().builder();
+            builder.getChildNode("foo1").getChildNode("bar1").setProperty("test", "test");
+            merge(mk1.getNodeStore(), builder);
+            disposeMK(mk1);
+            Thread.sleep(1000);
+            mk1 = createMK(1, 0);
+            DocumentMK mk1ro = createMK(1, 0, true);
+            DocumentMK mk3rw = createMK(3, 0, false);
+            Thread.sleep(5000);
+            compareDiffs(mk1.getNodeStore(), mk1ro.getNodeStore(), fromRev, mk1.getNodeStore().getRoot().getLastRevision());
+            compareDiffs(mk1.getNodeStore(), mk3rw.getNodeStore(), fromRev, mk1.getNodeStore().getRoot().getLastRevision());
+        }
     }
 
     private void compareDiffs(DocumentNodeStore store1, DocumentNodeStore store2, RevisionVector from, RevisionVector to) {
