@@ -36,6 +36,9 @@ public class WriteAccessController {
     public void checkWritingAllowed() {
         while (!isWritingAllowed) {
             synchronized (lock) {
+                if (isWritingAllowed) {
+                    return;
+                }
                 try {
                     lock.wait();
                 } catch (InterruptedException e) {
