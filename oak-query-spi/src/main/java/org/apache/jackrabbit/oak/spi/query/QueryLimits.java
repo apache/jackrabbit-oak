@@ -29,6 +29,8 @@ public interface QueryLimits {
 
     boolean getFullTextComparisonWithoutIndex();
 
+    boolean getImprovedIsNullCost();
+
     boolean getFailTraversal();
 
     default String getStrictPathRestriction() {
@@ -43,4 +45,5 @@ public interface QueryLimits {
     default @NotNull String[] getIgnoredClassNamesInCallTrace() {
         return new String[] {};
     }
+
 }

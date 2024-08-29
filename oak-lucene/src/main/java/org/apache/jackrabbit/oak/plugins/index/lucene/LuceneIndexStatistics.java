@@ -21,13 +21,15 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isNullPropsField;
 
 /**
  * This class would populate some statistics from a reader. We want to be careful here such that
@@ -69,7 +71,7 @@ public class LuceneIndexStatistics implements IndexStatistics {
 
         if (fields != null) {
             for(String f : fields) {
-                if (FieldNames.isPropertyField(f) || FieldNames.isNullPropsField(f)) {
+                if (isPropertyField(f) || isNullPropsField(f)) {
                     int docCntForField = -1;
                     try {
                         if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
@@ -114,7 +116,7 @@ public class LuceneIndexStatistics implements IndexStatistics {
             return -1;
         }
 
-        int docCntForField = FieldNames.isPropertyField(field) ? 0 : -1;
+        int docCntForField = isPropertyField(field) ? 0 : -1;
         if (numDocsForField.containsKey(field)) {
             docCntForField = numDocsForField.get(field);
         }

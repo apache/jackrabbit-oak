@@ -454,6 +454,11 @@ public interface Filter {
                 return false;
             }
 
+            @Override
+            public boolean getImprovedIsNullCost() {
+                return true;
+            }
+
         };
 
         @Override
