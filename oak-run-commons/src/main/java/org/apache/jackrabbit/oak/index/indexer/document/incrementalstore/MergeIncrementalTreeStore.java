@@ -160,7 +160,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                     }
                 }
                 if (write != null) {
-                    mergedStore.getSession().put(write.path, write.value);
+                    mergedStore.putNode(write.path, write.value);
                 }
                 if (advanceBase) {
                     base = StoreEntry.readFromTreeStore(baseIt);

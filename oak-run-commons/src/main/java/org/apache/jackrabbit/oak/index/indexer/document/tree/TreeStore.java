@@ -296,6 +296,23 @@ public class TreeStore implements IndexStore {
     }
 
     /**
+     * Convert a child node entry to parent and node name.
+     * This method is used for tooling and testing only.
+     * It does the reverse of toChildNodeEntry(parentPath, childName)
+     *
+     * @param child node entry, e.g. /hello<tab>world
+     * @return the parent path and the child node name, e.g. ["/hello" "world"]
+     * @throws IllegalArgumentException if this is not a child node entry
+     */
+    public static String[] toParentAndChildNodeName(String key) {
+        int index = key.lastIndexOf('\t');
+        if (index < 0) {
+            throw new IllegalArgumentException("Not a child node entry: " + key);
+        }
+        return new String[] { key.substring(0, index), key.substring(index + 1) };
+    }
+
+    /**
      * The child node entry for the given parent and child.
      *
      * @param path the parentPath, e.g. /hello

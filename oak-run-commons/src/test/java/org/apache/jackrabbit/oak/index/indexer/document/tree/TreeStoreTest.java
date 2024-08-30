@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,6 +58,35 @@ public class TreeStoreTest {
 
         assertEquals("/\tabc", TreeStore.toChildNodeEntry("/", "abc"));
         assertEquals("/hello\tworld", TreeStore.toChildNodeEntry("/hello", "world"));
+    }
+
+    @Test
+    public void convertPathAndReverseTest() {
+        // normal case
+        String path = "/hello";
+        String childNodeName = "world";
+        String key = TreeStore.toChildNodeEntry(path, childNodeName);
+        assertEquals("/hello\tworld", key);
+        String[] parts = TreeStore.toParentAndChildNodeName(key);
+        assertEquals(path, parts[0]);
+        assertEquals(childNodeName, parts[1]);
+
+        // root node
+        path = "/";
+        childNodeName = "test";
+        key = TreeStore.toChildNodeEntry(path, childNodeName);
+        parts = TreeStore.toParentAndChildNodeName(key);
+        assertEquals(path, parts[0]);
+        assertEquals(childNodeName, parts[1]);
+
+        // failure case
+        key = "/";
+        try {
+            parts = TreeStore.toParentAndChildNodeName(key);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
     }
 
     @Test

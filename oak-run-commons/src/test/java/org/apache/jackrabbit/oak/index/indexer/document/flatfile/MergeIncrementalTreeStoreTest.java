@@ -30,11 +30,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -46,7 +48,7 @@ public class MergeIncrementalTreeStoreTest {
     public TemporaryFolder folder = new TemporaryFolder(new File(BUILD_TARGET_FOLDER));
 
     @Test
-    public void test1() throws IOException {
+    public void merge() throws IOException {
         File baseDir = folder.newFolder("base");
         File baseFile = folder.newFile("base.gz");
         File baseMetadata = folder.newFile("base.metadata.gz");
@@ -116,16 +118,22 @@ public class MergeIncrementalTreeStoreTest {
 
         FilePacker.unpack(mergedFile, mergedDir, true);
         TreeStore merged = new TreeStore("merged", mergedDir, null, 1);
+        HashSet<String> paths = new HashSet<>();
         int i = 0;
         for (Entry<String, String> e : merged.getSession().entrySet()) {
+            String key = e.getKey();
             if (e.getValue().isEmpty()) {
+                String[] parts = TreeStore.toParentAndChildNodeName(key);
+                String childEntry = TreeStore.toChildNodeEntry(parts[0], parts[1]);
+                assertTrue(paths.add(childEntry));
                 continue;
             }
             String expected = expectedMergedList.get(i++);
-            String actual = e.getKey() + "|" + e.getValue();
+            String actual = key + "|" + e.getValue();
             Assert.assertEquals(expected, actual);
         }
         assertEquals(expectedMergedList.size(), i);
+        assertEquals(expectedMergedList.size(), paths.size());
         merged.close();
 
         try (BufferedReader br = IndexStoreUtils.createReader(mergedMetadata, algorithm)) {
