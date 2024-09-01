@@ -30,9 +30,12 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
@@ -147,7 +150,7 @@ public class FilteringNodeStateTest {
         { // access via getProperty()
             final PropertyState childOrder = decorated.getProperty(OAK_CHILD_ORDER);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(new ArrayList<>("football"), new ArrayList<>(values));
+            assertEquals(List.of("football"), StreamSupport.stream(values.spliterator(), false).collect(Collectors.toList()));
         }
 
         { // access via getProperties()
@@ -159,7 +162,7 @@ public class FilteringNodeStateTest {
             };
             final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(new ArrayList<>("football"), new ArrayList<>(values));
+            assertEquals(List.of("football"), StreamSupport.stream(values.spliterator(), false).collect(Collectors.toList()));
         }
     }
 

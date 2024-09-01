@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;

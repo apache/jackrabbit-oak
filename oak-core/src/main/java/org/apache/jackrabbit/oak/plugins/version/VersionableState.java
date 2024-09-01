@@ -49,13 +49,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -187,7 +188,7 @@ class VersionableState {
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = Lists.new ArrayList<>(node.getNames(JCR_MIXINTYPES));
+            mixinTypes = StreamSupport.stream(node.getNames(JCR_MIXINTYPES).spliterator(), false).collect(Collectors.toList());
         } else {
             mixinTypes = Collections.emptyList();
         }

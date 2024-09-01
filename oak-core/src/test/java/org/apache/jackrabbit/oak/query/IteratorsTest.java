@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -30,22 +31,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
  * Tests the filtering iterators.
  */
 public class IteratorsTest {
-    
+
     private QueryEngineSettings settings = new QueryEngineSettings();
-    
+
     private static final Comparator<Integer> INT_COMP = new Comparator<Integer>() {
 
         @Override
         public int compare(Integer o1, Integer o2) {
             return o1.compareTo(o2);
         }
-        
+
     };
 
     @Test
@@ -55,7 +54,7 @@ public class IteratorsTest {
         assertEquals("1, 2", toString(FilterIterators.newDistinct(it(1, 2), settings)));
         assertEquals("1, 2, 3", toString(FilterIterators.newDistinct(it(1, 2, 1, 3, 3, 1), settings)));
     }
-    
+
     @Test
     public void limit() {
         assertEquals("", toString(FilterIterators.newLimit(it(), 0)));
@@ -72,7 +71,7 @@ public class IteratorsTest {
         assertEquals("1, 2, 3", toString(FilterIterators.newLimit(it(1, 2, 3), 3)));
         assertEquals("1, 2, 3", toString(FilterIterators.newLimit(it(1, 2, 3), 4)));
     }
-    
+
     @Test
     public void offset() {
         assertEquals("", toString(FilterIterators.newOffset(it(), 0)));
@@ -85,7 +84,7 @@ public class IteratorsTest {
         assertEquals("", toString(FilterIterators.newOffset(it(1, 2), 3)));
         assertEquals("2, 3", toString(FilterIterators.newOffset(it(1, 2, 3), 1)));
     }
-    
+
     @Test
     public void sort() {
         assertEquals("", toString(FilterIterators.newSort(it(new Integer[]{}), INT_COMP, 0, settings)));
@@ -111,9 +110,9 @@ public class IteratorsTest {
         sortCompareCalls(10000, 1000000);
         sortCompareCalls(10000, Integer.MAX_VALUE);
     }
-    
+
     private void sortCompareCalls(int count, int keep) {
-        
+
         int len = 1000;
         Random r = new Random(1);
         Integer[] list = new Integer[len];
@@ -128,7 +127,7 @@ public class IteratorsTest {
                 compareCalls.incrementAndGet();
                 return o1.compareTo(o2);
             }
-            
+
         };
         Iterator<Integer> it = FilterIterators.newSort(it(list), comp, keep, settings);
         int old = Integer.MIN_VALUE;
@@ -151,7 +150,7 @@ public class IteratorsTest {
         assertEquals("3, 3, 2, 1", 
                 toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), false, Long.MAX_VALUE, 0, null, settings)));
-        
+
         // distinct
         assertEquals("3, 2, 1", 
                 toString(FilterIterators.newCombinedFilter(
@@ -166,7 +165,7 @@ public class IteratorsTest {
         assertEquals("1, 2, 3", 
                 toString(FilterIterators.newCombinedFilter(
                 it(3, 3, 2, 1), true, Long.MAX_VALUE, 0, INT_COMP, settings)));
-        
+
         // limit
         assertEquals("3, 3", 
                 toString(FilterIterators.newCombinedFilter(
@@ -195,9 +194,9 @@ public class IteratorsTest {
 }
 
     private static <K> Iterator<K> it(K... x) {
-        return Collections.unmodifiableCollection(Lists.new ArrayList<>(x)).iterator();
+        return Collections.unmodifiableCollection(Arrays.asList(x)).iterator();
     }
-    
+
     private static <K> String toString(Iterator<K> it) {
         StringBuilder buff = new StringBuilder();
         while (it.hasNext()) {

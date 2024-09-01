@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -33,6 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
 
@@ -84,7 +84,7 @@ public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
         Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.new ArrayList<>(result.getRows());
+        List<ResultRow> rows = StreamSupport.stream(result.getRows().spliterator(), false).collect(Collectors.toList());
         Assert.assertEquals(expected.length, rows.size());
 
         int i = 0;

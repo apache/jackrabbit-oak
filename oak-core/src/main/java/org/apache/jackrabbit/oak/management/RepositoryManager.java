@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.s
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.toTabularData;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.unavailable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

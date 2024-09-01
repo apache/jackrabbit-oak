@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -71,8 +72,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Mockito;
-
-
 
 /**
  * AbstractOakTest is the base class for oak test execution.

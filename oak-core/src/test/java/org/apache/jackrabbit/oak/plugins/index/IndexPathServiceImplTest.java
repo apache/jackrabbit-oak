@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -99,9 +100,10 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         Tree nodetype = root.getTree("/oak:index/nodetype");
         assertTrue(nodetype.exists());
 
-        List<String> nodetypes = new ArrayList<>();;
+        List<String> nodetypes = new ArrayList<>();
         if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-            nodetypes = Lists.new ArrayList<>(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+            nodetypes = StreamSupport.stream(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS).spliterator(), false)
+                    .collect(Collectors.toList());
         }
 
         nodetypes.add(INDEX_DEFINITIONS_NODE_TYPE);

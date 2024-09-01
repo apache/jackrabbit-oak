@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -215,7 +217,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     @Test
     public void testGetProperties() {
         ImmutableTree orderable = immutable.getChild("orderable");
-        List<String> propNames = Lists.new ArrayList<>(TreeConstants.OAK_CHILD_ORDER, JcrConstants.JCR_PRIMARYTYPE);
+        List<String> propNames = new ArrayList<>(List.of(TreeConstants.OAK_CHILD_ORDER, JcrConstants.JCR_PRIMARYTYPE));
 
         for (PropertyState ps : orderable.getProperties()) {
             assertTrue(propNames.remove(ps.getName()));
@@ -263,8 +265,9 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     }
 
     private static void assertSequence(Iterable<Tree> trees, String... names) {
-        List<String> actual = Lists.new ArrayList<>(Iterables.transform(trees, input -> input.getName()));
-        assertEquals(Lists.new ArrayList<>(names), actual);
+        List<String> actual = StreamSupport.stream(trees.spliterator(), false).map(input -> input.getName())
+                .collect(Collectors.toList());
+        assertEquals(Arrays.asList(names), actual);
     }
 
     @Test

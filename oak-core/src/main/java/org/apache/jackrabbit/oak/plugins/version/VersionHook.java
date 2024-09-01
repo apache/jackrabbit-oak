@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 

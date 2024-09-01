@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -45,13 +46,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Plan for querying a given property index using a given filter.
  */
 public class PropertyIndexPlan {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(PropertyIndexPlan.class);
 
     /**
@@ -87,9 +87,9 @@ public class PropertyIndexPlan {
     private final PathFilter pathFilter;
 
     private final boolean unique;
-    
+
     private final boolean deprecated;
-    
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());

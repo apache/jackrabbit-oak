@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 

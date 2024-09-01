@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -116,7 +115,7 @@ public class PropertyIndexStatsTest {
 
     private static void assertArray(CompositeData cd, String prop, List<String> values){
         String[] a = (String[])cd.get(prop);
-        assertEquals(new HashSet<String>(values), new HashSet<String>(Lists.new ArrayList<>(a)));
+        assertEquals(new HashSet<String>(values), new HashSet<String>(Arrays.asList(a)));
     }
 
     private static void setProperty(NodeBuilder builder, String path, String name, String value){

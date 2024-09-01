@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleE
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,9 +29,6 @@ import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 
 public class IndexMBeanRegistration implements Registration {
 

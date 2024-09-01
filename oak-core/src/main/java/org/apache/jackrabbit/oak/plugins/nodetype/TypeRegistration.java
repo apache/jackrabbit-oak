@@ -69,6 +69,8 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -388,8 +390,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
     }
 
     private void addNameToList(NodeBuilder type, String name, String value) {
-        List<String> values;
-        values = new ArrayList<>(getNames(type, name));
+        List<String> values = StreamSupport.stream(getNames(type, name).spliterator(), false).collect(Collectors.toList());
         if (!values.contains(value)) {
             values.add(value);
         }

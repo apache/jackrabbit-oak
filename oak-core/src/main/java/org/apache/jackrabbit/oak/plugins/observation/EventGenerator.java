@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-
 import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -30,6 +29,8 @@ import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -194,10 +195,10 @@ public class EventGenerator {
                 // check for reordering of child nodes
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     // list the child node names before and after the change
-                    List<String> beforeNames =
-                            new ArrayList<>(before.getValue(NAMES));
-                    List<String> afterNames =
-                            new ArrayList<>(after.getValue(NAMES));
+                    List<String> beforeNames = StreamSupport.stream(before.getValue(NAMES).spliterator(), false)
+                            .collect(Collectors.toList());
+                    List<String> afterNames = StreamSupport.stream(after.getValue(NAMES).spliterator(), false)
+                            .collect(Collectors.toList());
 
                     // check only those names that weren't added or removed
                     beforeNames.retainAll(newHashSet(afterNames));

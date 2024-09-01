@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -43,7 +44,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;

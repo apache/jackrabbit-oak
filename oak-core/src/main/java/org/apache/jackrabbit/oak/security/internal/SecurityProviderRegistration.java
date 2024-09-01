@@ -76,6 +76,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
@@ -85,7 +86,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;

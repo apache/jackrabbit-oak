@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -36,7 +37,6 @@ import javax.management.Query;
 import javax.management.QueryExp;
 
 import com.codahale.metrics.JmxReporter;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -26,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.NoSuchWorkspaceException;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -386,21 +385,21 @@ public class EntryTest extends AbstractAccessControlTest {
 
         assertTrue(ace.getRestrictions().isEmpty());
     }
-    
+
     @Test
     public void testGetPrivilegeCollection() throws Exception {
         PrivilegeCollection pc = createEntry(Privilege.JCR_READ, Privilege.JCR_WRITE).getPrivilegeCollection();
         Set<Privilege> expected = ImmutableSet.copyOf(AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE));
         assertEquals(expected, ImmutableSet.copyOf(pc.getPrivileges()));
-        
+
         assertEquals(pc, createEntry(JCR_READ, JCR_WRITE).getPrivilegeCollection());
         assertEquals(pc, createEntry(JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_MODIFY_PROPERTIES, 
                 PrivilegeConstants.JCR_WRITE).getPrivilegeCollection());
-        
+
         assertTrue(pc.includes(JCR_READ));
         assertTrue(pc.includes(JCR_READ, JCR_WRITE));
         assertTrue(pc.includes(JCR_READ, REP_READ_PROPERTIES, REP_READ_NODES, REP_ALTER_PROPERTIES));
-        
+
         assertFalse(pc.includes(Privilege.JCR_ALL));
     }
 
@@ -483,7 +482,7 @@ public class EntryTest extends AbstractAccessControlTest {
         JackrabbitAccessControlEntry ace = createEntry(PrivilegeConstants.JCR_ALL);
         Privilege[] declaredAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getDeclaredAggregatePrivileges();
         Privilege[] aggregateAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getAggregatePrivileges();
-        List<Privilege> l = Lists.new ArrayList<>(aggregateAllPrivs);
+        List<Privilege> l = new ArrayList<>(Arrays.asList(aggregateAllPrivs));
         l.add(l.remove(0));
         Privilege[] reordered = l.toArray(new Privilege[0]);
 

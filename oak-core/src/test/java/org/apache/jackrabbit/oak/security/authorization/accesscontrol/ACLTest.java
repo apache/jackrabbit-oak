@@ -36,7 +36,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -83,9 +82,9 @@ import static org.mockito.Mockito.when;
  * Test {@code ACL} implementation.
  */
 public class ACLTest extends AbstractAccessControlTest implements PrivilegeConstants, AccessControlConstants {
-    
+
     private ACL acl;
-    
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -103,7 +102,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
                   @NotNull NamePathMapper namePathMapper) {
         return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
-    
+
     @NotNull
     private List<ACE> createTestEntries() throws RepositoryException {
         List<ACE> entries = new ArrayList<>(3);
@@ -203,7 +202,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testGetRestrictionNames() {
         String[] restrNames = acl.getRestrictionNames();
         assertNotNull(restrNames);
-        List<String> names = Lists.new ArrayList<>(restrNames);
+        List<String> names = new ArrayList<>(Arrays.asList(restrNames));
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(TEST_PATH)) {
             assertTrue(names.remove(getNamePathMapper().getJcrName(def.getName())));
         }

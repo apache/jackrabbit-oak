@@ -36,17 +36,19 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.asPredicate;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -73,7 +75,7 @@ import org.slf4j.LoggerFactory;
  *       is unique.
  */
 public class TypeEditor extends DefaultEditor {
-    
+
     /**
      * Extension point that allows pluggable handling of constraint violations
      */
@@ -100,28 +102,28 @@ public class TypeEditor extends DefaultEditor {
     }
 
     public static final ConstraintViolationCallback THROW_ON_CONSTRAINT_VIOLATION = new ConstraintViolationCallback() {
-        
+
         @Override
         public void onConstraintViolation(String path, List<String> nodeTypeNames, int code, String message) throws CommitFailedException {
-            
+
             String fullPath =  path + '[' + nodeTypeNames.toString() + ']';
 
             throw new CommitFailedException(CONSTRAINT, code, fullPath + ": " + message);
         }
     };
-    
+
     public static final ConstraintViolationCallback WARN_ON_CONSTRAINT_VIOLATION = new ConstraintViolationCallback() {
-        
+
         @Override
         public void onConstraintViolation(String path, List<String> nodeTypeNames, int code, String message ) {
-            
+
             String fullPath =  path + '[' + nodeTypeNames.toString() + ']';
 
             log.warn(new CommitFailedException(CONSTRAINT, code, fullPath + ": " + message).getMessage());
 
         }
     };
-    
+
     /**
      * Creates a new {@linkplain TypeEditor} instance
      * 
@@ -230,7 +232,7 @@ public class TypeEditor extends DefaultEditor {
      */
     private void constraintViolation(int code, String message) throws CommitFailedException {
         List<String> nodeTypeNames = effective != null ? effective.getDirectTypeNames() : Collections.emptyList();
-        
+
         callback.onConstraintViolation(getPath(), nodeTypeNames, code, message);
     }
 
@@ -441,10 +443,9 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = Lists.new ArrayList<>(before.getNames(JCR_MIXINTYPES));
-        Collections.sort(pre);
-        List<String> post = Lists.new ArrayList<>(after);
-        Collections.sort(post);
+        List<String> pre = StreamSupport.stream(before.getNames(JCR_MIXINTYPES).spliterator(), false).sorted()
+                .collect(Collectors.toList());
+        List<String> post = StreamSupport.stream(after.spliterator(), false).sorted().collect(Collectors.toList());
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
         } else if (pre.isEmpty() || post.isEmpty()) {
@@ -467,7 +468,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = Lists.new ArrayList<>(after.getChildNodeNames());
+        List<String> names = StreamSupport.stream(after.getChildNodeNames().spliterator(), false).collect(Collectors.toList());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

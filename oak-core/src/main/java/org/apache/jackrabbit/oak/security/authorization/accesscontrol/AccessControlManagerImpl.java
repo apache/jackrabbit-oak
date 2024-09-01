@@ -43,7 +43,6 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -220,7 +219,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
         PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
 
-        List<ACE> toAdd = Lists.new ArrayList<>(principalAcl.getEntries());
+        List<ACE> toAdd = new ArrayList<>(principalAcl.getEntries());
         List<ACE> toRemove = Collections.emptyList();
         if (existing != null) {
             toAdd.removeAll(existing.getEntries());
@@ -256,7 +255,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
         }
     }
-    
+
     @NotNull
     private ACL populateNodeBasedAcl(@NotNull ACE ace, @Nullable String path, @NotNull Tree tree) throws RepositoryException {
         ACL acl = (ACL) createACL(path, tree, false);
@@ -335,7 +334,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (!Util.checkValidPrincipal(principal, principalManager, Util.getImportBehavior(getConfig()))) {
             return new JackrabbitAccessControlPolicy[0];
         }
-        
+
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
 
@@ -442,7 +441,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         String aclName = Util.getAclName(oakPath);
         return TreeUtil.addChild(tree, aclName, NT_REP_ACL);
     }
-    
+
     @Nullable
     private JackrabbitAccessControlList createACL(@Nullable String oakPath,
                                                   @NotNull Tree accessControlledTree,
@@ -592,7 +591,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             return getOakPath(Strings.emptyToNull(v.getString()));
         }
     }
-    
+
     @NotNull
     private Set<AccessControlPolicy> internalGetEffectivePolicies(@NotNull Set<Principal> principals, Collection<String> oakPaths) throws RepositoryException {
         Root r = getLatestRoot();
@@ -623,7 +622,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         }
         return effective;
     }
-    
+
     private static boolean matchingPath(@Nullable String accessControlledPath, @NotNull Collection<String> oakPaths) {
         if (oakPaths.isEmpty()) {
             return true;
@@ -790,7 +789,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         public int hashCode() {
             return 0;
         }
-        
+
         private void remove(Map<String, Principal> principalMap) throws RepositoryException {
             for (ACE ace : getEntries()) {
                 String path = getNodePath(ace);
@@ -854,11 +853,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         public boolean test(@NotNull Tree aceTree) {
             return matchingPrincipal(aceTree) && matchingRestrictions(aceTree);
         }
-        
+
         private boolean matchingPrincipal(@NotNull Tree aceTree) {
             return Iterables.contains(principalNames, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         }
-        
+
         private boolean matchingRestrictions(@NotNull Tree aceTree) {
             if (oakPaths.isEmpty()) {
                 return true;

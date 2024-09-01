@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
-
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -32,6 +31,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -86,8 +87,9 @@ public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
                 parentPath = getParentPath(parentPath);
                 if (isNodeType(root, parentPath, primaryType)) {
                     parents.add(parentPath);
-                    parents.addAll(new ArrayList<>(getParents(root, parentPath,
-                            false)));
+                    final String pp = parentPath;
+                    Iterable<String> it = () -> getParents(root, pp, false);
+                    parents.addAll(StreamSupport.stream(it.spliterator(), false).collect(Collectors.toList()));
                     return parents.iterator();
                 }
             }

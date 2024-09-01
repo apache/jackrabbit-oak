@@ -23,7 +23,6 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -76,7 +75,7 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
      */
     @Test
     public void testItemDefinitionsDefinesContextRoot() {
-        List<String> paths = Lists.new ArrayList<>(
+        List<String> paths = List.of(
                 "/jcr:system/jcr:nodeTypes/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy",
                 "/jcr:system/jcr:nodeTypes/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy");
 

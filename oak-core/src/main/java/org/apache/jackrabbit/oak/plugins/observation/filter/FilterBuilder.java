@@ -30,6 +30,8 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +65,8 @@ public final class FilterBuilder {
     private final List<String> subTrees = new ArrayList<>();
     private final Set<String> pathsForMBean = newHashSet();
     private Condition condition = includeAll();
+
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
-        
         @Override
         public boolean excludes(ChangeSet changeSet) {
             return false;
@@ -77,7 +79,7 @@ public final class FilterBuilder {
         @NotNull
         EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after);
     }
-    
+
     @NotNull
     public FilterBuilder setChangeSetFilter(@NotNull ChangeSetFilter changeSetFilter) {
         this.changeSetFilter = changeSetFilter;
@@ -341,7 +343,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Condition... conditions) {
-        return new AnyCondition(new ArrayList<>(requireNonNull(conditions)));
+        return new AnyCondition(Arrays.asList(requireNonNull(conditions)));
     }
 
     /**
@@ -351,7 +353,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull Condition... conditions) {
-        return new AllCondition(new ArrayList<>(requireNonNull(conditions)));
+        return new AllCondition(Arrays.asList(requireNonNull(conditions)));
     }
 
     /**
@@ -601,10 +603,6 @@ public final class FilterBuilder {
             this.conditions = conditions;
         }
 
-        public AnyCondition(Condition... conditions) {
-            this(new ArrayList<>(conditions));
-        }
-
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             List<EventFilter> filters = new ArrayList<>();
@@ -626,10 +624,6 @@ public final class FilterBuilder {
 
         public AllCondition(Iterable<Condition> conditions) {
             this.conditions = conditions;
-        }
-
-        public AllCondition(Condition... conditions) {
-            this(new ArrayList<>(conditions));
         }
 
         @Override

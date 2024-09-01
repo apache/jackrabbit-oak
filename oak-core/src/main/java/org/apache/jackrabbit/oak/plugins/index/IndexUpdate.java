@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
 import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
 import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

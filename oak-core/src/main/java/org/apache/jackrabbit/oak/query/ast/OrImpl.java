@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;

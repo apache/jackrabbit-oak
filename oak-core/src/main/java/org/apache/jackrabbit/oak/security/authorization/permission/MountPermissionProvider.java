@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -30,8 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-
 
 public class MountPermissionProvider extends PermissionProviderImpl {
 

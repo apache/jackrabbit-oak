@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -47,8 +46,8 @@ import static org.junit.Assert.assertNotNull;
 
 public class PropertyIndexLookupTest {
 
-    private static final List<String> PROP_NAMES = Lists.new ArrayList<>("jcr:primaryType", "jcr:mixinTypes");
-    private static final List<String> DECL_NODE_TYPES = Lists.new ArrayList<>("nt:unstructured", "mix:versionable");
+    private static final List<String> PROP_NAMES = List.of("jcr:primaryType", "jcr:mixinTypes");
+    private static final List<String> DECL_NODE_TYPES = List.of("nt:unstructured", "mix:versionable");
 
     private NodeState root;
     private NodeBuilder rootBuilder;

@@ -24,13 +24,15 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -185,9 +187,10 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
-        List<? extends ResultRow> result = Lists.new ArrayList<>(
-            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
-                NO_MAPPINGS).getRows());
+        List<? extends ResultRow> result = StreamSupport
+                .stream(qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue> newHashMap(), NO_MAPPINGS).getRows()
+                        .spliterator(), false)
+                .collect(Collectors.toList());
 
         String measure = "";
         if (result.size() > 0) {

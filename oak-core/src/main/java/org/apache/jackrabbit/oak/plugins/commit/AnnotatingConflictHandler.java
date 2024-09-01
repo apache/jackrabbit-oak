@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -33,6 +32,8 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NO
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -136,7 +137,7 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
     }
 
     private static NodeBuilder addConflictMarker(@NotNull NodeBuilder parent) {
-        List<String> mixins = new ArrayList<>(parent.getNames(JCR_MIXINTYPES));
+        List<String> mixins = StreamSupport.stream(parent.getNames(JCR_MIXINTYPES).spliterator(), false).collect(Collectors.toList());
         if (mixins.add(MIX_REP_MERGE_CONFLICT)) {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }

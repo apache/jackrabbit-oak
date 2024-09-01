@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -43,8 +42,6 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
@@ -511,7 +508,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         Tree restrTree = aceTree.getChild(REP_RESTRICTIONS);
         assertEquals("/*", TreeUtil.getString(restrTree, REP_GLOB));
-        assertEquals(Lists.new ArrayList<>(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
-        assertEquals(Lists.new ArrayList<>("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
+        assertEquals(List.of(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
+        assertEquals(List.of("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
     }
 }

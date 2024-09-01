@@ -29,6 +29,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -109,7 +112,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testFilterDuplicatesHandlesNull() throws Exception {
-        List<User> l = List.of(getTestUser(), null, getTestUser());
+        List<User> l = Arrays.asList(new User[] { getTestUser(), null, getTestUser() });
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
     }
 
