@@ -52,7 +52,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
@@ -147,7 +147,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
         nodeStore = getNodeStore();
 
-        asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, compose(new ArrayList<>(
                 editorProvider,
                 new NodeCounterEditorProvider()
         )));

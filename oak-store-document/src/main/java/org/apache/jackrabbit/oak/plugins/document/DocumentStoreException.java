@@ -171,7 +171,7 @@ public class DocumentStoreException extends RuntimeException {
                                                                   Iterable<String> ids) {
         String msg = message;
         if (ids.iterator().hasNext()) {
-            msg += " " + Lists.newArrayList(ids);
+            msg += " " + Lists.new ArrayList<>(ids);
         }
         if (t instanceof DocumentStoreException) {
             return (DocumentStoreException) t;

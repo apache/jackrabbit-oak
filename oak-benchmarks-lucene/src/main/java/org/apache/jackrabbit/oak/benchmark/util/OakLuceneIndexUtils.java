@@ -75,7 +75,7 @@ public class OakLuceneIndexUtils {
 
         // Set ordered property names
         if ((orderedPropsMap != null) && !orderedPropsMap.isEmpty()) {
-            List<String> orderedProps = Lists.newArrayList();
+            List<String> orderedProps = new ArrayList<>();;
             for (Map.Entry<String, Map<String, String>> orderedPropEntry : orderedPropsMap
                     .entrySet()) {
                 Node propNode = JcrUtils.getOrAddNode(propsNode, orderedPropEntry.getKey(),

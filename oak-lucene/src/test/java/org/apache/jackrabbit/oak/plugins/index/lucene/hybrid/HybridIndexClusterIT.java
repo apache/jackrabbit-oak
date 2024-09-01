@@ -206,7 +206,7 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $value", Query.JCR_SQL2);
         q.bindValue("value", session.getValueFactory().createValue(value));
         QueryResult result = q.execute();
-        List<String> paths = Lists.newArrayList();
+        List<String> paths = new ArrayList<>();;
         for (Row r : JcrUtils.getRows(result)){
             paths.add(r.getPath());
         }

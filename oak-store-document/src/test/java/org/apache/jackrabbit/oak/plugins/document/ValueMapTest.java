@@ -123,7 +123,7 @@ public class ValueMapTest {
 
         NodeDocument doc = store.find(NODES, rootId);
         assertNotNull(doc);
-        List<NodeDocument> prevDocs = Lists.newArrayList(
+        List<NodeDocument> prevDocs = Lists.new ArrayList<>(
                 doc.getPreviousDocs("p1", null));
         assertEquals(2, prevDocs.size());
         assertEquals(Utils.getPreviousIdFor(ROOT, r31, 0), prevDocs.get(0).getId());
@@ -143,7 +143,7 @@ public class ValueMapTest {
         DocumentStore docStore = store.getDocumentStore();
         String id = Utils.getIdFromPath("/");
         
-        List<NodeBuilder> branches = Lists.newArrayList();
+        List<NodeBuilder> branches = new ArrayList<>();;
         int i = 0;
         while (docStore.find(NODES, id).getPreviousRanges().size() < 2) {
             i++;
@@ -206,7 +206,7 @@ public class ValueMapTest {
         NodeDocument.setPrevious(op, range1);
         NodeDocument.setPrevious(op, range2);
         
-        store.create(NODES, Lists.newArrayList(op, prevOp1, prevOp2));
+        store.create(NODES, Lists.new ArrayList<>(op, prevOp1, prevOp2));
         
         NodeDocument doc = store.find(NODES, rootId);
         Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());

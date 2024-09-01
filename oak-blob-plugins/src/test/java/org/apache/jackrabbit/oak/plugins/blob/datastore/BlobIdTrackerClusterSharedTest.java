@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -39,8 +40,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.lang.String.valueOf;
@@ -242,7 +241,7 @@ public class BlobIdTrackerClusterSharedTest {
     }
 
     private static List<String> range(int min, int max) {
-        List<String> list = newArrayList();
+        List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
             list.add(valueOf(i));
         }

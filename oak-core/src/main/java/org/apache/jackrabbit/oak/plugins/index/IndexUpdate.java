@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
@@ -131,7 +131,7 @@ public class IndexUpdate implements Editor, PathSource {
     /**
      * Editors for indexes that will be normally updated.
      */
-    private final List<Editor> editors = newArrayList();
+    private final List<Editor> editors = new ArrayList<>();
 
     /**
      * Editors for indexes that need to be re-indexed.

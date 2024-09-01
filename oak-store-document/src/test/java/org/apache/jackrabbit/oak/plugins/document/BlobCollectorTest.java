@@ -49,7 +49,7 @@ public class BlobCollectorTest {
     @Test
     public void testCollect() throws Exception {
         NodeBuilder b1 = store.getRoot().builder();
-        List<ReferencedBlob> blobs = Lists.newArrayList();
+        List<ReferencedBlob> blobs = new ArrayList<>();;
 
         b1.child("x").child("y");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -87,7 +87,7 @@ public class BlobCollectorTest {
 
         NodeDocument doc =
                 store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y"));
-        List<ReferencedBlob> collectedBlobs = Lists.newArrayList();
+        List<ReferencedBlob> collectedBlobs = new ArrayList<>();;
         blobCollector.collect(doc, collectedBlobs);
 
         assertEquals(blobs.size(), collectedBlobs.size());

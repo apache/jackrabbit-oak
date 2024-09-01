@@ -94,7 +94,7 @@ public class OakUpgrade {
 
     private static RepositoryInitializer createCompositeInitializer() {
         ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(RepositoryInitializer.class);
-        List<RepositoryInitializer> initializers = Lists.newArrayList(loader.iterator());
+        List<RepositoryInitializer> initializers = Lists.new ArrayList<>(loader.iterator());
         return new CompositeInitializer(initializers);
     }
 

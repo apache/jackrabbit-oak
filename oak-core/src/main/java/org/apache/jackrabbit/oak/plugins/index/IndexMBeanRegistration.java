@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 public class IndexMBeanRegistration implements Registration {
 
     private final Whiteboard whiteboard;
-    private final List<Registration> regs = Lists.newArrayList();
+    private final List<Registration> regs = new ArrayList<>();;
 
     public IndexMBeanRegistration(Whiteboard whiteboard) {
         this.whiteboard = whiteboard;

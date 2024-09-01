@@ -51,7 +51,7 @@ public class JournalEntryTest {
     @Test
     public void applyTo() throws Exception {
         DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
-        List<Path> paths = Lists.newArrayList();
+        List<Path> paths = new ArrayList<>();;
         addRandomPaths(paths);
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
@@ -119,7 +119,7 @@ public class JournalEntryTest {
         validateCacheUsage(cache, from, to, "/c", false);//there is no cache entry for the whole hierarchy
 
         //Fill cache using journal
-        List<Path> paths = Lists.newArrayList(
+        List<Path> paths = Lists.new ArrayList<>(
                 p("/content/changed"),
                 p("/content/changed1/child1")
         );
@@ -443,7 +443,7 @@ public class JournalEntryTest {
     }
 
     private static List<String> getChildren(String diff) {
-        List<String> children = Lists.newArrayList();
+        List<String> children = new ArrayList<>();;
         JsopTokenizer t = new JsopTokenizer(diff);
         for (;;) {
             int r = t.read();

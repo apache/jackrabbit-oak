@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newCopyOnWriteArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
@@ -63,7 +63,7 @@ public class BranchNodeStore implements NodeStore, Observable {
 
     public BranchNodeStore(NodeStore nodeStore) throws CommitFailedException {
         this.nodeStore = nodeStore;
-        this.inheritedCheckpoints = newArrayList(nodeStore.checkpoints());
+        this.inheritedCheckpoints = new ArrayList<>(nodeStore.checkpoints());
         this.checkpointMapping = newConcurrentMap();
 
         String cp = nodeStore.checkpoint(CHECKPOINT_LIFETIME, singletonMap("type", "copy-on-write"));
@@ -131,8 +131,8 @@ public class BranchNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public Iterable<String> checkpoints() {
-        List<String> result = newArrayList(inheritedCheckpoints);
-        result.retainAll(newArrayList(nodeStore.checkpoints()));
+        List<String> result = new ArrayList<>(inheritedCheckpoints);
+        result.retainAll(new ArrayList<>(nodeStore.checkpoints()));
 
         checkpointMapping.entrySet().stream()
                 .filter(e -> memoryNodeStore.listCheckpoints().contains(e.getValue()))

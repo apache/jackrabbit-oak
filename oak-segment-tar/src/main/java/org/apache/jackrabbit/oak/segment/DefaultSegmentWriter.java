@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositio
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
@@ -310,7 +310,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 }
             }
 
-            List<MapEntry> entries = newArrayList();
+            List<MapEntry> entries = new ArrayList<>();
             for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
                 String key = entry.getKey();
 
@@ -432,7 +432,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return writeMapBucket(null, null, level);
             } else {
                 // combine all remaining entries into a leaf record
-                List<MapEntry> list = newArrayList();
+                List<MapEntry> list = new ArrayList<>();
                 for (MapRecord bucket : buckets) {
                     if (bucket != null) {
                         addAll(list, bucket.getEntries());
@@ -457,7 +457,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             checkArgument(!list.isEmpty());
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
-                List<RecordId> nextLevel = newArrayList();
+                List<RecordId> nextLevel = new ArrayList<>();
                 for (List<RecordId> bucket :
                         partition(thisLevel, ListRecord.LEVEL_SIZE)) {
                     if (bucket.size() > 1) {
@@ -482,12 +482,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             int shift = 32 - (level + 1) * MapRecord.BITS_PER_LEVEL;
 
             List<List<MapEntry>> buckets =
-                    newArrayList(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
+                    new ArrayList<>(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
             for (MapEntry entry : entries) {
                 int index = (entry.getHash() >> shift) & mask;
                 List<MapEntry> bucket = buckets.get(index);
                 if (bucket == null) {
-                    bucket = newArrayList();
+                    bucket = new ArrayList<>();
                     buckets.set(index, bucket);
                 }
                 bucket.add(entry);
@@ -716,7 +716,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             Type<?> type = state.getType();
             int count = state.count();
 
-            List<RecordId> valueIds = newArrayList();
+            List<RecordId> valueIds = new ArrayList<>();
             for (int i = 0; i < count; i++) {
                 if (type.tag() == PropertyType.BINARY) {
                     try {
@@ -754,7 +754,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return id; // shortcut if the same template was recently stored
             }
 
-            Collection<RecordId> ids = newArrayList();
+            Collection<RecordId> ids = new ArrayList<>();
             int head = 0;
 
             RecordId primaryId = null;
@@ -769,7 +769,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             PropertyState mixinTypes = template.getMixinTypes();
             if (mixinTypes != null) {
                 head |= 1 << 30;
-                mixinIds = newArrayList();
+                mixinIds = new ArrayList<>();
                 for (String mixin : mixinTypes.getValue(NAMES)) {
                     mixinIds.add(writeString(mixin));
                 }
@@ -866,7 +866,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 beforeTemplate = before.getTemplate();
             }
 
-            List<RecordId> ids = newArrayList();
+            List<RecordId> ids = new ArrayList<>();
             Template template = new Template(reader, state);
             if (template.equals(beforeTemplate)) {
                 ids.add(before.getTemplateId());
@@ -881,7 +881,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 ids.add(writeNode(state.getChildNode(template.getChildName()), null));
             }
 
-            List<RecordId> pIds = newArrayList();
+            List<RecordId> pIds = new ArrayList<>();
             for (PropertyTemplate pt : template.getPropertyTemplates()) {
                 String name = pt.getName();
                 PropertyState property = state.getProperty(name);

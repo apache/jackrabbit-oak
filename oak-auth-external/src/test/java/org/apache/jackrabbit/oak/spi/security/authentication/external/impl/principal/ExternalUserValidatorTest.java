@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -62,6 +61,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -87,21 +87,21 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { IdentityProtectionType.NONE, false, "None, Default Sync" },
                 new Object[] { IdentityProtectionType.WARN, true, "Warn, Dynamic Sync" },
                 new Object[] { IdentityProtectionType.WARN, false, "Warn, Default Sync" },
                 new Object[] { IdentityProtectionType.PROTECTED, true, "Protected, Dynamic Sync" },
                 new Object[] { IdentityProtectionType.PROTECTED, false, "Protected, Default Sync" });
     }
-    
+
     private final IdentityProtectionType type;
     private final boolean isDynamic;
-    
+
     private String localUserPath;
     private String externalUserPath;
     private UserManager userManager;
-    
+
     private Root sysRoot;
 
     public ExternalUserValidatorTest(@NotNull IdentityProtectionType type, boolean isDynamic, @NotNull String name) {
@@ -126,7 +126,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         userManager = getUserManager(root);
         sysRoot = getSystemRoot();
     }
-    
+
     @Override
     protected @NotNull Map<String, Object> getExternalPrincipalConfiguration() {
         return Collections.singletonMap(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES, type.label);
@@ -139,7 +139,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         config.user().setDynamicMembership(isDynamic);
         return config;
     }
-    
+
     private boolean exceptionExpected() {
         return type == IdentityProtectionType.PROTECTED;
     }
@@ -160,7 +160,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             root.refresh();
         }
     }
-    
+
     @Test
     public void testModifyLocalUser() throws Exception {
         Tree userTree = root.getTree(localUserPath);
@@ -168,7 +168,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         TreeUtil.addChild(userTree, "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
         assertTrue(userManager.getAuthorizableByPath(localUserPath).hasProperty("test"));
-        
+
         userTree.setProperty("test", "modified");
         root.commit();
         assertTrue(userManager.getAuthorizableByPath(localUserPath).hasProperty("test"));
@@ -178,12 +178,12 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         root.commit();
         assertFalse(userManager.getAuthorizableByPath(localUserPath).hasProperty("test"));
     }
-    
+
     @Test
     public void testAddProperty() throws Exception {
         Tree externalUserTree = root.getTree(externalUserPath);
         externalUserTree.setProperty("test", "value");
-        
+
         assertCommit();
         assertEquals(!exceptionExpected(), userManager.getAuthorizableByPath(externalUserPath).hasProperty("test"));
     }
@@ -198,7 +198,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         String expected = exceptionExpected() ? "Test User" : "newValue";
         assertEquals(expected, userManager.getAuthorizableByPath(externalUserPath).getProperty("name")[0].getString());
     }
-    
+
     @Test
     public void testRemoveProperty() throws Exception {
         Tree externalUserTree = root.getTree(externalUserPath);
@@ -238,7 +238,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         assertCommit();
         assertEquals(exceptionExpected(), userManager.getAuthorizableByPath(externalUserPath).hasProperty("profile/age"));
     }
-    
+
     @Test
     public void testAddChildNode() throws Exception {
         Tree profile = root.getTree(externalUserPath).getChild("profile");
@@ -257,7 +257,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         assertCommit();
         assertEquals(exceptionExpected(), userManager.getAuthorizableByPath(externalUserPath).hasProperty("profile/age"));
     }
-    
+
     @Test
     public void testReorderChildNodes() throws Exception {
         Root sr = getSystemRoot();
@@ -266,27 +266,27 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         Tree profile = userTree.getChild("profile");
         Tree profile2 = TreeUtil.addChild(userTree, "profile2", NT_UNSTRUCTURED, sr.getTree(NodeTypeConstants.NODE_TYPES_PATH), "id");
         sr.commit();
-        
+
         root.refresh();
         Tree t = root.getTree(externalUserPath).getChild("profile2");
         t.orderBefore("profile");
-        
+
         assertCommit();
         String expectedName = exceptionExpected() ? "profile" : "profile2";
         assertEquals(expectedName, root.getTree(externalUserPath).getChildren().iterator().next().getName());
     }
-    
+
     @Test
     public void testModifyGroupMembership() throws Exception {
         Group g = getUserManager(root).getAuthorizable("a", Group.class);
         if (g != null) {
             g.addMember(getTestUser());
-            
+
             assertCommit();
             assertEquals(!exceptionExpected(), g.isMember(getTestUser()));
         } // else: dynamic membership
     }
-    
+
     @Test
     public void testAddEditAcContent() throws Exception {
         JackrabbitAccessControlManager acMgr = getAccessControlManager(root);
@@ -308,7 +308,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             assertFalse(acMgr.hasPrivileges(externalUserPath, Collections.singleton(EveryonePrincipal.getInstance()), privs));
         }
     }
-    
+
     @Test
     public void testCustomSecurityProperty() throws Exception {
         Context customContext = new Context.Default() {
@@ -320,21 +320,21 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         TokenConfiguration customTc = mock(TokenConfiguration.class);
         when(customTc.getContext()).thenReturn(customContext);
         when(customTc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
-        
+
         TokenConfiguration tc = getSecurityProvider().getConfiguration(TokenConfiguration.class);
         assertTrue(tc instanceof CompositeConfiguration);
         CompositeConfiguration<TokenConfiguration> cc = (CompositeConfiguration<TokenConfiguration>) tc;
 
         try {
             cc.addConfiguration(customTc);
-            
+
             Tree t = root.getTree(externalUserPath);
             t.setProperty("testtoken", "value");
             root.commit();
 
             t.setProperty("testtoken", "modified");
             root.commit();
-            
+
             t.removeProperty("testtoken");
             root.commit();
         } finally {
@@ -356,7 +356,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             root.refresh();
             Tree tokens = root.getTree(externalUserPath).getChild(TOKENS_NODE_NAME);
             assertTrue(tokens.exists());
-            
+
             // remove individual token nodes
             for (Tree t : tokens.getChildren()) {
                 t.remove();
@@ -372,7 +372,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             Configuration.setConfiguration(configuration);
         }
     }
-    
+
     private Configuration getTokenConfiguration() {
         return new Configuration() {
             @Override
@@ -394,18 +394,18 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             }
         };
     }
-    
+
     @Test
     public void testCreateExternalUser() throws Exception {
         ExternalUser extU = idp.getUser(ID_SECOND_USER);
-        
+
         Tree folder = root.getTree(externalUserPath).getParent();
         Tree t = TreeUtil.addChild(folder, "test", UserConstants.NT_REP_USER, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "id");
         t.setProperty(UserConstants.REP_AUTHORIZABLE_ID, extU.getId());
         t.setProperty(UserConstants.REP_PRINCIPAL_NAME, extU.getPrincipalName());
         t.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, extU.getExternalId().getString());
         t.setProperty(JCR_UUID, UUIDUtils.generateUUID(extU.getId().toLowerCase()));
-        
+
         assertCommit();
         Authorizable u = getUserManager(root).getAuthorizable(extU.getId());
         if (exceptionExpected()) {
@@ -427,7 +427,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         t.setProperty(JCR_UUID, UUIDUtils.generateUUID(extU.getId().toLowerCase()));
         Tree profile = TreeUtil.addChild(t, "profile", NT_UNSTRUCTURED, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "id");
         profile.setProperty("name", "test-user");
-        
+
         assertCommit();
         Authorizable u = getUserManager(root).getAuthorizable(extU.getId());
         if (exceptionExpected()) {
@@ -436,7 +436,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             assertNotNull(u);
         }
     }
-    
+
     @Test
     public void testAddMixin() throws Exception {
         Tree externalUserTree = root.getTree(externalUserPath);
@@ -445,7 +445,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         assertCommit();
         assertEquals(!exceptionExpected(), root.getTree(externalUserPath).hasProperty(JCR_MIXINTYPES));
     }
-    
+
     @Test
     public void testAddMixinWithProperty() throws Exception {
         Tree externalUserTree = root.getTree(externalUserPath);
@@ -455,7 +455,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         assertCommit();
         assertEquals(!exceptionExpected(), root.getTree(externalUserPath).hasProperty(JCR_MIXINTYPES));
     }
-    
+
     @Test
     public void testRemoveExternalUser() {
         Tree externalUserTree = root.getTree(externalUserPath);
@@ -464,13 +464,13 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         assertCommit();
         assertEquals(exceptionExpected(), root.getTree(externalUserPath).exists());
     }
-    
+
     @Test
     public void testDisable() throws Exception {
         Authorizable extuser = getUserManager(root).getAuthorizableByPath(externalUserPath);
         assertNotNull(extuser);
         assertFalse(extuser.isGroup());
-        
+
         ((User) extuser).disable("disable");
         assertCommit();
         assertEquals(!exceptionExpected(), root.getTree(externalUserPath).hasProperty(UserConstants.REP_DISABLED));
@@ -481,35 +481,35 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         Authorizable extuser = getUserManager(root).getAuthorizableByPath(externalUserPath);
         assertNotNull(extuser);
         assertFalse(extuser.isGroup());
-        
+
         ((User) extuser).changePassword("something");
         assertCommit();
         assertEquals(!exceptionExpected(), root.getTree(externalUserPath).hasProperty(UserConstants.REP_PASSWORD));
     }
-    
+
     @Test
     public void testAddModifyRemoveFolder() throws Exception {
         Tree t = root.getTree(PathUtils.getParentPath(externalUserPath));
         Tree folder = TreeUtil.addChild(t, "folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getPath();
         root.commit();
-        
+
         sysRoot.refresh();
         assertTrue(sysRoot.getTree(path).exists());
-        
+
         TreeUtil.addMixin(folder, NodeTypeConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "id");
         root.commit();
 
         sysRoot.refresh();
         assertTrue(sysRoot.getTree(path).hasProperty(JCR_MIXINTYPES));
-        
+
         folder.remove();
         root.commit();
 
         sysRoot.refresh();
         assertFalse(sysRoot.getTree(path).exists());
     }
-    
+
     @Test
     public void testValidatorWithTypeNone() {
         if (type == IdentityProtectionType.NONE) {

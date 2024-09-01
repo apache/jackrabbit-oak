@@ -39,7 +39,7 @@ class DocumentCheckpoints extends Checkpoints {
 
     @Override
     public List<CP> list() {
-        List<CP> list = Lists.newArrayList();
+        List<CP> list = new ArrayList<>();;
         for (Map.Entry<Revision, Long> entry : getCheckpoints(store).entrySet()) {
             list.add(new CP(entry.getKey().toString(),
                     entry.getKey().getTimestamp(),

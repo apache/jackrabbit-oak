@@ -103,7 +103,7 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
         Utils.addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs);
 
         // create additional ACEs for each principal in the subject
-        List<Privilege> allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        List<Privilege> allPrivileges = Lists.new ArrayList<>(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         Iterator<Principal> principalIterator = Iterators.cycle(subject.getPrincipals());
         int cnt = 0;
         while (cnt < numberOfACEs) {

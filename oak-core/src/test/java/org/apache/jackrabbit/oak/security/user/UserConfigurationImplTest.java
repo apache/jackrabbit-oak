@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -67,7 +66,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         List<? extends ValidatorProvider> validators = configuration.getValidators(adminSession.getWorkspaceName(), Collections.<Principal>emptySet(), new MoveTracker());
         assertEquals(2, validators.size());
 
-        List<String> clNames = Lists.newArrayList(
+        List<String> clNames = List.of(
                 UserValidatorProvider.class.getName(),
                 CacheValidatorProvider.class.getName());
 

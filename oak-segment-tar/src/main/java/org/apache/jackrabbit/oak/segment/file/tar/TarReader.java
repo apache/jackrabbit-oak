@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -87,7 +87,7 @@ public class TarReader implements Closeable {
         SortedMap<Character, String> sorted = newTreeMap();
         sorted.putAll(files);
 
-        List<String> list = newArrayList(sorted.values());
+        List<String> list = new ArrayList<>(sorted.values());
         Collections.reverse(list);
 
         TarReader reader = openFirstFileWithValidIndex(list, archiveManager);

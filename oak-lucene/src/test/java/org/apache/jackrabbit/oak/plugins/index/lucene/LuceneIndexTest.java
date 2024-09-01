@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Arrays.asList;
@@ -352,7 +352,7 @@ public class LuceneIndexTest {
         // would have already picked up 50 docs which would not be considered
         //deleted by QE for the revision at which query was triggered
         //So just checking for >
-        List<String> resultPaths = Lists.newArrayList();
+        List<String> resultPaths = new ArrayList<>();;
         while(cursor.hasNext()){
             resultPaths.add(cursor.next().getPath());
         }
@@ -740,7 +740,7 @@ public class LuceneIndexTest {
         assertQuery(tracker, indexed, "foo3", "bar3");
         assertEquals(0, copier.getInvalidFileCount());
         List<LocalIndexDir> idxDirs = copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene");
-        List<LocalIndexDir> nonEmptyDirs = Lists.newArrayList();
+        List<LocalIndexDir> nonEmptyDirs = new ArrayList<>();;
         for (LocalIndexDir dir : idxDirs){
             if (!dir.isEmpty()){
                 nonEmptyDirs.add(dir);
@@ -956,7 +956,7 @@ public class LuceneIndexTest {
         List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
         }

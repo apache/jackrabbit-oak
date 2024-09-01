@@ -20,7 +20,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -2126,7 +2125,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
                        @NotNull RestrictionProvider restrictionProvider,
                        @NotNull NamePathMapper namePathMapper,
                        @NotNull JackrabbitAccessControlEntry... entry) {
-            this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
+            this(jcrPath, restrictionProvider, namePathMapper, List.of(entry));
         }
 
         @Override

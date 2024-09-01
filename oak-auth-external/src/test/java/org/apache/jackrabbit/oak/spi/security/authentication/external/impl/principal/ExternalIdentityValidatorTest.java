@@ -149,7 +149,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testModifyExternalPrincipalNames() throws Exception {
         Tree userTree = root.getTree(externalUserPath);
         try {
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, Lists.newArrayList("principalNames"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, Lists.new ArrayList<>("principalNames"), Type.STRINGS);
             root.commit();
             fail("Changing rep:externalPrincipalNames must be detected.");
         } catch (CommitFailedException e) {

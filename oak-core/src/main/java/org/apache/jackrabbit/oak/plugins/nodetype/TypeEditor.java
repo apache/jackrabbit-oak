@@ -330,7 +330,7 @@ public class TypeEditor extends DefaultEditor {
             @Nullable EffectiveType parent, @Nullable String name,
             @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
-        List<NodeState> list = Lists.newArrayList();
+        List<NodeState> list = new ArrayList<>();;
 
         NodeState type = (primary == null) ? null : types.getChildNode(primary);
         if (type == null || !type.exists()) {
@@ -441,9 +441,9 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = Lists.newArrayList(before.getNames(JCR_MIXINTYPES));
+        List<String> pre = Lists.new ArrayList<>(before.getNames(JCR_MIXINTYPES));
         Collections.sort(pre);
-        List<String> post = Lists.newArrayList(after);
+        List<String> post = Lists.new ArrayList<>(after);
         Collections.sort(post);
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
@@ -467,7 +467,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        List<String> names = Lists.new ArrayList<>(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

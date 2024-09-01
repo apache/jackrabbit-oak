@@ -50,7 +50,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 import static org.junit.Assert.assertEquals;
@@ -142,9 +142,9 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
     private static void assertTrackedDeleted(Iterator<String> afterDeletions,
         GarbageCollectableBlobStore blobStore) throws IOException {
 
-        List<String> afterDeletionIds = newArrayList(afterDeletions);
+        List<String> afterDeletionIds = new ArrayList<>(afterDeletions);
         // get the currently tracked ones
-        ArrayList<String> trackedIds = newArrayList(((BlobTrackingStore) blobStore).getTracker().get());
+        ArrayList<String> trackedIds = new ArrayList<>(((BlobTrackingStore) blobStore).getTracker().get());
         assertEquals("Tracked ids length different from current blob list",
             trackedIds.size(), afterDeletionIds.size());
         assertTrue("Tracked ids different from current blob list",

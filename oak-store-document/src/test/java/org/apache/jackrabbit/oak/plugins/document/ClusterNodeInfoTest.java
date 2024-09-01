@@ -65,7 +65,7 @@ public class ClusterNodeInfoTest {
 
     @Parameterized.Parameters(name="{index}: ({0})")
     public static List<Boolean> fixtures() {
-        return Lists.newArrayList(false, true);
+        return Lists.new ArrayList<>(false, true);
     }
 
     @Before

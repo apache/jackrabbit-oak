@@ -56,7 +56,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.junit.Assert.assertEquals;
@@ -104,7 +104,7 @@ public class AtomicCompositeMergeTest {
 
     private void testAtomicMerges(Function<Integer, Oak> oakSupplier) throws InterruptedException, IOException, ParseException, CommitFailedException {
         Set<String> failedMerges = Collections.synchronizedSet(newHashSet());
-        List<Thread> threads = newArrayList();
+        List<Thread> threads = new ArrayList<>();
 
         ContentSession generalSession = oakSupplier.apply(100).createContentSession();
         closer.register(generalSession);

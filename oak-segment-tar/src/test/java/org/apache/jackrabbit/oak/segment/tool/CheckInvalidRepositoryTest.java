@@ -76,11 +76,11 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent",
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Checked 7 nodes and 21 properties", "Path / is consistent",
             "Searched through 2 revisions"));
 
         // not sure whether first traversal will fail because of "/a" or "/z"
-        assertExpectedOutput(log.errString(), Lists.newArrayList("Error while traversing /"));
+        assertExpectedOutput(log.errString(), Lists.new ArrayList<>("Error while traversing /"));
     }
 
     @Test
@@ -90,9 +90,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checking head", "Checking checkpoints", "No good revision found"));
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Checking head", "Checking checkpoints", "No good revision found"));
         assertExpectedOutput(log.errString(),
-            Lists.newArrayList(
+            Lists.new ArrayList<>(
                 "Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds",
                 "Path /z not found"));
     }
@@ -105,9 +105,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent",
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Checked 1 nodes and 1 properties", "Path /a is consistent",
             "Searched through 2 revisions"));
-        assertExpectedOutput(log.errString(), Lists.newArrayList(
+        assertExpectedOutput(log.errString(), Lists.new ArrayList<>(
             "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
@@ -118,9 +118,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checking head", "Checking checkpoints",
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Checking head", "Checking checkpoints",
             "Checked 7 nodes and 21 properties", "Path / is consistent", "Searched through 2 revisions and 2 checkpoints"));
-        assertExpectedOutput(log.errString(), Lists.newArrayList(
+        assertExpectedOutput(log.errString(), Lists.new ArrayList<>(
             "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
@@ -134,8 +134,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
-        assertExpectedOutput(log.errString(), Lists.newArrayList(
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
+        assertExpectedOutput(log.errString(), Lists.new ArrayList<>(
             "Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
@@ -161,7 +161,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("No good revision found"));
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("No good revision found"));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Searched through 1 revisions and 2 checkpoints", "No good revision found"));
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Searched through 1 revisions and 2 checkpoints", "No good revision found"));
     }
 
     @Test
@@ -184,8 +184,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Path /b is consistent", "No good revision found"));
-        assertExpectedOutput(log.errString(), Lists.newArrayList("Checkpoint invalid-checkpoint-id not found in this revision!"));
+        assertExpectedOutput(log.outString(), Lists.new ArrayList<>("Path /b is consistent", "No good revision found"));
+        assertExpectedOutput(log.errString(), Lists.new ArrayList<>("Checkpoint invalid-checkpoint-id not found in this revision!"));
     }
 
     @Test

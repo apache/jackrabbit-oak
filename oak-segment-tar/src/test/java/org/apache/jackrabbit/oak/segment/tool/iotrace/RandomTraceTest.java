@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -53,7 +53,7 @@ public class RandomTraceTest {
 
     @Test
     public void testTraverseEmptyTree() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         new RandomAccessTrace(emptyList(), 0,10, trace::add)
             .run(createTree(emptyList()));
         assertEquals(0, trace.size());
@@ -61,7 +61,7 @@ public class RandomTraceTest {
 
     @Test
     public void testTraverseNonExistingPath() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         new RandomAccessTrace(ImmutableList.of("/not/here"), 0, 1, trace::add)
             .run(createTree(emptyList()));
         assertEquals(1, trace.size());
@@ -70,7 +70,7 @@ public class RandomTraceTest {
 
     @Test
     public void testTraverse() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         ImmutableList<String> paths = ImmutableList.of("/a/b/c", "/d/e/f");
         new RandomAccessTrace(paths, 0, 2, trace::add)
                 .run(createTree(paths));

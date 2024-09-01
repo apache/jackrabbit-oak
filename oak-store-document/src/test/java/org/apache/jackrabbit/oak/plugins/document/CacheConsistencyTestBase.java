@@ -73,7 +73,7 @@ public abstract class CacheConsistencyTestBase {
         String id3 = this.getClass().getName() + ".testExceptionInvalidatesCache3";
         UpdateOp up3 = new UpdateOp(id3, true);
         up3.set("_test", "oldvalue");
-        ds.create(Collection.NODES, Lists.newArrayList(up1, up2, up3));
+        ds.create(Collection.NODES, Lists.new ArrayList<>(up1, up2, up3));
         removeMe.add(id1);
         removeMe.add(id2);
         removeMe.add(id3);
@@ -151,7 +151,7 @@ public abstract class CacheConsistencyTestBase {
                 up3 = new UpdateOp(id3, false);
                 up3.set("_test", random);
 
-                ds.createOrUpdate(Collection.NODES, Lists.newArrayList(up1, up2, up3));
+                ds.createOrUpdate(Collection.NODES, Lists.new ArrayList<>(up1, up2, up3));
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);

@@ -122,7 +122,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
         assumeTrue(isS3Configured());
     }
 
-    private static List<String> createdBucketNames = Lists.newArrayList();
+    private static List<String> createdBucketNames = new ArrayList<>();;
 
     @Override
     @Before

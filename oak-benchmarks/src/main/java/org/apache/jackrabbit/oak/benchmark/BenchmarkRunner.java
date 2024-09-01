@@ -71,7 +71,7 @@ public class BenchmarkRunner {
 
     private static final int MB = 1024 * 1024;
 
-    protected static List<Benchmark> allBenchmarks = Lists.newArrayList();
+    protected static List<Benchmark> allBenchmarks = new ArrayList<>();;
     protected static StatisticsProvider statsProvider = null;
 
     private static OptionParser parser = new OptionParser();
@@ -475,7 +475,7 @@ public class BenchmarkRunner {
 
 
         Set<String> argset = Sets.newHashSet(benchmarkOptions.getNonOption().values(options));
-        List<RepositoryFixture> fixtures = Lists.newArrayList();
+        List<RepositoryFixture> fixtures = new ArrayList<>();;
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
                 fixtures.add(fixture);
@@ -488,7 +488,7 @@ public class BenchmarkRunner {
                     + asSortedString(Arrays.asList(allFixtures)));
         }
 
-        List<Benchmark> benchmarks = Lists.newArrayList();
+        List<Benchmark> benchmarks = new ArrayList<>();;
         for (Benchmark benchmark : allBenchmarks) {
             if (argset.remove(benchmark.toString())) {
                 benchmarks.add(benchmark);

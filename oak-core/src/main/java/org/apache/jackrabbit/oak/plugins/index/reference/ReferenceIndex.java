@@ -130,7 +130,7 @@ class ReferenceIndex implements QueryIndex {
         if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();;
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
                     + uuid + ")", indexRoot, ImmutableSet.of(uuid)));

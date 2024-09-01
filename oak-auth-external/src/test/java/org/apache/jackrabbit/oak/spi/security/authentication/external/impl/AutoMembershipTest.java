@@ -20,7 +20,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
@@ -36,6 +35,7 @@ import org.junit.runners.Parameterized;
 
 import javax.jcr.ValueFactory;
 import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,7 +47,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[]{true, "DynamicSync=true"},
                 new Object[]{false, "DynamicSync=false"});
     }
@@ -73,17 +73,17 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         // providers registered.
         context.registerInjectActivateService(getUserConfiguration());
         registerSyncHandler(syncConfigAsMap(), idp.getName());
-        
+
         r = getSystemRoot();
         userManager = getUserManager(r);
 
         // create automembership groups
         groupAutomembership = userManager.createGroup("groupAutomembership");
         userAutomembership = userManager.createGroup("userAutomembership1");
-        
+
         Group groupInherited = userManager.createGroup("groupInherited");
         groupInherited.addMembers("groupAutomembership", "userAutomembership");
-        
+
         TestIdentityProvider tidp = (TestIdentityProvider) idp;
         tidp.addUser(new TestIdentityProvider.TestUser("externalUser", idp.getName()));
         tidp.addGroup(new TestIdentityProvider.TestGroup("externalGroup", idp.getName()));
@@ -96,7 +96,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         assertEquals(SyncResult.Status.ADD, syncCtx.sync(idp.getUser("externalUser")).getStatus());
         assertEquals(SyncResult.Status.ADD, syncCtx.sync(idp.getGroup("externalGroup")).getStatus());
         r.commit();
-        
+
         externalUser = userManager.getAuthorizable("externalUser", User.class);
         externalGroup = userManager.getAuthorizable("externalGroup", Group.class);
         assertNotNull(externalUser);
@@ -141,7 +141,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         r.commit();
         return testGroup;
     }
-    
+
     @Test
     public void testIsDeclaredMemberConfiguredUserAutoMembership() throws Exception {
         assertFalse(userAutomembership.isDeclaredMember(getTestUser()));
@@ -254,7 +254,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         // add 'automembership-group' as nested members
         testGroup.addMember(userAutomembership);
         r.commit();
-        
+
         assertFalse(base.isDeclaredMember(externalUser));
         assertTrue(base.isMember(externalUser));
     }

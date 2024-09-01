@@ -80,7 +80,7 @@ public class IndexConsistencyCheckerTest {
 
         idx.setProperty("foo", failingBlob);
         idx.child(":index").setProperty("foo", failingBlob);
-        idx.child("b").setProperty("foo", Lists.newArrayList(failingBlob, failingBlob), Type.BINARIES);
+        idx.child("b").setProperty("foo", Lists.new ArrayList<>(failingBlob, failingBlob), Type.BINARIES);
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("a", idx.getNodeState());
@@ -172,7 +172,7 @@ public class IndexConsistencyCheckerTest {
         NodeBuilder builder = rootState.builder();
 
         NodeBuilder file = idx.getChildNode(":data").getChildNode("_0.cfe");
-        List<Blob> blobs = Lists.newArrayList(file.getProperty("jcr:data").getValue(Type.BINARIES));
+        List<Blob> blobs = Lists.new ArrayList<>(file.getProperty("jcr:data").getValue(Type.BINARIES));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         IOUtils.copy(blobs.get(0).getNewStream(), baos);

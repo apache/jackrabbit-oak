@@ -100,7 +100,7 @@ public final class Filters {
      */
     @NotNull
     public static EventFilter any(@NotNull final EventFilter... filters) {
-        return any(Lists.newArrayList(requireNonNull(filters)));
+        return any(Lists.new ArrayList<>(requireNonNull(filters)));
     }
 
     /**
@@ -111,7 +111,7 @@ public final class Filters {
      */
     @NotNull
     public static EventFilter all(@NotNull final EventFilter... filters) {
-        return all(Lists.newArrayList(requireNonNull(filters)));
+        return all(Lists.new ArrayList<>(requireNonNull(filters)));
     }
 
     /**
@@ -216,7 +216,7 @@ public final class Filters {
 
                 @Override
                 public EventFilter create(String name, NodeState before, NodeState after) {
-                    List<EventFilter> childFilters = Lists.newArrayList();
+                    List<EventFilter> childFilters = new ArrayList<>();;
                     for (EventFilter filter : filters) {
                         EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter != null) {
@@ -315,7 +315,7 @@ public final class Filters {
 
                 @Override
                 public EventFilter create(String name, NodeState before, NodeState after) {
-                    List<EventFilter> childFilters = Lists.newArrayList();
+                    List<EventFilter> childFilters = new ArrayList<>();;
                     for (EventFilter filter : filters) {
                         EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter == null) {

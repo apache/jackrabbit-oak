@@ -52,7 +52,7 @@ public class SolrQueryIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();;
 
     @Reference
     private SolrServerProvider solrServerProvider;

@@ -161,7 +161,7 @@ class UnsavedModifications {
             lock.unlock();
         }
         stats.num = pending.size();
-        List<UpdateOp> updates = Lists.newArrayList();
+        List<UpdateOp> updates = new ArrayList<>();;
         Map<Path, Revision> pathToRevision = Maps.newHashMap();
         for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
                 pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {

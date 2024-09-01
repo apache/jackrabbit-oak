@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
@@ -173,7 +173,7 @@ public class DebugStore {
     }
 
     private static void analyseSegment(final Segment segment, final RecordUsageAnalyser analyser) {
-        final List<RecordId> ids = newArrayList();
+        final List<RecordId> ids = new ArrayList<>();
 
         segment.forEachRecord((number, type, offset) -> {
             if (type == NODE) {

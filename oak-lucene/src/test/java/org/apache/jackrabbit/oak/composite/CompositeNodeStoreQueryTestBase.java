@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -108,7 +108,7 @@ public class CompositeNodeStoreQueryTestBase {
     protected final NodeStoreKind nodeStoreRoot;
     protected final NodeStoreKind mounts;
 
-    private final List<NodeStoreRegistration> registrations = newArrayList();
+    private final List<NodeStoreRegistration> registrations = new ArrayList<>();
 
     private NodeStore mountedStore;
     private NodeStore deepMountedStore;
@@ -223,7 +223,7 @@ public class CompositeNodeStoreQueryTestBase {
 
         // don't use the builder since it would fail due to too many read-write stores
         // but for the purposes of testing the general correctness it's fine
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();;
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("temp"), mountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("deep"), deepMountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("empty"), emptyStore));

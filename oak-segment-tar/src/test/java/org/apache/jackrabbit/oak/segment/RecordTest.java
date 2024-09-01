@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.lang.Math.min;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -174,7 +174,7 @@ public class RecordTest {
         random.nextBytes(data);
 
         // create enough copies of the value to fill a full segment
-        List<Blob> blobs = newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         while (blobs.size() * data.length < Segment.MAX_SEGMENT_SIZE) {
             blobs.add(new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(data))));
         }

@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.composite;
 
 import static org.apache.jackrabbit.guava.common.base.Predicates.compose;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
@@ -93,7 +93,7 @@ public class CompositeNodeStoreTest {
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
 
-    private final List<NodeStoreRegistration> registrations = newArrayList();
+    private final List<NodeStoreRegistration> registrations = new ArrayList<>();
 
     private CompositeNodeStore store;
     private NodeStore globalStore;
@@ -181,7 +181,7 @@ public class CompositeNodeStoreTest {
 
         // don't use the builder since it would fail due to too many read-write stores
         // but for the purposes of testing the general correctness it's fine
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();;
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("temp"), mountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("deep"), deepMountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("empty"), emptyStore));
@@ -652,12 +652,12 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME::apply)));
+        List<ChildNodeEntry> children = new ArrayList<>(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME::apply)));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 
         NodeBuilder rootBuilder = store.getRoot().builder();
-        List<String> childNames = newArrayList(filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
+        List<String> childNames = new ArrayList<>(filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
     }

@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
@@ -60,7 +60,7 @@ public class SinglePropertyIndexQueryTests extends AbstractQueryTest {
             "(@" + INDEXED_PROPERTY + " = 'a' or @" + INDEXED_PROPERTY + " = 'c') " +
             "and " +
             "(@" + INDEXED_PROPERTY + " = 'b' or @" + INDEXED_PROPERTY + " = 'd')]";
-        List<String> expected = newArrayList();
+        List<String> expected = new ArrayList<>();
         
         Tree content = root.getTree("/").addChild("content");
         

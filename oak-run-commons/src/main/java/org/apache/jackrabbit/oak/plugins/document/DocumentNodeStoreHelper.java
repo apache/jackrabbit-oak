@@ -85,7 +85,7 @@ public class DocumentNodeStoreHelper {
         long totalGarbage = 0;
         Iterable<NodeDocument> docs = getDocuments(store.getDocumentStore());
         PriorityQueue<BlobReferences> queue = new PriorityQueue<BlobReferences>(num, comparator);
-        List<Blob> blobs = Lists.newArrayList();
+        List<Blob> blobs = new ArrayList<>();;
         long docCount = 0;
         for (NodeDocument doc : docs) {
             if (++docCount % 10000 == 0) {
@@ -101,7 +101,7 @@ public class DocumentNodeStoreHelper {
         }
 
         System.out.println();
-        List<BlobReferences> refs = Lists.newArrayList();
+        List<BlobReferences> refs = new ArrayList<>();;
         refs.addAll(queue);
         Collections.sort(refs, Collections.reverseOrder(comparator));
         System.out.println("Total garbage size: " + FileUtils.byteCountToDisplaySize(totalGarbage));
@@ -116,7 +116,7 @@ public class DocumentNodeStoreHelper {
         long garbageSize = 0;
         int numBlobs = 0;
 
-        List<Blob> blobs = Lists.newArrayList();
+        List<Blob> blobs = new ArrayList<>();;
         RevisionVector head = ns.getHeadRevision();
         boolean exists = doc.getNodeAtRevision(ns, head, null) != null;
         for (String key : doc.keySet()) {

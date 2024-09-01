@@ -32,7 +32,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -394,7 +393,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         public void track(File recs) throws IOException {
             lock.lock();
             try {
-                append(Lists.newArrayList(recs), delFile, false);
+                append(List.of(recs), delFile, false);
                 sort(delFile);
             } finally {
                 lock.unlock();
@@ -688,7 +687,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             File added = createTempFile("added", null);
             writeStrings(recs, added, false);
             // Merge the file with the references
-            merge(Lists.newArrayList(added), false);
+            merge(List.of(added), false);
         }
 
         /**
@@ -699,7 +698,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          */
         protected void addRecords(File recs) throws IOException {
             // Merge the file with the references
-            merge(Lists.newArrayList(recs), false);
+            merge(List.of(recs), false);
         }
 
         /**

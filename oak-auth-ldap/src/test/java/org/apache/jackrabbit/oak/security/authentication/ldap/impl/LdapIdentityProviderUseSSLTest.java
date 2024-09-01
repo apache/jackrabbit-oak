@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -36,12 +35,12 @@ import static org.junit.Assert.assertNotNull;
  */
 @RunWith(Parameterized.class)
 public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProviderTest {
-    
+
     private static final String PROTOCOL = "TLSv1.2";
-    
+
     @Parameterized.Parameters(name = "LdapConfiguration with {2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] {false, false, null, "useSSL=false, useTLS=false, enabled_protocols=NA"},
                 new Object[] {true, false, null, "useSSL=true, useTLS=false, enabled_protocols=NA"},
                 new Object[] {true, false, new String[] {PROTOCOL}, "useSSL=true, useTLS=false, enabled_protocols=["+PROTOCOL+"]"},
@@ -50,7 +49,7 @@ public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProvider
                 new Object[] {true, true, new String[0], "useSSL=true, useTLS=true, enabled_protocols=[]"}
         );
     }
-    
+
     private final String[] enabledProtocols;
 
     public LdapIdentityProviderUseSSLTest(boolean useSSL, boolean useTLS, @Nullable String[] enabledProtocols, @NotNull String name) {

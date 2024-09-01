@@ -3477,7 +3477,7 @@ public class VersionGarbageCollectorIT {
         }
 
         // read children again after GC finished
-        List<String> names = Lists.newArrayList();
+        List<String> names = new ArrayList<>();;
         for (ChildNodeEntry cne : store1.getRoot().getChildNodeEntries()) {
             names.add(cne.getName());
         }
@@ -3514,7 +3514,7 @@ public class VersionGarbageCollectorIT {
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setDeletedOnce(op);
         NodeDocument.setModified(op, store1.newRevision());
-        store1.getDocumentStore().create(NODES, Lists.newArrayList(op));
+        store1.getDocumentStore().create(NODES, Lists.new ArrayList<>(op));
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
@@ -3549,7 +3549,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
-        List<String> prevIds = Lists.newArrayList(Iterators.transform(
+        List<String> prevIds = Lists.new ArrayList<>(Iterators.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store

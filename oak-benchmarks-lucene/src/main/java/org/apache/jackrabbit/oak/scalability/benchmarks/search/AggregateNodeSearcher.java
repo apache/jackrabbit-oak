@@ -103,7 +103,7 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
 
     private List<String> getRelatedUsers(Session session, Authorizable user)
         throws RepositoryException {
-        List<String> targets = Lists.newArrayList();
+        List<String> targets = new ArrayList<>();;
         Node relRootNode =
             session.getNode(user.getPath() + "/" + ScalabilityNodeRelationshipSuite.RELATIONSHIPS);
         NodeIterator children = relRootNode.getNodes();

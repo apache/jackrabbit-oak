@@ -247,7 +247,7 @@ public class NodeCacheTest {
 
     private static <V extends CacheValue> void assertPathRevs(NodeCache<PathRev, V> cache, String path, boolean contains) {
         List<PathRev> revs = getPathRevs(cache, path);
-        List<PathRev> matchingRevs = Lists.newArrayList();
+        List<PathRev> matchingRevs = new ArrayList<>();;
         for (PathRev pr : revs) {
             if (cache.getGenerationalMap().containsKey(pr)) {
                 matchingRevs.add(pr);
@@ -265,7 +265,7 @@ public class NodeCacheTest {
 
     private static <V extends CacheValue> void assertPathNameRevs(NodeCache<NamePathRev, V> cache, String path, boolean contains) {
         List<NamePathRev> revs = getPathNameRevs(cache, path);
-        List<NamePathRev> matchingRevs = Lists.newArrayList();
+        List<NamePathRev> matchingRevs = new ArrayList<>();;
         for (NamePathRev pr : revs) {
             if (cache.getGenerationalMap().containsKey(pr)) {
                 matchingRevs.add(pr);
@@ -282,7 +282,7 @@ public class NodeCacheTest {
     }
 
     private static <V extends CacheValue> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache, String path) {
-        List<PathRev> revs = Lists.newArrayList();
+        List<PathRev> revs = new ArrayList<>();;
         for (PathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().toString().equals(path)) {
                 revs.add(pr);
@@ -292,7 +292,7 @@ public class NodeCacheTest {
     }
 
     private static <V extends CacheValue> List<NamePathRev> getPathNameRevs(NodeCache<NamePathRev, V> cache, String path) {
-        List<NamePathRev> revs = Lists.newArrayList();
+        List<NamePathRev> revs = new ArrayList<>();;
         for (NamePathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().toString().equals(path)) {
                 revs.add(pr);

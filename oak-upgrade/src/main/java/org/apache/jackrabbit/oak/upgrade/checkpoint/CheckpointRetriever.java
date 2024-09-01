@@ -86,7 +86,7 @@ public final class CheckpointRetriever {
     }
 
     private static List<Checkpoint> getCheckpoints(NodeState checkpointRoot) {
-        return Lists.newArrayList(Iterables.transform(checkpointRoot.getChildNodeEntries(),
+        return Lists.new ArrayList<>(Iterables.transform(checkpointRoot.getChildNodeEntries(),
                 input -> Checkpoint.createFromSegmentNode(input.getName(), input.getNodeState())));
     }
 }

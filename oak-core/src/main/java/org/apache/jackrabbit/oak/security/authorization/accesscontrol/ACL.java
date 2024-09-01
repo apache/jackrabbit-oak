@@ -164,7 +164,7 @@ abstract class ACL extends AbstractAccessControlList {
     private boolean internalAddEntry(@NotNull ACE entry) throws RepositoryException {
         final String principalName = entry.getPrincipal().getName();
         final Set<Restriction> restrictions = entry.getRestrictions();
-        List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, ace ->
+        List<ACE> subList = Lists.new ArrayList<>(Iterables.filter(entries, ace ->
                 principalName.equals(requireNonNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
 
         boolean addEntry = true;

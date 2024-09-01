@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -50,6 +49,7 @@ import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -79,17 +79,17 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, "Dynamic Groups Enabled, Membership-Nesting-Depth=1" },
                 new Object[] { true, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, "Dynamic Groups Enabled, Membership-Nesting-Depth=2" },
                 new Object[] { false, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, "Dynamic Groups NOT Enabled" });
     }
-    
+
     private final boolean dynamicGroupsEnabled;
     private final long membershipNestingDepth;
-    
+
     private Group testGroup;
-    
+
     public ExternalGroupPrincipalProviderDMTest(boolean dynamicGroupsEnabled, int membershipNestingDepth, @NotNull String name) {
         this.dynamicGroupsEnabled = dynamicGroupsEnabled;
         this.membershipNestingDepth = membershipNestingDepth;
@@ -129,7 +129,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
             return super.getIdpNamesWithDynamicGroups();
         }
     }
-    
+
     @Test
     public void testCoversAllMembersLocalGroup() {
         assertFalse(principalProvider.coversAllMembers(testGroup));
@@ -148,22 +148,22 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         testGroup.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, getValueFactory(root).createValue(extId));
         assertEquals(dynamicGroupsEnabled, principalProvider.coversAllMembers(testGroup));
     }
-    
+
     @Test
     public void testCannotAccessRepExternalId() throws Exception {
         Group gr = when(mock(Group.class).getProperty(ExternalIdentityConstants.REP_EXTERNAL_ID)).thenThrow(new RepositoryException("failure")).getMock();
         assertFalse(principalProvider.coversAllMembers(gr));
     }
-    
+
     @Test
     public void testCoversAllMembersGroupWithMemberProperty() throws Exception {
         testGroup.addMember(getTestUser());
 
         String extId = new ExternalIdentityRef(testGroup.getID(), idp.getName()).getString();
         testGroup.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, getValueFactory(root).createValue(extId));
-        
+
         assertFalse(principalProvider.coversAllMembers(testGroup));
-        
+
         // remove members again => must be fully dynamic
         assertTrue(testGroup.removeMember(getTestUser()));
         assertEquals(dynamicGroupsEnabled, principalProvider.coversAllMembers(testGroup));
@@ -178,7 +178,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         Map<String, String> nameType = ImmutableMap.of(
                 UserConstants.REP_MEMBERS, UserConstants.NT_REP_MEMBERS,
                 UserConstants.REP_MEMBERS_LIST, UserConstants.NT_REP_MEMBER_REFERENCES_LIST);
-        
+
         for (Map.Entry<String,String> entry : nameType.entrySet()) {
             Tree child = TreeUtil.addChild(groupTree, entry.getKey(), entry.getValue());
             assertFalse(principalProvider.coversAllMembers(testGroup));
@@ -186,12 +186,12 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         }
         assertEquals(dynamicGroupsEnabled, principalProvider.coversAllMembers(testGroup));
     }
-    
+
     @Test
     public void testGetMembersLocalGroup() throws Exception {
         assertFalse(principalProvider.getMembers(testGroup, false).hasNext());
         assertFalse(principalProvider.getMembers(testGroup, true).hasNext());
-        
+
         testGroup.addMember(getTestUser());
         root.commit();
         assertFalse(principalProvider.getMembers(testGroup, false).hasNext());
@@ -238,7 +238,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
     public void testIsMemberLocalGroup() throws Exception {
         User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
         assertNotNull(user);
-        
+
         assertFalse(principalProvider.isMember(testGroup, user, true));
         assertFalse(principalProvider.isMember(testGroup, user, false));
         assertFalse(principalProvider.isMember(testGroup, testGroup, false));
@@ -252,7 +252,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         String extId = new ExternalIdentityRef(USER_ID, idp.getName()).getString();
         testGroup.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, getValueFactory(root).createValue(extId));
         testGroup.addMember(user);
-        
+
         assertFalse(principalProvider.isMember(testGroup, user, true));
         assertFalse(principalProvider.isMember(testGroup, user, false));
     }
@@ -270,7 +270,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
     public void testIsMemberNotMember() throws Exception {
         User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
         assertNotNull(user);
-        
+
         String extId = new ExternalIdentityRef(USER_ID, idp.getName()).getString();
         testGroup.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, getValueFactory(root).createValue(extId));
 
@@ -300,16 +300,16 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         UserManager uMgr = getUserManager(root);
         User user = uMgr.getAuthorizable(USER_ID, User.class);
         assertNotNull(user);
-        
+
         // remove the rep:externalPrincipalNames property (if existing)
         user.removeProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-        
+
         // with rep:externalPrincipalNames removed principal provider must behave the same with and without
         // dynamic-groups enabled.
         assertFalse(principalProvider.isMember(testGroup, user, true));
         assertFalse(principalProvider.isMember(testGroup, user, false));
     }
-    
+
     @Test
     public void testGetMembershipLocalGroup() throws Exception {
         assertFalse(principalProvider.getMembership(testGroup, true).hasNext());
@@ -322,12 +322,12 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         assertFalse(principalProvider.getMembership(user, true).hasNext());
         assertFalse(principalProvider.getMembership(user, false).hasNext());
     }
-    
+
     @Test
     public void testGetMembershipDeclared() throws Exception {
         User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
         assertNotNull(user);
-        
+
         Iterator<Group> groups = principalProvider.getMembership(user, false);
         if (dynamicGroupsEnabled) {
             assertEquals(getExpectedNumberOfGroups(), Iterators.size(groups));
@@ -359,7 +359,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         Iterator<Group> groups = principalProvider.getMembership(user, true);
         assertFalse(groups.hasNext());
     }
-    
+
     @Test
     public void testGetMembershipIdpMismatch() throws Exception {
         User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
@@ -373,7 +373,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         Iterator<Group> groups = principalProvider.getMembership(user, true);
         assertFalse(groups.hasNext());
     }
-    
+
     private long getExpectedNumberOfGroups() throws Exception {
         return getExpectedSyncedGroupIds(syncConfig.user().getMembershipNestingDepth(), idp, idp.getUser(USER_ID)).size();
     }
@@ -447,7 +447,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         UserManager um = spy(getUserManager(root));
         doThrow(new RepositoryException()).when(um).getAuthorizable(any(Principal.class));
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-        
+
         ExternalGroupPrincipalProvider provider = createPrincipalProvider(root, uc);
         Iterator<Group> groups = provider.getMembership(user, false);
         assertFalse(groups.hasNext());
@@ -457,7 +457,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
     public void testGetMembershipBuildsItemBasedPrincipal() throws Exception {
         User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
         assertNotNull(user);
-        
+
         Set<Principal> groupPrincipals = principalProvider.getMembershipPrincipals(user.getPrincipal());
         groupPrincipals.forEach(principal -> {
             assertTrue(principal instanceof GroupPrincipal);
@@ -475,7 +475,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
             }
         });
     }
-    
+
     @Test
     public void testItemBasedPrincipalGetPathFails() throws Exception {
         UserManager um = getUserManager(root);
@@ -493,7 +493,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
                 assertNotNull(a);
                 a.remove();
                 root.commit();
-                
+        
                 // verify that looking up the path of the principal does not succeed
                 try {
                     String path = ((ItemBasedPrincipal) principal).getPath();
@@ -504,7 +504,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
             }
         }
     }
-    
+
     //------------------------------------------------------------------------------------------------------------------
     // principal provider methods that have short-cut for setup where all sync-configurations have dynamic groups enabled
     //------------------------------------------------------------------------------------------------------------------
@@ -520,7 +520,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         assertFalse(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL).hasNext());
         assertFalse(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP).hasNext());
     }
-    
+
     @Test
     public void testFindPrincipals() throws ExternalIdentityException {
         String principalName = idp.getGroup("a").getPrincipalName();

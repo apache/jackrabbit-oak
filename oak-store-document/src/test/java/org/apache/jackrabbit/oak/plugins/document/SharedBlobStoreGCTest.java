@@ -356,7 +356,7 @@ public class SharedBlobStoreGCTest {
 
             int number = 10;
             // track the number of the assets to be deleted
-            List<Integer> deletes = Lists.newArrayList();
+            List<Integer> deletes = new ArrayList<>();;
             Random rand = new Random(47);
             for (int i = 0; i < 5; i++) {
                 int n = rand.nextInt(number);
@@ -417,7 +417,7 @@ public class SharedBlobStoreGCTest {
 
         private HashSet<String> addNodeSpecialChars() throws Exception {
             List<String> specialCharSets =
-                Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+                Lists.new ArrayList<>("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
             HashSet<String> set = new HashSet<String>();
             NodeBuilder a = ds.getRoot().builder();
             for (int i = 0; i < specialCharSets.size(); i++) {
@@ -427,7 +427,7 @@ public class SharedBlobStoreGCTest {
                 Iterator<String> idIter =
                     ((GarbageCollectableBlobStore) ds.getBlobStore())
                         .resolveChunks(b.toString());
-                set.addAll(Lists.newArrayList(idIter));
+                set.addAll(Lists.new ArrayList<>(idIter));
             }
             ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             return set;

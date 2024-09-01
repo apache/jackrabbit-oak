@@ -43,7 +43,7 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
@@ -89,7 +89,7 @@ public class AsyncIndexStatsUpdateCallbackTest {
                 null, Mounts.defaultMountInfoProvider(),
                 ActiveDeletedBlobCollectorFactory.NOOP, mBean, StatisticsProvider.NOOP);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(new ArrayList<>(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )), StatisticsProvider.NOOP, false);

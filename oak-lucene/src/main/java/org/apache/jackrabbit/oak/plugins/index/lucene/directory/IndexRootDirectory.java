@@ -191,7 +191,7 @@ public class IndexRootDirectory {
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
     static String getIndexFolderBaseName(String indexPath) {
-        List<String> elements = Lists.newArrayList(PathUtils.elements(indexPath));
+        List<String> elements = Lists.new ArrayList<>(PathUtils.elements(indexPath));
         Collections.reverse(elements);
         List<String> result = Lists.newArrayListWithCapacity(2);
 

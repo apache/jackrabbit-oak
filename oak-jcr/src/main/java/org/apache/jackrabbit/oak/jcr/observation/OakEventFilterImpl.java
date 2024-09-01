@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static javax.jcr.observation.Event.NODE_REMOVED;
 
 import java.util.Arrays;
@@ -131,7 +131,7 @@ public class OakEventFilterImpl extends OakEventFilter {
             }
             if (predicateMatches) {
                 // greedy match - we switch to the globbing path filters
-                List<EventFilter> filters = newArrayList();
+                List<EventFilter> filters = new ArrayList<>();
                 for (String relativeGlobPath : relativeGlobPaths) {
                     if (relativeGlobPath.endsWith("*")) {
                         filters.add(new GlobbingPathFilter(relativeGlobPath, patternMap));

@@ -89,7 +89,7 @@ public class IndexInfoServiceImplTest {
 
     @Test
     public void allIndexInfo() throws Exception{
-        pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
+        pathService.paths = Lists.new ArrayList<>("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("a"); //Index with no type
@@ -113,7 +113,7 @@ public class IndexInfoServiceImplTest {
         service.bindInfoProviders(type_c);
         service.bindInfoProviders(type_d);
 
-        List<IndexInfo> infos = Lists.newArrayList(service.getAllIndexInfo());
+        List<IndexInfo> infos = Lists.new ArrayList<>(service.getAllIndexInfo());
 
         //Result would only have 2 entries. One throwing exception would be ignored
         assertEquals(2, infos.size());

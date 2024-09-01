@@ -939,7 +939,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 }
             }
         };
-        List<EditorProvider> editorProviders = Lists.newArrayList();
+        List<EditorProvider> editorProviders = new ArrayList<>();;
         editorProviders.add(new ConflictValidatorProvider());
         editorProviders.addAll(validatorProviders);
         CompositeHook hooks = new CompositeHook(

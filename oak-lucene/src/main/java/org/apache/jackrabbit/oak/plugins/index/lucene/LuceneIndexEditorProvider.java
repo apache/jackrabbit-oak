@@ -314,8 +314,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
-        private List<CopyOnWriteDirectory> openedCoWDirectories = Lists.newArrayList();
-        private List<File> reindexingLocalDirectories = Lists.newArrayList();
+        private List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();;
+        private List<File> reindexingLocalDirectories = new ArrayList<>();;
 
 
         @Override

@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Calendar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -57,10 +57,10 @@ public class IndexUtilsTest {
         assertNull(IndexUtils.getAsyncLaneName(EMPTY_NODE, "/fooIndex"));
 
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("async", newArrayList("async2", "sync"), Type.STRINGS);
+        builder.setProperty("async", new ArrayList<>("async2", "sync"), Type.STRINGS);
         assertEquals("async2", IndexUtils.getAsyncLaneName(builder.getNodeState(), "/fooIndex"));
 
-        builder.setProperty("async", newArrayList("async3"), Type.STRINGS);
+        builder.setProperty("async", new ArrayList<>("async3"), Type.STRINGS);
         assertEquals("async3", IndexUtils.getAsyncLaneName(builder.getNodeState(), "/fooIndex"));
     }
 

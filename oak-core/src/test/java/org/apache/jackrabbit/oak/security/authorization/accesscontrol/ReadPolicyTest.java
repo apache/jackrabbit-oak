@@ -20,11 +20,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.NamedAccessControlPolicy;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -61,7 +61,7 @@ public class ReadPolicyTest extends AbstractSecurityTest {
 
     @Parameterized.Parameters(name = "Configured Readable Paths = {1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] {null , "null => default set"},
                 new Object[] {Collections.emptySet(), "empty set"},
                 new Object[] {Collections.emptySet(), "/"+JcrConstants.JCR_SYSTEM}

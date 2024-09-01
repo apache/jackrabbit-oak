@@ -195,7 +195,7 @@ public class IteratorsTest {
 }
 
     private static <K> Iterator<K> it(K... x) {
-        return Collections.unmodifiableCollection(Lists.newArrayList(x)).iterator();
+        return Collections.unmodifiableCollection(Lists.new ArrayList<>(x)).iterator();
     }
     
     private static <K> String toString(Iterator<K> it) {

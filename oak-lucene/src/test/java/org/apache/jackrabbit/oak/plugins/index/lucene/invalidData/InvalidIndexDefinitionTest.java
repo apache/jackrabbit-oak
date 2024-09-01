@@ -83,7 +83,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
-        assertQuery(query, Lists.newArrayList("/tmp/testNode"));
+        assertQuery(query, Lists.new ArrayList<>("/tmp/testNode"));
     }
     
     @Test(expected = IllegalArgumentException.class)
@@ -138,7 +138,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
-        assertQuery(query, Lists.newArrayList("/tmp/testNode"));
+        assertQuery(query, Lists.new ArrayList<>("/tmp/testNode"));
     }    
 
     @Test(expected = IllegalArgumentException.class)
@@ -157,7 +157,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
-        assertQuery(query, Lists.newArrayList("/tmp/testNode"));
+        assertQuery(query, Lists.new ArrayList<>("/tmp/testNode"));
     }
 
     @Test
@@ -168,8 +168,8 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         // java.lang.IllegalStateException: No valid include provided. Includes [/tmp], Excludes [/tmp]
         LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
         Tree def = createIndexNodeAndData();
-        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, Lists.newArrayList("/tmp/testNode"), Type.STRINGS);
-        def.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Lists.newArrayList("/tmp"), Type.STRINGS);
+        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, Lists.new ArrayList<>("/tmp/testNode"), Type.STRINGS);
+        def.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Lists.new ArrayList<>("/tmp"), Type.STRINGS);
         try {
             customLogs.starting();
             String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/test . Please correct the index definition and reindex after correction. Additional Info : java.lang.IllegalStateException: No valid include provided. Includes [/tmp/testNode], Excludes [/tmp]";
@@ -180,7 +180,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         }
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("traverse"));
-        assertQuery(query, Lists.newArrayList("/tmp/testNode"));
+        assertQuery(query, Lists.new ArrayList<>("/tmp/testNode"));
     }
     
     @Test
@@ -195,7 +195,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
-        assertQuery(query, Lists.newArrayList("/tmp/testNode"));
+        assertQuery(query, Lists.new ArrayList<>("/tmp/testNode"));
     }    
     
     @Test
@@ -213,7 +213,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([./test]) = 'HELLO'";
         assertThat(explain(query), containsString("traverse"));
-        assertQuery(query, Lists.newArrayList("/tmp/testNode"));
+        assertQuery(query, Lists.new ArrayList<>("/tmp/testNode"));
     }    
     
     Tree createIndexNodeAndData() throws CommitFailedException {

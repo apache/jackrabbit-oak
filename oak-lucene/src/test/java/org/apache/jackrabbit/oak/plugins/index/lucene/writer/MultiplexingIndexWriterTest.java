@@ -263,7 +263,7 @@ public class MultiplexingIndexWriterTest {
     }
 
     private List<String> getIndexDirNodes(){
-        List<String> names = Lists.newArrayList();
+        List<String> names = new ArrayList<>();;
         for (String name : builder.getChildNodeNames()){
             if (MultiplexersLucene.isIndexDirName(name)){
                 names.add(name);

@@ -57,8 +57,8 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
     @Test
     public void cacheUpdate() throws Exception {
         Revision r = newRevision();
-        List<UpdateOp> ops = Lists.newArrayList();
-        List<String> ids = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();;
+        List<String> ids = new ArrayList<>();;
         for (int i = 0; i < NUM_NODES; i++) {
             String id = Utils.getIdFromPath("/node-" + i);
             ids.add(id);
@@ -112,7 +112,7 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
         UpdateOp op = new UpdateOp("foo", false);
         Revision r = newRevision();
         NodeDocument.setLastRev(op, r);
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();;
         for (int i = 0; i < NUM_NODES; i++) {
             ops.add(op.shallowCopy(getIdFromPath("/node-" + i)));
         }

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -69,7 +68,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, false, "Nested automembership = true, Dynamic Groups = false" },
                 new Object[] { false, false, "Nested automembership = false, Dynamic Groups = false" },
                 new Object[] { false, true, "Nested automembership = false, Dynamic Groups = true" });
@@ -83,7 +82,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     private static final String CONFIG_AUTO_MEMBERSHIP_GROUP_ID = "testGroup3-" + UUID.randomUUID();
     private static final String CONFIG_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME = "p-" + CONFIG_AUTO_MEMBERSHIP_GROUP_ID;
-    
+
     private static final String NON_EXISTING_GROUP_ID = "nonExistingGroup";
     private static final String NON_EXISTING_GROUP_ID2 = "nonExistingGroup2";
 
@@ -92,7 +91,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     private final boolean nestedAutomembership;
     private final boolean dynamicGroups;
-    
+
     private Group userAutoMembershipGroup;
     private Group groupAutoMembershipGroup;
     private Group configAutoMembershipGroup;
@@ -103,7 +102,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         this.nestedAutomembership = nestedAutomembership;
         this.dynamicGroups = dynamicGroups;
     }
-    
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -205,7 +204,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
-        
+
         Set<Principal> result = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertTrue(result.contains(userAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(groupAutoMembershipGroup.getPrincipal()));
@@ -222,7 +221,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     public void testGetGroupPrincipalsTwice() throws Exception {
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
-        
+
         Set<Principal> result = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertEquals(result, principalProvider.getMembershipPrincipals(user.getPrincipal()));
     }
@@ -256,7 +255,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         UserManager um = getUserManager(root);
         User extuser = um.getAuthorizable(USER_ID, User.class);
         assertNotNull(extuser);
-        
+
         Principal externalGroupPrincipal = getExternalGroupPrincipal(extuser.getPrincipal());
         assertNotNull(externalGroupPrincipal);
         assertEquals(dynamicGroups, externalGroupPrincipal instanceof ItemBasedPrincipal);

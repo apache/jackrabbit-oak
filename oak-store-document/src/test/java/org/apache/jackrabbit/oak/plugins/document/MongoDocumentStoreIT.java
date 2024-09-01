@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,7 +37,7 @@ import static java.lang.Long.parseLong;
 import static java.util.List.of;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.Path.fromString;
@@ -234,7 +235,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, newArrayList(MODIFIED_IN_SECS));
+                20, new ArrayList<>(Set.of(MODIFIED_IN_SECS)));
         // since _id is mandatory, so data size should be 2
         docs.forEach(d -> assertEquals(2 , d.keySet().size()));
         assertEquals(10, docs.size());
@@ -254,7 +255,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, newArrayList());
+                20, new ArrayList<>());
         docs.forEach(d -> assertEquals(4 , d.keySet().size()));
         assertEquals(10, docs.size());
     }

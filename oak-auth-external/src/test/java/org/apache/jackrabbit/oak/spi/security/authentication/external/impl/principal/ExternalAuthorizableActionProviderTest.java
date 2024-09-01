@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
@@ -63,36 +62,36 @@ import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuthTest {
-    
+
     private static final String IDP_NAME = "idp1";
     private static final String LOCAL_GROUP_ID = "localGroup";
 
     private final ExternalAuthorizableActionProvider eap = new ExternalAuthorizableActionProvider();
-    
+
     private final Group localGroup = mock(Group.class);
     private final Group externalGroup = mock(Group.class);
     private final Authorizable externalUser = mock(Authorizable.class);
-    
+
     private SyncHandler sh;
     private SyncHandlerMapping shMapping;
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, "Fail" },
                 new Object[] { false, "Only Warn" });
     }
-    
+
     private final boolean failOnViolation;
-    
+
     public ExternalAuthorizableActionProviderTest(boolean failOnViolation, String name) {
         this.failOnViolation = failOnViolation;
     }
-    
+
     @Before
     public void before() throws Exception {
         super.before();
-        
+
         eap.activate(context.bundleContext(), new ExternalAuthorizableActionProvider.Configuration() {
             @Override
             public Class<? extends Annotation> annotationType() {
@@ -104,10 +103,10 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
                 return failOnViolation;
             }
         });
-        
+
         doReturn(LOCAL_GROUP_ID).when(localGroup).getID();
         doReturn("externalGroup").when(externalGroup).getID();
-        
+
         Value v = getValueFactory(root).createValue(new ExternalIdentityRef("externalUserId", IDP_NAME).getString());
         when(externalUser.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[] {v});
         when(externalUser.isGroup()).thenReturn(false);
@@ -115,11 +114,11 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
         v = getValueFactory(root).createValue(new ExternalIdentityRef("externalGroupId", IDP_NAME).getString());
         when(externalGroup.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[] {v});
         when(externalGroup.isGroup()).thenReturn(true);
-        
+
         sh = new DefaultSyncHandler();
         shMapping = new SyncHandlerMapping() {};
     }
-    
+
     @After
     public void after() throws Exception {
         try {
@@ -128,7 +127,7 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
             super.after();
         }
     }
-    
+
     private GroupAction getGroupAction() {
         return (GroupAction) eap.getAuthorizableActions(getSecurityProvider()).get(0);
     }
@@ -139,14 +138,14 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
         assertEquals(1, actions.size());
         assertTrue(actions.get(0) instanceof GroupAction);
     }
-    
+
     @Test
     public void testMemberNotExternal() throws Exception {
         GroupAction ga = getGroupAction();
-        
+
         ga.onMemberAdded(localGroup, getTestUser(), root, getNamePathMapper());
         ga.onMemberAdded(externalGroup, getTestUser(), root, getNamePathMapper());
-        
+
         verifyNoInteractions(localGroup);
         verifyNoInteractions(externalGroup);
     }
@@ -159,14 +158,14 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
         verify(externalGroup).getProperty(REP_EXTERNAL_ID);
         verifyNoMoreInteractions(externalGroup);
     }
-    
+
     @Test
     public void testUserMamaberGroupInUserAutomembership() throws Exception {
         registerSyncHandlerSyncMapping(IDP_NAME, LOCAL_GROUP_ID, true);
 
         GroupAction ga = getGroupAction();
         ga.onMemberAdded(localGroup, externalUser, root, getNamePathMapper());
-        
+
         verify(localGroup).getProperty(REP_EXTERNAL_ID);
         verify(localGroup).getID();
         verifyNoMoreInteractions(localGroup);
@@ -242,21 +241,21 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
         // now onMemberAdd will spot the violation
         assertViolationDetected(externalUser);
     }
-    
+
     @Test
     public void testRemoveSyncHandler() throws RepositoryException {
         Map<String,Object> config = createSyncConfig(LOCAL_GROUP_ID, false);
         ServiceRegistration sr = context.bundleContext().registerService(SyncHandler.class.getName(), sh, MapUtil.toDictionary(config));
         context.registerService(SyncHandlerMapping.class, shMapping, MapUtil.toDictionary(createMappingConfig(IDP_NAME)));
-        
+
         getGroupAction().onMemberAdded(localGroup, externalGroup, root, getNamePathMapper());
-        
+
         // remove sync-handler
         sr.unregister();
         // now onMemberAdd will spot the violation
         assertViolationDetected(externalGroup);
     }
-    
+
     @Test
     public void testDuplicateSyncHandlerMapping() throws Exception {
         registerSyncHandlerSyncMapping("anotherIdpName", LOCAL_GROUP_ID, true);
@@ -274,12 +273,12 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
 
         assertViolationDetected(externalUser);
     }
-    
+
     @Test
     public void testDeactivate() throws RepositoryException {
         // onMemberAdd will spot the violation
         assertViolationDetected(externalUser);
-        
+
         // after deactivation, changes to sync-handler registration will no longer be tracked
         eap.deactivate();
         registerSyncHandlerSyncMapping(IDP_NAME, "localGroup", true);
@@ -292,7 +291,7 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
     public void testDeactivatePriorToActivate() throws RepositoryException {
         ExternalAuthorizableActionProvider provider = new ExternalAuthorizableActionProvider();
         provider.deactivate();
-        
+
         registerSyncHandlerSyncMapping(IDP_NAME, "localGroup", true);
         // -> violation still detected
         GroupAction groupAction = (GroupAction) provider.getAuthorizableActions(getSecurityProvider()).get(0);
@@ -316,18 +315,18 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
             }
         }
     }
-    
+
     private void verifyInvocations() throws RepositoryException {
         verify(localGroup).getProperty(REP_EXTERNAL_ID);
         verify(localGroup).getID();
         verifyNoMoreInteractions(localGroup);
     }
-    
+
     private void registerSyncHandlerSyncMapping(@NotNull String idpName, @NotNull String automembershipId, boolean isUserAutoMembership) {
         context.registerInjectActivateService(sh, createSyncConfig(automembershipId, isUserAutoMembership));
         context.registerService(SyncHandlerMapping.class, shMapping, createMappingConfig(idpName));
     }
-    
+
     private static Map<String, Object> createSyncConfig(@NotNull String automembershipId, boolean isUserAutoMembership) {
         String autoMembershipName = (isUserAutoMembership) ? DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP : DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP;
         return ImmutableMap.of(

@@ -143,7 +143,7 @@ public class ValuePatternTest {
     
     @Test
     public void included() {
-        ValuePattern vp = new ValuePattern(null, Lists.newArrayList("abc", "bcd"), null);
+        ValuePattern vp = new ValuePattern(null, Lists.new ArrayList<>("abc", "bcd"), null);
         assertTrue(vp.matches(null));
         assertTrue(vp.matches("abc1"));
         assertTrue(vp.matches("bcd"));
@@ -164,7 +164,7 @@ public class ValuePatternTest {
     
     @Test
     public void excluded() {
-        ValuePattern vp = new ValuePattern(null, null, Lists.newArrayList("abc", "bcd"));
+        ValuePattern vp = new ValuePattern(null, null, Lists.new ArrayList<>("abc", "bcd"));
         assertTrue(vp.matches(null));
         assertFalse(vp.matches("abc1"));
         assertFalse(vp.matches("bcd"));

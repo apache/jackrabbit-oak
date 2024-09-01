@@ -204,7 +204,7 @@ public class LocalIndexWriterFactoryTest {
     }
 
     private static List<String> getIndexedDocList(LuceneDocumentHolder holder, String indexPath){
-        List<String> paths = Lists.newArrayList();
+        List<String> paths = new ArrayList<>();;
         for (LuceneDocInfo doc : holder.getAllLuceneDocInfo()){
             if (doc.getIndexPath().equals(indexPath)){
                 paths.add(doc.getDocPath());

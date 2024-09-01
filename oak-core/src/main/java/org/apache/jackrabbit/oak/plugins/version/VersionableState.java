@@ -187,7 +187,7 @@ class VersionableState {
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = Lists.newArrayList(node.getNames(JCR_MIXINTYPES));
+            mixinTypes = Lists.new ArrayList<>(node.getNames(JCR_MIXINTYPES));
         } else {
             mixinTypes = Collections.emptyList();
         }

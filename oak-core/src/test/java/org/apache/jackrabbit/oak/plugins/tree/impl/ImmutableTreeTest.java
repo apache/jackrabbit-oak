@@ -215,7 +215,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     @Test
     public void testGetProperties() {
         ImmutableTree orderable = immutable.getChild("orderable");
-        List<String> propNames = Lists.newArrayList(TreeConstants.OAK_CHILD_ORDER, JcrConstants.JCR_PRIMARYTYPE);
+        List<String> propNames = Lists.new ArrayList<>(TreeConstants.OAK_CHILD_ORDER, JcrConstants.JCR_PRIMARYTYPE);
 
         for (PropertyState ps : orderable.getProperties()) {
             assertTrue(propNames.remove(ps.getName()));
@@ -263,8 +263,8 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     }
 
     private static void assertSequence(Iterable<Tree> trees, String... names) {
-        List<String> actual = Lists.newArrayList(Iterables.transform(trees, input -> input.getName()));
-        assertEquals(Lists.newArrayList(names), actual);
+        List<String> actual = Lists.new ArrayList<>(Iterables.transform(trees, input -> input.getName()));
+        assertEquals(Lists.new ArrayList<>(names), actual);
     }
 
     @Test

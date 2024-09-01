@@ -22,6 +22,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +48,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
@@ -56,8 +56,7 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils
-    .SharedStoreRecordType.BLOBREFERENCES;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.BLOBREFERENCES;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -308,7 +307,7 @@ public class BlobIdTrackerTest {
     }
 
     private static List<String> range(int min, int max) {
-        List<String> list = newArrayList();
+        List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
             list.add(valueOf(i));
         }

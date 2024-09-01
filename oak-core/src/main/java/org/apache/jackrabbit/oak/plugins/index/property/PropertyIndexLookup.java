@@ -120,7 +120,7 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();;
         ValuePattern pattern = new ValuePattern(indexMeta);
         for (IndexStoreStrategy s : getStrategies(indexMeta)) {
             iterables.add(s.query(filter, propertyName, indexMeta,

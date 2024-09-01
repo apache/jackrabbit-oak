@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
@@ -497,7 +497,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        return String.format("TarFiles{readers=%s,writer=%s}", newArrayList(iterable(head)), w);
+        return String.format("TarFiles{readers=%s,writer=%s}", new ArrayList<>(iterable(head)), w);
     }
 
     public long size() {

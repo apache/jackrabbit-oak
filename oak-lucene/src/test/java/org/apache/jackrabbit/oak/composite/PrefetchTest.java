@@ -180,7 +180,7 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
             this.mip = Mounts.newBuilder().readOnlyMount(readOnlyMountName, "/libs").build();
 
             initReadOnlySeedRepo();
-            List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+            List<MountedNodeStore> nonDefaultStores = new ArrayList<>();;
             nonDefaultStores.add(new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
             this.store = new CompositeNodeStore(this.mip, globalStore, nonDefaultStores);
 

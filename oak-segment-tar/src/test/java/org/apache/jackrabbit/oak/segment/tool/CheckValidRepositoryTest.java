@@ -61,9 +61,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Searched through 1 revisions and 0 checkpoints",
             "Checked 7 nodes and 21 properties", "Path / is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>(""));
     }
 
     @Test
@@ -98,11 +98,11 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Searched through 1 revisions and 0 checkpoints",
             "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties", "Checked 1 nodes and 3 properties",
             "Path /a is consistent", "Path /b is consistent", "Path /c is consistent", "Path /d is consistent", "Path /e is consistent",
             "Path /f is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>(""));
     }
 
     @Test
@@ -131,9 +131,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Searched through 1 revisions and 0 checkpoints",
             "Checked 7 nodes and 15 properties", "Path / is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>(""));
     }
 
     @Test
@@ -165,10 +165,10 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Searched through 1 revisions and 0 checkpoints",
             "Checked 1 nodes and 0 properties", "Checked 1 nodes and 4 properties", "Checked 1 nodes and 5 properties",
             "Path /a is consistent", "Path /b is consistent", "Path /d is consistent", "Path /e is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>(""));
     }
 
     @Test
@@ -197,9 +197,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Searched through 1 revisions and 0 checkpoints",
             "No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>("Path /g not found"));
     }
 
     @Test
@@ -233,11 +233,11 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Searched through 1 revisions and 0 checkpoints",
             "Checked 1 nodes and 1 properties", "Checked 1 nodes and 6 properties", "Checked 1 nodes and 4 properties",
             "Checked 1 nodes and 5 properties",
             "Path /a is consistent", "Path /f is consistent", "Path /d is consistent", "Path /e is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>("Path /g not found"));
     }
 
     @Test
@@ -267,9 +267,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Checking checkpoints",
             "Searched through 1 revisions and 2 checkpoints", "Checked 7 nodes and 21 properties", "Path / is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>(""));
     }
 
     @Test
@@ -299,9 +299,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking head", "Checking checkpoints",
             "Searched through 1 revisions and 2 checkpoints", "Checked 1 nodes and 6 properties", "Path /f is consistent"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>(""));
     }
 
     @Test
@@ -333,8 +333,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking checkpoints", "Searched through 1 revisions and 1 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.new ArrayList<>("Checking checkpoints", "Searched through 1 revisions and 1 checkpoints",
             "No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Checkpoint bogus-checkpoint not found in this revision!"));
+        assertExpectedOutput(strErr.toString(), Lists.new ArrayList<>("Checkpoint bogus-checkpoint not found in this revision!"));
     }
 }

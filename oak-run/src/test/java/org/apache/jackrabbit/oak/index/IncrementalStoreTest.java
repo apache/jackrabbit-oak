@@ -281,7 +281,7 @@ public class IncrementalStoreTest {
         IndexDefinitionUpdater indexDefinitionUpdater = new IndexDefinitionUpdater(new File(referenceIndexFilePath));
 
 
-        ExtendedIndexHelper indexHelper = new ExtendedIndexHelper(store, blobStore, whiteboard, workDir, workDir, newArrayList(indexDefinitionUpdater.getIndexPaths()));
+        ExtendedIndexHelper indexHelper = new ExtendedIndexHelper(store, blobStore, whiteboard, workDir, workDir, new ArrayList<>(indexDefinitionUpdater.getIndexPaths()));
         IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
         indexerSupport.setIndexDefinitions(new File(referenceIndexFilePath));
 

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -195,9 +195,9 @@ public class EventGenerator {
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     // list the child node names before and after the change
                     List<String> beforeNames =
-                            newArrayList(before.getValue(NAMES));
+                            new ArrayList<>(before.getValue(NAMES));
                     List<String> afterNames =
-                            newArrayList(after.getValue(NAMES));
+                            new ArrayList<>(after.getValue(NAMES));
 
                     // check only those names that weren't added or removed
                     beforeNames.retainAll(newHashSet(afterNames));

@@ -813,7 +813,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();;
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
@@ -951,7 +951,7 @@ public class S3Backend extends AbstractSharedBackend {
                 String uploadId = uploadToken.getUploadId().get();
                 ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
                 PartListing listing = s3service.listParts(listPartsRequest);
-                List<PartETag> eTags = Lists.newArrayList();
+                List<PartETag> eTags = new ArrayList<>();;
                 long size = 0L;
                 Date lastModified = null;
                 for (PartSummary partSummary : listing.getParts()) {
@@ -1098,7 +1098,7 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = Lists.newArrayList(
+                List<S3ObjectSummary> listing = Lists.new ArrayList<>(
                     filter(prevObjectListing.getObjectSummaries(),
                             input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 

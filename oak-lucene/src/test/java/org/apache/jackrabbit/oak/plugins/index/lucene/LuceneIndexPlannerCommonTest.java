@@ -155,7 +155,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();;
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -227,7 +227,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();;
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -272,7 +272,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();;
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();

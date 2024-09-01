@@ -187,7 +187,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
             // never downgrade
             throw unableToWrite("Version " + this + " cannot read " + v);
         }
-        List<Integer> active = Lists.newArrayList();
+        List<Integer> active = new ArrayList<>();;
         for (ClusterNodeInfoDocument d : ClusterNodeInfoDocument.all(store)) {
             if (d.isActive()) {
                 active.add(d.getClusterId());
@@ -199,7 +199,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
         if (v == V0) {
             UpdateOp op = new UpdateOp(VERSION_ID, true);
             op.set(PROP_VERSION, toString());
-            if (!store.create(SETTINGS, Lists.newArrayList(op))) {
+            if (!store.create(SETTINGS, Lists.new ArrayList<>(op))) {
                 throw concurrentUpdate();
             }
         } else {

@@ -333,7 +333,7 @@ public class FindAuthorizablesTest extends AbstractUserTest {
 
     @Test
     public void testFindUserWithSpecialCharIdByPrincipalName() throws RepositoryException {
-        List<String> ids = Lists.newArrayList("'", "]", "']", Text.escapeIllegalJcrChars("']"), Text.escape("']"));
+        List<String> ids = Lists.new ArrayList<>("'", "]", "']", Text.escapeIllegalJcrChars("']"), Text.escape("']"));
         for (String id : ids) {
             User user = null;
             try {

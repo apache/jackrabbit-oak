@@ -383,7 +383,7 @@ public class RepositorySidegrade {
             if (temp == null) {
                 continue;
             }
-            List<String> tempValues = Lists.newArrayList(temp.getValue(Type.STRINGS));
+            List<String> tempValues = Lists.new ArrayList<>(temp.getValue(Type.STRINGS));
             for (Map.Entry<String, String> sToD : checkpointSegmentToDoc.entrySet()) {
                 if (tempValues.contains(sToD.getKey())) {
                     tempValues.set(tempValues.indexOf(sToD.getKey()), sToD.getValue());

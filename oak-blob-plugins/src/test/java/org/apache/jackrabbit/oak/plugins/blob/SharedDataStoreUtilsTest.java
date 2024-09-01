@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
@@ -100,7 +100,7 @@ public class SharedDataStoreUtilsTest {
                repoId1);
         long lastModifiedMarkerRec1 = markerRec1.getLastModified();
         TimeUnit.MILLISECONDS.sleep(100);
-        
+
         // Add reference records
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REFERENCES.getNameFromId(repoId1));
@@ -135,22 +135,22 @@ public class SharedDataStoreUtilsTest {
                SharedDataStoreUtils.getEarliestRecord(
                         dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType())).getLastModified(), 
                         minRefTime);
-        
+
         // the marker timestamp should be the minimum
         long minMarkerTime = 
             SharedDataStoreUtils.getEarliestRecord(
                     dataStore.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()))
                         .getLastModified();
         Assert.assertTrue(minRefTime >= minMarkerTime);
-        
+
         // Delete references and check back if deleted
         dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
         Assert.assertTrue(dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()).isEmpty());
-        
+
         // Delete markers and check back if deleted
         dataStore.deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
         Assert.assertTrue(dataStore.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()).isEmpty());
-    
+
         // Repository ids should still be available
         assertEquals(2,
             dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()).size());
@@ -438,8 +438,8 @@ public class SharedDataStoreUtilsTest {
     }
 
     class Data {
-        List<String> suffixes = Lists.newArrayList();
-        List<String> repoIds = Lists.newArrayList();
+        List<String> suffixes = new ArrayList<>();;
+        List<String> repoIds = new ArrayList<>();;
         Set<String> refs = Sets.newHashSet();
     }
 

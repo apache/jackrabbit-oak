@@ -54,8 +54,8 @@ final class BatchCommit {
         this.id = id;
         this.queue = queue;
         if (onHold) {
-            ops = Lists.newArrayList();
-            results = Lists.newArrayList();
+            ops = new ArrayList<>();;
+            results = new ArrayList<>();;
         }
     }
 

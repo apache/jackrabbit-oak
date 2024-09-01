@@ -113,7 +113,7 @@ public class Template {
         requireNonNull(state);
         PropertyState primary = null;
         PropertyState mixins = null;
-        List<PropertyTemplate> templates = Lists.newArrayList();
+        List<PropertyTemplate> templates = new ArrayList<>();;
 
         for (PropertyState property : state.getProperties()) {
             String name = property.getName();

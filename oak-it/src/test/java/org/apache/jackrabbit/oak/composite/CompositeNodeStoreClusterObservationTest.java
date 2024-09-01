@@ -64,7 +64,7 @@ public class CompositeNodeStoreClusterObservationTest {
 
         MountInfoProvider mip = Mounts.newBuilder().build();
 
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();;
         store = new CompositeNodeStore(mip, globalStore, nonDefaultStores);
 
         observer = new TestNodeObserver("/test");

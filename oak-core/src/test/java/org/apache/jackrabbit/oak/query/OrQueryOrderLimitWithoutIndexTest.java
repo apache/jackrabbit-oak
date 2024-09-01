@@ -84,7 +84,7 @@ public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
         Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = Lists.new ArrayList<>(result.getRows());
         Assert.assertEquals(expected.length, rows.size());
 
         int i = 0;

@@ -36,7 +36,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElement
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -127,9 +127,9 @@ class OakBufferedIndexFile implements OakIndexFile {
 
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null && property.getType() == BINARIES) {
-            this.data = newArrayList(property.getValue(BINARIES));
+            this.data = new ArrayList<>(property.getValue(BINARIES));
         } else {
-            this.data = newArrayList();
+            this.data = new ArrayList<>();
         }
 
         this.length = (long)data.size() * blobSize;
@@ -152,7 +152,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
         this.position = that.position;
         this.length = that.length;
-        this.data = newArrayList(that.data);
+        this.data = new ArrayList<>(that.data);
         this.dataModified = that.dataModified;
         this.blobFactory = that.blobFactory;
     }

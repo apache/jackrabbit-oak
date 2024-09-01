@@ -63,7 +63,7 @@ public class CollisionRollbackTest {
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();;
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
         fixtures.add(new Object[] {new DocumentStoreFixture.ClusterlikeMemoryFixture()});
         fixtures.add(new Object[] {new DocumentStoreFixture.RDBFixture()});

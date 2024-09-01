@@ -37,7 +37,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static java.util.Collections.singletonList;
 
@@ -123,7 +123,7 @@ class CompositionContext {
         }
 
         // scenario 2 - multiple mounts participate
-        List<MountedNodeStore> mountedStores = newArrayList();
+        List<MountedNodeStore> mountedStores = new ArrayList<>();
         mountedStores.add(globalStore);
 
         // we need mounts placed exactly one level beneath this path

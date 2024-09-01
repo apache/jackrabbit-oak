@@ -47,7 +47,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
     public OakHelpFormatter(Iterable<OptionsBean> optionBeans, @Nullable String commandName,
                             @Nullable String summary,@Nullable String connectionString) {
-        this.optionBeans = Lists.newArrayList(optionBeans);
+        this.optionBeans = Lists.new ArrayList<>(optionBeans);
         this.commandName = commandName;
         this.summary = summary;
         this.connectionString = connectionString;

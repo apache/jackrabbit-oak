@@ -72,7 +72,7 @@ public abstract class DocumentStoreFixture {
     public static final String TABLEPREFIX = "dstest_";
 
     public static List<Object[]> getFixtures() {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();;
         if (FixturesHelper.getFixtures().contains(DOCUMENT_MEM)) {
             fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
         }
@@ -240,7 +240,7 @@ public abstract class DocumentStoreFixture {
 
         private static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
 
-        protected List<MongoConnection> connections = Lists.newArrayList();
+        protected List<MongoConnection> connections = new ArrayList<>();;
 
         @Override
         public String getName() {

@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
@@ -206,7 +206,7 @@ public class ResponseDecoderTest {
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
-        assertTrue(elementsEqual(newArrayList("b"), response.getReferences()));
+        assertTrue(elementsEqual(new ArrayList<>("b"), response.getReferences()));
     }
 
     @Test

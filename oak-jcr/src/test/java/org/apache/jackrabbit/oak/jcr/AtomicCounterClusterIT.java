@@ -63,7 +63,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
     private static final Logger LOG = LoggerFactory.getLogger(AtomicCounterClusterIT.class);
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
-    private List<CustomScheduledExecutor> executors = Lists.newArrayList();
+    private List<CustomScheduledExecutor> executors = new ArrayList<>();;
     
     @BeforeClass
     public static void assumtions() {
@@ -74,7 +74,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
     @Override
     public void before() throws Exception {
         super.before();
-        executors = Lists.newArrayList();
+        executors = new ArrayList<>();;
     }
 
     @Override
@@ -142,7 +142,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         
         // for each cluster node, `numIncrements` sessions pushing random increments
         long start = LOG_PERF.start("Firing the threads");
-        List<ListenableFutureTask<Void>> tasks = Lists.newArrayList();
+        List<ListenableFutureTask<Void>> tasks = new ArrayList<>();;
         for (Repository rep : repos) {
             final Repository r = rep;
             for (int i = 0; i < numIncrements; i++) {

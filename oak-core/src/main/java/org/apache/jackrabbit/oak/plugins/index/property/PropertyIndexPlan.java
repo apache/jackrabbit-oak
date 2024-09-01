@@ -213,7 +213,7 @@ public class PropertyIndexPlan {
             LOG.warn("This index is deprecated: {}; it is used for query {} called by {}. " +
                     "Please change the query or the index definitions.", name, filter, caller);
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();;
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));
         }

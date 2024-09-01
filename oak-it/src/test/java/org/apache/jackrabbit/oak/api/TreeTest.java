@@ -439,7 +439,7 @@ public class TreeTest extends OakBaseTest {
                 r1.commit();
 
                 // get current sequence of child names
-                List<String> names = Lists.newArrayList();
+                List<String> names = new ArrayList<>();;
                 for (Tree t : r1.getTree("/").getChildren()) {
                     names.add(t.getName());
                 }

@@ -94,7 +94,7 @@ public class StatisticsProviderFactory {
     private MBeanServer server;
     
     private StatisticsProvider statisticsProvider;
-    private List<ServiceRegistration> regs = Lists.newArrayList();
+    private List<ServiceRegistration> regs = new ArrayList<>();;
     private ScheduledExecutorService executor;
     private BundleContext bundleContext;
 

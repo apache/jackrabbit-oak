@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
@@ -60,7 +60,7 @@ public final class FilterBuilder {
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
-    private final List<String> subTrees = newArrayList();
+    private final List<String> subTrees = new ArrayList<>();
     private final Set<String> pathsForMBean = newHashSet();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
@@ -341,7 +341,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Condition... conditions) {
-        return new AnyCondition(newArrayList(requireNonNull(conditions)));
+        return new AnyCondition(new ArrayList<>(requireNonNull(conditions)));
     }
 
     /**
@@ -351,7 +351,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull Condition... conditions) {
-        return new AllCondition(newArrayList(requireNonNull(conditions)));
+        return new AllCondition(new ArrayList<>(requireNonNull(conditions)));
     }
 
     /**
@@ -602,12 +602,12 @@ public final class FilterBuilder {
         }
 
         public AnyCondition(Condition... conditions) {
-            this(newArrayList(conditions));
+            this(new ArrayList<>(conditions));
         }
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
@@ -629,12 +629,12 @@ public final class FilterBuilder {
         }
 
         public AllCondition(Condition... conditions) {
-            this(newArrayList(conditions));
+            this(new ArrayList<>(conditions));
         }
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;

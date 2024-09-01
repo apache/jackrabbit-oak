@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.junit.Test;
 
 import java.util.Iterator;
+import java.util.List;
 
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,7 +32,7 @@ public class AuthorizableWrapperTest extends AbstractAutoSaveTest {
 
     @Test
     public void testApplyNull() {
-        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(Lists.newArrayList(null, (Authorizable) null).iterator(), autosaveMgr);
+        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(List.of(null, (Authorizable) null).iterator(), autosaveMgr);
         while(it.hasNext()) {
             assertNull(it.next());
         }
@@ -41,7 +41,7 @@ public class AuthorizableWrapperTest extends AbstractAutoSaveTest {
 
     @Test
     public void testApply() throws Exception {
-        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(Lists.newArrayList(getTestUser(), (Authorizable) null).iterator(), autosaveMgr);
+        Iterator<Authorizable> it = AuthorizableWrapper.createIterator(List.of(getTestUser(), (Authorizable) null).iterator(), autosaveMgr);
         while(it.hasNext()) {
             it.next();
         }

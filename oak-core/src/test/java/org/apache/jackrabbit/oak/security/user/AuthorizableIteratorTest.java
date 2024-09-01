@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -96,13 +95,13 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
         AuthorizableIterator it = AuthorizableIterator.create(Iterators.singletonIterator(root.getTree(PathUtils.ROOT_PATH)), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testFilterDuplicates() throws Exception {
         List<Authorizable> l = ImmutableList.of(getTestUser());
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
         assertEquals(2, Iterators.size(AuthorizableIterator.create(false, l.iterator(), l.iterator())));
-        
+
         // duplications are determined base on authorizableID
         Authorizable a = when(mock(Authorizable.class).getID()).thenReturn(getTestUser().getID()).getMock();
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Iterators.singletonIterator(a))));
@@ -110,7 +109,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testFilterDuplicatesHandlesNull() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser(), null, getTestUser());
+        List<User> l = List.of(getTestUser(), null, getTestUser());
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
     }
 
@@ -124,7 +123,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testGetSize3() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser());
+        List<User> l = List.of(getTestUser());
 
         // size cannot be computed from regular iterators
         assertEquals(-1, AuthorizableIterator.create(false, l.iterator(), l.iterator()).getSize());

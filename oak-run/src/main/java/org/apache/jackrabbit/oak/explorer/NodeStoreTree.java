@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
@@ -217,7 +217,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             return;
         }
 
-        List<NamePathModel> kids = newArrayList();
+        List<NamePathModel> kids = new ArrayList<>();
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
             NamePathModel c = new NamePathModel(ce.getName(), concat(
                     model.getPath(), ce.getName()), ce.getNodeState(),
@@ -418,7 +418,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             sb.append(newline);
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(uuids, paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -460,7 +460,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(newHashSet(id), paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -705,10 +705,10 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         Long[] s = {0L, 0L};
 
-        List<String> names = newArrayList(ns.getChildNodeNames());
+        List<String> names = new ArrayList<>(ns.getChildNodeNames());
 
         if (names.contains("root")) {
-            List<String> temp = newArrayList();
+            List<String> temp = new ArrayList<>();
             int poz = 0;
             // push 'root' to the beginning
             for (String n : names) {

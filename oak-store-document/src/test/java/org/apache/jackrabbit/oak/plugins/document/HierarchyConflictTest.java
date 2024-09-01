@@ -58,7 +58,7 @@ public class HierarchyConflictTest {
 
     @Before
     public void before() {
-        exceptions = Lists.newArrayList();
+        exceptions = new ArrayList<>();;
         nodeRemoved = new CountDownLatch(1);
         nodeAdded = new CountDownLatch(1);
         store = new DocumentMK.Builder().getNodeStore();

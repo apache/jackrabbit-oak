@@ -315,14 +315,14 @@ public class DataStoreCheckTest {
 
     private void testAllParams(File dump, File repoHome) throws Exception {
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+            .new ArrayList<>("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
     private void testAllParamsVerbose(File dump, File repoHome) throws Exception {
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+            .new ArrayList<>("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(), "--verbose");
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
@@ -332,15 +332,15 @@ public class DataStoreCheckTest {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--" + dsOption, cfgFilePath, "--store", storePath,
+            .new ArrayList<>("--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
+        testIncorrectParams(argsList, Lists.new ArrayList<>("Missing required option(s)", "id", "ref", "consistency"));
     }
 
     public void testTarNoDSOption(File dump) throws Exception {
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--nods", "--store", storePath,
+            .new ArrayList<>("--id", "--ref", "--consistency", "--nods", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
@@ -350,9 +350,9 @@ public class DataStoreCheckTest {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+            .new ArrayList<>("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Operation not defined for SegmentNodeStore without external datastore"));
+        testIncorrectParams(argsList, Lists.new ArrayList<>("Operation not defined for SegmentNodeStore without external datastore"));
 
     }
 
@@ -361,14 +361,14 @@ public class DataStoreCheckTest {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--consistency", "--" + dsOption, cfgFilePath,
+            .new ArrayList<>("--consistency", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
+        testIncorrectParams(argsList, Lists.new ArrayList<>("Missing required option(s) [store]"));
 
         argsList = Lists
-            .newArrayList("--ref", "--" + dsOption, cfgFilePath,
+            .new ArrayList<>("--ref", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
+        testIncorrectParams(argsList, Lists.new ArrayList<>("Missing required option(s) [store]"));
     }
 
     @Test
@@ -376,10 +376,10 @@ public class DataStoreCheckTest {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--ref", "--store", storePath,
+            .new ArrayList<>("--ref", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--track", "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList,
-            Lists.newArrayList("Option(s) [track] are unavailable given other options on the command line"));
+            Lists.new ArrayList<>("Option(s) [track] are unavailable given other options on the command line"));
     }
 
     @Test
@@ -387,9 +387,9 @@ public class DataStoreCheckTest {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+            .new ArrayList<>("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
+        testIncorrectParams(argsList, Lists.new ArrayList<>("Missing required option(s) [repoHome]"));
     }
 
     @Test
@@ -397,9 +397,9 @@ public class DataStoreCheckTest {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+            .new ArrayList<>("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--track");
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
+        testIncorrectParams(argsList, Lists.new ArrayList<>("Missing required option(s) [repoHome]"));
     }
 
     public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {

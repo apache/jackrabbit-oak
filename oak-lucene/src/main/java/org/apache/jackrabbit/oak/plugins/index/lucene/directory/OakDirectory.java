@@ -167,7 +167,7 @@ public class OakDirectory extends Directory {
                         // OAK-7066: Also, make sure that we have at least some non-inlined chunks to delete
                         if (blobId != null && !InMemoryDataRecord.isInstance(blobId)) {
                             blobDeletionCallback.deleted(blobId,
-                                    Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
+                                    Lists.new ArrayList<>(definition.getIndexPath(), dataNodeName, name));
                         }
                     }
                 }

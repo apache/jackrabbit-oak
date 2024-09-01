@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,6 +32,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
@@ -48,13 +48,13 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, "DynamicGroups=false" },
                 new Object[] { true, "DynamicGroups=true" });
     }
-    
+
     private final boolean hasDynamicGroups;
-    
+
     private Group groupAutomembership;
     private Group userAutomembership;
     private Group userAutomembership2;
@@ -64,7 +64,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
     private Group externalGroup;
     private User externalUser;
     private Group testGroup;
-    
+
     public DynamicAutomembershipTest(boolean hasDynamicGroups, @NotNull String name) {
         this.hasDynamicGroups = hasDynamicGroups;
     }
@@ -72,14 +72,14 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
     @Override
     public void before() throws Exception {
         super.before();
-        
+
         groupAutomembership = userManager.getAuthorizable("groupAutomembership", Group.class);
         userAutomembership = userManager.getAuthorizable("userAutomembership1", Group.class);
         userAutomembership2 = userManager.getAuthorizable("userAutomembership2", Group.class);
 
         groupInherited = userManager.createGroup("groupInherited");
         groupInherited.addMembers("groupAutomembership", "userAutomembership");
-        
+
         // setup for additional tests
         if (hasDynamicGroups) {
             assertNotNull(userAutomembership);
@@ -94,7 +94,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
         externalGroup.setProperty(REP_EXTERNAL_ID, vf.createValue(new ExternalIdentityRef("externalGroup", idp.getName()).getString()));
         r.commit();
     }
-    
+
     @Override
     public void after() throws Exception {
         try {
@@ -150,9 +150,9 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
     public void testSyncExternalGroup() throws Exception {
         ExternalGroup extGroup = idp.getGroup(GROUP_ID);
         assertNotNull(extGroup);
-        
+
         syncContext.sync(extGroup);
-        
+
         if (hasDynamicGroups) {
             Group gr = userManager.getAuthorizable(extGroup.getId(), Group.class);
             assertNotNull(gr);
@@ -170,7 +170,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
                 assertFalse(g.isDeclaredMember(gr));
                 assertFalse(g.isMember(gr));
             }
-            
+
             // verify inheritedGroup-externalGroup relationship
             assertFalse(containsGroup(gr.declaredMemberOf(), groupInherited));
             assertTrue(containsGroup(gr.memberOf(), groupInherited));
@@ -195,17 +195,17 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
         syncContext.sync(previouslySyncedUser);
 
         Tree t = r.getTree(user.getPath());
-        
+
         assertEquals(hasDynamicGroups, t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         assertSyncedMembership(userManager, user, previouslySyncedUser);
-        
+
         // verify automembership of the external user
         for (Group gr : new Group[] {groupAutomembership, userAutomembership, userAutomembership2}) {
             assertTrue(gr.isDeclaredMember(user));
             assertTrue(gr.isMember(user));
             containsGroup(user.declaredMemberOf(), gr);
             containsGroup(user.memberOf(), gr);
-            
+
             // if 'dynamic groups' are enabled the previously synced membership information of the local group 
             // must be migrated to dynamic membership.
             boolean hasStoredMembership = hasStoredMembershipInformation(r.getTree(gr.getPath()), r.getTree(user.getPath()));
@@ -216,7 +216,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
                 assertEquals(expected, hasStoredMembership);
             }
         }
-        
+
         // nested membership from auto-membership groups
         assertFalse(groupInherited.isDeclaredMember(user));
         assertTrue(groupInherited.isMember(user));

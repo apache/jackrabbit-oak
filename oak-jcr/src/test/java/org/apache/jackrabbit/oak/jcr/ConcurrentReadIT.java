@@ -63,7 +63,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
                     Executors.newCachedThreadPool());
 
-            List<ListenableFuture<?>> futures = Lists.newArrayList();
+            List<ListenableFuture<?>> futures = new ArrayList<>();;
             for (int k = 0; k < 20; k ++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
@@ -101,7 +101,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
                     Executors.newCachedThreadPool());
 
-            List<ListenableFuture<?>> futures = Lists.newArrayList();
+            List<ListenableFuture<?>> futures = new ArrayList<>();;
             for (int k = 0; k < 20; k ++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 import java.util.ArrayList;
@@ -173,7 +173,7 @@ public class SelectorImpl extends SourceImpl {
      * other part of the condition can't be evaluated until b is available.
      * These constraints are collected during the prepare phase.
      */
-    private final List<ConstraintImpl> selectorConstraints = newArrayList();
+    private final List<ConstraintImpl> selectorConstraints = new ArrayList<>();
     
     private Cursor cursor;
     private IndexRow currentRow;

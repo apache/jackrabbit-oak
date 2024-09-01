@@ -48,7 +48,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
     @Test
     public void testPassthrough() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final List<String> disallowedMethods = Lists.newArrayList(
+        final List<String> disallowedMethods = Lists.new ArrayList<>(
                 "create", "update", "remove", "createOrUpdate", "findAndUpdate");
         InvocationHandler handler = new InvocationHandler() {
             @Override
@@ -93,7 +93,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
             uoeThrown = false;
             try {
-                readOnlyStore.remove(collection, Lists.<String>newArrayList());
+                readOnlyStore.remove(collection, Lists.<String>new ArrayList<>());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;
@@ -129,7 +129,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
             uoeThrown = false;
 
             try {
-                readOnlyStore.createOrUpdate(collection, Lists.<UpdateOp>newArrayList());
+                readOnlyStore.createOrUpdate(collection, Lists.<UpdateOp>new ArrayList<>());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;

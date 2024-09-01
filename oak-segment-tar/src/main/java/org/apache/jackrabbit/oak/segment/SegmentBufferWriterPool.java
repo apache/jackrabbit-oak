@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -222,8 +222,8 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
 
         @Override
         public void flush(@NotNull SegmentStore store) throws IOException {
-            List<SegmentBufferWriter> toFlush = newArrayList();
-            List<SegmentBufferWriter> toReturn = newArrayList();
+            List<SegmentBufferWriter> toFlush = new ArrayList<>();
+            List<SegmentBufferWriter> toReturn = new ArrayList<>();
 
             poolMonitor.enter();
             try {

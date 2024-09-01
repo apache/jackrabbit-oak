@@ -149,7 +149,7 @@ public class IndexStatisticsTest {
     }
 
     private static Directory createSampleDirectory(long numOfDocs) throws IOException {
-        return createSampleDirectory(numOfDocs, Lists.newArrayList());
+        return createSampleDirectory(numOfDocs, new ArrayList<>(););
     }
 
     private static Directory createSampleDirectory(Document moreDoc) throws IOException {
@@ -157,7 +157,7 @@ public class IndexStatisticsTest {
     }
 
     private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> moreDocs) throws IOException {
-        List<Document> docs = Lists.newArrayList(moreDocs);
+        List<Document> docs = Lists.new ArrayList<>(moreDocs);
         for (int i = 0; i < numOfDocs; i++) {
             Document doc = new Document();
             doc.add(new StringField("foo", "bar" + i, Field.Store.NO));

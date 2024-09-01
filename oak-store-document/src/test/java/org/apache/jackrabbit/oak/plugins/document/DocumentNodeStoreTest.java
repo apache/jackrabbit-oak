@@ -1119,7 +1119,7 @@ public class DocumentNodeStoreTest {
         int numReaders = 10;
         final CountDownLatch ready = new CountDownLatch(numReaders);
         final CountDownLatch go = new CountDownLatch(1);
-        List<Thread> readers = Lists.newArrayList();
+        List<Thread> readers = new ArrayList<>();;
         for (int i = 0; i < numReaders; i++) {
             Thread t = new Thread(new Runnable() {
                 @Override
@@ -1976,7 +1976,7 @@ public class DocumentNodeStoreTest {
 
         // on cluster node 2, remove of child-0 is not yet visible
         DocumentNodeState bar = asDocumentNodeState(ns2.getRoot().getChildNode("foo").getChildNode("bar"));
-        List<ChildNodeEntry> children = Lists.newArrayList(bar.getChildNodeEntries());
+        List<ChildNodeEntry> children = Lists.new ArrayList<>(bar.getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
         RevisionVector invalidate = bar.getLastRevision();
         assertNotNull(invalidate);
@@ -1993,7 +1993,7 @@ public class DocumentNodeStoreTest {
         // forget cache entry for deleted node
         ns2.invalidateNodeCache("/foo/bar/child-0", invalidate);
 
-        children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
+        children = Lists.new ArrayList<>(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
         assertEquals(1, Iterables.size(children));
     }
 
@@ -2035,13 +2035,13 @@ public class DocumentNodeStoreTest {
         merge(ns2, b2);
 
         // on cluster node 2, add of child-1 is not yet visible
-        List<ChildNodeEntry> children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        List<ChildNodeEntry> children = Lists.new ArrayList<>(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
         assertEquals(1, Iterables.size(children));
 
         // this will make changes from cluster node 1 visible
         ns2.runBackgroundOperations();
 
-        children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        children = Lists.new ArrayList<>(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
     }
 
@@ -2444,7 +2444,7 @@ public class DocumentNodeStoreTest {
         DocumentNodeState after = ns.getRoot();
 
         numQueries.set(0);
-        final List<String> added = Lists.newArrayList();
+        final List<String> added = new ArrayList<>();;
         ns.compare(asDocumentNodeState(after.getChildNode("foo").getChildNode("child")),
                 asDocumentNodeState(before.getChildNode("foo").getChildNode("child")),
                 new DefaultNodeStateDiff() {
@@ -2472,7 +2472,7 @@ public class DocumentNodeStoreTest {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
-        final List<Long> startValues = Lists.newArrayList();
+        final List<Long> startValues = new ArrayList<>();;
         MemoryDocumentStore ds = new MemoryDocumentStore() {
             @NotNull
             @Override
@@ -2539,7 +2539,7 @@ public class DocumentNodeStoreTest {
     // OAK-2620
     @Test
     public void nonBlockingReset() throws Exception {
-        final List<String> failure = Lists.newArrayList();
+        final List<String> failure = new ArrayList<>();;
         final AtomicReference<ReentrantReadWriteLock> mergeLock
                 = new AtomicReference<ReentrantReadWriteLock>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
@@ -3273,7 +3273,7 @@ public class DocumentNodeStoreTest {
         builder.child("a").child("b").setProperty("p", 0L);
         merge(ns, builder);
 
-        final List<Throwable> exceptions = synchronizedList(Lists.newArrayList());
+        final List<Throwable> exceptions = synchronizedList(new ArrayList<>(););
 
         Runnable task = new Runnable() {
 
@@ -3311,7 +3311,7 @@ public class DocumentNodeStoreTest {
             }
         };
 
-        List<Thread> threads = Lists.newArrayList();
+        List<Thread> threads = new ArrayList<>();;
         for (int i = 0; i < 4; i++) {
             threads.add(new Thread(task));
         }
@@ -3326,7 +3326,7 @@ public class DocumentNodeStoreTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/a/b"));
         assertNotNull(doc);
         long previousValue = -1;
-        List<String> values = Lists.newArrayList(doc.getLocalMap("p").values());
+        List<String> values = Lists.new ArrayList<>(doc.getLocalMap("p").values());
         for (String v : Lists.reverse(values)) {
             long currentValue = Long.parseLong(v);
             assertEquals(previousValue + 1, currentValue);
@@ -3397,13 +3397,13 @@ public class DocumentNodeStoreTest {
         NodeDocument.setDeleted(op, r, false);
         NodeDocument.setRevision(op, r, "c");
         NodeDocument.setLastRev(op, r);
-        store.create(NODES, Lists.newArrayList(op));
+        store.create(NODES, Lists.new ArrayList<>(op));
         // initialize checkpoints document
         op = new UpdateOp("checkpoint", true);
-        store.create(SETTINGS, Lists.newArrayList(op));
+        store.create(SETTINGS, Lists.new ArrayList<>(op));
         // initialize version GC status in settings
         op = new UpdateOp("versionGC", true);
-        store.create(SETTINGS, Lists.newArrayList(op));
+        store.create(SETTINGS, Lists.new ArrayList<>(op));
         // now try to open in read-only mode with more recent version
         builderProvider.newBuilder().setReadOnlyMode().setDocumentStore(store).getNodeStore();
     }
@@ -3531,7 +3531,7 @@ public class DocumentNodeStoreTest {
             // expected
         }
         // next attempt must succeed
-        List<String> names = Lists.newArrayList();
+        List<String> names = new ArrayList<>();;
         for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {
             names.add(entry.getName());
         }

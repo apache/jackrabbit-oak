@@ -68,7 +68,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
     public Editor getIndexEditor(
             @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
-        List<Editor> indexes = Lists.newArrayList();
+        List<Editor> indexes = new ArrayList<>();;
         for (IndexEditorProvider provider : providers) {
             Editor e = provider.getIndexEditor(type, builder, root, callback);
             if (e != null) {

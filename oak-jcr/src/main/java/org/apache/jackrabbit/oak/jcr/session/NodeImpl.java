@@ -934,7 +934,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Iterator<String> mixinNames = getMixinTypeNames(tree).iterator();
                 if (mixinNames.hasNext()) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
-                    List<NodeType> mixinTypes = Lists.newArrayList();
+                    List<NodeType> mixinTypes = new ArrayList<>();;
                     while (mixinNames.hasNext()) {
                         mixinTypes.add(ntMgr.getNodeType(sessionContext.getJcrName(mixinNames.next())));
                     }

@@ -335,7 +335,7 @@ public class NodeDocumentCache implements Closeable {
     }
 
     public Iterable<CacheStats> getCacheStats() {
-        return Lists.newArrayList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
+        return Lists.new ArrayList<>(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 
     @Override

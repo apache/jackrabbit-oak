@@ -124,7 +124,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
 
         try {
-            List<Integer> gcTypeCodes = Lists.newArrayList();
+            List<Integer> gcTypeCodes = new ArrayList<>();;
             for (SplitDocType type : gcTypes) {
                 gcTypeCodes.add(type.typeCode());
             }

@@ -511,7 +511,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         Tree restrTree = aceTree.getChild(REP_RESTRICTIONS);
         assertEquals("/*", TreeUtil.getString(restrTree, REP_GLOB));
-        assertEquals(Lists.newArrayList(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
-        assertEquals(Lists.newArrayList("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
+        assertEquals(Lists.new ArrayList<>(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
+        assertEquals(Lists.new ArrayList<>("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
     }
 }

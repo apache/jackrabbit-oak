@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
@@ -76,13 +76,13 @@ public final class Utils {
             try (JournalReader journalReader = new JournalReader(journal)) {
                 Iterator<String> revisionIterator = Iterators.transform(journalReader,
                         entry -> entry.getRevision());
-                return newArrayList(revisionIterator);
+                return new ArrayList<>(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return newArrayList();
+        return new ArrayList<>();
     }
 
     private static File isValidFileStoreOrFail(File store) {

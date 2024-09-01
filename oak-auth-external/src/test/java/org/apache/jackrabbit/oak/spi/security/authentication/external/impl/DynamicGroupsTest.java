@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -64,14 +62,14 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, false, "Membership-Nesting-Depth=0" },
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, false, "Membership-Nesting-Depth=1" },
                 // NOTE: shortcut for PrincipalNameResolver is ignored if dynamic-groups are enabled
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, true, "Membership-Nesting-Depth=1, IDP implements PrincipalNameResolver" },
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, false, "Membership-Nesting-Depth=2" });
     }
-    
+
     private final long membershipNestingDepth;
     private final boolean isPrincipalNameResolver;
 
@@ -119,7 +117,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         syncContext.sync(previouslySyncedUser);
 
         Tree t = r.getTree(a.getPath());
-        
+
         // dynamic-group option forces migration of previously synced groups
         assertTrue(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
 
@@ -129,7 +127,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
     @Test
     public void testSyncMembershipWithEmptyExistingGroups() throws Exception {
         Authorizable a = userManager.getAuthorizable(PREVIOUS_SYNCED_ID);
-        
+
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
         ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of());
@@ -158,7 +156,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         Set<String> groupIds = getExpectedSyncedGroupIds(membershipNestingDepth, idp, mod);
         assertEquals(groupIds.size(), t.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES).count());
-        
+
         assertMigratedGroups(previouslySyncedUser, t);
         if (membershipNestingDepth == 0) {
             for (String grId : groupIds) {
@@ -176,7 +174,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             assertFalse(hasStoredMembershipInformation(r.getTree(gr.getPath()), userTree));
         }
     }
-    
+
     @Test
     public void testSyncNewGroup() throws Exception {
         String id = "newGroup";
@@ -187,7 +185,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         sync(gr, SyncResult.Status.ADD);
         assertNotNull(userManager.getAuthorizable(id));
     }
-    
+
     @Test
     public void testReSyncUserMembershipExpired() throws Exception {
         boolean forceSyncGroupPrevious = syncContext.isForceGroupSync();
@@ -196,7 +194,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         try {
             syncContext.setForceGroupSync(true).setForceUserSync(true);
             syncConfig.user().setMembershipExpirationTime(-1);
-            
+
             // re-sync with dynamic-sync-context and force membership update
             sync(idp.getUser(PREVIOUS_SYNCED_ID), SyncResult.Status.UPDATE);
 
@@ -211,7 +209,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
                     return "";
                 }
             }).collect(Collectors.toSet());
-            
+
             // rep:principalNames are migrated using the current membershipNestingDepth (not the one from previous sync) 
             Set<String> expectedGroupIds = getExpectedSyncedGroupIds(membershipNestingDepth, idp, previouslySyncedUser);
             assertEquals(expectedGroupIds.size(), extPNames.size());
@@ -223,16 +221,16 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
                 Group gr = userManager.getAuthorizable(groupId, Group.class);
                 // no group must be removed
                 assertNotNull(gr);
-                
+
                 // with dynamic.group option members must be migrated to dynamic membership even if 'enforce' option is disabled.
                 Tree t = r.getTree(gr.getPath());
                 assertFalse(hasStoredMembershipInformation(t, userTree));
 
                 boolean stillMember = expectedGroupIds.contains(gr.getID());
-                
+
                 // user-group relationship must be covered by the dynamic-membership provider now
                 assertEquals(stillMember, gr.isDeclaredMember(user));
-                
+
                 // verify that the group principal name is listed in the ext-principal-names property
                 assertEquals(stillMember, extPNames.contains(gr.getPrincipal().getName()));
             }
@@ -282,22 +280,22 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             assertNotNull(p);
             // verify that this principal has been returned by the user-principal-provider and not the external-group-principal-provider.
             assertTrue(p instanceof ItemBasedPrincipal);
-            
+
             Authorizable group = userManager.getAuthorizable(p);
             assertNotNull(group);
             assertTrue(group.isGroup());
             assertEquals(ref.getId(), group.getID());
         }
     }
-    
+
     @Test
     public void testCrossIDPMembership() throws Exception {
         UserManager um = getUserManager(r);
         PrincipalManager pm = getPrincipalManager(r);
-        
+
         List<ExternalIdentityRef> declaredGroupRefs = ImmutableList.copyOf(previouslySyncedUser.getDeclaredGroups());
         assertTrue(declaredGroupRefs.size() > 1);
-        
+
         String groupId = declaredGroupRefs.get(0).getId();
         String groupId2 = declaredGroupRefs.get(1).getId();
         Group local = um.createGroup("localGroup");
@@ -307,7 +305,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         Authorizable a = um.getAuthorizable(PREVIOUS_SYNCED_ID);
         assertTrue(getIds(a.memberOf()).contains(local.getID()));
-        
+
         // sync again to establish dynamic membership
         syncContext.setForceUserSync(true);
         syncContext.setForceGroupSync(true);
@@ -315,7 +313,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         a = um.getAuthorizable(PREVIOUS_SYNCED_ID);
         assertTrue(r.getTree(a.getPath()).hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
-        
+
         // verify membership
         List<String> groupIds = getIds(a.memberOf());
         if (membershipNestingDepth == 0) {
@@ -325,14 +323,14 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             assertEquals("Found "+groupIds, (membershipNestingDepth > 1) ? 5 : 4, groupIds.size());
             assertTrue(groupIds.contains("localGroup"));
             assertTrue(local.isMember(a));
-            
+
             for (String id : new String[] {groupId, groupId2}) {
                 Authorizable extGroup = um.getAuthorizable(id);
                 assertTrue(getIds(extGroup.declaredMemberOf()).contains("localGroup"));
                 assertTrue(local.isMember(extGroup));
             }
         }
-        
+
         // verify effective principals of external user
         List<String> principalNames = getPrincipalNames(pm.getGroupMembership(a.getPrincipal()));
         assertEquals(membershipNestingDepth != 0, principalNames.contains(local.getPrincipal().getName()));

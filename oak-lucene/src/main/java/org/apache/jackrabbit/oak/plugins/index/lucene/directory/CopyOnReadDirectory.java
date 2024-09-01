@@ -167,7 +167,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         long start = PERF_LOGGER.start();
         long totalSize = 0;
         int copyCount = 0;
-        List<String> copiedFileNames = Lists.newArrayList();
+        List<String> copiedFileNames = new ArrayList<>();;
         for (String name : remote.listAll()) {
             if (IndexCopier.REMOTE_ONLY.contains(name)) {
                 continue;

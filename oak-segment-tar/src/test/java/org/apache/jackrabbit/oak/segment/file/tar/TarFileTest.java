@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
@@ -261,7 +261,7 @@ public class TarFileTest {
                 assertNotNull(swept);
 
                 Map<UUID, List<UUID>> graph = new HashMap<>();
-                graph.put(new UUID(2, 1), newArrayList(new UUID(2, 2)));
+                graph.put(new UUID(2, 1), new ArrayList<>(new UUID(2, 2)));
 
                 assertEquals(graph, swept.getGraph());
             }

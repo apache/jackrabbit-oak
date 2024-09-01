@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -158,19 +158,19 @@ public class Oak {
 
     private final NodeStore store;
 
-    private final List<RepositoryInitializer> initializers = newArrayList();
+    private final List<RepositoryInitializer> initializers = new ArrayList<>();
 
     private AnnotatedQueryEngineSettings queryEngineSettings = new AnnotatedQueryEngineSettings();
 
-    private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
+    private final List<QueryIndexProvider> queryIndexProviders = new ArrayList<>();
 
-    private final List<IndexEditorProvider> indexEditorProviders = newArrayList();
+    private final List<IndexEditorProvider> indexEditorProviders = new ArrayList<>();
 
-    private final List<CommitHook> commitHooks = newArrayList();
+    private final List<CommitHook> commitHooks = new ArrayList<>();
 
-    private final List<Observer> observers = Lists.newArrayList();
+    private final List<Observer> observers = new ArrayList<>();;
 
-    private List<EditorProvider> editorProviders = newArrayList();
+    private List<EditorProvider> editorProviders = new ArrayList<>();
 
     private CompositeConflictHandler conflictHandler;
 
@@ -470,7 +470,7 @@ public class Oak {
         if (!editorProviders.isEmpty()) {
             commitHooks.add(new EditorHook(
                     CompositeEditorProvider.compose(editorProviders)));
-            editorProviders = newArrayList();
+            editorProviders = new ArrayList<>();
         }
     }
 
@@ -726,7 +726,7 @@ public class Oak {
 
         final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
         closer.register(repoStateCheckHook);
-        final List<Registration> regs = Lists.newArrayList();
+        final List<Registration> regs = new ArrayList<>();;
         closer.register( () -> new CompositeRegistration(regs).unregister() );
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 

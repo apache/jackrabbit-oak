@@ -20,9 +20,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -38,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -510,7 +509,7 @@ public class RepositoryUpgrade {
             watch.reset().start();
             logger.info("Applying default commit hooks");
             // TODO: default hooks?
-            List<CommitHook> hooks = newArrayList();
+            List<CommitHook> hooks = new ArrayList<>();
 
             UserConfiguration userConf =
                     security.getConfiguration(UserConfiguration.class);
@@ -746,7 +745,7 @@ public class RepositoryUpgrade {
     private void copyCustomPrivileges(PrivilegeManager pMgr) throws RepositoryException {
         PrivilegeRegistry registry = source.getPrivilegeRegistry();
 
-        List<Privilege> customAggrPrivs = Lists.newArrayList();
+        List<Privilege> customAggrPrivs = new ArrayList<>();
 
         logger.debug("Registering custom non-aggregated privileges");
         for (Privilege privilege : registry.getRegisteredPrivileges()) {
@@ -824,7 +823,7 @@ public class RepositoryUpgrade {
 
     private void copyNodeTypes(NodeTypeManager ntMgr, ValueFactory valueFactory) throws RepositoryException {
         NodeTypeRegistry sourceRegistry = source.getNodeTypeRegistry();
-        List<NodeTypeTemplate> templates = Lists.newArrayList();
+        List<NodeTypeTemplate> templates = new ArrayList<>();
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
             String oakName = getOakName(name);
             // skip built-in nodetypes (OAK-1235)

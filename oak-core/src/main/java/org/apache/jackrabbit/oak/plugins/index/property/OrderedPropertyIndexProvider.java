@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import java.util.List;
 
@@ -42,7 +42,7 @@ public class OrderedPropertyIndexProvider implements QueryIndexProvider {
         if (getHits() % threshold == 0) {
             LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);            
         }
-        return newArrayList();
+        return new ArrayList<>();
     }
     
     private synchronized int getHits() {

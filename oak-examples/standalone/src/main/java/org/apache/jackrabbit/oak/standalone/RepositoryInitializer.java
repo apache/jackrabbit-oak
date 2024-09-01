@@ -146,7 +146,7 @@ public class RepositoryInitializer {
 
     private List<String> copyConfigs(File repoHomeDir, List<String> configFileNames)
             throws IOException, RepositoryException {
-        List<String> filePaths = Lists.newArrayList();
+        List<String> filePaths = new ArrayList<>();;
         for (String configName : configFileNames) {
             File dest = new File(repoHomeDir, configName);
             Resource source = new ClassPathResource("config-templates/" + configName);
@@ -158,7 +158,7 @@ public class RepositoryInitializer {
 
 
     private List<String> determineConfigFileNamesToCopy() {
-        List<String> configNames = Lists.newArrayList();
+        List<String> configNames = new ArrayList<>();;
         configNames.add("repository-config.json");
 
         //Mongo mode can be selected via --mongo

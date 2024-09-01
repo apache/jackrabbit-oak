@@ -225,7 +225,7 @@ public class EventFactory {
             return ImmutableMap.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
         } else {
-            List<String> jcrNames = Lists.newArrayList();
+            List<String> jcrNames = new ArrayList<>();;
             for (String name : mixinTypes) {
                 jcrNames.add(mapper.getJcrName(name));
             }

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -66,7 +65,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { 10000L, "Cache Max Stale = 10000" },
                 new Object[] { UserPrincipalProvider.NO_STALE_CACHE, "Cache Max Stale = 0" });
     }
@@ -88,6 +87,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         super();
         this.cacheMaxStale = cacheMaxStale;
     }
+
     @Override
     public void before() throws Exception {
         super.before();

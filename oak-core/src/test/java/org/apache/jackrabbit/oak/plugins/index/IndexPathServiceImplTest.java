@@ -99,9 +99,9 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         Tree nodetype = root.getTree("/oak:index/nodetype");
         assertTrue(nodetype.exists());
 
-        List<String> nodetypes = Lists.newArrayList();
+        List<String> nodetypes = new ArrayList<>();;
         if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-            nodetypes = Lists.newArrayList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+            nodetypes = Lists.new ArrayList<>(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
         }
 
         nodetypes.add(INDEX_DEFINITIONS_NODE_TYPE);

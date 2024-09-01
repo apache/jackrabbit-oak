@@ -47,7 +47,7 @@ public class SplitDocumentCleanUp implements Closeable {
     protected final DocumentStore store;
     protected final Iterable<NodeDocument> splitDocGarbage;
     protected final VersionGCStats stats;
-    protected final List<String> idsToBeDeleted = Lists.newArrayList();
+    protected final List<String> idsToBeDeleted = new ArrayList<>();;
     protected int deleteCount;
 
     protected SplitDocumentCleanUp(DocumentStore store,

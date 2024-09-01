@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -85,7 +84,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { 100, "BatchSize 100" },
                 new Object[] { 1, "BatchSize 1" },
                 new Object[] { 2, "BatchSize 2" });
@@ -141,14 +140,14 @@ public class DelegateeTest extends AbstractJmxTest {
         ContentSession cs = mock(ContentSession.class);
         when(cs.getLatestRoot()).thenReturn(root);
         when(cs.getAuthInfo()).thenReturn(AuthInfo.EMPTY);
-        
+
         ContentRepository repo = mock(ContentRepository.class);
         when(repo.login(null, null)).thenReturn(cs);
-        
+
         Delegatee dg = Delegatee.createInstance(repo, getSecurityProvider(), new DefaultSyncHandler(syncConfig), new TestIdentityProvider());
         dg.close();
         dg.close();
-        
+
         verify(repo).login(null, null);
         verifyNoMoreInteractions(repo);
         verify(cs, times(2)).close();
@@ -382,20 +381,20 @@ public class DelegateeTest extends AbstractJmxTest {
                 "forth", "ERR"));
         assertFalse(r.hasPendingChanges());
     }
-    
+
     @Test
     public void testConvertToDynamicMembershipFailsWithRepositoryException() throws Exception {
         syncConfig.user().setDynamicMembership(true);
         sync(idp.getUser(ID_TEST_USER), idp);
-        
+
         UserManager um = spy(getUserManager(root));
         when(um.getAuthorizable(any(String.class))).thenThrow(new RepositoryException());
-        
+
         UserConfiguration uc = mock(UserConfiguration.class);
         when(uc.getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um);
         SecurityProvider sp = spy(securityProvider);
         when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
-        
+
         Delegatee delegatee = Delegatee.createInstance(getContentRepository(), sp, new DefaultSyncHandler(syncConfig), idp);
         try {
             delegatee.convertToDynamicMembership();
@@ -420,7 +419,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
         Delegatee delegatee = Delegatee.createInstance(getContentRepository(), sp, new DefaultSyncHandler(syncConfig), idp);
         String[] result = delegatee.convertToDynamicMembership();
-        
+
         ResultMessages expected = new ResultMessages();
         DefaultSyncedIdentity dsi = DefaultSyncContext.createSyncedIdentity(getUserManager().getAuthorizable(ID_TEST_USER));
         expected.append(Collections.singletonList(new DefaultSyncResultImpl(dsi, SyncResult.Status.NO_SUCH_AUTHORIZABLE)));

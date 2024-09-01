@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -82,7 +81,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
         Utils.addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs);
 
         // create additional ACEs according to benchmark configuration
-        allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        allPrivileges = List.of(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         createForEachPrincipal(principal, acMgr, allPrivileges);
 
         adminSession.save();
@@ -100,7 +99,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
             }
         }
     }
-    
+
     boolean createEntry(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal, @NotNull String path, 
                         @NotNull Privilege[] privileges) throws RepositoryException {
         return Utils.addEntry(acMgr, principal, path, privileges);

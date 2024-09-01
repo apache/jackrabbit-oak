@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
@@ -37,7 +39,11 @@ public class MultiLongPropertyState extends MultiPropertyState<Long> {
      * @return  The new property state of type {@link Type#LONGS}
      */
     public static PropertyState createLongProperty(String name, Iterable<Long> values) {
-        return new MultiLongPropertyState(name, Lists.newArrayList(values));
+        List<Long> t = new ArrayList<>();
+        for (Long l : values) {
+            t.add(l);
+        }
+        return new MultiLongPropertyState(name, t);
     }
 
     @Override

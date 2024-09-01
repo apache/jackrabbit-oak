@@ -44,7 +44,7 @@ public class ClusterRevisionComparisonTest {
     private MemoryDocumentStore ds = new MemoryDocumentStore();
     private MemoryBlobStore bs = new MemoryBlobStore();
     private Clock clock = new Clock.Virtual();
-    private List<DocumentNodeStore> stores = Lists.newArrayList();
+    private List<DocumentNodeStore> stores = new ArrayList<>();;
 
     @Before
     public void setUp(){

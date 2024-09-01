@@ -110,8 +110,8 @@ public class LuceneIndexProviderService {
 
     private LuceneIndexProvider indexProvider;
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
-    private final List<Registration> oakRegs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();;
+    private final List<Registration> oakRegs = new ArrayList<>();;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 

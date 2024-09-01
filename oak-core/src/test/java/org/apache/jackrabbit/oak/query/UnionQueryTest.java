@@ -222,7 +222,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = Lists.new ArrayList<>(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
@@ -247,7 +247,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, Optional.empty(), Optional.empty(),
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = Lists.new ArrayList<>(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
@@ -302,7 +302,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = Lists.new ArrayList<>(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
@@ -353,7 +353,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = Lists.new ArrayList<>(result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;

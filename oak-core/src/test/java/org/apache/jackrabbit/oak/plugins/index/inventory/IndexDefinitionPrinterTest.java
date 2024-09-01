@@ -59,7 +59,7 @@ public class IndexDefinitionPrinterTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        when(pathService.getIndexPaths()).thenReturn(Lists.newArrayList("/a", "/b"));
+        when(pathService.getIndexPaths()).thenReturn(Lists.new ArrayList<>("/a", "/b"));
 
         String json = getJSON();
 
@@ -81,7 +81,7 @@ public class IndexDefinitionPrinterTest {
         builder.child("a").setProperty("foo", new ArrayBasedBlob("hello".getBytes()));
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        when(pathService.getIndexPaths()).thenReturn(Lists.newArrayList("/a"));
+        when(pathService.getIndexPaths()).thenReturn(Lists.new ArrayList<>("/a"));
 
         String json = getJSON();
 

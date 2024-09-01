@@ -335,7 +335,7 @@ public class VersionGCTest {
 
         gc.gc(30, TimeUnit.MINUTES);
 
-        List<String> expected = Lists.newArrayList("INITIALIZING",
+        List<String> expected = Lists.new ArrayList<>("INITIALIZING",
                 "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
                 "DELETING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
         assertEquals(expected, monitor.getStatusMessages());
@@ -649,8 +649,8 @@ public class VersionGCTest {
     }
 
     private class TestGCMonitor implements GCMonitor {
-        final List<String> infoMessages = Lists.newArrayList();
-        final List<String> statusMessages = Lists.newArrayList();
+        final List<String> infoMessages = new ArrayList<>();;
+        final List<String> statusMessages = new ArrayList<>();;
 
         @Override
         public void info(String message, Object... arguments) {

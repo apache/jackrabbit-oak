@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import static org.junit.Assert.assertEquals;
@@ -39,7 +38,6 @@ import java.util.function.Function;
 import javax.jcr.RepositoryException;
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -481,7 +479,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteRecordStats() throws Exception {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withDeleteDelay(1010));
         DataRecord record = dsbs.addRecord(getTestInputStream());
-        List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
+        List<String> chunkIds = List.of(record.getIdentifier().toString());
         long modifiedBefore = tomorrow();
 
         long deleteCount = stats.getDeleteCount();
@@ -504,7 +502,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteRecordErrorStats() throws Exception {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnDeleteRecord());
         DataRecord record = dsbs.addRecord(getTestInputStream());
-        List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
+        List<String> chunkIds = List.of(record.getIdentifier().toString());
         long modifiedBefore = tomorrow();
 
         long deleteErrorCount = stats.getDeleteErrorCount();

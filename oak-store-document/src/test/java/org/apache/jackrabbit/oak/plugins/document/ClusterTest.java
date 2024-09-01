@@ -66,7 +66,7 @@ public class ClusterTest {
 
     private static final boolean MONGO_DB = false;
 
-    private List<DocumentMK> mks = Lists.newArrayList();
+    private List<DocumentMK> mks = new ArrayList<>();;
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
 
@@ -418,7 +418,7 @@ public class ClusterTest {
 
     @Test
     public void fromExternalChange() throws Exception {
-        final List<DocumentNodeState> rootStates1 = Lists.newArrayList();
+        final List<DocumentNodeState> rootStates1 = new ArrayList<>();;
         DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
         ns1.addObserver(new Observer() {
             @Override
@@ -427,7 +427,7 @@ public class ClusterTest {
                 rootStates1.add((DocumentNodeState) root);
             }
         });
-        final List<DocumentNodeState> rootStates2 = Lists.newArrayList();
+        final List<DocumentNodeState> rootStates2 = new ArrayList<>();;
         DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
         ns2.addObserver(new Observer() {
             @Override
