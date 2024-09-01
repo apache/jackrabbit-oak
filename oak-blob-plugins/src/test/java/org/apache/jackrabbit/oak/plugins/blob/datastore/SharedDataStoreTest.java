@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -228,7 +229,7 @@ public class SharedDataStoreTest {
 
         final String data = "testData";
         for (boolean fromInputStream : List.of(false, true)) {
-            for (String name : List.of(null, "")) {
+            for (String name : Arrays.asList(null, "")) {
                 try {
                     if (fromInputStream) {
                         fds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), name);
@@ -253,7 +254,7 @@ public class SharedDataStoreTest {
 
         fds.addMetadataRecord(randomStream(0, 10), "testRecord");
         assertNull(fds.getMetadataRecord("invalid"));
-        for (String name : List.of("", null)) {
+        for (String name : Arrays.asList("", null)) {
             try {
                 fds.getMetadataRecord(name);
                 fail("Expect to throw");
@@ -308,7 +309,7 @@ public class SharedDataStoreTest {
         SharedDataStore fds = dataStore;
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : List.of("", null)) {
+        for (String name : Arrays.asList("", null)) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     fds.deleteMetadataRecord(name);
@@ -382,7 +383,7 @@ public class SharedDataStoreTest {
         SharedDataStore fds = dataStore;
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : List.of("invalid", "", null)) {
+        for (String name : Arrays.asList("invalid", "", null)) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     fds.metadataRecordExists(name);
