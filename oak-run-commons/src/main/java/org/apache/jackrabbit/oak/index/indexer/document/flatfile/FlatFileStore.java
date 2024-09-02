@@ -68,6 +68,10 @@ public class FlatFileStore implements IndexStore {
         return storeFile.getParentFile().getAbsolutePath();
     }
 
+    public File getStoreFile() {
+        return storeFile;
+    }
+
     /**
      *
      * @deprecated use {@link #getStorePath()} instead
@@ -131,5 +135,9 @@ public class FlatFileStore implements IndexStore {
     @Override
     public boolean isIncremental() {
         return false;
+    }
+
+    public Compression getAlgorithm() {
+        return algorithm;
     }
 }

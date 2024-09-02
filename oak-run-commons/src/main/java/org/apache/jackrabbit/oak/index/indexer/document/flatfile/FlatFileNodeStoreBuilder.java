@@ -27,8 +27,10 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -106,6 +108,7 @@ public class FlatFileNodeStoreBuilder {
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
     private MongoClientURI mongoClientURI;
+    private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
         /**
@@ -199,7 +202,24 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileStore build() throws IOException, CompositeException {
+    /**
+     * NOTE: This enables the support for AOT blob download, it does not turn activate it. To activate it, set the property
+     * AheadOfTimeBlobDownloadingFlatFileStore.OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX to a non-empty value AND
+     * enable the support here.
+     *
+     * @param aotSupportEnabled
+     * @return
+     */
+    public FlatFileNodeStoreBuilder withAheadOfTimeBlobDownloader(boolean aotSupportEnabled) {
+        this.withAheadOfTimeBlobDownloading = aotSupportEnabled;
+        return this;
+    }
+
+    public IndexStore build() throws IOException, CompositeException {
+        return build(null, null);
+    }
+
+    public IndexStore build(IndexHelper indexHelper, CompositeIndexer indexer) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
@@ -210,10 +230,17 @@ public class FlatFileNodeStoreBuilder {
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
-        return store;
+        if (indexer == null || indexHelper == null) {
+            return store;
+        }
+        if (withAheadOfTimeBlobDownloading) {
+            return AheadOfTimeBlobDownloadingFlatFileStore.wrap(store, indexer, indexHelper);
+        } else {
+            return store;
+        }
     }
 
-    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
+    public List<IndexStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                          Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
@@ -233,7 +260,7 @@ public class FlatFileNodeStoreBuilder {
             log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
         }
 
-        List<FlatFileStore> storeList = new ArrayList<>();
+        List<IndexStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
             FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, metadataFile, new NodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), algorithm);

@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -177,8 +178,8 @@ public class FlatFileNodeStoreBuilderTest {
     public void assertBuild(String dir) throws CompositeException, IOException {
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot()).withNodeStateEntryTraverserFactory(
                 nodeStateEntryTraverserFactory);
-        try (FlatFileStore store = builder.build()) {
-            assertEquals(dir, store.getFlatFileStorePath());
+        try (IndexStore store = builder.build()) {
+            assertEquals(dir, store.getStorePath());
         }
     }
 
@@ -201,13 +202,13 @@ public class FlatFileNodeStoreBuilderTest {
         NodeState rootState = mock(NodeState.class);
         when(indexerSupport.retrieveNodeStateForCheckpoint()).thenReturn(rootState);
 
-        List<FlatFileStore> storeList = builder.buildList(indexHelper, indexerSupport, mockIndexDefns());
+        List<IndexStore> storeList = builder.buildList(indexHelper, indexerSupport, mockIndexDefns());
 
         if (split) {
-            assertEquals(new File(dir, "split").getAbsolutePath(), storeList.get(0).getFlatFileStorePath());
+            assertEquals(new File(dir, "split").getAbsolutePath(), storeList.get(0).getStorePath());
             assertTrue(storeList.size() > 1);
         } else {
-            assertEquals(dir, storeList.get(0).getFlatFileStorePath());
+            assertEquals(dir, storeList.get(0).getStorePath());
             assertEquals(1, storeList.size());
         }
     }
