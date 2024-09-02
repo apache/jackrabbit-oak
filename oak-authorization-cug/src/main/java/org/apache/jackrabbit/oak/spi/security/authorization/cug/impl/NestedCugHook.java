@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -57,8 +58,8 @@ class NestedCugHook implements PostValidationHook, CugConstants {
      */
     private static final Logger log = LoggerFactory.getLogger(NestedCugHook.class);
 
-    private final Set<String> deletedCUGs = Sets.newHashSet();
-    private final Set<String> moveSources = Sets.newHashSet();
+    private final Set<String> deletedCUGs = new HashSet<>();
+    private final Set<String> moveSources = new HashSet<>();
 
     //-------------------------------------------------< PostValidationHook >---
     @NotNull
@@ -346,7 +347,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
          * need to be added to the HIDDEN_NESTED_CUGS of the nearest ancestor.
          */
         private Set<String> getCugPathsToReconnect(@NotNull NodeState before) {
-            Set<String> reconnect = Sets.newHashSet();
+            Set<String> reconnect = new HashSet<>();
             if (afterBuilder != null) {
                 for (String nestedCug : before.getStrings(HIDDEN_NESTED_CUGS)) {
                     if (!PathUtils.isAncestor(path, nestedCug)) {

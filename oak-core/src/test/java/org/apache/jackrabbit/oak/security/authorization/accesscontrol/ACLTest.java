@@ -37,7 +37,6 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -66,6 +65,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -94,7 +94,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
     private static void assertACE(@NotNull JackrabbitAccessControlEntry ace, boolean isAllow, @NotNull Privilege... privileges) {
         assertEquals(isAllow, ace.isAllow());
-        assertEquals(Sets.newHashSet(privileges), Sets.newHashSet(ace.getPrivileges()));
+        assertEquals(Arrays.stream(privileges).collect(toSet()), Arrays.stream(ace.getPrivileges()).collect(toSet()));
     }
 
     @NotNull

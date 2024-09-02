@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -31,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_NT;
@@ -138,8 +138,10 @@ public class Namespaces implements NamespaceConstants {
     public static void buildIndexNode(NodeBuilder namespaces) {
         // initialize prefix and URI sets with the defaults namespace
         // that's not stored along with the other mappings
-        Set<String> prefixes = newHashSet("");
-        Set<String> uris = newHashSet("");
+        Set<String> prefixes = new HashSet<>();
+        prefixes.add("");
+        Set<String> uris = new HashSet<>();
+        uris.add("");
         Map<String, String> nsmap = collectNamespaces(namespaces.getProperties());
         prefixes.addAll(nsmap.keySet());
         uris.addAll(nsmap.values());

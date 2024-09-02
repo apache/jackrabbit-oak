@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -36,7 +37,6 @@ import java.util.stream.Stream;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -55,7 +55,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -161,7 +160,7 @@ public class SharedDataStoreUtilsTest {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);
         String repoId = UUID.randomUUID().toString();
-        Set<String> refs = Sets.newHashSet("1_1", "1_2");
+        Set<String> refs = Set.of("1_1", "1_2");
         File f = folder.newFile();
         FileIOUtils.writeStrings(refs.iterator(), f, false);
 
@@ -215,7 +214,7 @@ public class SharedDataStoreUtilsTest {
         Set<String> missingRepoIds = SharedDataStoreUtils
             .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()));
-        assertEquals(Sets.newHashSet(expectedMissingRepoId), missingRepoIds);
+        assertEquals(Set.of(expectedMissingRepoId), missingRepoIds);
     }
 
     @Test
@@ -357,7 +356,7 @@ public class SharedDataStoreUtilsTest {
         List<DataRecord> recs =
             dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
 
-        Set<String> returnedRefs = Sets.newHashSet();
+        Set<String> returnedRefs = new HashSet<>();
         for (DataRecord retRec : recs) {
             assertTrue(data.repoIds.contains(SharedStoreRecordType.REFERENCES.getIdFromName(retRec.getIdentifier().toString())));
             returnedRefs.addAll(FileIOUtils.readStringsAsSet(retRec.getStream(), false));
@@ -384,12 +383,12 @@ public class SharedDataStoreUtilsTest {
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REPOSITORY.getNameFromId(repoId1));
 
-        Set<String> refs = Sets.newHashSet("1_1", "1_2");
+        Set<String> refs = Set.of("1_1", "1_2");
         data.refs.addAll(refs);
         File f = folder.newFile();
         FileIOUtils.writeStrings(refs.iterator(), f, false);
 
-        Set<String> refs2 = Sets.newHashSet("2_1", "2_2");
+        Set<String> refs2 = Set.of("2_1", "2_2");
         data.refs.addAll(refs2);
         File f2 = folder.newFile();
         FileIOUtils.writeStrings(refs2.iterator(), f2, false);
@@ -399,7 +398,7 @@ public class SharedDataStoreUtilsTest {
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
 
-        Set<String> refs3 = Sets.newHashSet("3_1", "3_2");
+        Set<String> refs3 = Set.of("3_1", "3_2");
         data.refs.addAll(refs3);
         File f3 = folder.newFile();
         FileIOUtils.writeStrings(refs3.iterator(), f3, false);
@@ -440,7 +439,7 @@ public class SharedDataStoreUtilsTest {
     class Data {
         List<String> suffixes = Lists.newArrayList();
         List<String> repoIds = Lists.newArrayList();
-        Set<String> refs = Sets.newHashSet();
+        Set<String> refs = new HashSet<>();
     }
 
     private static String getName(boolean extended, String repoId, String suffix) {
@@ -456,13 +455,14 @@ public class SharedDataStoreUtilsTest {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);
         int number = 10;
-        Set<String> added = newHashSet();
+        Set<String> added = new HashSet<>();
         for (int i = 0; i < number; i++) {
             String rec = dataStore.writeBlob(randomStream(i, 16516));
             added.add(rec);
         }
 
-        Set<String> retrieved = newHashSet(dataStore.getAllChunkIds(0));
+        Set<String> retrieved = new HashSet<>();
+        dataStore.getAllChunkIds(0).forEachRemaining(retrieved::add);
         assertEquals(added, retrieved);
     }
 
@@ -471,15 +471,18 @@ public class SharedDataStoreUtilsTest {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);
         int number = 10;
-        Set<String> added = newHashSet();
+        Set<String> added = new HashSet<>();
         for (int i = 0; i < number; i++) {
             String rec = dataStore.addRecord(randomStream(i, 16516))
                 .getIdentifier().toString();
             added.add(rec);
         }
 
-        Set<String> retrieved = newHashSet(Iterables.transform(newHashSet(dataStore.getAllRecords()),
-            input -> input.getIdentifier().toString()));
+        Set<DataRecord> recordSet = new HashSet<>();
+        dataStore.getAllRecords().forEachRemaining(recordSet::add);
+        Set<String> retrieved = new HashSet<>();
+        Iterables.transform(recordSet, input -> input.getIdentifier().toString()).forEach(retrieved::add);
+
         assertEquals(added, retrieved);
     }
 
@@ -488,7 +491,7 @@ public class SharedDataStoreUtilsTest {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);
         int number = 2;
-        Set<String> added = newHashSet();
+        Set<String> added = new HashSet<>();
         for (int i = 0; i < number; i++) {
             String rec = dataStore.addRecord(randomStream(i, 16516))
                 .getIdentifier().toString();
@@ -508,8 +511,11 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = newHashSet(Iterables.transform(newHashSet(dataStore.getAllRecords()),
-                input -> input.getIdentifier().toString()));
+        Set<DataRecord> recordSet = new HashSet<>();
+        dataStore.getAllRecords().forEachRemaining(recordSet::add);
+        Set<String> retrieved = new HashSet<>();
+        Iterables.transform(recordSet, input -> input.getIdentifier().toString()).forEach(retrieved::add);
+
         assertEquals(added, retrieved);
     }
 
@@ -518,12 +524,13 @@ public class SharedDataStoreUtilsTest {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);
         int number = 10;
-        Set<DataRecord> added = newHashSet();
+        Set<DataRecord> added = new HashSet<>();
         for (int i = 0; i < number; i++) {
             added.add(dataStore.addRecord(randomStream(i, 16516)));
         }
 
-        Set<DataRecord> retrieved = newHashSet((dataStore.getAllRecords()));
+        Set<DataRecord> retrieved = new HashSet<>();
+        dataStore.getAllRecords().forEachRemaining(retrieved::add);
         assertRecords(added, retrieved);
     }
 
@@ -532,12 +539,12 @@ public class SharedDataStoreUtilsTest {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);
         int number = 10;
-        Set<DataRecord> added = newHashSet();
+        Set<DataRecord> added = new HashSet<>();
         for (int i = 0; i < number; i++) {
             added.add(dataStore.addRecord(randomStream(i, 16516)));
         }
 
-        Set<DataRecord> retrieved = newHashSet();
+        Set<DataRecord> retrieved = new HashSet<>();
         for (DataRecord rec : added) {
             retrieved.add(dataStore.getRecordForId(rec.getIdentifier()));
         }

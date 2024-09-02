@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
@@ -34,7 +33,6 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.connection.ServerVersion;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
@@ -44,6 +42,7 @@ import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
@@ -140,10 +139,10 @@ class MongoUtils {
      */
     static boolean hasIndex(MongoCollection<?> collection, String... fields)
             throws MongoException {
-        Set<String> uniqueFields = Sets.newHashSet(fields);
+        Set<String> uniqueFields = Arrays.stream(fields).collect(toSet());
         for (Document info : collection.listIndexes()) {
             Document key = (Document) info.get("key");
-            Set<String> indexFields = Sets.newHashSet(key.keySet());
+            Set<String> indexFields = new HashSet<>(key.keySet());
             if (uniqueFields.equals(indexFields)) {
                 return true;
             }

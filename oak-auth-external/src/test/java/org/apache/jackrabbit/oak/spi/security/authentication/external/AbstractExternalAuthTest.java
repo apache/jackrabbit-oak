@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -87,7 +86,8 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         super.before();
 
         getTestUser();
-        ids = Sets.newHashSet(getAllAuthorizableIds(getUserManager(root)));
+        ids = new HashSet<>();
+        getAllAuthorizableIds(getUserManager(root)).forEachRemaining(ids::add);
 
         idp = createIDP();
         syncConfig = createSyncConfig();

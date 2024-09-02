@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -35,7 +34,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Provides constants for permissions used in the OAK access evaluation as well
@@ -308,7 +308,7 @@ public final class Permissions {
         if (ALL == permissions) {
             return NON_AGGREGATES;
         } else {
-            return NON_AGGREGATES.stream().filter(permission -> includes(permissions, permission)).collect(Collectors.toSet());
+            return NON_AGGREGATES.stream().filter(permission -> includes(permissions, permission)).collect(toSet());
         }
     }
 
@@ -359,7 +359,7 @@ public final class Permissions {
     public static long getPermissions(@NotNull String jcrActions,
                                       @NotNull TreeLocation location,
                                       boolean isAccessControlContent) {
-        Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
+        Set<String> actions = Arrays.stream(Text.explode(jcrActions, ',', false)).collect(toSet());
         long permissions = NO_PERMISSION;
         // map read action respecting the 'isAccessControlContent' flag.
         if (actions.remove(Session.ACTION_READ)) {
@@ -442,7 +442,7 @@ public final class Permissions {
         if (permissionNames == null || permissionNames.isEmpty()) {
             return NO_PERMISSION;
         } else {
-            return getPermissions(Sets.newHashSet(Arrays.asList(permissionNames.split(","))));
+            return getPermissions(Arrays.stream(permissionNames.split(",")).collect(toSet()));
         }
     }
 

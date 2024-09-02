@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Arrays.asList;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
@@ -60,6 +59,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -121,7 +121,6 @@ import org.junit.Test;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexTest {
@@ -134,7 +133,7 @@ public class LuceneIndexTest {
 
     private NodeBuilder builder = root.builder();
 
-    private Set<File> dirs = newHashSet();
+    private Set<File> dirs = new HashSet<>();
 
     private IndexTracker tracker;
 
@@ -357,7 +356,7 @@ public class LuceneIndexTest {
             resultPaths.add(cursor.next().getPath());
         }
 
-        Set<String> uniquePaths = Sets.newHashSet(resultPaths);
+        Set<String> uniquePaths = new HashSet<>(resultPaths);
         assertEquals(resultPaths.size(), uniquePaths.size());
         assertFalse(uniquePaths.isEmpty());
     }

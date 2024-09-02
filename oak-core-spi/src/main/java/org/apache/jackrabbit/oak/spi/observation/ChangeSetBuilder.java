@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.spi.observation;
 
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,11 +31,11 @@ public class ChangeSetBuilder {
 
     private final int maxItems;
     private int maxPathDepth;
-    private final Set<String> parentPaths = Sets.newHashSet();
-    private final Set<String> parentNodeNames = Sets.newHashSet();
-    private final Set<String> parentNodeTypes = Sets.newHashSet();
-    private final Set<String> propertyNames = Sets.newHashSet();
-    private final Set<String> allNodeTypes = Sets.newHashSet();
+    private final Set<String> parentPaths = new HashSet<>();
+    private final Set<String> parentNodeNames = new HashSet<>();
+    private final Set<String> parentNodeTypes = new HashSet<>();
+    private final Set<String> propertyNames = new HashSet<>();
+    private final Set<String> allNodeTypes = new HashSet<>();
 
     private boolean parentPathOverflow;
     private boolean parentNodeNameOverflow;
@@ -184,7 +184,7 @@ public class ChangeSetBuilder {
         //then truncate path in current set to that depth and change
         //maxPathDepth to one from ChangeSet
         if (maxDepthInChangeSet < maxPathDepth){
-            Set<String> existingPathSet = Sets.newHashSet(parentPaths);
+            Set<String> existingPathSet = new HashSet<>(parentPaths);
             parentPaths.clear();
             for (String existingPath : existingPathSet){
                parentPaths.add(getPathWithMaxDepth(existingPath, maxDepthInChangeSet));

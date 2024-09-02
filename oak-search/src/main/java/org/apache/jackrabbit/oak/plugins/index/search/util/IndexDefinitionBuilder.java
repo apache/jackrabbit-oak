@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,12 +37,15 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -166,9 +168,9 @@ public class IndexDefinitionBuilder {
     public IndexDefinitionBuilder addTags(String... additionalTagVals) {
         Set<String> currTags = Collections.emptySet();
         if (tree.hasProperty(INDEX_TAGS)) {
-            currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+            currTags = StreamSupport.stream(tree.getProperty(INDEX_TAGS).getValue(STRINGS).spliterator(), false).collect(toSet());
         }
-        Set<String> tagVals = Sets.newHashSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        Set<String> tagVals = StreamSupport.stream(Iterables.concat(currTags, asList(additionalTagVals)).spliterator(), false).collect(toSet());
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);
@@ -258,7 +260,7 @@ public class IndexDefinitionBuilder {
         private final Tree indexRule;
         private final String ruleName;
         private final Map<String, PropertyRule> props = Maps.newHashMap();
-        private final Set<String> propNodeNames = Sets.newHashSet();
+        private final Set<String> propNodeNames = new HashSet<>();
 
         private IndexRule(Tree indexRule, String type) {
             this.indexRule = indexRule;
@@ -721,7 +723,7 @@ public class IndexDefinitionBuilder {
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state) {
-            Set<String> async = Sets.newHashSet(state.getValue(Type.STRINGS));
+            Set<String> async = StreamSupport.stream(state.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
             async.remove(IndexConstants.INDEXING_MODE_NRT);
             async.remove(IndexConstants.INDEXING_MODE_SYNC);
             return async;

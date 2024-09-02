@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Test the PathUtils class.
@@ -518,30 +520,30 @@ public class PathUtilsTest extends TestCase {
     }
 
     public void testOptimizeForIncludes() throws Exception{
-        Set<String> includes = newHashSet("/a", "/a/b");
-        Set<String> excludes = newHashSet("/a/b");
+        Set<String> includes = Stream.of("/a", "/a/b").collect(toSet());
+        Set<String> excludes = new HashSet<>(Set.of("/a/b"));
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals("Excludes supercedes include", newHashSet("/a"), includes);
-        assertEquals(newHashSet("/a/b"), excludes);
+        assertEquals("Excludes supercedes include", Set.of("/a"), includes);
+        assertEquals(Set.of("/a/b"), excludes);
 
-        includes = newHashSet("/a", "/a/b/c");
-        excludes = newHashSet("/a/b");
+        includes = Stream.of("/a", "/a/b/c").collect(toSet());
+        excludes = new HashSet<>(Set.of("/a/b"));
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals("Excludes supercedes include", newHashSet("/a"), includes);
-        assertEquals(newHashSet("/a/b"), excludes);
+        assertEquals("Excludes supercedes include", Set.of("/a"), includes);
+        assertEquals(Set.of("/a/b"), excludes);
 
-        includes = newHashSet("/a", "/a/b/c");
-        excludes = newHashSet();
+        includes = Stream.of("/a", "/a/b/c").collect(toSet());
+        excludes = new HashSet<>();
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals(newHashSet("/a"), includes);
+        assertEquals(Set.of("/a"), includes);
     }
 
     public void testOptimizeForExcludes() throws Exception{
-        Set<String> includes = newHashSet("/a", "/b");
-        Set<String> excludes = newHashSet("/c");
+        Set<String> includes = Stream.of("/a", "/b").collect(toSet());
+        Set<String> excludes = new HashSet<>(Set.of("/c"));
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals(newHashSet("/a", "/b"), includes);
-        assertEquals(newHashSet(), excludes);
+        assertEquals(Set.of("/a", "/b"), includes);
+        assertEquals(Set.of(), excludes);
     }
 
     public void testDropIndexFromNamePerformance() {

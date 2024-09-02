@@ -17,12 +17,13 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.Session;
@@ -109,7 +110,7 @@ public class SessionNamespaces extends LocalNameMapper {
             return toArray(global, String.class);
         }
 
-        Set<String> prefixes = newHashSet(global);
+        Set<String> prefixes = StreamSupport.stream(global.spliterator(), false).collect(Collectors.toSet());
 
         // remove the prefixes of the namespaces that have been remapped
         for (String uri : local.values()) {

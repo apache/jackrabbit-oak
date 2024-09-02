@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -36,11 +35,14 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import java.security.Principal;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * GroupImpl...
@@ -286,7 +288,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     @NotNull
     private Set<String> updateMembers(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
-        Set<String> failedIds = Sets.newHashSet(memberIds);
+        Set<String> failedIds = Arrays.stream(memberIds).collect(toSet());
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
         DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
@@ -310,7 +312,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             }
         }
 
-        Set<String> processedIds = Sets.newHashSet(updateMap.values());
+        Set<String> processedIds = new HashSet<>(updateMap.values());
         if (!updateMap.isEmpty()) {
             Set<String> result;
             if (isRemove) {

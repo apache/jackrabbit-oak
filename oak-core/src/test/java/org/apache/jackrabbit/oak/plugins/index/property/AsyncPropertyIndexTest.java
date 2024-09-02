@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -31,6 +32,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -52,7 +54,6 @@ import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Test the asynchronous reindexing ability of an synchronous index
@@ -126,8 +127,8 @@ public class AsyncPropertyIndexTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return Sets.newHashSet(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)));
+        return StreamSupport.stream(lookup.query(filter, name, value == null ? null
+                : PropertyValues.newString(value)).spliterator(), false).collect(toSet());
     }
 
     @Test

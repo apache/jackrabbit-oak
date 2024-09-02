@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
@@ -31,8 +33,8 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -51,7 +53,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
     @NotNull
     public static TypePredicate isOrderable(@NotNull NodeState root) {
-        Set<String> orderable = newHashSet();
+        Set<String> orderable = new HashSet<>();
         NodeState types = requireNonNull(root)
                 .getChildNode(JCR_SYSTEM)
                 .getChildNode(JCR_NODE_TYPES);
@@ -113,7 +115,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
     private static Set<String> add(Set<String> names, String name) {
         if (names == null) {
-            return newHashSet(name);
+            return Stream.of(name).collect(toSet());
         } else {
             names.add(name);
             return names;

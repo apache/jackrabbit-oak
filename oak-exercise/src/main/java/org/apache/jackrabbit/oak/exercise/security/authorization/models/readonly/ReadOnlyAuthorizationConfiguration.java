@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.models.readonl
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -67,10 +66,12 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
@@ -283,7 +284,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @Override
                 public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-                    Set<String> privs = Sets.newHashSet(privilegeNames);
+                    Set<String> privs = Arrays.stream(privilegeNames).collect(toSet());
                     privs.removeAll(READ_PRIVILEGE_NAMES);
 
                     return privs.isEmpty();

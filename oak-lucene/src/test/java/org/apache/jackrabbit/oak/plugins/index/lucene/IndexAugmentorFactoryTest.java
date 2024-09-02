@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,6 +40,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
@@ -64,12 +64,12 @@ public class IndexAugmentorFactoryTest {
 
         context.registerInjectActivateService(indexAugmentorFactory);
 
-        new IdentifiableIndexFiledProvider("1", Sets.newHashSet(typeA, typeB));
-        new IdentifiableIndexFiledProvider("2", Sets.newHashSet(typeC));
-        new IdentifiableIndexFiledProvider("3", Sets.newHashSet(typeA, typeB));
+        new IdentifiableIndexFiledProvider("1", Set.of(typeA, typeB));
+        new IdentifiableIndexFiledProvider("2", Set.of(typeC));
+        new IdentifiableIndexFiledProvider("3", Set.of(typeA, typeB));
 
         //register an instance which would be unregistered before validation
-        IndexFieldProvider unreg = new IdentifiableIndexFiledProvider("4", Sets.newHashSet(typeD));
+        IndexFieldProvider unreg = new IdentifiableIndexFiledProvider("4", Set.of(typeD));
         indexAugmentorFactory.unbindIndexFieldProvider(unreg);
 
         validateComposedFields(typeA, "1", "3");
@@ -92,13 +92,13 @@ public class IndexAugmentorFactoryTest {
 
         context.registerInjectActivateService(indexAugmentorFactory);
 
-        new IdentifiableQueryTermsProvider("1", Sets.newHashSet(typeA, typeB));
-        new IdentifiableQueryTermsProvider("2", Sets.newHashSet(typeC));
-        new IdentifiableQueryTermsProvider("3", Sets.newHashSet(typeA, typeB));
-        new IdentifiableQueryTermsProvider(null, Sets.newHashSet(typeE));
+        new IdentifiableQueryTermsProvider("1", Set.of(typeA, typeB));
+        new IdentifiableQueryTermsProvider("2", Set.of(typeC));
+        new IdentifiableQueryTermsProvider("3", Set.of(typeA, typeB));
+        new IdentifiableQueryTermsProvider(null, Set.of(typeE));
 
         //register an instance which would be unregistered before validation
-        FulltextQueryTermsProvider unreg = new IdentifiableQueryTermsProvider("4", Sets.newHashSet(typeD));
+        FulltextQueryTermsProvider unreg = new IdentifiableQueryTermsProvider("4", Set.of(typeD));
         indexAugmentorFactory.unbindFulltextQueryTermsProvider(unreg);
 
         validateComposedQueryTerms(typeA, "1", "3");
@@ -120,7 +120,7 @@ public class IndexAugmentorFactoryTest {
         }
 
         Iterable<Field> fields = compositeIndexProvider.getAugmentedFields(null, null, null);
-        Set<String> ids = Sets.newHashSet();
+        Set<String> ids = new HashSet<>();
         for (Field f : fields) {
             ids.add(f.stringValue());
         }
@@ -141,7 +141,7 @@ public class IndexAugmentorFactoryTest {
         if (q == null) {
             assertEquals("No query terms generated for " + type + ".", 0, expected.length);
         } else {
-            Set<String> ids = Sets.newHashSet();
+            Set<String> ids = new HashSet<>();
             if (q instanceof BooleanQuery) {
                 BooleanQuery query = (BooleanQuery) q;
                 List<BooleanClause> clauses = query.clauses();

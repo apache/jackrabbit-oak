@@ -32,10 +32,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -245,7 +246,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     /** test purpose only! */
     public Set<String> listCheckpoints() {
-        return Sets.newHashSet(checkpoints());
+        return StreamSupport.stream(checkpoints().spliterator(), false).collect(Collectors.toSet());
     }
 
     //------------------------------------------------------------< private >---

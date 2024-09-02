@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
@@ -42,7 +43,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -83,13 +83,13 @@ public class ReadOnlyStoreBlobReferencesTest {
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             fileStore.flush();
 
-            Set<String> actualReferences = newHashSet();
+            Set<String> actualReferences = new HashSet<>();
             fileStore.collectBlobReferences(actualReferences::add);
             assertEquals("Binary should be visible before gc cycle", 1, actualReferences.size());
             assertEquals("Binary reference returned should be same", blobId,
                 actualReferences.toArray(new String[0])[0]);
 
-            actualReferences = newHashSet();
+            actualReferences = new HashSet<>();
             fileStore.fullGC();
             fileStore.collectBlobReferences(actualReferences::add);
             assertEquals("Binary should be deleted after gc cycle", 0, actualReferences.size());
@@ -135,7 +135,7 @@ public class ReadOnlyStoreBlobReferencesTest {
         try (ReadOnlyFileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(newBlobStore(dataStoreDir))
             .buildReadOnly()) {
 
-            Set<String> actualReferences = newHashSet();
+            Set<String> actualReferences = new HashSet<>();
             fileStore.collectBlobReferences(actualReferences::add);
             assertEquals("Read only store visible references different", count, actualReferences.size());
             if (!Strings.isNullOrEmpty(blobId)) {

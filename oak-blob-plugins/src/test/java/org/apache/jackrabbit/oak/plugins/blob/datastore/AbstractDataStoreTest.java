@@ -24,13 +24,14 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -420,9 +421,11 @@ public abstract class AbstractDataStoreTest {
         rec = ds.addRecord(new ByteArrayInputStream(data));
         list.add(rec.getIdentifier());
 
-        Iterator<DataIdentifier> itr = Sets.newHashSet(ds.getAllIdentifiers()).iterator();
-        while (itr.hasNext()) {
-            assertTrue("record found on list", list.remove(itr.next()));
+        Set<DataIdentifier> dataIdentifierSet = new HashSet<>();
+        ds.getAllIdentifiers().forEachRemaining(dataIdentifierSet::add);
+
+        for (DataIdentifier dataIdentifier : dataIdentifierSet) {
+            assertTrue("record found on list", list.remove(dataIdentifier));
         }
         Assert.assertEquals(0, list.size());
     }

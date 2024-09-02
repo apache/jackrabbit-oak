@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -58,7 +59,7 @@ class NameValidator extends DefaultValidator {
 
     NameValidator(NodeState namespaces, boolean initPhase) {
         this.namespaces = namespaces;
-        this.prefixes = newHashSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
+        this.prefixes = StreamSupport.stream(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES).spliterator(), false).collect(toSet());
         this.initPhase = initPhase;
     }
 

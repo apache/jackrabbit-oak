@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -44,7 +45,6 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -245,7 +245,7 @@ public final class IndexUtils {
     @Nullable
     public static String getAsyncLaneName(NodeState idxState, String indexPath, PropertyState async) {
         if (async != null) {
-            Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));
+            Set<String> asyncNames = StreamSupport.stream(async.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
             asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);
             asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
             checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +

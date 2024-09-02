@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -32,7 +32,6 @@ import java.util.UUID;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -180,9 +179,11 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         when(mockedDS.getRecord(new DataIdentifier("d-30"))).thenReturn(new TimeDataRecord(d30));
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
-        Iterator<String> chunks = ds.getAllChunkIds(25);
-        Set<String> expected = Sets.newHashSet("d-10","d-20");
-        assertEquals(expected, Sets.newHashSet(chunks));
+        final Set<String> expected = Set.of("d-10","d-20");
+        final Set<String> chunks = new HashSet<>();
+        ds.getAllChunkIds(25).forEachRemaining(chunks::add);
+
+        assertEquals(expected, chunks);
     }
 
     @Test

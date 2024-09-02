@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertEquals;
@@ -28,8 +29,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -129,10 +130,10 @@ public class MutableTreeTest extends OakBaseTest {
     public void getProperties() {
         Tree tree = root.getTree("/");
 
-        Set<PropertyState> expectedProperties = Sets.newHashSet(
+        Set<PropertyState> expectedProperties = Stream.of(
                 LongPropertyState.createLongProperty("a", 1L),
                 LongPropertyState.createLongProperty("b", 2L),
-                LongPropertyState.createLongProperty("c", 3L));
+                LongPropertyState.createLongProperty("c", 3L)).collect(toSet());
 
         Iterable<? extends PropertyState> properties = tree.getProperties();
         for (PropertyState property : properties) {

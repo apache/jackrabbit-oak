@@ -19,13 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -35,6 +36,7 @@ import org.junit.Test;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -140,7 +142,7 @@ public class JournalEntryTest {
     public void fillExternalChanges() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry entry = JOURNAL.newDocument(store);
-        Set<Path> paths = Sets.newHashSet();
+        Set<Path> paths = new HashSet<>();
         addRandomPaths(paths);
         entry.modified(paths);
         Revision r1 = new Revision(1, 0, 1);
@@ -172,7 +174,7 @@ public class JournalEntryTest {
     public void invalidateOnly() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry invalidateEntry = JOURNAL.newDocument(store);
-        Set<Path> paths = Sets.newHashSet();
+        Set<Path> paths = new HashSet<>();
         addRandomPaths(paths);
         invalidateEntry.modified(paths);
         Revision r1 = new Revision(1, 0, 1);
@@ -231,15 +233,15 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r1, r2, store);
-        assertEquals(Sets.newHashSet("/", "/foo"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/foo"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
         sort.close();
 
         sort = externalChanges(r1, r3, store);
-        assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/foo", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
         sort.close();
 
         sort = externalChanges(r1, r4, store);
-        assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/foo", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
         sort.close();
 
         sort = externalChanges(r2, r2, store);
@@ -247,11 +249,11 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r2, r3, store);
-        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
         sort.close();
 
         sort = externalChanges(r2, r4, store);
-        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
         sort.close();
 
         sort = externalChanges(r3, r3, store);
@@ -259,7 +261,7 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r3, r4, store);
-        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
         sort.close();
 
         sort = externalChanges(r4, r4, store);

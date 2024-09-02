@@ -18,10 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
@@ -34,6 +32,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
@@ -133,7 +132,7 @@ public class FileStoreBuilder {
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
 
     @NotNull
-    private final Set<IOMonitor> ioMonitors = newHashSet();
+    private final Set<IOMonitor> ioMonitors = new HashSet<>();
 
     @NotNull
     private RemoteStoreMonitor remoteStoreMonitor;

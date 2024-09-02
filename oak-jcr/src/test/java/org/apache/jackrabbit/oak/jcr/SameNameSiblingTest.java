@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.asList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -28,7 +27,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -87,7 +88,7 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
 
     @Test
     public void iterateSiblings() throws RepositoryException {
-        Set<String> expected = newHashSet(SIBLINGS);
+        Set<String> expected = Arrays.stream(SIBLINGS).collect(Collectors.toSet());
         expected.add(SIBLING);
         expected.remove(SIBLINGS[0]);
 

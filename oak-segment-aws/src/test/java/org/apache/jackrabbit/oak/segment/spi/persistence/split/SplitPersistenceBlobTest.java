@@ -20,13 +20,14 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -53,7 +54,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 
 public class SplitPersistenceBlobTest {
@@ -134,7 +135,7 @@ public class SplitPersistenceBlobTest {
         throws IOException, CommitFailedException {
         String blobId = createLoad(split, splitFileStore).getContentIdentity();
 
-        assertReferences(2, Sets.newHashSet(baseBlobId, blobId));
+        assertReferences(2, Stream.of(baseBlobId, blobId).collect(toSet()));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
@@ -162,7 +163,7 @@ public class SplitPersistenceBlobTest {
 
     private void assertReferences(int count, Set<String> blobIds)
         throws IOException {
-        Set<String> actualReferences = newHashSet();
+        Set<String> actualReferences = new HashSet<>();
         splitFileStore.collectBlobReferences(actualReferences::add);
         assertEquals("visible references different", count, actualReferences.size());
         assertEquals("Binary reference returned should be same", blobIds, actualReferences);

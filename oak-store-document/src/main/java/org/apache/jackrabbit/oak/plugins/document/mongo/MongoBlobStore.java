@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import com.mongodb.ReadPreference;
 import com.mongodb.client.model.UpdateOptions;
@@ -46,7 +47,6 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 
 import static com.mongodb.ReadPreference.primary;
-import static java.util.stream.StreamSupport.stream;
 import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -204,7 +204,7 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     private MongoCollection<MongoBlob> initBlobCollection(MongoDatabase db, boolean readOnly) {
-        if (stream(db.listCollectionNames().spliterator(), false)
+        if (StreamSupport.stream(db.listCollectionNames().spliterator(), false)
                 .noneMatch(COLLECTION_BLOBS::equals)) {
             if (readOnly) {
                 throw new RuntimeException(

@@ -17,10 +17,10 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -31,7 +31,9 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -249,7 +251,7 @@ public class Compact {
         if (files == null) {
             return emptySet();
         }
-        return newHashSet(files);
+        return Arrays.stream(files).collect(toSet());
     }
 
     private static void printFiles(PrintStream s, Set<File> files) {
@@ -263,7 +265,7 @@ public class Compact {
     }
 
     private static Set<String> fileNames(Set<File> files) {
-        Set<String> names = newHashSet();
+        Set<String> names = new HashSet<>();
         for (File f : files) {
             names.add(f.getName());
         }

@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -94,7 +93,7 @@ public class PermissionEntryProviderImplTest {
     @Test
     public void testExistingNamesAndLongOverFlow() throws Exception {
         MockPermissionStore store = new MockPermissionStore();
-        Set<String> principalNames = Sets.newHashSet(GROUP_LONG_MAX_MINUS_10, GROUP_50, "noEntries");
+        Set<String> principalNames = Set.of(GROUP_LONG_MAX_MINUS_10, GROUP_50, "noEntries");
 
         /*
         same as before but principal-set contains a name for which not entries exist
@@ -106,7 +105,7 @@ public class PermissionEntryProviderImplTest {
     @Test
     public void testNoExistingName() throws Exception {
         MockPermissionStore store = new MockPermissionStore();
-        Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
+        Set<String> principalNames = Set.of("noEntries", "noEntries2", "noEntries3");
 
         PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
         assertFalse(getBooleanField(provider, "noExistingNames"));
@@ -119,7 +118,7 @@ public class PermissionEntryProviderImplTest {
     @Test
     public void testInit() throws Exception {
         MockPermissionStore store = new MockPermissionStore();
-        Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
+        Set<String> principalNames = Set.of("noEntries", "noEntries2", "noEntries3");
 
         PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
         assertFalse(getBooleanField(provider, "initialized"));

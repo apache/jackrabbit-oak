@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +48,7 @@ public class PermissionCachePathMapTest extends AbstractCacheTest {
         when(store.load("b")).thenReturn(generatedPermissionEntries("/path2", true, 0, JCR_MODIFY_ACCESS_CONTROL));
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
-        Set<String> principalNames = Sets.newHashSet("a", "b");
+        Set<String> principalNames = Set.of("a", "b");
         assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(250, 10, true)));
 
         cache = permissionCacheBuilder.build();

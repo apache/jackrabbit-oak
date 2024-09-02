@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -44,6 +43,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -245,7 +245,8 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         sync(USER_ID, false);
 
         // membership-nesting is 1 => expect only 'USER_ID' plus the declared group-membership
-        Set<String> expected = Sets.newHashSet(USER_ID);
+        Set<String> expected = new HashSet<>();
+        expected.add(USER_ID);
         for (ExternalIdentityRef extRef : idp.getUser(USER_ID).getDeclaredGroups()) {
             expected.add(extRef.getId());
         }

@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -29,7 +31,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -184,7 +185,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, StreamSupport.stream(Splitter.on(',').split(Permissions.getString(key)).spliterator(), false).collect(Collectors.toSet()));
         });
     }
 
@@ -206,7 +207,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, StreamSupport.stream(Splitter.on(',').split(Permissions.getString(key)).spliterator(), false).collect(Collectors.toSet()));
         });
     }
 
@@ -248,10 +249,10 @@ public class PermissionsTest {
 
         assertFalse(Iterables.contains(aggregates, Permissions.ALL));
 
-        Set<Long> expected = Sets.newHashSet(Permissions.PERMISSION_NAMES.keySet());
+        Set<Long> expected = new HashSet<>(Permissions.PERMISSION_NAMES.keySet());
         expected.removeAll(ImmutableList.of(Permissions.ALL, Permissions.WRITE, Permissions.READ, Permissions.SET_PROPERTY, Permissions.REMOVE));
 
-        assertEquals(expected, Sets.newHashSet(aggregates));
+        assertEquals(expected, StreamSupport.stream(aggregates.spliterator(), false).collect(Collectors.toSet()));
     }
 
     @Test

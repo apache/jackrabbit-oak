@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.BASE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CONFLICT;
@@ -30,8 +31,10 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PR
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -108,7 +111,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
             NodeState oursNS = conflictInfo.getChildNode(OURS);
             NodeState baseNS = conflictInfo.getChildNode(BASE);
 
-            Set<String> processed = Sets.newHashSet();
+            Set<String> processed = new HashSet<>();
             for (PropertyState ours : oursNS.getProperties()) {
                 String name = ours.getName();
                 processed.add(name);
@@ -132,8 +135,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                 NodeState oursNS = conflictInfo.getChildNode(OURS);
                 NodeState baseNS = conflictInfo.getChildNode(BASE);
 
-                Set<String> candidates = Sets.union(Sets.newHashSet(oursNS.getChildNodeNames()),
-                        Sets.newHashSet(baseNS.getChildNodeNames()));
+                Set<String> candidates = Sets.union(StreamSupport.stream(oursNS.getChildNodeNames().spliterator(), false).collect(toSet()),
+                        StreamSupport.stream(baseNS.getChildNodeNames().spliterator(), false).collect(toSet()));
                 for (String name : candidates) {
                     NodeState ours = oursNS.getChildNode(name);
                     NodeState base = baseNS.getChildNode(name);

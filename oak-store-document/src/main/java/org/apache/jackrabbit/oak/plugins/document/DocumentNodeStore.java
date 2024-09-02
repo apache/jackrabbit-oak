@@ -70,6 +70,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
@@ -2225,7 +2227,7 @@ public final class DocumentNodeStore
             return null;
         }
         // make sure all changes up to checkpoint are visible
-        suspendUntilAll(Sets.newHashSet(rv));
+        suspendUntilAll(StreamSupport.stream(rv.spliterator(), false).collect(Collectors.toSet()));
         return getRoot(rv);
     }
 
@@ -2457,7 +2459,7 @@ public final class DocumentNodeStore
      */
     boolean updateClusterState() {
         boolean hasChanged = false;
-        Set<Integer> clusterIds = Sets.newHashSet();
+        Set<Integer> clusterIds = new HashSet<>();
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(nonLeaseCheckingStore)) {
             int cId = doc.getClusterId();
             clusterIds.add(cId);
@@ -3484,7 +3486,7 @@ public final class DocumentNodeStore
         long minValue = NodeDocument.getModifiedInSecs(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
-        Set<Path> paths = Sets.newHashSet();
+        Set<Path> paths = new HashSet<>();
 
         LOG.debug("diffManyChildren: path: {}, fromRev: {}, toRev: {}", path, fromRev, toRev);
 
@@ -3561,7 +3563,7 @@ public final class DocumentNodeStore
                                  RevisionVector fromRev,
                                  DocumentNodeState.Children toChildren,
                                  RevisionVector toRev) {
-        Set<String> childrenSet = Sets.newHashSet(toChildren.children);
+        Set<String> childrenSet = new HashSet<>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n);
@@ -3580,7 +3582,7 @@ public final class DocumentNodeStore
                 }
             }
         }
-        childrenSet = Sets.newHashSet(fromChildren.children);
+        childrenSet = new HashSet<>(fromChildren.children);
         for (String n : toChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('+').key(n).object().endObject();
@@ -4009,7 +4011,7 @@ public final class DocumentNodeStore
         
         // otherwise wait until the visibility token's revisions all become visible
         // (or maxWaitMillis has passed)
-        commitQueue.suspendUntilAll(Sets.newHashSet(visibilityTokenRv), maxWaitMillis);
+        commitQueue.suspendUntilAll(StreamSupport.stream(visibilityTokenRv.spliterator(), false).collect(Collectors.toSet()), maxWaitMillis);
         
         // if we got interrupted above would throw InterruptedException
         // otherwise, we don't know why suspendUntilAll returned, so

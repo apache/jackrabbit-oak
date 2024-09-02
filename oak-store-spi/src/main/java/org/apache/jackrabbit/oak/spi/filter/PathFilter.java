@@ -23,6 +23,7 @@ package org.apache.jackrabbit.oak.spi.filter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,8 +31,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 /**
@@ -123,8 +124,8 @@ public class PathFilter {
      * @param excludes list of paths which should not be included
      */
     public PathFilter(Iterable<String> includes, Iterable<String> excludes) {
-        Set<String> includeCopy = newHashSet(includes);
-        Set<String> excludeCopy = newHashSet(excludes);
+        Set<String> includeCopy = StreamSupport.stream(includes.spliterator(), false).collect(toSet());
+        Set<String> excludeCopy = StreamSupport.stream(excludes.spliterator(), false).collect(toSet());
         PathUtils.unifyInExcludes(includeCopy, excludeCopy);
         checkState(!includeCopy.isEmpty(), "No valid include provided. Includes %s, " +
                 "Excludes %s", includes, excludes);

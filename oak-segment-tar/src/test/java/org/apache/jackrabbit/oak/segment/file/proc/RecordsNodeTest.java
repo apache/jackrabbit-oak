@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.proc;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -27,9 +28,8 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Record;
 import org.junit.Test;
@@ -49,20 +49,20 @@ public class RecordsNodeTest {
 
     @Test
     public void shouldExposeAllRecordNumbers() {
-        Set<Integer> numbers = Sets.newHashSet(1, 2, 3);
+        Set<Integer> numbers = Set.of(1, 2, 3);
 
         Set<Record> records = numbers.stream()
             .map(RecordsNodeTest::newRecord)
-            .collect(Collectors.toSet());
+            .collect(toSet());
 
         Backend backend = mock(Backend.class);
         when(backend.getSegmentRecords("s")).thenReturn(Optional.of(records));
 
         Set<String> names = numbers.stream()
             .map(Object::toString)
-            .collect(Collectors.toSet());
+            .collect(toSet());
 
-        assertEquals(names, Sets.newHashSet(new RecordsNode(backend, "s").getChildNodeNames()));
+        assertEquals(names, StreamSupport.stream(new RecordsNode(backend, "s").getChildNodeNames().spliterator(), false).collect(toSet()));
     }
 
     private static Record newRecord(Integer number) {

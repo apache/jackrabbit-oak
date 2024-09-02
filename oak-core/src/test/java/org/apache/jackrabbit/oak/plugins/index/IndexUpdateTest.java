@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
@@ -46,6 +47,7 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -86,7 +88,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class IndexUpdateTest {
 
@@ -711,8 +712,8 @@ public class IndexUpdateTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
         Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
-        return Sets.newHashSet(lookup.query(filter, name,
-                PropertyValues.newString(value)));
+        return StreamSupport.stream(lookup.query(filter, name,
+                PropertyValues.newString(value)).spliterator(), false).collect(toSet());
     }
 
     static NodeState checkPathExists(NodeState state, String... verify) {
@@ -741,7 +742,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "" for sync
         base = EmptyNodeState.EMPTY_NODE.builder()
-                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet(INDEXING_MODE_NRT, "async"),
+                .setProperty(ASYNC_PROPERTY_NAME, Set.of(INDEXING_MODE_NRT, "async"),
                         Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -749,7 +750,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "sync" for sync
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
+                ASYNC_PROPERTY_NAME, Set.of("sync", "async"),
                 Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -757,7 +758,7 @@ public class IndexUpdateTest {
 
         // async multiple values: no sync present
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
+                ASYNC_PROPERTY_NAME, Set.of("async", "async-other"),
                 Type.STRINGS);
         assertFalse(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));

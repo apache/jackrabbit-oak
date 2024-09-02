@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -40,6 +40,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.StreamSupport;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -361,7 +362,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             indexStats.setProcessedCheckpoint(afterCheckpoint);
 
             // try to drop temp cps, add 'currentCp' to the temp cps list
-            Set<String> temps = newHashSet();
+            Set<String> temps = new HashSet<>();
             for (String cp : getStrings(async, tempCpName)) {
                 if (cp.equals(checkpoint)) {
                     temps.add(cp);
@@ -736,7 +737,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     void cleanUpCheckpoints() {
         log.debug("[{}] Cleaning up orphaned checkpoints", name);
-        Set<String> keep = newHashSet();
+        Set<String> keep = new HashSet<>();
         String cp = indexStats.getReferenceCheckpoint();
         if (cp == null) {
             log.warn("[{}] No reference checkpoint set in index stats", name);
@@ -1449,8 +1450,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public void splitIndexingTask(String paths, String newIndexTaskName) {
-            splitIndexingTask(newHashSet(Splitter.on(",").trimResults()
-                    .omitEmptyStrings().split(paths)), newIndexTaskName);
+            splitIndexingTask(StreamSupport.stream(Splitter.on(",").trimResults()
+                    .omitEmptyStrings().split(paths).spliterator(), false).collect(toSet()), newIndexTaskName);
         }
 
         private void splitIndexingTask(Set<String> paths,
@@ -1553,13 +1554,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private String newIndexTaskName = null;
         private String lastReferencedCp;
 
-        private Set<String> registeredTasks = newHashSet();
+        private Set<String> registeredTasks = new HashSet<>();
 
         void registerSplit(Set<String> paths, String newIndexTaskName) {
             log.info(
                     "[{}] Registered split of following index definitions {} to new async task {}.",
                     name, paths, newIndexTaskName);
-            this.paths = newHashSet(paths);
+            this.paths = new HashSet<>(paths);
             this.newIndexTaskName = newIndexTaskName;
         }
 
@@ -1579,7 +1580,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 // add new reference
                 async.setProperty(newIndexTaskName, refCheckpoint);
                 // update old 'temp' list: remove refcp so it doesn't get released on next run
-                Set<String> temps = newHashSet();
+                Set<String> temps = new HashSet<>();
                 for (String cp : getStrings(async, tempCpName)) {
                     if (cp.equals(refCheckpoint)) {
                         continue;
@@ -1591,7 +1592,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             // update index defs name => newIndexTaskName
-            Set<String> updated = newHashSet();
+            Set<String> updated = new HashSet<>();
             for (String path : paths) {
                 NodeBuilder c = builder;
                 for (String p : elements(path)) {
@@ -1642,7 +1643,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         if (ps != null) {
             return ps.getValue(Type.STRINGS);
         }
-        return newHashSet();
+        return new HashSet<>();
     }
 
     IndexTaskSpliter getTaskSplitter() {

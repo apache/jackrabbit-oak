@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -39,6 +40,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -87,7 +89,6 @@ import ch.qos.logback.core.spi.FilterReply;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Test the Property2 index mechanism.
@@ -321,8 +322,8 @@ public class PropertyIndexTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return Sets.newHashSet(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)));
+        return StreamSupport.stream(lookup.query(filter, name, value == null ? null
+                : PropertyValues.newString(value)).spliterator(), false).collect(toSet());
     }
 
     @Test

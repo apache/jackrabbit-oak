@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.upgrade;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -39,7 +40,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class IndexDisablerTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
@@ -154,7 +158,7 @@ public class IndexDisablerTest {
         PropertyState declaringNodeType = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").getProperty(DECLARING_NODE_TYPES);
         assertEquals(Type.NAMES, declaringNodeType.getType());
 
-        Set<String> names = Sets.newHashSet(declaringNodeType.getValue(Type.NAMES));
+        Set<String> names = StreamSupport.stream(declaringNodeType.getValue(Type.NAMES).spliterator(), false).collect(toSet());
         assertThat(names, containsInAnyOrder("oak:TestNode"));
     }
 

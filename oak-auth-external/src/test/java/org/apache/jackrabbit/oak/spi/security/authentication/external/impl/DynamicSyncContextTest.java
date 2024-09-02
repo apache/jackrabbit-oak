@@ -20,7 +20,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -53,8 +52,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
@@ -126,7 +126,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
             } catch (RepositoryException e) {
                 return null;
             }
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
+        }).filter(Objects::nonNull).collect(toSet());
 
         Set<String> expected = new HashSet<>();
         collectGroupPrincipals(expected, externalIdentity.getDeclaredGroups(), depth);
@@ -245,7 +245,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
 
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = StreamSupport.stream(extPrincipalNames.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
         for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
             assertTrue(pNames.remove(idp.getIdentity(ref).getPrincipalName()));
         }
@@ -263,8 +263,8 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
 
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
-        Set<String> expected = Sets.newHashSet();
+        Set<String> pNames = StreamSupport.stream(extPrincipalNames.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
+        Set<String> expected = new HashSet<>();
         collectGroupPrincipals(expected, externalUser.getDeclaredGroups(), Long.MAX_VALUE);
 
         assertEquals(expected, pNames);
@@ -353,7 +353,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertNotNull(extPrincipalNames);
 
         // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = StreamSupport.stream(extPrincipalNames.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
         assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 
@@ -376,7 +376,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertNotNull(extPrincipalNames);
 
         // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = StreamSupport.stream(extPrincipalNames.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
         assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 

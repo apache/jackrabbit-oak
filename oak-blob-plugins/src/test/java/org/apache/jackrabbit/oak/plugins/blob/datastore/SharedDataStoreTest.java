@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,6 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -144,9 +144,10 @@ public class SharedDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = Sets.newHashSet(Iterators.transform(dis, input-> input.toString()));
+        Set<String> fileNames = new HashSet<>();
+        Iterators.transform(dis, DataIdentifier::toString).forEachRemaining(fileNames::add);
 
-        Set<String> expectedNames = Sets.newHashSet("abcdef","bcdefg","cdefgh");
+        Set<String> expectedNames = Set.of("abcdef","bcdefg","cdefgh");
         assertEquals(expectedNames, fileNames);
         FileUtils.cleanDirectory(testDir);
     }

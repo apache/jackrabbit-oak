@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.proc;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -26,8 +27,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -36,12 +37,12 @@ public class StoreNodeTest {
 
     @Test
     public void shouldExposeAllTarNames() {
-        Set<String> names = Sets.newHashSet("t1", "t2", "t3");
+        Set<String> names = Set.of("t1", "t2", "t3");
 
         Backend backend = mock(Backend.class);
         when(backend.getTarNames()).thenReturn(names);
 
-        assertEquals(names, Sets.newHashSet(new StoreNode(backend).getChildNodeNames()));
+        assertEquals(names, StreamSupport.stream(new StoreNode(backend).getChildNodeNames().spliterator(), false).collect(toSet()));
     }
 
     @Test

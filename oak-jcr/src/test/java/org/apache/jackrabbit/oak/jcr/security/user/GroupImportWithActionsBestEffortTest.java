@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -38,6 +37,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -125,9 +125,9 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         boolean onMembersAddedContentIdCalled = false;
 
         Group group;
-        Set<String> memberIds = Sets.newHashSet();
-        Set<String> memberContentIds = Sets.newHashSet();
-        Set<String> failedIds = Sets.newHashSet();
+        Set<String> memberIds = new HashSet<>();
+        Set<String> memberContentIds = new HashSet<>();
+        Set<String> failedIds = new HashSet<>();
 
         @Override
         public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {

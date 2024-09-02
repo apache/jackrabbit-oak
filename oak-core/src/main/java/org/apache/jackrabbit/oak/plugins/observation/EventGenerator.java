@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -200,8 +200,8 @@ public class EventGenerator {
                             newArrayList(after.getValue(NAMES));
 
                     // check only those names that weren't added or removed
-                    beforeNames.retainAll(newHashSet(afterNames));
-                    afterNames.retainAll(newHashSet(beforeNames));
+                    beforeNames.retainAll(new HashSet<>(afterNames));
+                    afterNames.retainAll(new HashSet<>(beforeNames));
 
                     // Selection sort beforeNames into afterNames,
                     // recording the swaps as we go

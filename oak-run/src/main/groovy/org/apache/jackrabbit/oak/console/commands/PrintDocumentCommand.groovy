@@ -64,7 +64,7 @@ class PrintDocumentCommand extends CommandSupport{
     private void println(NodeDocument doc, PrintWriter writer)
             throws IOException {
         int level = 1;
-        Set<String> mapKeys = Sets.newHashSet();
+        Set<String> mapKeys = new HashSet<>();
         writer.write('{');
         String comma = "";
         for (String key : doc.keySet()) {

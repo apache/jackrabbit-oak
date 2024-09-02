@@ -39,11 +39,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.management.openmbean.TabularData;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -71,7 +71,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
@@ -625,7 +624,7 @@ public class IndexCopierTest {
         //Work dir must be empty post close
         File indexDir = copier.getIndexDir(defn, "foo", INDEX_DATA_CHILD_NAME);
         List<File> files = new ArrayList<File>(FileUtils.listFiles(indexDir, null, true));
-        Set<String> fileNames = Sets.newHashSet();
+        Set<String> fileNames = new HashSet<>();
         for (File f : files){
             fileNames.add(f.getName());
         }
@@ -647,11 +646,11 @@ public class IndexCopierTest {
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
 
-        assertEquals(newHashSet("t1"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t1"), Arrays.stream(local.listAll()).collect(Collectors.toSet()));
         assertEquals(t1.length, local.fileLength("t1"));
 
         byte[] t2 = writeFile(local, "t2");
-        assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), Arrays.stream(local.listAll()).collect(Collectors.toSet()));
         assertEquals(t2.length, local.fileLength("t2"));
 
         assertTrue(local.fileExists("t1"));
@@ -663,10 +662,10 @@ public class IndexCopierTest {
         readAndAssert(local, "t2", t2);
 
         local.deleteFile("t1");
-        assertEquals(newHashSet("t2"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t2"), Arrays.stream(local.listAll()).collect(Collectors.toSet()));
 
         local.deleteFile("t2");
-        assertEquals(newHashSet(), newHashSet(local.listAll()));
+        assertEquals(Set.of(), Arrays.stream(local.listAll()).collect(Collectors.toSet()));
 
 
         try {
@@ -704,7 +703,7 @@ public class IndexCopierTest {
         byte[] t2 = writeFile(remote, "t2");
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
-        assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), Arrays.stream(local.listAll()).collect(Collectors.toSet()));
 
         byte[] t3 = writeFile(local, "t3");
 
@@ -733,7 +732,7 @@ public class IndexCopierTest {
 
     @Test
     public void cowReadDoneFromLocalIfFileExist() throws Exception{
-        final Set<String> readLocal = newHashSet();
+        final Set<String> readLocal = new HashSet<>();
         Directory baseDir = new CloseSafeDir(){
             @Override
             public IndexInput openInput(String name, IOContext context) throws IOException {
@@ -744,7 +743,7 @@ public class IndexCopierTest {
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier copier = new RAMIndexCopier(baseDir, newDirectExecutorService(), getWorkDir());
 
-        final Set<String> readRemotes = newHashSet();
+        final Set<String> readRemotes = new HashSet<>();
         Directory remote = new RAMDirectory() {
             @Override
             public IndexInput openInput(String name, IOContext context) throws IOException {
@@ -759,8 +758,8 @@ public class IndexCopierTest {
         //Read should be served from remote
         readRemotes.clear();readLocal.clear();
         readAndAssert(local, "t1", t1);
-        assertEquals(newHashSet("t1"), readRemotes);
-        assertEquals(newHashSet(), readLocal);
+        assertEquals(Set.of("t1"), readRemotes);
+        assertEquals(Set.of(), readLocal);
 
         //Now pull in the file t1 via CopyOnRead in baseDir
         Directory localForRead = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
@@ -769,8 +768,8 @@ public class IndexCopierTest {
         //Read should be served from local
         readRemotes.clear();readLocal.clear();
         readAndAssert(local, "t1", t1);
-        assertEquals(newHashSet(), readRemotes);
-        assertEquals(newHashSet("t1"), readLocal);
+        assertEquals(Set.of(), readRemotes);
+        assertEquals(Set.of("t1"), readLocal);
 
         local.close();
     }
@@ -905,7 +904,7 @@ public class IndexCopierTest {
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier copier = new RAMIndexCopier(baseDir, executorService, getWorkDir());
 
-        final Set<String> toFail = Sets.newHashSet();
+        final Set<String> toFail = new HashSet<>();
         Directory remote = new CloseSafeDir() {
             @Override
             public IndexOutput createOutput(String name, IOContext context) throws IOException {
@@ -939,7 +938,7 @@ public class IndexCopierTest {
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier copier = new RAMIndexCopier(baseDir, executorService, getWorkDir());
 
-        final Set<String> toPause = Sets.newHashSet();
+        final Set<String> toPause = new HashSet<>();
         final CountDownLatch pauseCopyLatch = new CountDownLatch(1);
         Directory remote = new CloseSafeDir() {
             @Override

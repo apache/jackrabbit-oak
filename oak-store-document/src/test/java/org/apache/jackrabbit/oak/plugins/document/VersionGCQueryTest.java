@@ -19,13 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -51,7 +51,7 @@ public class VersionGCQueryTest {
     public final DocumentMKBuilderProvider provider = new DocumentMKBuilderProvider();
 
     private Clock clock;
-    private Set<String> prevDocIds = Sets.newHashSet();
+    private Set<String> prevDocIds = new HashSet<>();
     private DocumentStore store;
     private DocumentNodeStore ns;
 

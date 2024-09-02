@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -169,7 +170,7 @@ public class VersionHistoryUtil {
 
     static void addMixin(NodeBuilder builder, String name) {
         if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
+            final Set<String> mixins = StreamSupport.stream(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES).spliterator(), false).collect(toSet());
             if (mixins.add(name)) {
                 builder.setProperty(nameProperty(JCR_MIXINTYPES, mixins));
             }
@@ -180,7 +181,7 @@ public class VersionHistoryUtil {
 
     private static void removeMixin(NodeBuilder builder, String name) {
         if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
+            final Set<String> mixins = StreamSupport.stream(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES).spliterator(), false).collect(toSet());
             if (mixins.remove(name)) {
                 if (mixins.isEmpty()) {
                     builder.removeProperty(JCR_MIXINTYPES);

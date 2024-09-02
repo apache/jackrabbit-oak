@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -44,14 +43,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -147,7 +147,7 @@ abstract public class OakDirectoryTestBase {
     public void saveListing() throws Exception{
         builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         Directory dir = createDir(builder, false, "/foo");
-        Set<String> fileNames = newHashSet();
+        Set<String> fileNames = new HashSet<>();
         for (int i = 0; i < 10; i++) {
             String fileName = "foo" + i;
             createFile(dir, fileName);
@@ -156,14 +156,14 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(builder, true, "/foo");
-        assertEquals(fileNames, newHashSet(dir.listAll()));
+        assertEquals(fileNames, Arrays.stream(dir.listAll()).collect(Collectors.toSet()));
     }
 
     @Test
     public void skipSaveListingIfUnchanged() throws Exception{
         builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         Directory dir = createDir(builder, false, "/foo");
-        Set<String> fileNames = newHashSet();
+        Set<String> fileNames = new HashSet<>();
         for (int i = 0; i < 10; i++) {
             String fileName = "foo" + i;
             createFile(dir, fileName);
@@ -172,7 +172,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(new ReadOnlyBuilder(builder.getNodeState()), false, "/foo");
-        Set<String> files =  newHashSet(dir.listAll());
+        Set<String> files =  Arrays.stream(dir.listAll()).collect(Collectors.toSet());
         dir.close();
         assertEquals(fileNames, files);
     }
@@ -538,7 +538,7 @@ abstract public class OakDirectoryTestBase {
     public void dontMarkInlinedBlobsFromDataStoreAsDeleted() throws Exception {
         LuceneIndexDefinition def = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
-        final Set<String> deletedFiles = newHashSet();
+        final Set<String> deletedFiles = new HashSet<>();
 
         FileDataStore fds = new FileDataStore();
         fds.setMinRecordLength(48);
@@ -584,7 +584,7 @@ abstract public class OakDirectoryTestBase {
     public void markAllBlobsFromBlobStoreAsDeleted() throws Exception {
         LuceneIndexDefinition def = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
-        final Set<String> deletedFiles = newHashSet();
+        final Set<String> deletedFiles = new HashSet<>();
 
         MemoryBlobStore bs = new MemoryBlobStore();
         bs.setBlockSizeMin(48);
@@ -691,7 +691,7 @@ abstract public class OakDirectoryTestBase {
         };
 
         final AtomicBoolean markingForceActiveDeletionUnsafe = new AtomicBoolean();
-        final Set<String> deletedBlobs = Sets.newHashSet();
+        final Set<String> deletedBlobs = new HashSet<>();
         OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
             .with(factory).
                     with(

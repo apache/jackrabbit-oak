@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -67,6 +66,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -167,7 +167,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
                 // remove the rep:CugMixin if it has been explicitly added upon setPolicy
-                Set<String> mixins = Sets.newHashSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
+                Set<String> mixins = StreamSupport.stream(TreeUtil.getNames(tree, JCR_MIXINTYPES).spliterator(), false).collect(toSet());
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
                 } else {

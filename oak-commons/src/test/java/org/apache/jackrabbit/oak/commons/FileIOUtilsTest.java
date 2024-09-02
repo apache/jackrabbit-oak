@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.commons;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
@@ -53,6 +52,7 @@ import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -62,8 +62,8 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
+import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -82,7 +82,7 @@ public class FileIOUtilsTest {
 
     @Test
     public void writeReadStrings() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
+        Set<String> added = Set.of("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
@@ -92,8 +92,8 @@ public class FileIOUtilsTest {
 
     @Test
     public void writeCustomReadOrgStrings() throws Exception {
-        Set<String> added = newHashSet("a-", "z-", "e-", "b-");
-        Set<String> actual = newHashSet("a", "z", "e", "b");
+        Set<String> added = Set.of("a-", "z-", "e-", "b-");
+        Set<String> actual = Set.of("a", "z", "e", "b");
 
         File f = folder.newFile();
         int count = writeStrings(added.iterator(), f, false, new java.util.function.Function<String, String>() {
@@ -109,7 +109,7 @@ public class FileIOUtilsTest {
 
     @Test
     public void writeReadStringsWithLineBreaks() throws IOException {
-        Set<String> added = newHashSet(getLineBreakStrings());
+        Set<String> added = new HashSet<>(getLineBreakStrings());
         File f = assertWrite(added.iterator(), true, added.size());
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), true);
@@ -119,7 +119,7 @@ public class FileIOUtilsTest {
 
     @Test
     public void writeReadRandomStrings() throws Exception {
-        Set<String> added = newHashSet();
+        Set<String> added = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             added.add(getRandomTestString());
         }
@@ -228,13 +228,13 @@ public class FileIOUtilsTest {
 
     @Test
     public void appendTest() throws IOException {
-        Set<String> added1 = newHashSet("a", "z", "e", "b");
+        Set<String> added1 = Set.of("a", "z", "e", "b");
         File f1 = assertWrite(added1.iterator(), false, added1.size());
 
-        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), false, added2.size());
 
-        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        Set<String> added3 = Set.of("t", "y", "8", "9");
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         append(newArrayList(f2, f3), f1, true);
@@ -247,13 +247,13 @@ public class FileIOUtilsTest {
 
     @Test
     public void appendTestNoDelete() throws IOException {
-        Set<String> added1 = newHashSet("a", "z", "e", "b");
+        Set<String> added1 = Set.of("a", "z", "e", "b");
         File f1 = assertWrite(added1.iterator(), false, added1.size());
 
-        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), false, added2.size());
 
-        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        Set<String> added3 = Set.of("t", "y", "8", "9");
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         append(newArrayList(f2, f3), f1, false);
@@ -267,10 +267,10 @@ public class FileIOUtilsTest {
 
     @Test
     public void appendTestFileDeleteOnError() throws IOException {
-        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), false, added2.size());
 
-        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        Set<String> added3 = Set.of("t", "y", "8", "9");
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         try {
@@ -283,13 +283,13 @@ public class FileIOUtilsTest {
 
     @Test
     public void appendRandomizedTest() throws Exception {
-        Set<String> added1 = newHashSet();
+        Set<String> added1 = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             added1.add(getRandomTestString());
         }
         File f1 = assertWrite(added1.iterator(), true, added1.size());
 
-        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), true, added2.size());
 
         append(newArrayList(f2), f1, true);
@@ -300,10 +300,10 @@ public class FileIOUtilsTest {
 
     @Test
     public void appendWithLineBreaksTest() throws IOException {
-        Set<String> added1 = newHashSet(getLineBreakStrings());
+        Set<String> added1 = new HashSet<>(getLineBreakStrings());
         File f1 = assertWrite(added1.iterator(), true, added1.size());
 
-        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), true, added2.size());
 
         append(newArrayList(f1), f2, true);
@@ -313,10 +313,10 @@ public class FileIOUtilsTest {
 
     @Test
     public void mergeWithErrorsTest() throws IOException {
-        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), false, added2.size());
 
-        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        Set<String> added3 = Set.of("t", "y", "8", "9");
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         try {
@@ -329,58 +329,67 @@ public class FileIOUtilsTest {
 
     @Test
     public void fileIteratorTest() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
+        Set<String> added = Set.of("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
-        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
-                org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
+        final Set<String> files = new HashSet<>();
 
-        assertEquals(added, Sets.newHashSet(iterator));
+        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()))
+                .forEachRemaining(files::add);
+
+        assertEquals(added, files);
         assertTrue(f.exists());
     }
 
     @Test
     public void fileIteratorBurnTest() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
+        Set<String> added = Set.of("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
-        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
-                org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
+        final Set<String> files = new HashSet<>();
 
-        assertEquals(added, Sets.newHashSet(iterator));
+        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f)
+                .forEachRemaining(files::add);
+
+        assertEquals(added, files);
         assertTrue(!f.exists());
     }
 
     @Test
     public void fileIteratorLineBreakTest() throws IOException {
-        Set<String> added = newHashSet(getLineBreakStrings());
+        Set<String> added = new HashSet<>(getLineBreakStrings());
         File f = assertWrite(added.iterator(), true, added.size());
 
-        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
-                FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
+        final Set<String> files = new HashSet<>();
+        new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<>(
+                FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks)
+                .forEachRemaining(files::add);
 
-        assertEquals(added, Sets.newHashSet(iterator));
+        assertEquals(added, files);
         assertTrue(!f.exists());
     }
 
     @Test
     public void fileIteratorRandomizedTest() throws Exception {
-        Set<String> added = newHashSet();
+        Set<String> added = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             added.add(getRandomTestString());
         }
         File f = assertWrite(added.iterator(), true, added.size());
 
-        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
-                FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
+        final Set<String> files = new HashSet<>();
 
-        assertEquals(added, Sets.newHashSet(iterator));
+        new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<>(
+                FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks)
+                .forEachRemaining(files::add);
+
+        assertEquals(added, files);
         assertTrue(!f.exists());
     }
 
     @Test
     public void copyStreamToFile() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
+        Set<String> added = Set.of("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
         File f2 = folder.newFile();

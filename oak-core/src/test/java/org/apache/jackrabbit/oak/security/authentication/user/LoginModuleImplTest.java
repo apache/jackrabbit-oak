@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authentication.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -70,6 +69,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -588,7 +588,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(factory);
         SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
-        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(creds), Sets.newHashSet());
+        Subject subject = new Subject(false, new HashSet<>(), ImmutableSet.of(creds), new HashSet<>());
 
         LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
@@ -628,7 +628,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         };
 
         CallbackHandler cbh = createCallbackHandler(factory);
-        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(), Sets.newHashSet());
+        Subject subject = new Subject(false, new HashSet<>(), ImmutableSet.of(), new HashSet<>());
 
         LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());

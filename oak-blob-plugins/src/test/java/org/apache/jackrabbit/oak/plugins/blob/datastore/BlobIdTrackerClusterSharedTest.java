@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
@@ -94,7 +94,7 @@ public class BlobIdTrackerClusterSharedTest {
             folder.newFolder("cluster1").getAbsolutePath(), folder);
         cluster2 = new Cluster(clusterRepoId,
             folder.newFolder("cluster2").getAbsolutePath(), folder);
-        Set<String> adds = newHashSet();
+        Set<String> adds = new HashSet<>();
 
         // Add some on cluster 2 & simulate snapshot
         adds.addAll(cluster2.doAdd(range(5, 9)));
@@ -130,7 +130,7 @@ public class BlobIdTrackerClusterSharedTest {
             folder.newFolder("cluster1").getAbsolutePath(), folder);
         cluster2 = new Cluster(randomUUID().toString(),
             folder.newFolder("cluster2").getAbsolutePath(), folder);
-        Set<String> adds = newHashSet();
+        Set<String> adds = new HashSet<>();
 
         // Add some on cluster1 & simulate snapshot
         adds.addAll(cluster1.doAdd(range(0, 4)));
@@ -213,7 +213,7 @@ public class BlobIdTrackerClusterSharedTest {
     }
 
     private static Set<String> add(BlobTracker tracker, List<String> ints) throws IOException {
-        Set<String> s = newHashSet();
+        Set<String> s = new HashSet<>();
         for (String rec : ints) {
             tracker.add(rec);
             s.add(rec);
@@ -222,7 +222,7 @@ public class BlobIdTrackerClusterSharedTest {
     }
 
     private static Set<String> retrieve(BlobTracker tracker) throws IOException {
-        Set<String> retrieved = newHashSet();
+        Set<String> retrieved = new HashSet<>();
         Iterator<String> iter = tracker.get();
         log.info("retrieving blob ids");
         while(iter.hasNext()) {

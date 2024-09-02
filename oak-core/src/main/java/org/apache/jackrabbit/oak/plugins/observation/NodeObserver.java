@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static java.util.Collections.addAll;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,7 +55,7 @@ public abstract class NodeObserver implements Observer {
     private static final Logger LOG = LoggerFactory.getLogger(NodeObserver.class);
 
     private final String path;
-    private final Set<String> propertyNames = Sets.newHashSet();
+    private final Set<String> propertyNames = new HashSet<>();
 
     private NodeState previousRoot;
 
@@ -127,7 +128,7 @@ public abstract class NodeObserver implements Observer {
                 NamePathMapper namePathMapper = new NamePathMapperImpl(
                         new GlobalNameMapper(RootFactory.createReadOnlyRoot(root)));
 
-                Set<String> oakPropertyNames = Sets.newHashSet();
+                Set<String> oakPropertyNames = new HashSet<>();
                 for (String name : propertyNames) {
                     String oakName = namePathMapper.getOakNameOrNull(name);
                     if (oakName == null) {
@@ -178,9 +179,9 @@ public abstract class NodeObserver implements Observer {
         private final NamePathMapper namePathMapper;
         private final Set<String> propertyNames;
         private final EventType eventType;
-        private final Set<String> added = Sets.newHashSet();
-        private final Set<String> deleted = Sets.newHashSet();
-        private final Set<String> changed = Sets.newHashSet();
+        private final Set<String> added = new HashSet<>();
+        private final Set<String> deleted = new HashSet<>();
+        private final Set<String> changed = new HashSet<>();
 
         public NodeEventHandler(String path, CommitInfo commitInfo, NamePathMapper namePathMapper,
                 Set<String> propertyNames) {

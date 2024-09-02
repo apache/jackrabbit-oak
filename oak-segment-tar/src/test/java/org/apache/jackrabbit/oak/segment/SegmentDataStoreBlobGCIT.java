@@ -254,8 +254,8 @@ public class SegmentDataStoreBlobGCIT {
     }
 
     private class DataStoreState {
-        Set<String> blobsAdded = Sets.newHashSet();
-        Set<String> blobsPresent = Sets.newHashSet();
+        Set<String> blobsAdded = new HashSet<>();
+        Set<String> blobsPresent = new HashSet<>();
     }
     
     private void delete(String nodeId) throws CommitFailedException {
@@ -450,7 +450,7 @@ public class SegmentDataStoreBlobGCIT {
     private Set<String> iterate() throws Exception {
         Iterator<String> cur = blobStore.getAllChunkIds(0);
 
-        Set<String> existing = Sets.newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -478,7 +478,7 @@ public class SegmentDataStoreBlobGCIT {
             this.root = root;
             this.blobStore = blobStore;
             this.maxLastModifiedInterval = maxLastModifiedInterval;
-            this.additionalBlobs = Sets.newHashSet();
+            this.additionalBlobs = new HashSet<>();
         }
 
         @Override

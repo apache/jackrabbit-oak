@@ -46,7 +46,7 @@ import java.util.Random;
 import java.util.Set;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -88,7 +88,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
     private final Map<String, Integer> actualAclLabelCount = Maps.newHashMap();
     private final Map<String, Integer> actualAclPar1LabelCount = Maps.newHashMap();
     protected Boolean storageEnabled;
-    protected Set<String> propVals = newHashSet();
+    protected Set<String> propVals = new HashSet<>();
     protected Random rgen = new Random(42);
 
     public FacetSearchTest(Boolean storageEnabled) {

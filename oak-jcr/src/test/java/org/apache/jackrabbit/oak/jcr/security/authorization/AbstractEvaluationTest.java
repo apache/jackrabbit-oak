@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -49,7 +50,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -300,7 +300,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
 
         private final String path;
         private final boolean remove;
-        private final Set<AccessControlEntry> entries = Sets.newHashSet();
+        private final Set<AccessControlEntry> entries = new HashSet<>();
 
         private ACL(String path) throws RepositoryException {
             this.path = path;

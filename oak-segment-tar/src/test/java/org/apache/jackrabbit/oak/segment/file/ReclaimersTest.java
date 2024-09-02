@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.join;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
@@ -27,10 +26,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -72,7 +73,7 @@ public class ReclaimersTest {
         .build();
 
     private static void assertReclaim(Predicate<GCGeneration> reclaimer, String... reclaims) {
-        Set<String> toReclaim = newHashSet(reclaims);
+        Set<String> toReclaim = Arrays.stream(reclaims).collect(Collectors.toSet());
         for (Entry<String, GCGeneration> generation : gcHistory.entrySet()) {
             if (reclaimer.test(generation.getValue())) {
                 assertTrue(

@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.stream.Collectors.toSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -59,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
@@ -2468,6 +2469,6 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private void assertMatches(Iterable<String> actuals, String... expected) {
-        assertEquals(newHashSet(expected), newHashSet(actuals));
+        assertEquals(Arrays.stream(expected).collect(toSet()), StreamSupport.stream(actuals.spliterator(), false).collect(toSet()));
     }
 }

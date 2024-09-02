@@ -255,7 +255,7 @@ public class IndexOptions implements OptionsBean {
     }
 
     private static List<String> trim(List<String> values) {
-        Set<String> paths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
         for (String v : values) {
             v = Strings.emptyToNull(v);
             if (v != null) {

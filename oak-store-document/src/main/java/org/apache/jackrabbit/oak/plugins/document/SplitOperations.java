@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -40,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
@@ -154,10 +154,10 @@ class SplitOperations {
             return Collections.emptyList();
         }
         splitOps = Lists.newArrayList();
-        mostRecentRevs = Sets.newHashSet();
-        splitRevs = Sets.newHashSet();
+        mostRecentRevs = new HashSet<>();
+        splitRevs = new HashSet<>();
         garbage = Maps.newHashMap();
-        changes = Sets.newHashSet();
+        changes = new HashSet<>();
         committedChanges = Maps.newHashMap();
         
         collectLocalChanges(committedChanges, changes);
@@ -476,7 +476,7 @@ class SplitOperations {
         }
         Set<Revision> revisions = garbage.get(property);
         if (revisions == null) {
-            revisions = Sets.newHashSet();
+            revisions = new HashSet<>();
             garbage.put(property, revisions);
         }
         if (revisions.add(rev)) {

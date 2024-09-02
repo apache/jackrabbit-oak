@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.commit;
 
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static java.util.stream.Collectors.toSet;
 
 /**
  * This conflict handler instance takes care of properly merging conflicts
@@ -73,7 +75,7 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
     }
 
     private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
-        Set<String> theirOrder = Sets.newHashSet(theirs.getValue(Type.NAMES));
+        Set<String> theirOrder = StreamSupport.stream(theirs.getValue(Type.NAMES).spliterator(), false).collect(toSet());
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.NAME).assignFrom(theirs);
 
         // Append child node names from ours that are not in theirs

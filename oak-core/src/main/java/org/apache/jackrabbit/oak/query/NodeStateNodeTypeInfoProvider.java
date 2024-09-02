@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PRIMA
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
@@ -71,18 +72,17 @@ public class NodeStateNodeTypeInfoProvider implements NodeTypeInfoProvider {
 
         @Override
         public Set<String> getSuperTypes() {
-            return  newHashSet(type.getNames(REP_SUPERTYPES));
+            return  StreamSupport.stream(type.getNames(REP_SUPERTYPES).spliterator(), false).collect(toSet());
         }
 
         @Override
         public Set<String> getPrimarySubTypes() {
-            return newHashSet(type
-                    .getNames(REP_PRIMARY_SUBTYPES));
+            return StreamSupport.stream(type.getNames(REP_PRIMARY_SUBTYPES).spliterator(), false).collect(toSet());
         }
 
         @Override
         public Set<String> getMixinSubTypes() {
-            return newHashSet(type.getNames(REP_MIXIN_SUBTYPES));
+            return StreamSupport.stream(type.getNames(REP_MIXIN_SUBTYPES).spliterator(), false).collect(toSet());
         }
 
         @Override

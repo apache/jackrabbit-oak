@@ -749,9 +749,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 return;
             }
             NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
-            Set<Revision> collisions = Sets.newHashSet(doc.getLocalMap(COLLISIONS).keySet());
-            Set<Revision> commits = Sets.newHashSet(Iterables.transform(b.getCommits(),
-                    input -> input.asTrunkRevision()));
+            Set<Revision> collisions = new HashSet<>(doc.getLocalMap(COLLISIONS).keySet());
+            Set<Revision> commits = new HashSet<>();
+            Iterables.transform(b.getCommits(), Revision::asTrunkRevision).forEach(commits::add);
             Set<Revision> conflicts = Sets.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,

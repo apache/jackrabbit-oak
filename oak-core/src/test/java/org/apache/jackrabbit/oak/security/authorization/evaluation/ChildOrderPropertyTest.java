@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -23,10 +24,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -65,7 +66,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetProperties() {
-        Set<String> propertyNames = Sets.newHashSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
+        Set<String> propertyNames = Stream.of(JcrConstants.JCR_PRIMARYTYPE, "aProp").collect(toSet());
 
         Tree a = root.getTree("/a");
         for (PropertyState prop : a.getProperties()) {

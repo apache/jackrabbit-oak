@@ -27,9 +27,9 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -69,6 +69,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -82,7 +83,12 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.NOOP_LOCK;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class IndexImporterTest {
@@ -522,8 +528,8 @@ public class IndexImporterTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
                                     String value, Filter filter) {
-        return Sets.newHashSet(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)));
+        return StreamSupport.stream(lookup.query(filter, name, value == null ? null
+                : PropertyValues.newString(value)).spliterator(), false).collect(toSet());
     }
 
     private String createIndexDirs(String... indexPaths) throws IOException, CommitFailedException {

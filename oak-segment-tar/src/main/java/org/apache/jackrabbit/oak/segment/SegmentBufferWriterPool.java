@@ -23,12 +23,12 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.Thread.currentThread;
 
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -192,12 +192,12 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
         /**
          * Writers that are currently in use
          */
-        private final Set<SegmentBufferWriter> borrowed = newHashSet();
+        private final Set<SegmentBufferWriter> borrowed = new HashSet<>();
 
         /**
          * Retired writers that have not yet been flushed
          */
-        private final Set<SegmentBufferWriter> disposed = newHashSet();
+        private final Set<SegmentBufferWriter> disposed = new HashSet<>();
 
         public GlobalSegmentBufferWriterPool(
                 @NotNull SegmentIdProvider idProvider,

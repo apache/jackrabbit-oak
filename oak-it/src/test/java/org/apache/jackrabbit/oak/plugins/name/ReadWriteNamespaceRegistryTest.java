@@ -16,12 +16,13 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
@@ -77,7 +78,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals(r.getPrefix("n2"), "p2");
 
         // xml namespace check
-        assertTrue(newHashSet(r.getPrefixes()).contains("xml"));
+        assertTrue(Arrays.stream(r.getPrefixes()).collect(Collectors.toSet()).contains("xml"));
         try {
             r.registerNamespace("xml", "test");
             fail("Trying to register the namespace 'xml' must throw a NamespaceException.");

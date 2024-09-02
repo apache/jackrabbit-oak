@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.easymock.EasyMock.createControl;
 import static org.easymock.EasyMock.expect;
@@ -26,8 +25,10 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -57,12 +58,12 @@ public class MapRecordTest {
     @Test
     public void testOak1104() {
         Pattern pattern = Pattern.compile(", ");
-        Set<String> beforeNames = newHashSet(pattern.split(
+        Set<String> beforeNames = Arrays.stream(pattern.split(
                 "_b_Lucene41_0.doc, _b.fdx, _b.fdt, segments_34, _b_4.del,"
                 + " _b_Lucene41_0.pos, _b.nvm, _b.nvd, _b.fnm, _3n.si,"
                 + " _b_Lucene41_0.tip, _b_Lucene41_0.tim, _3n.cfe,"
-                + " segments.gen, _3n.cfs, _b.si"));
-        Set<String> afterNames = newHashSet(pattern.split(
+                + " segments.gen, _3n.cfs, _b.si")).collect(Collectors.toSet());
+        Set<String> afterNames = Arrays.stream(pattern.split(
                 "_b_Lucene41_0.pos, _3k.cfs, _3j_1.del, _b.nvm, _b.nvd,"
                 + " _3d.cfe, _3d.cfs, _b.fnm, _3j.si, _3h.si, _3i.cfe,"
                 + " _3i.cfs, _3e_2.del, _3f.si, _b_Lucene41_0.tip,"
@@ -71,7 +72,7 @@ public class MapRecordTest {
                 + " _3d.si, _b_Lucene41_0.doc, _3h_2.del, _3i.si, _3k_1.del,"
                 + " _3j.cfe, _3j.cfs, _b.fdx, _b.fdt, _3g_1.del, _3k.si,"
                 + " _3l.cfe, _3l.cfs, segments_33, _3f_1.del, _3h.cfe,"
-                + " _3h.cfs, _b_4.del, _3f.cfe, _3f.cfs, _3g.cfe, _3g.cfs"));
+                + " _3h.cfs, _b_4.del, _3f.cfe, _3f.cfs, _3g.cfe, _3g.cfs")).collect(Collectors.toSet());
 
         for (String name : beforeNames) {
             builder.setChildNode(name);

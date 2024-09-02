@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -37,7 +36,9 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
@@ -117,7 +118,7 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         assertNotNull(extPrincipalNames);
 
         // the resulting rep:externalPrincipalNames must contain the name of the principal
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = StreamSupport.stream(extPrincipalNames.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
         assertTrue(pNames + " must contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 

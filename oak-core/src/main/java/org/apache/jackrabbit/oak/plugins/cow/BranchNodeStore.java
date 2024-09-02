@@ -47,7 +47,7 @@ import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
+
 
 public class BranchNodeStore implements NodeStore, Observable {
 

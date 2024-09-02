@@ -32,8 +32,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
@@ -122,7 +123,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
 
     private static boolean updateFrozenMixins(NodeBuilder builder) {
         if (builder.hasProperty(JCR_FROZENMIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
+            final Set<String> mixins = StreamSupport.stream(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES).spliterator(), false).collect(toSet());
             if (mixins.remove(MIX_SIMPLE_VERSIONABLE)) {
                 mixins.add(MIX_VERSIONABLE);
                 builder.setProperty(nameProperty(JCR_FROZENMIXINTYPES, mixins));

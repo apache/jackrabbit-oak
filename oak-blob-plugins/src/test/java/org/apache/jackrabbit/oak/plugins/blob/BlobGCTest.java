@@ -619,7 +619,7 @@ public class BlobGCTest {
     protected Set<String> iterate(GarbageCollectableBlobStore blobStore) throws Exception {
         Iterator<String> cur = blobStore.getAllChunkIds(0);
 
-        Set<String> existing = Sets.newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -738,8 +738,8 @@ public class BlobGCTest {
      * Represents state of the blobs after setup
      */
     class BlobStoreState {
-        Set<String> blobsAdded = Sets.newHashSet();
-        Set<String> blobsPresent = Sets.newHashSet();
+        Set<String> blobsAdded = new HashSet<>();
+        Set<String> blobsPresent = new HashSet<>();
     }
 
 }

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -37,7 +36,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -99,7 +101,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
 
         Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, false);
         assertFalse(principals.isEmpty());
-        Set<Principal> expected = Sets.newHashSet(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
+        Set<Principal> expected = Stream.of(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal()).collect(toSet());
         assertEquals(expected, principals);
 
         // change behavior of automembership-config
@@ -129,7 +131,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup(automembershipGroup1, automembershipGroup2);
 
         Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, true);
-        Set<Principal> expected = Sets.newHashSet(testGroup.getPrincipal(), automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
+        Set<Principal> expected = Set.of(testGroup.getPrincipal(), automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
         assertEquals(expected, principals);
 
         verifyNoInteractions(authorizable);

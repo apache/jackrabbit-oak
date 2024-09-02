@@ -343,7 +343,7 @@ public class ChangeSetFilterImplTest {
         }
         ChangeSet cs = builder.build();
 
-        Set<String> includes = Sets.newHashSet();
+        Set<String> includes = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             includes.add("/foo/bar/n-" + i + "/*.jsp");
         }

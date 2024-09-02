@@ -30,7 +30,10 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import java.util.HashSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 
 class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
 
@@ -91,14 +94,14 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
     @NotNull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        return newHashSet(
+        return Stream.of(
                 authenticationConfiguration,
                 authorizationConfiguration,
                 userConfiguration,
                 privilegeConfiguration,
                 principalConfiguration,
                 tokenConfiguration
-        );
+        ).collect(Collectors.toSet());
     }
 
     @NotNull
