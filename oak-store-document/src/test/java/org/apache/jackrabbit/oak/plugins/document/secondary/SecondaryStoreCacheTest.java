@@ -156,8 +156,8 @@ public class SecondaryStoreCacheTest {
     public void binarySearch() throws Exception{
         SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
-        List<AbstractDocumentNodeState> roots = new ArrayList<>();;
-        List<RevisionVector> revs = new ArrayList<>();;
+        List<AbstractDocumentNodeState> roots = new ArrayList<>();
+        List<RevisionVector> revs = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
             NodeBuilder nb = primary.getRoot().builder();
             create(nb, "/a/b"+i);

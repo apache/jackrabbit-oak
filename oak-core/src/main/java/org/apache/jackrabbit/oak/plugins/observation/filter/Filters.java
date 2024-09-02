@@ -216,7 +216,7 @@ public final class Filters {
 
                 @Override
                 public EventFilter create(String name, NodeState before, NodeState after) {
-                    List<EventFilter> childFilters = new ArrayList<>();;
+                    List<EventFilter> childFilters = new ArrayList<>();
                     for (EventFilter filter : filters) {
                         EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter != null) {
@@ -315,7 +315,7 @@ public final class Filters {
 
                 @Override
                 public EventFilter create(String name, NodeState before, NodeState after) {
-                    List<EventFilter> childFilters = new ArrayList<>();;
+                    List<EventFilter> childFilters = new ArrayList<>();
                     for (EventFilter filter : filters) {
                         EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter == null) {

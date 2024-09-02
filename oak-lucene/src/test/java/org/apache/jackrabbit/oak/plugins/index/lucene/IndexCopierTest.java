@@ -151,7 +151,7 @@ public class IndexCopierTest {
 
     @Test
     public void basicTestWithPrefetch() throws Exception{
-        final List<String> syncedFiles = new ArrayList<>();;
+        final List<String> syncedFiles = new ArrayList<>();
         Directory baseDir = new RAMDirectory(){
             @Override
             public void sync(Collection<String> names) throws IOException {
@@ -336,7 +336,7 @@ public class IndexCopierTest {
         Directory baseDir = new RAMDirectory();
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
-        final List<ListenableFuture<?>> submittedTasks = new ArrayList<>();;
+        final List<ListenableFuture<?>> submittedTasks = new ArrayList<>();
         ExecutorService executor = new ForwardingListeningExecutorService() {
             @Override
             protected ListeningExecutorService delegate() {

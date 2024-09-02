@@ -223,7 +223,7 @@ public class CompositeNodeStoreQueryTestBase {
 
         // don't use the builder since it would fail due to too many read-write stores
         // but for the purposes of testing the general correctness it's fine
-        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();;
+        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("temp"), mountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("deep"), deepMountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("empty"), emptyStore));

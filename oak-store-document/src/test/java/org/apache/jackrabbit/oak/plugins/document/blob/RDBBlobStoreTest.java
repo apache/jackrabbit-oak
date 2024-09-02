@@ -112,7 +112,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private static void empty(RDBBlobStore blobStore) throws Exception {
         Iterator<String> iter = blobStore.getAllChunkIds(0);
-        List<String> ids = new ArrayList<>();;
+        List<String> ids = new ArrayList<>();
         while (iter.hasNext()) {
             ids.add(iter.next());
         }

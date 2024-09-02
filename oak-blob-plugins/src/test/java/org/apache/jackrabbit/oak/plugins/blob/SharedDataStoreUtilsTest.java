@@ -438,8 +438,8 @@ public class SharedDataStoreUtilsTest {
     }
 
     class Data {
-        List<String> suffixes = new ArrayList<>();;
-        List<String> repoIds = new ArrayList<>();;
+        List<String> suffixes = new ArrayList<>();
+        List<String> repoIds = new ArrayList<>();
         Set<String> refs = Sets.newHashSet();
     }
 

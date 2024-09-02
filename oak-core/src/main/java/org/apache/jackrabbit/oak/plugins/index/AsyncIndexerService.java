@@ -212,7 +212,7 @@ public class AsyncIndexerService {
     }
 
     static List<AsyncConfig> getAsyncConfig(String[] configs) {
-        List<AsyncConfig> result = new ArrayList<>();;
+        List<AsyncConfig> result = new ArrayList<>();
         for (String config : configs) {
             int idOfEq = config.indexOf(CONFIG_SEP);
             checkArgument(idOfEq > 0, "Invalid config provided [%s]", Arrays.toString(configs));

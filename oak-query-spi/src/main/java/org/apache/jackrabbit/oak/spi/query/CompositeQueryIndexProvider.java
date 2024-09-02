@@ -62,7 +62,7 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
 
     @Override @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        List<QueryIndex> indexes = new ArrayList<>();;
+        List<QueryIndex> indexes = new ArrayList<>();
         for (QueryIndexProvider provider : providers) {
             indexes.addAll(provider.getQueryIndexes(nodeState));
         }

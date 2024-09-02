@@ -186,7 +186,7 @@ public class IndexAugmentorFactory {
         @Override
         public List<Field> getAugmentedFields(final String path,
                                               final NodeState document, final NodeState indexDefinition) {
-            List<Field> fields = new ArrayList<>();;
+            List<Field> fields = new ArrayList<>();
             for (IndexFieldProvider indexFieldProvider : providers) {
                 final long start = PERFLOG.start();
                 Iterable<Field> providedFields = indexFieldProvider.getAugmentedFields(path, document, indexDefinition);
@@ -218,7 +218,7 @@ public class IndexAugmentorFactory {
 
         @Override
         public Query getQueryTerm(final String text, final Analyzer analyzer, NodeState indexDefinition) {
-            List<Query> subQueries = new ArrayList<>();;
+            List<Query> subQueries = new ArrayList<>();
             for (FulltextQueryTermsProvider fulltextQueryTermsProvider : providers) {
                 final long start = PERFLOG.start();
                 Query subQuery = fulltextQueryTermsProvider.getQueryTerm(text, analyzer, indexDefinition);

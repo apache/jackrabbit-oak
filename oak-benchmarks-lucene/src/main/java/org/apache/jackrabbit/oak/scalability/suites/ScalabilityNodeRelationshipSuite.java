@@ -145,8 +145,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         root.addNode(ROOT_NODE_NAME);
         session.save();
 
-        users = new ArrayList<>();;
-        groups = new ArrayList<>();;
+        users = new ArrayList<>();
+        groups = new ArrayList<>();
 
         if (CUSTOM_TYPE) {
             NodeTypeUtils.createNodeType(session, CUSTOM_ACT_NODE_TYPE,
@@ -502,7 +502,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
          */
         private void createRelationships(Authorizable user, Node relationshipsParentNode,
             Node activitiesParentNode) throws RepositoryException {
-            List<Integer> usersIdx = new ArrayList<>();;
+            List<Integer> usersIdx = new ArrayList<>();
             for (int count = 0; count < users.size(); count++) {
                 usersIdx.add(count);
             }

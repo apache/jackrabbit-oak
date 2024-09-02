@@ -181,7 +181,7 @@ public class SegmentDataStoreBlobGCIT {
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = 5;
         int numBlobs = count;
-        List<Integer> processed = new ArrayList<>();;
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(numBlobs);

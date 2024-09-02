@@ -638,7 +638,7 @@ public class BlobGCTest {
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = deletions;
         int numBlobs = count;
-        List<Integer> toBeDeleted = new ArrayList<>();;
+        List<Integer> toBeDeleted = new ArrayList<>();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(numBlobs);

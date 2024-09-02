@@ -68,7 +68,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
     private IndexCopier copier;
 
     private Directory firstCoR = null;
-    private List<Future<String>> leechingCoRFutures = new ArrayList<>();;
+    private List<Future<String>> leechingCoRFutures = new ArrayList<>();
     private List<Directory> leechingCoRs = Collections.synchronizedList(new ArrayList<>(););
 
     private CountDownLatch firstCoRBlocker;

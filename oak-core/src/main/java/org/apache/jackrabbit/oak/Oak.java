@@ -168,7 +168,7 @@ public class Oak {
 
     private final List<CommitHook> commitHooks = new ArrayList<>();
 
-    private final List<Observer> observers = new ArrayList<>();;
+    private final List<Observer> observers = new ArrayList<>();
 
     private List<EditorProvider> editorProviders = new ArrayList<>();
 
@@ -726,7 +726,7 @@ public class Oak {
 
         final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
         closer.register(repoStateCheckHook);
-        final List<Registration> regs = new ArrayList<>();;
+        final List<Registration> regs = new ArrayList<>();
         closer.register( () -> new CompositeRegistration(regs).unregister() );
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 

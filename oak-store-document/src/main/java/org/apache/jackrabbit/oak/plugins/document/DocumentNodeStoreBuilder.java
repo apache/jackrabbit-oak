@@ -313,7 +313,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         if (isNull(includePaths) || includePaths.length == 0 || Arrays.equals(includePaths, new String[]{"/"})) {
             this.fullGCIncludePaths = Set.of();
         } else {
-            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());
         }
         return thisBuilder();
     }
@@ -326,7 +326,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         if (isNull(excludePaths) || excludePaths.length == 0) {
             this.fullGCExcludePaths = Set.of();
         } else {
-            this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+            this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());
         }
         return thisBuilder();
     }

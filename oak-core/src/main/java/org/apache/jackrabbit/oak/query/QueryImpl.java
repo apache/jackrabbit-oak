@@ -825,7 +825,7 @@ public class QueryImpl implements Query {
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
             this.query = query;
             this.delegate = delegate;
-            results = new ArrayList<>();;
+            results = new ArrayList<>();
         }
 
         @Override

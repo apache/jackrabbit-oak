@@ -388,7 +388,7 @@ public class DocumentMK {
     }
 
     private void parseAddNode(CommitBuilder commit, JsopReader t, String path) {
-        List<PropertyState> props = new ArrayList<>();;
+        List<PropertyState> props = new ArrayList<>();
         if (!t.matches('}')) {
             do {
                 String key = t.readString();

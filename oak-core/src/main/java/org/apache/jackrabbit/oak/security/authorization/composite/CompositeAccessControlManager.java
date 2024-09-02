@@ -103,7 +103,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     @Override
     public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
-        List<AccessControlPolicyIterator> l = new ArrayList<>();;
+        List<AccessControlPolicyIterator> l = new ArrayList<>();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof PolicyOwner) {
                 l.add(acMgr.getApplicablePolicies(absPath));

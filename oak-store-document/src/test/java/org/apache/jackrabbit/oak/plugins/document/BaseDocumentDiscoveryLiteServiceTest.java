@@ -569,7 +569,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     static final int SEED = Integer.getInteger(BaseDocumentDiscoveryLiteServiceTest.class.getSimpleName() + "-seed",
             new Random().nextInt());
 
-    private List<DocumentMK> mks = new ArrayList<>();;
+    private List<DocumentMK> mks = new ArrayList<>();
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
 

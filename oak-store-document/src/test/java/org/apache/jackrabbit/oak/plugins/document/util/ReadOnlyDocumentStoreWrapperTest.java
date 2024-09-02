@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -37,6 +36,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -48,7 +48,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
     @Test
     public void testPassthrough() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final List<String> disallowedMethods = Lists.new ArrayList<>(
+        final List<String> disallowedMethods = List.of(
                 "create", "update", "remove", "createOrUpdate", "findAndUpdate");
         InvocationHandler handler = new InvocationHandler() {
             @Override
@@ -93,7 +93,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
             uoeThrown = false;
             try {
-                readOnlyStore.remove(collection, Lists.<String>new ArrayList<>());
+                readOnlyStore.remove(collection, Collections.emptyList());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;
@@ -129,7 +129,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
             uoeThrown = false;
 
             try {
-                readOnlyStore.createOrUpdate(collection, Lists.<UpdateOp>new ArrayList<>());
+                readOnlyStore.createOrUpdate(collection, Collections.emptyList());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;

@@ -52,9 +52,9 @@ public class BackgroundObserverTest {
     private static final CommitInfo COMMIT_INFO = new CommitInfo("no-session", null);
     public static final int CHANGE_COUNT = 1024;
 
-    private final List<Runnable> assertions = new ArrayList<>();;
+    private final List<Runnable> assertions = new ArrayList<>();
     private CountDownLatch doneCounter;
-    private final List<Closeable> closeables = new ArrayList<>();;
+    private final List<Closeable> closeables = new ArrayList<>();
 
     /**
      * Assert that each observer of many running concurrently sees the same

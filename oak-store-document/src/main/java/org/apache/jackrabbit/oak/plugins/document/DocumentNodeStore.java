@@ -136,7 +136,6 @@ import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
@@ -2948,7 +2947,7 @@ public final class DocumentNodeStore
                     setRoot(newHead);
                     commitQueue.headRevisionChanged();
 
-                    store.createOrUpdate(NODES, Lists.new ArrayList<>(updates.values()));
+                    store.createOrUpdate(NODES, new ArrayList<>(updates.values()));
                     numUpdates.addAndGet(updates.size());
                     LOG.debug("Background sweep2 updated {}", updates.keySet());
                 }
@@ -3070,7 +3069,7 @@ public final class DocumentNodeStore
                     setRoot(newHead);
                     commitQueue.headRevisionChanged();
 
-                    store.createOrUpdate(NODES, Lists.new ArrayList<>(updates.values()));
+                    store.createOrUpdate(NODES, new ArrayList<>(updates.values()));
                     numUpdates.addAndGet(updates.size());
                     LOG.debug("Background sweep updated {}", updates.keySet());
                 }

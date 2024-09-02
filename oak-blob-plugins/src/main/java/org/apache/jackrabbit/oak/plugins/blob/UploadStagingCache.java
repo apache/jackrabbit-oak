@@ -550,7 +550,7 @@ public class UploadStagingCache implements Closeable {
         public void run() {
             LOG.debug("Retry job started");
             int count = 0;
-            List<String> entries = new ArrayList<>();;
+            List<String> entries = new ArrayList<>();
             retryQueue.drainTo(entries);
             for (String key : entries) {
                 File file = map.get(key);

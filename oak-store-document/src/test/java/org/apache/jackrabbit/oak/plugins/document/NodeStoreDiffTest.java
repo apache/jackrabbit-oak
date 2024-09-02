@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -141,7 +141,7 @@ public class NodeStoreDiffTest {
                 //rebase was performed
 
                 // remember paths accessed so far
-                List<String> paths = Lists.new ArrayList<>(tds.paths);
+                List<String> paths = new ArrayList<>(tds.paths);
 
                 //This is not to be done in actual cases as CommitHooks are invoked in critical sections
                 //and creating nodes from within CommitHooks would cause deadlock. This is done here to ensure

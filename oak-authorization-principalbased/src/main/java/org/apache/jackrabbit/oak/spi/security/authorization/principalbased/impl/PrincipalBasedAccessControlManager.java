@@ -406,7 +406,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     private static Iterable<String> getEffectivePaths(@Nullable String oakPath) {
         // read-access-control permission has already been check for 'oakPath'
-        List<String> paths = new ArrayList<>();;
+        List<String> paths = new ArrayList<>();
         paths.add(Objects.toString(oakPath, ""));
 
         String effectivePath = oakPath;

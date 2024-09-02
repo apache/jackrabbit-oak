@@ -61,7 +61,7 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
-        Collection<NodeStoreFixture> fixtures = new ArrayList<>();;
+        Collection<NodeStoreFixture> fixtures = new ArrayList<>();
 
         // Create a fixture using FileDataStore.  FileDataStore doesn't support the direct access features so
         // it should be a valid real-world example of how the API should behave when the implementation doesn't

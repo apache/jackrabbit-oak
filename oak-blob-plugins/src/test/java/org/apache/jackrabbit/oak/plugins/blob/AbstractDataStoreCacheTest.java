@@ -231,7 +231,7 @@ public class AbstractDataStoreCacheTest {
         public TestExecutor(int threads, CountDownLatch beforeLatch, CountDownLatch afterLatch,
             CountDownLatch afterExecuteLatch) {
             this.delegate = new TestPoolExecutor(threads, beforeLatch, afterExecuteLatch);
-            this.futures = new ArrayList<>();;
+            this.futures = new ArrayList<>();
             this.afterLatch = afterLatch;
         }
 

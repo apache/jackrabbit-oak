@@ -68,7 +68,7 @@ public class LocalIndexDirTest {
         LocalIndexDir dir2 = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a/b/c", 200)));
         LocalIndexDir dir3 = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a", 300)));
 
-        List<LocalIndexDir> dirs = new ArrayList<>();;
+        List<LocalIndexDir> dirs = new ArrayList<>();
         dirs.add(dir2);
         dirs.add(dir);
         dirs.add(dir3);

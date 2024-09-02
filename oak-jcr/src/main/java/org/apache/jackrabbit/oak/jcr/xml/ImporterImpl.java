@@ -505,7 +505,7 @@ public class ImporterImpl implements Importer {
             Reference reference = (Reference) ref;
             if (reference.isMultiple()) {
                 Iterable<String> values = reference.property.getValue(Type.STRINGS);
-                List<String> newValues = new ArrayList<>();;
+                List<String> newValues = new ArrayList<>();
                 for (String original : values) {
                     String adjusted = refTracker.get(original);
                     if (adjusted != null) {

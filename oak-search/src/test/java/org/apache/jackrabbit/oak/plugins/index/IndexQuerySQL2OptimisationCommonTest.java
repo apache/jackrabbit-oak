@@ -95,7 +95,7 @@ public abstract class IndexQuerySQL2OptimisationCommonTest extends AbstractQuery
         root.commit();
 
         // creating the dataset
-        List<String> expected = new ArrayList<>();;
+        List<String> expected = new ArrayList<>();
         Tree content = root.getTree("/").addChild("content");
         t = content.addChild("test1");
         t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);

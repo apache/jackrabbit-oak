@@ -77,7 +77,7 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
     protected RepositoryImpl repository;
 
-    protected List<Session> sessions = new ArrayList<>();;
+    protected List<Session> sessions = new ArrayList<>();
 
     private static Calendar betweenHistories;
 

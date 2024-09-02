@@ -83,7 +83,7 @@ public class DocumentBundlor {
     }
 
     public static DocumentBundlor from(Iterable<String> includeStrings){
-        List<Include> includes = new ArrayList<>();;
+        List<Include> includes = new ArrayList<>();
         for (String i : includeStrings){
             includes.add(new Include(i));
         }

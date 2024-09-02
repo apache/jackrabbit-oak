@@ -154,7 +154,7 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     }
 
     @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
-        List<DataRecord> recs = new ArrayList<>();;
+        List<DataRecord> recs = new ArrayList<>();
         Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<String, DataRecord> entry = iter.next();
@@ -174,7 +174,7 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     }
 
     @Override public void deleteAllMetadataRecords(String prefix) {
-        List<String> recs = new ArrayList<>();;
+        List<String> recs = new ArrayList<>();
         Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<String, DataRecord> entry = iter.next();

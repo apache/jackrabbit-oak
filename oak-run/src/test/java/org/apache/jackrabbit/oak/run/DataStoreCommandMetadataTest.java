@@ -164,7 +164,7 @@ public class DataStoreCommandMetadataTest {
         setupDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             REFERENCES.getNameFromIdPrefix(rep2Id, sessionId));
 
-        List<String> expectations = new ArrayList<>();;
+        List<String> expectations = new ArrayList<>();
         expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
             MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()), "-"));
         expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),

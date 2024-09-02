@@ -2252,7 +2252,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void largeMultiValueProperty() throws Exception{
-        final List<String> logMessages = new ArrayList<>();;
+        final List<String> logMessages = new ArrayList<>();
         Appender<ILoggingEvent> a = new AppenderBase<ILoggingEvent>() {
             @Override
             protected void append(ILoggingEvent e) {

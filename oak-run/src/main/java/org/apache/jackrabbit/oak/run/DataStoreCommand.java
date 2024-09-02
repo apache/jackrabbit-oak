@@ -318,7 +318,7 @@ public class DataStoreCommand implements Command {
             dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         log.info("Repository files {}", repoFiles);
 
-        List<String> records = new ArrayList<>();;
+        List<String> records = new ArrayList<>();
         for (DataRecord repoRec : repoFiles) {
             String id =
                 SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getIdFromName(repoRec.getIdentifier().toString());

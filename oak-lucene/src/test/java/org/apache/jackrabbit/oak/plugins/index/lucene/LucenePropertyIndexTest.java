@@ -293,7 +293,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
 
-        List<String> paths = new ArrayList<>();;
+        List<String> paths = new ArrayList<>();
         for (int idx = 0; idx < 15; idx++) {
             Tree a = test.addChild("n"+idx);
             a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -1797,7 +1797,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         root.commit();
 
-        List<Integer> nodes = new ArrayList<>();;
+        List<Integer> nodes = new ArrayList<>();
         Random r = new Random();
         int seed = -2;
         for (int i = 0; i < 1000; i++) {

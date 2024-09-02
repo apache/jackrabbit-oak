@@ -337,7 +337,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Try 2nd upload again
         Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
-        futures = new ArrayList<>();;
+        futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }
@@ -435,7 +435,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         ListeningExecutorService executorService =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
 
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();;
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         CountDownLatch moveLatch = new CountDownLatch(1);
         init(1, new TestStagingUploader(folder.newFolder(), moveLatch), null);
 
@@ -814,7 +814,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         throws IOException {
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();;
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }

@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -47,7 +49,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
@@ -436,7 +437,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             p = PathUtils.concat(p, name);
         }
 
-        List<String> revs = new ArrayList<>();;
+        List<String> revs = new ArrayList<>();
         for (int i = 0; i < NodeDocument.PREV_SPLIT_FACTOR + 1; i++) {
             NodeDocument doc = store.find(NODES, Utils.getIdFromPath(path));
             assertNotNull(doc);
@@ -539,9 +540,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        List<UpdateOp> splitOps = Lists.new ArrayList<>(doc.split(
+        List<UpdateOp> splitOps = StreamSupport.stream(doc.split(
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
-                NO_BINARY));
+                NO_BINARY).spliterator(), false).collect(Collectors.toList());
         assertEquals(2, splitOps.size());
         // first update op is for the new intermediate doc
         op = splitOps.get(0);
@@ -577,7 +578,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         DocumentStore store = mk.getDocumentStore();
         int clusterId = mk.getNodeStore().getClusterId();
 
-        List<Revision> revs = new ArrayList<>();;
+        List<Revision> revs = new ArrayList<>();
         UpdateOp op = new UpdateOp(id, false);
         for (int i = 0; i < numClusterNodes; i++) {
             // create some commits for each cluster node
@@ -596,9 +597,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must split document and create a previous document starting at
         // the second most recent revision
-        List<UpdateOp> splitOps = Lists.new ArrayList<>(doc.split(
+        List<UpdateOp> splitOps = StreamSupport.stream(doc.split(
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
-                NO_BINARY));
+                NO_BINARY).spliterator(), false).collect(Collectors.toList());
         assertEquals(2, splitOps.size());
         String prevId = Utils.getPreviousIdFor(Path.fromString("/test"), revs.get(revs.size() - 2), 0);
         assertEquals(prevId, splitOps.get(0).getId());
@@ -629,7 +630,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Revision r = valueMap.keySet().iterator().next();
         assertTrue(doc.getLocalRevisions().containsKey(r));
         // but also the previous document must contain the revision
-        List<NodeDocument> prevDocs = Lists.new ArrayList<>(doc.getAllPreviousDocs());
+        Iterable<NodeDocument> it = () -> doc.getAllPreviousDocs();
+        List<NodeDocument> prevDocs = StreamSupport.stream(it.spliterator(), false).collect(Collectors.toList());
         assertEquals(1, prevDocs.size());
         NodeDocument prev = prevDocs.get(0);
         assertTrue(prev.getLocalRevisions().containsKey(r));
@@ -663,7 +665,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Revision r = valueMap.keySet().iterator().next();
         assertTrue(doc.getLocalCommitRoot().containsKey(r));
         // but also the previous document must contain the commitRoot entry
-        List<NodeDocument> prevDocs = Lists.new ArrayList<>(doc.getAllPreviousDocs());
+        Iterable<NodeDocument> it = () -> doc.getAllPreviousDocs();
+        List<NodeDocument> prevDocs = StreamSupport.stream(it.spliterator(), false).collect(Collectors.toList());
         assertEquals(1, prevDocs.size());
         NodeDocument prev = prevDocs.get(0);
         assertTrue(prev.getLocalCommitRoot().containsKey(r));
@@ -824,8 +827,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     public void removeGarbage() throws Exception {
         final DocumentStore store = mk.getDocumentStore();
         final DocumentNodeStore ns = mk.getNodeStore();
-        final List<Exception> exceptions = new ArrayList<>();;
-        final List<RevisionVector> revisions = new ArrayList<>();;
+        final List<Exception> exceptions = new ArrayList<>();
+        final List<RevisionVector> revisions = new ArrayList<>();
 
         Thread t = new Thread(new Runnable() {
             @Override

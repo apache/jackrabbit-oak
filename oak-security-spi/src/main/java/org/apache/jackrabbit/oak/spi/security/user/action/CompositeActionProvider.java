@@ -43,7 +43,7 @@ public class CompositeActionProvider implements AuthorizableActionProvider {
     @NotNull
     @Override
     public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-        List<AuthorizableAction> actions = new ArrayList<>();;
+        List<AuthorizableAction> actions = new ArrayList<>();
         for (AuthorizableActionProvider p : providers) {
             actions.addAll(p.getAuthorizableActions(securityProvider));
         }

@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.mongodb.MongoClient;
 
@@ -30,7 +32,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -73,7 +74,8 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     @Test
     public void recoveryBy() throws Exception {
         MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock());
-        List<ClusterNodeInfoDocument> infoDocs = new ArrayList<>(seeker.getAllClusters());
+        List<ClusterNodeInfoDocument> infoDocs = StreamSupport.stream(seeker.getAllClusters().spliterator(), false)
+                .collect(Collectors.toList());
         assertEquals(1, infoDocs.size());
         int clusterId = infoDocs.get(0).getClusterId();
         int otherClusterId = clusterId + 1;

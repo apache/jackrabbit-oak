@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -70,7 +73,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private int counter = 0;
 
-    private List<String> ops = new ArrayList<>();;
+    private List<String> ops = new ArrayList<>();
 
     private Clock clock;
 
@@ -189,7 +192,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private void addNode() {
         String p = choosePath();
-        List<String> elements = Lists.new ArrayList<>(PathUtils.elements(p));
+        List<String> elements = StreamSupport.stream(PathUtils.elements(p).spliterator(), false).collect(Collectors.toList());
         if (elements.size() > 2) {
             elements = elements.subList(1, elements.size() - 1);
             elements = elements.subList(0, random.nextInt(elements.size() + 1));

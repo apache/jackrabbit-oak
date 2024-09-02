@@ -119,25 +119,25 @@ public final class PropertyStates {
                 }
                 return MultiLongPropertyState.createLongProperty(name, longs);
             case PropertyType.DOUBLE:
-                List<Double> doubles = new ArrayList<>();;
+                List<Double> doubles = new ArrayList<>();
                 for (Value value : values) {
                     doubles.add(value.getDouble());
                 }
                 return MultiDoublePropertyState.doubleProperty(name, doubles);
             case PropertyType.BOOLEAN:
-                List<Boolean> booleans = new ArrayList<>();;
+                List<Boolean> booleans = new ArrayList<>();
                 for (Value value : values) {
                     booleans.add(value.getBoolean());
                 }
                 return MultiBooleanPropertyState.booleanProperty(name, booleans);
             case PropertyType.DECIMAL:
-                List<BigDecimal> decimals = new ArrayList<>();;
+                List<BigDecimal> decimals = new ArrayList<>();
                 for (Value value : values) {
                     decimals.add(value.getDecimal());
                 }
                 return MultiDecimalPropertyState.decimalProperty(name, decimals);
             default:
-                List<String> vals = new ArrayList<>();;
+                List<String> vals = new ArrayList<>();
                 for (Value value : values) {
                     vals.add(getString(value, type));
                 }

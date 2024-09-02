@@ -287,7 +287,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public NodeTypeIterator getDeclaredSubtypes() {
-        List<NodeType> subtypes = new ArrayList<>();;
+        List<NodeType> subtypes = new ArrayList<>();
 
         String oakName = getOakName();
         Tree root = definition.getParent();
@@ -410,7 +410,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public boolean canRemoveItem(String itemName) {
-        List<ItemDefinition> definitions = new ArrayList<>();;
+        List<ItemDefinition> definitions = new ArrayList<>();
         definitions.addAll(Arrays.asList(getChildNodeDefinitions()));
         definitions.addAll(Arrays.asList(getPropertyDefinitions()));
         return internalCanRemoveItem(itemName, definitions);

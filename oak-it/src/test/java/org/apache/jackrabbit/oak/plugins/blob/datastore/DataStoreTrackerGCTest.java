@@ -270,7 +270,7 @@ public class DataStoreTrackerGCTest {
 
     private List<String> doActiveDelete(NodeStore nodeStore, DataStoreBlobStore blobStore, BlobIdTracker tracker,
         TemporaryFolder folder, int delIdx, int num) throws Exception {
-        List<String> set = new ArrayList<>();;
+        List<String> set = new ArrayList<>();
         NodeBuilder a = nodeStore.getRoot().builder();
         int number = 4;
         for (int i = 0; i < number; i++) {
@@ -280,7 +280,7 @@ public class DataStoreTrackerGCTest {
         }
         nodeStore.merge(a, INSTANCE, EMPTY);
 
-        List<String> deleted = new ArrayList<>();;
+        List<String> deleted = new ArrayList<>();
 
         //a = nodeStore.getRoot().builder();
         for(int idx = delIdx; idx < delIdx + num; idx++) {
@@ -562,7 +562,7 @@ public class DataStoreTrackerGCTest {
         int number = 10;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
-        List<Integer> processed = new ArrayList<>();;
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random(47);
         for (int i = idStart; i < idStart + maxDeleted; i++) {
             int n = rand.nextInt(number);

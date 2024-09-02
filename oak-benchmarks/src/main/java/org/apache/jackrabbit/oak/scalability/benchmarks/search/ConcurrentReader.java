@@ -67,7 +67,7 @@ public class ConcurrentReader extends ScalabilityBenchmark {
         ConcurrentReader.class.getSimpleName() + UUID.randomUUID();
 
     private boolean running;
-    private List<Thread> jobs = new ArrayList<>();;
+    private List<Thread> jobs = new ArrayList<>();
 
     @Override
     public void beforeExecute(Repository repository, Credentials credentials, ExecutionContext context) throws Exception {

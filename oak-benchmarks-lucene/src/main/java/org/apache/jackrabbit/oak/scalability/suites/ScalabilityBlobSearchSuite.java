@@ -283,7 +283,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
                 while (count < maxAssets) {
                     session.refresh(false);
 
-                    List<String> levels = new ArrayList<>();;
+                    List<String> levels = new ArrayList<>();
                     getParentLevels(count, maxAssets, levels);
 
                     String fileNamePrefix = getFileNamePrefix(levels);

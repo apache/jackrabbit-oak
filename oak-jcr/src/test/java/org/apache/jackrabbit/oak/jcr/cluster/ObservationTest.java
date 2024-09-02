@@ -78,7 +78,7 @@ public class ObservationTest extends AbstractClusterTest {
     @Test
     public void externalEvents() throws Throwable {
         final Set<String> externallyAdded = synchronizedSet(new LinkedHashSet<String>());
-        final List<Throwable> exceptions = new ArrayList<>();;
+        final List<Throwable> exceptions = new ArrayList<>();
         ObservationManager obsMgr = s1.getWorkspace().getObservationManager();
         final AtomicLong localEvents = new AtomicLong();
         final AtomicLong externalEvents = new AtomicLong();

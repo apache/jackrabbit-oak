@@ -387,7 +387,7 @@ public class AzureDataStoreTest {
     @Test
     public void testBackendGetAllIdentifiers() throws DataStoreException, IOException, NoSuchAlgorithmException {
         for (int expectedRecCount : Lists.new ArrayList<>(1, 2, 5)) {
-            final List<DataIdentifier> ids = new ArrayList<>();;
+            final List<DataIdentifier> ids = new ArrayList<>();
             for (int i=0; i<expectedRecCount; i++) {
                 File testfile = folder.newFile();
                 copyInputStreamToFile(randomStream(i, 10), testfile);
@@ -454,7 +454,7 @@ public class AzureDataStoreTest {
             }
 
             Iterator<DataRecord> iter = backend.getAllRecords();
-            List<DataIdentifier> identifiers = new ArrayList<>();;
+            List<DataIdentifier> identifiers = new ArrayList<>();
             int actualCount = 0;
             while (iter.hasNext()) {
                 DataRecord record = iter.next();

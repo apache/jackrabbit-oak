@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
@@ -45,7 +44,7 @@ public class NodeDocumentIdComparatorTest {
 
         Collections.sort(paths, NodeDocumentIdComparator.INSTANCE);
 
-        List<String> expected = Lists.new ArrayList<>(
+        List<String> expected = List.of(
                 "2:/bar/qux", "2:/foo/bar", "1:/bar", "1:/foo", "0:/");
 
         assertEquals(expected, paths);

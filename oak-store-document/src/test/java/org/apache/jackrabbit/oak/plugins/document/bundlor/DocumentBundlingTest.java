@@ -964,7 +964,7 @@ public class DocumentBundlingTest {
         childBuilder(builder, "/test/book.jpg").setProperty("fooBook", "bar");
         NodeState r2 = merge(builder);
 
-        final List<String> addedPropertyNames = new ArrayList<>();;
+        final List<String> addedPropertyNames = new ArrayList<>();
         r2.compareAgainstBaseState(r1, new DefaultNodeStateDiff(){
 
             @Override

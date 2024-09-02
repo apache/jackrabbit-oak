@@ -649,8 +649,8 @@ public class VersionGCTest {
     }
 
     private class TestGCMonitor implements GCMonitor {
-        final List<String> infoMessages = new ArrayList<>();;
-        final List<String> statusMessages = new ArrayList<>();;
+        final List<String> infoMessages = new ArrayList<>();
+        final List<String> statusMessages = new ArrayList<>();
 
         @Override
         public void info(String message, Object... arguments) {

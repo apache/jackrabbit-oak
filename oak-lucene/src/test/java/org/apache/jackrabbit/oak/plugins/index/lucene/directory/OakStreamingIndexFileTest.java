@@ -74,7 +74,7 @@ public class OakStreamingIndexFileTest {
 
     @Parameterized.Parameters(name="{0}, {1}")
     public static Collection<Object[]> fixtures() throws Exception {
-        List<Object[]> modes = new ArrayList<>();;
+        List<Object[]> modes = new ArrayList<>();
         modes.add(new Object[]{COPY_BYTES, BYTE_WISE_READ});
         modes.add(new Object[]{COPY_BYTES, BATCH_READ});
         modes.add(new Object[]{WRITE_FILE, BYTE_WISE_READ});

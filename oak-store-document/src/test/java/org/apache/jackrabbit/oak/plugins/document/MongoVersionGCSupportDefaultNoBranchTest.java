@@ -118,14 +118,14 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     protected DocumentNodeStore ds2;
     private VersionGCSupport gcSupport1;
     private CountingMongoDatabase db;
-    private List<String> ids = new ArrayList<>();;
+    private List<String> ids = new ArrayList<>();
 
     private Clock clock;
     private AtomicInteger offset = new AtomicInteger(0);
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
-        List<DocumentStoreFixture> fixtures = new ArrayList<>();;
+        List<DocumentStoreFixture> fixtures = new ArrayList<>();
         if (MONGO.isAvailable()) {
             fixtures.add(new MongoFixture() {
                 @Override

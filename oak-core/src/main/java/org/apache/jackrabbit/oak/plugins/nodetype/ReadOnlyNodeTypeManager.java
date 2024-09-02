@@ -156,7 +156,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeIterator getAllNodeTypes() throws RepositoryException {
-        List<NodeType> list = new ArrayList<>();;
+        List<NodeType> list = new ArrayList<>();
         Tree types = getTypes();
         NamePathMapper mapper = getNamePathMapper();
         for (Tree type : types.getChildren()) {
@@ -167,7 +167,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeIterator getPrimaryNodeTypes() throws RepositoryException {
-        List<NodeType> list = new ArrayList<>();;
+        List<NodeType> list = new ArrayList<>();
         NodeTypeIterator iterator = getAllNodeTypes();
         while (iterator.hasNext()) {
             NodeType type = iterator.nextNodeType();
@@ -180,7 +180,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeIterator getMixinNodeTypes() throws RepositoryException {
-        List<NodeType> list = new ArrayList<>();;
+        List<NodeType> list = new ArrayList<>();
         NodeTypeIterator iterator = getAllNodeTypes();
         while (iterator.hasNext()) {
             NodeType type = iterator.nextNodeType();

@@ -122,7 +122,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         root.commit();
 
-        List<Integer> nodes = new ArrayList<>();;
+        List<Integer> nodes = new ArrayList<>();
         Random r = new Random(1);
         for (int i = 0; i < 1000; i++) {
             Tree a = test.addChild("a" + i);

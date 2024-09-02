@@ -52,7 +52,7 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = new ArrayList<>();;
+        List<Object[]> fixtures = new ArrayList<>();
         // disabling MemoryFixture, as that runs into an OutOfMemoryError
 //        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 

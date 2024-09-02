@@ -352,7 +352,7 @@ public class LuceneIndexTest {
         // would have already picked up 50 docs which would not be considered
         //deleted by QE for the revision at which query was triggered
         //So just checking for >
-        List<String> resultPaths = new ArrayList<>();;
+        List<String> resultPaths = new ArrayList<>();
         while(cursor.hasNext()){
             resultPaths.add(cursor.next().getPath());
         }
@@ -740,7 +740,7 @@ public class LuceneIndexTest {
         assertQuery(tracker, indexed, "foo3", "bar3");
         assertEquals(0, copier.getInvalidFileCount());
         List<LocalIndexDir> idxDirs = copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene");
-        List<LocalIndexDir> nonEmptyDirs = new ArrayList<>();;
+        List<LocalIndexDir> nonEmptyDirs = new ArrayList<>();
         for (LocalIndexDir dir : idxDirs){
             if (!dir.isEmpty()){
                 nonEmptyDirs.add(dir);

@@ -419,7 +419,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = new ArrayList<>();;
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();

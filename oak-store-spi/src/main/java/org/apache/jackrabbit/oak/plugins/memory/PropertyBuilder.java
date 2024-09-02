@@ -40,7 +40,7 @@ public class PropertyBuilder<T> {
 
     private String name;
     private boolean isArray;
-    private List<T> values = new ArrayList<>();;
+    private List<T> values = new ArrayList<>();
 
     /**
      * Create a new instance for building {@code PropertyState} instances

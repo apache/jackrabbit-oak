@@ -361,7 +361,7 @@ public final class TreeUtil {
             throw mixinTypeException(mixinName, true);
         }
 
-        List<String> mixins = new ArrayList<>();;
+        List<String> mixins = new ArrayList<>();
         String primary = getName(tree, JCR_PRIMARYTYPE);
         if (primary != null && Iterables.contains(getNames(type, NodeTypeConstants.REP_PRIMARY_SUBTYPES), primary)) {
             return;

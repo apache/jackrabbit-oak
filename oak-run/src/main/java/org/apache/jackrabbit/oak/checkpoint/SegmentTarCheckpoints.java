@@ -59,7 +59,7 @@ class SegmentTarCheckpoints extends Checkpoints {
 
     @Override
     public List<CP> list() {
-        List<CP> list = new ArrayList<>();;
+        List<CP> list = new ArrayList<>();
         NodeState ns = store.getHead().getChildNode("checkpoints");
         for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
             NodeState cneNs = cne.getNodeState();

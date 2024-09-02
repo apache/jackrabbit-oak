@@ -211,7 +211,7 @@ public class NodeDocumentTest {
         final int NUM_CLUSTER_NODES = 3;
         final int NUM_CHANGES = 500;
         DocumentStore store = new MemoryDocumentStore();
-        List<DocumentNodeStore> docStores = new ArrayList<>();;
+        List<DocumentNodeStore> docStores = new ArrayList<>();
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             DocumentNodeStore ns = new DocumentMK.Builder()
                     .setDocumentStore(store)
@@ -869,7 +869,7 @@ public class NodeDocumentTest {
         ns2.runBackgroundOperations();
         ns1.runBackgroundOperations();
 
-        List<RevisionVector> headRevs = new ArrayList<>();;
+        List<RevisionVector> headRevs = new ArrayList<>();
         // perform many changes on ns1 and split
         for (int i = 0; i < 20; i++) {
             b1 = ns1.getRoot().builder();
@@ -1060,7 +1060,7 @@ public class NodeDocumentTest {
         };
         Random random = new Random(42);
         DocumentNodeStore ns = createTestStore(store, 1, 0);
-        List<RevisionVector> headRevisions = new ArrayList<>();;
+        List<RevisionVector> headRevisions = new ArrayList<>();
 
         long count = 1000;
         for (int i = 0; i < count; i++) {
@@ -1090,7 +1090,7 @@ public class NodeDocumentTest {
 
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
-        List<Integer> numCalls = new ArrayList<>();;
+        List<Integer> numCalls = new ArrayList<>();
         // go back in time and check number of find calls
         Collections.reverse(headRevisions);
         for (RevisionVector rv : headRevisions) {
@@ -1302,7 +1302,7 @@ public class NodeDocumentTest {
                                                 int numChanges,
                                                 int startValue)
             throws CommitFailedException {
-        List<RevisionVector> headRevisions = new ArrayList<>();;
+        List<RevisionVector> headRevisions = new ArrayList<>();
         for (int i = startValue; i < numChanges + startValue; i++) {
             DocumentNodeStore ns = nodeStores.get(random.nextInt(nodeStores.size()));
             ns.runBackgroundUpdateOperations();

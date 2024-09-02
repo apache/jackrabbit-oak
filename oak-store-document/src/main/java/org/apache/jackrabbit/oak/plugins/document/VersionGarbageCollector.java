@@ -46,7 +46,6 @@ import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
@@ -657,7 +656,7 @@ public class VersionGarbageCollector {
         final VersionGCStats stats;
         final Stopwatch elapsed;
         private final GCMonitor monitor;
-        private final List<GCPhase> phases = new ArrayList<>();;
+        private final List<GCPhase> phases = new ArrayList<>();
         private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
         private final AtomicBoolean canceled;
 
@@ -762,7 +761,7 @@ public class VersionGarbageCollector {
             this.options = options;
             GCMessageTracker vgcm = new GCMessageTracker();
             this.status = vgcm;
-            this.monitor = new DelegatingGCMonitor(Lists.new ArrayList<>(vgcm, gcMonitor));
+            this.monitor = new DelegatingGCMonitor(List.of(vgcm, gcMonitor));
             this.monitor.updateStatus(STATUS_INITIALIZING);
         }
 
@@ -2158,8 +2157,8 @@ public class VersionGarbageCollector {
 
         private final RevisionVector headRevision;
         private final AtomicBoolean cancel;
-        private final List<String> leafDocIdsToDelete = new ArrayList<>();;
-        private final List<String> resurrectedIds = new ArrayList<>();;
+        private final List<String> leafDocIdsToDelete = new ArrayList<>();
+        private final List<String> resurrectedIds = new ArrayList<>();
         private final StringSort docIdsToDelete;
         private final StringSort prevDocIdsToDelete;
         private final Set<String> exclude = Sets.newHashSet();

@@ -48,7 +48,7 @@ public class JsonSerializerTest {
         String json = serialize(state);
 
         JsopReader reader = new JsopTokenizer(json);
-        List<String> childNames = new ArrayList<>();;
+        List<String> childNames = new ArrayList<>();
         reader.read('{');
         do {
             String key = reader.readString();

@@ -43,7 +43,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
@@ -335,7 +334,7 @@ public class NodeDocumentCache implements Closeable {
     }
 
     public Iterable<CacheStats> getCacheStats() {
-        return Lists.new ArrayList<>(nodeDocumentsCacheStats, prevDocumentsCacheStats);
+        return List.of(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 
     @Override

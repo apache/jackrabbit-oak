@@ -217,7 +217,7 @@ public class OakTest {
     }
 
     private static class CommitInfoCapturingStore extends MemoryNodeStore {
-        List<CommitInfo> infos = new ArrayList<>();;
+        List<CommitInfo> infos = new ArrayList<>();
 
         @Override
         public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,

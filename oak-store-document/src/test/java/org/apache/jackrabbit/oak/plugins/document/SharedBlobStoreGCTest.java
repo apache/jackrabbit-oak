@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,7 +30,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -356,7 +356,7 @@ public class SharedBlobStoreGCTest {
 
             int number = 10;
             // track the number of the assets to be deleted
-            List<Integer> deletes = new ArrayList<>();;
+            List<Integer> deletes = new ArrayList<>();
             Random rand = new Random(47);
             for (int i = 0; i < 5; i++) {
                 int n = rand.nextInt(number);
@@ -417,7 +417,7 @@ public class SharedBlobStoreGCTest {
 
         private HashSet<String> addNodeSpecialChars() throws Exception {
             List<String> specialCharSets =
-                Lists.new ArrayList<>("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+                List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
             HashSet<String> set = new HashSet<String>();
             NodeBuilder a = ds.getRoot().builder();
             for (int i = 0; i < specialCharSets.size(); i++) {
@@ -427,7 +427,9 @@ public class SharedBlobStoreGCTest {
                 Iterator<String> idIter =
                     ((GarbageCollectableBlobStore) ds.getBlobStore())
                         .resolveChunks(b.toString());
-                set.addAll(Lists.new ArrayList<>(idIter));
+                while (idIter.hasNext()) {
+                    set.add(idIter.next());
+                }
             }
             ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             return set;

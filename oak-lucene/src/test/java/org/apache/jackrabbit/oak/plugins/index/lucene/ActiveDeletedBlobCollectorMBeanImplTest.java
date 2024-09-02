@@ -101,7 +101,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
     private NodeStore nodeStore;
 
-    private List<String> indexPaths = new ArrayList<>();;
+    private List<String> indexPaths = new ArrayList<>();
 
     private final Clock clock = new Clock.Virtual();
 
@@ -410,7 +410,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
             AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
 
-            List<String> asyncLanes = new ArrayList<>();;
+            List<String> asyncLanes = new ArrayList<>();
 
             for (IndexMBeanInfoSupplier info : infoSuppliers) {
                 String lane = info.getName();

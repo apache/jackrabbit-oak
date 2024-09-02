@@ -332,7 +332,7 @@ public class TypeEditor extends DefaultEditor {
             @Nullable EffectiveType parent, @Nullable String name,
             @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
-        List<NodeState> list = new ArrayList<>();;
+        List<NodeState> list = new ArrayList<>();
 
         NodeState type = (primary == null) ? null : types.getChildNode(primary);
         if (type == null || !type.exists()) {

@@ -309,7 +309,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
             @NotNull
             @Override
             public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
-                List<Field> fields = new ArrayList<>();;
+                List<Field> fields = new ArrayList<>();
                 fields.add(new StringField("bar", "baz", Field.Store.NO));
                 return fields;
             }

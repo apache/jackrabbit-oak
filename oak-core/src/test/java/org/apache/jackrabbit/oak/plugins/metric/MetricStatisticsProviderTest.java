@@ -153,7 +153,7 @@ public class MetricStatisticsProviderTest {
     public void concurrentAccess() throws Exception{
         //Queue is used to collect instances with minimal overhead in concurrent scenario
         final Queue<MeterStats> statsQueue = new ConcurrentLinkedDeque<MeterStats>();
-        List<Thread> threads = new ArrayList<>();;
+        List<Thread> threads = new ArrayList<>();
         int numWorker = 5;
         final CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < numWorker; i++) {

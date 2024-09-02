@@ -43,7 +43,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class WhiteboardUtilsTest {
-    private List<Registration> regs = new ArrayList<>();;
+    private List<Registration> regs = new ArrayList<>();
 
     @After
     public void unregisterRegs(){

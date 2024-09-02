@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -25,7 +26,6 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 
@@ -54,8 +54,8 @@ final class BatchCommit {
         this.id = id;
         this.queue = queue;
         if (onHold) {
-            ops = new ArrayList<>();;
-            results = new ArrayList<>();;
+            ops = new ArrayList<>();
+            results = new ArrayList<>();
         }
     }
 

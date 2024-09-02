@@ -105,7 +105,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         int number = count;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
-        List<Integer> processed = new ArrayList<>();;
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random(47);
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(number);

@@ -82,7 +82,7 @@ public class VersionGCSplitDocTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = new ArrayList<>();;
+        List<Object[]> fixtures = new ArrayList<>();
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (getFixtures().contains(DOCUMENT_NS) && mongo.isAvailable()) {
             fixtures.add(new Object[] { mongo });

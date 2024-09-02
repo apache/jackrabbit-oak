@@ -51,7 +51,7 @@ public class JournalEntryTest {
     @Test
     public void applyTo() throws Exception {
         DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
-        List<Path> paths = new ArrayList<>();;
+        List<Path> paths = new ArrayList<>();
         addRandomPaths(paths);
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
@@ -443,7 +443,7 @@ public class JournalEntryTest {
     }
 
     private static List<String> getChildren(String diff) {
-        List<String> children = new ArrayList<>();;
+        List<String> children = new ArrayList<>();
         JsopTokenizer t = new JsopTokenizer(diff);
         for (;;) {
             int r = t.read();
