@@ -21,7 +21,9 @@
 /**
  * Annotations for internal use in Oak.
  */
-@Internal
+@Internal(since = "1.0.0")
+@Version("1.0.0")
 package org.apache.jackrabbit.oak.commons.collections;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
+import org.osgi.annotation.versioning.Version;
 

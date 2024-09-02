@@ -38,7 +38,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Convert an iterable to a list.The retuning list is mutable and supports all optional operations.
+     * Convert an iterable to a list.The returning list is mutable and supports all optional operations.
      * @param iterable the iterable to convert
      * @return the list
      * @param <T> the type of the elements
@@ -48,7 +48,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Convert an iterator to a list. The retuning list is mutable and supports all optional operations.
+     * Convert an iterator to a list. The returning list is mutable and supports all optional operations.
      * @param iterator the iterator to convert
      * @return the list
      * @param <T> the type of the elements
@@ -58,7 +58,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Convert an iterable to a set. The retuning set is mutable and supports all optional operations.
+     * Convert an iterable to a set. The returning set is mutable and supports all optional operations.
      * @param iterable the iterable to convert
      * @return the set
      * @param <T> the type of the elements
@@ -68,7 +68,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Convert an iterator to a set. The retuning set is mutable and supports all optional operations.
+     * Convert an iterator to a set. The returning set is mutable and supports all optional operations.
      * @param iterator the iterator to convert
      * @return the set
      * @param <T> the type of the elements
