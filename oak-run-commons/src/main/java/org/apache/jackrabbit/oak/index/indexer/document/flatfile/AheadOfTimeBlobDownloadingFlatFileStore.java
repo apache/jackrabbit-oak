@@ -19,7 +19,10 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
@@ -31,38 +34,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
-    
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final FlatFileStore ffs;
     private final CompositeIndexer indexer;
     private final IndexHelper indexHelper;
 
-    public static final String OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX = "oak.indexer.blobPrefetch.binaryNodesSuffix";
-    public static final String DOWNLOAD_THREADS = "oak.indexer.blobPrefetch.downloadThreads";
+    public static final String BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES = "oak.indexer.blobPrefetch.enableForIndexesPrefixes";
+    public static final String BLOB_PREFETCH_BINARY_NODES_SUFFIX = "oak.indexer.blobPrefetch.binaryNodesSuffix";
+    public static final String BLOB_PREFETCH_DOWNLOAD_THREADS = "oak.indexer.blobPrefetch.downloadThreads";
     public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB = "oak.indexer.blobPrefetch.downloadAheadWindowMB";
     public static final String BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE = "oak.indexer.blobPrefetch.downloadAheadWindowSize";
-    private final String blobPrefetchBinaryNodeSuffix = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
-    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(DOWNLOAD_THREADS, 4);
+    private final String blobPrefetchBinaryNodeSuffix = ConfigHelper.getSystemPropertyAsString(BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
+    private final String blobPrefetchEnableForIndexes = ConfigHelper.getSystemPropertyAsString(BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES, "");
+    private final int nDownloadThreads = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_THREADS, 4);
     private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 32);
     private final int maxPrefetchWindowSize = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE, 4096);
 
-    static AheadOfTimeBlobDownloadingFlatFileStore wrap(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
+    public static AheadOfTimeBlobDownloadingFlatFileStore wrap(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
         return new AheadOfTimeBlobDownloadingFlatFileStore(ffs, indexer, indexHelper);
     }
-    
+
     private AheadOfTimeBlobDownloadingFlatFileStore(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
         this.ffs = ffs;
         this.indexer = indexer;
         this.indexHelper = indexHelper;
     }
-    
-    private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader(
-            CompositeIndexer indexer,
-            IndexHelper indexHelper
-            ) {
+
+    private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader(CompositeIndexer indexer, IndexHelper indexHelper) {
         if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isEmpty()) {
             log.info("Ahead of time blob downloader is disabled, no binary node suffix provided");
+            return AheadOfTimeBlobDownloader.NOOP;
+        } else if (!isEnabledForIndexes(blobPrefetchEnableForIndexes, indexHelper.getIndexPaths())) {
+            log.info("Ahead of time blob downloader is disabled, not enabled for indexes: {}", indexHelper.getIndexPaths());
             return AheadOfTimeBlobDownloader.NOOP;
         } else {
             return new DefaultAheadOfTimeBlobDownloader(
@@ -75,17 +80,35 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
                     maxPrefetchWindowSize,
                     maxPrefetchWindowMB);
         }
-    }    
+    }
+
+    static boolean isEnabledForIndexes(String indexesEnabledPrefix, List<String> indexPaths) {
+        List<String> enableForIndexes = splitAndTrim(indexesEnabledPrefix);
+        for (String indexPath : indexPaths) {
+            if (enableForIndexes.stream().anyMatch(indexPath::startsWith)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> splitAndTrim(String str) {
+        if (str == null || str.isBlank()) {
+            return List.of();
+        } else {
+            return Arrays.stream(str.split(",")).map(String::trim).collect(Collectors.toList());
+        }
+    }
 
     @Override
-    public Iterator<NodeStateEntry> iterator() {
+    public @NotNull Iterator<NodeStateEntry> iterator() {
         final AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = createAheadOfTimeBlobDownloader(indexer, indexHelper);
         aheadOfTimeBlobDownloader.start();
         return new Iterator<>() {
 
             final Iterator<NodeStateEntry> it = ffs.iterator();
             long entriesRead;
-            
+
             @Override
             public boolean hasNext() {
                 boolean result = it.hasNext();
@@ -110,7 +133,6 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
                 }
                 return it.next();
             }
-            
         };
     }
 
