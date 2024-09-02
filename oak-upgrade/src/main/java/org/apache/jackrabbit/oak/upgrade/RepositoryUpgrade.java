@@ -61,10 +61,10 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.HashBiMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.RepositoryContext;
@@ -439,7 +439,7 @@ public class RepositoryUpgrade {
                 }
             }
 
-            HashBiMap<String, String> uriToPrefix = HashBiMap.create();
+            Map<String, String> uriToPrefix = new DualHashBidiMap<>();
             logger.info("Copying registered namespaces");
             copyNamespaces(targetBuilder, uriToPrefix);
             logger.debug("Namespace registration completed.");

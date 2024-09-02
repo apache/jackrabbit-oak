@@ -23,6 +23,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -186,7 +187,8 @@ public abstract class DocumentStoreFixture {
             try {
                 dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
-                LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.debug("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.info("Database instance not available at {} because of '{}', skipping tests...", url, ex.getMessage());
             }
         }
 
@@ -235,6 +237,9 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
+
+        private static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
+
         protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
@@ -256,7 +261,7 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            return MongoUtils.isAvailable();
+            return !SKIP_MONGO && MongoUtils.isAvailable();
         }
 
         @Override
