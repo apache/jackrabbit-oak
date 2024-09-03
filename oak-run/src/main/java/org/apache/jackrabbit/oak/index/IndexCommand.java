@@ -173,7 +173,7 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStoreFixture fixture,  IndexOptions indexOpts, Closer closer)
+    private void execute(NodeStoreFixture fixture, IndexOptions indexOpts, Closer closer)
             throws IOException, CommitFailedException {
         ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
 
@@ -184,13 +184,13 @@ public class IndexCommand implements Command {
         reindexOperation(indexOpts, extendedIndexHelper);
         importIndexOperation(indexOpts, extendedIndexHelper);
 
-        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}" , extendedIndexHelper.getIndexReporter().generateReport());
+        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}", extendedIndexHelper.getIndexReporter().generateReport());
     }
 
     private ExtendedIndexHelper createIndexHelper(NodeStoreFixture fixture,
-                                          IndexOptions indexOpts, Closer closer) throws IOException {
+                                                  IndexOptions indexOpts, Closer closer) throws IOException {
         ExtendedIndexHelper extendedIndexHelper = new ExtendedIndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
-                indexOpts.getOutDir(),  indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
+                indexOpts.getOutDir(), indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
 
         configurePreExtractionSupport(indexOpts, extendedIndexHelper);
 
@@ -206,7 +206,7 @@ public class IndexCommand implements Command {
             IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
             Set<String> indexPathsFromJson = updater.getIndexPaths();
             Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
-            if (!diff.isEmpty()){
+            if (!diff.isEmpty()) {
                 log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
             }
             indexPaths.addAll(indexPathsFromJson);
@@ -223,7 +223,7 @@ public class IndexCommand implements Command {
     }
 
     private void reindexOperation(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException, CommitFailedException {
-        if (!indexOpts.isReindex()){
+        if (!indexOpts.isReindex()) {
             return;
         }
 
@@ -305,7 +305,7 @@ public class IndexCommand implements Command {
 
     private String connectInReadWriteModeAndCreateCheckPoint(IndexOptions indexOpts) throws Exception {
         String checkpoint = indexOpts.getCheckpoint();
-        if (checkpoint != null){
+        if (checkpoint != null) {
             log.info("Using provided checkpoint [{}]", checkpoint);
             return checkpoint;
         }
@@ -419,7 +419,7 @@ public class IndexCommand implements Command {
     }
 
     private static void configureCustomizer(Options opts, Closer closer, boolean readOnlyAccess) {
-        if (opts.getCommonOpts().isDocument()){
+        if (opts.getCommonOpts().isDocument()) {
             IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);
             if (indexOpts.isReindex()) {
                 IndexDocumentBuilderCustomizer customizer = new IndexDocumentBuilderCustomizer(opts, readOnlyAccess);

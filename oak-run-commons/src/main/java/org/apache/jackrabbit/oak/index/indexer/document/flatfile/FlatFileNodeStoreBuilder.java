@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreStrategy;
@@ -111,6 +112,7 @@ public class FlatFileNodeStoreBuilder {
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
     private MongoClientURI mongoClientURI;
+    private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
         /**
@@ -208,7 +210,24 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    /**
+     * NOTE: This enables the support for AOT blob download, it does not turn activate it. To activate it, set the property
+     * AheadOfTimeBlobDownloadingFlatFileStore.OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX to a non-empty value AND
+     * enable the support here.
+     *
+     * @param aotSupportEnabled
+     * @return
+     */
+    public FlatFileNodeStoreBuilder withAheadOfTimeBlobDownloader(boolean aotSupportEnabled) {
+        this.withAheadOfTimeBlobDownloading = aotSupportEnabled;
+        return this;
+    }
+
     public IndexStore build() throws IOException, CompositeException {
+        return build(null, null);
+    }
+
+    public IndexStore build(IndexHelper indexHelper, CompositeIndexer indexer) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
@@ -238,6 +257,13 @@ public class FlatFileNodeStoreBuilder {
         }
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
+        }
+        if (indexer == null || indexHelper == null) {
+            return store;
+        }
+        if (withAheadOfTimeBlobDownloading && store instanceof FlatFileStore) {
+            FlatFileStore ffs = (FlatFileStore) store;
+            return AheadOfTimeBlobDownloadingFlatFileStore.wrap(ffs, indexer, indexHelper);
         }
         return store;
     }

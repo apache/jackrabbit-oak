@@ -200,7 +200,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                                 nodeStore, getMongoDocumentStore(), traversalLog))
                         .withCheckpoint(indexerSupport.getCheckpoint())
                         .withStatisticsProvider(indexHelper.getStatisticsProvider())
-                        .withIndexingReporter(reporter);
+                        .withIndexingReporter(reporter)
+                        .withAheadOfTimeBlobDownloader(true);
 
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
@@ -208,7 +209,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 if (splitFlatFile) {
                     storeList = builder.buildList(indexHelper, indexerSupport, indexDefinitions);
                 } else {
-                    storeList.add(builder.build());
+                    storeList.add(builder.build(indexHelper, indexer));
                 }
                 for (IndexStore item : storeList) {
                     closer.register(item);
