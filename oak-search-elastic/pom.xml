@@ -48,6 +48,8 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
+              !com.ibm.*, <!-- see OAK-11076 -->
+              !org.apache.derby.*, <!-- see OAK-11076 -->
               !io.opentelemetry.sdk.autoconfigure.*,
               !jdk.net.*,
               !org.apache.log.*,
