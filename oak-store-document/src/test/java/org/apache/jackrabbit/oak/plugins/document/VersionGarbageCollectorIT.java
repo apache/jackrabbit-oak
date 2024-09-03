@@ -1914,7 +1914,7 @@ public class VersionGarbageCollectorIT {
         createSecondaryStore(LeaseCheckMode.LENIENT);
 
         // while "2" was written to node1/a via an unmerged branch commit,
-        // it should not have been made visible through DGC/sweep combo
+        // it should not have been made visible through FGC/sweep combo
         invalidateCaches(store2);
         assertEquals("1", store2.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
         assertEquals("4", store2.getRoot().getChildNode("node1").getProperty("b").getValue(Type.STRING));

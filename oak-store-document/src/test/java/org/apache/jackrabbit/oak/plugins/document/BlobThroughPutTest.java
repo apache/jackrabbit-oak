@@ -19,15 +19,15 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.BiMap;
-import org.apache.jackrabbit.guava.common.collect.HashBiMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
@@ -56,10 +56,10 @@ public class BlobThroughPutTest {
 
     private final List<Result> results = new ArrayList<Result>();
 
-    private static final BiMap<WriteConcern,String> namedConcerns;
+    private static final Map<WriteConcern,String> namedConcerns;
 
     static {
-        BiMap<WriteConcern,String> bimap = HashBiMap.create();
+        Map<WriteConcern,String> bimap = new DualHashBidiMap<WriteConcern,String>();
         bimap.put(WriteConcern.FSYNC_SAFE,"FSYNC_SAFE");
         bimap.put(WriteConcern.JOURNAL_SAFE,"JOURNAL_SAFE");
 //        bimap.put(WriteConcern.MAJORITY,"MAJORITY");
@@ -67,7 +67,7 @@ public class BlobThroughPutTest {
         bimap.put(WriteConcern.NORMAL,"NORMAL");
 //        bimap.put(WriteConcern.REPLICAS_SAFE,"REPLICAS_SAFE");
         bimap.put(WriteConcern.SAFE,"SAFE");
-        namedConcerns = Maps.unmodifiableBiMap(bimap);
+        namedConcerns = Collections.unmodifiableMap(bimap);
     }
 
     private final String localServer = "localhost:27017/test";

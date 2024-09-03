@@ -121,7 +121,7 @@ public class VersionGarbageCollector {
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = getLogger(VersionGarbageCollector.class);
-    private static final Logger AUDIT_LOG = getLogger(VersionGarbageCollector.class.getName() + ".auditDGC");
+    private static final Logger AUDIT_LOG = getLogger(VersionGarbageCollector.class.getName() + ".auditFGC");
 
     /**
      * Split document types which can be safely garbage collected

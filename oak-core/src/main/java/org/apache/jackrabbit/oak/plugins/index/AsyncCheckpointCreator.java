@@ -135,7 +135,7 @@ public class AsyncCheckpointCreator implements Runnable {
             // If we don't decrement the counter in case of a failure while trying to delete a checkpoint,
             // the next iteration will try to delete a comparatively newer checkpoint and keep the older one in the system (which we don't want).
             // The checkpoint that failed to get deleted in this case should get deleted in the next run.
-            counter --;
+            counter--;
         }
 
     }

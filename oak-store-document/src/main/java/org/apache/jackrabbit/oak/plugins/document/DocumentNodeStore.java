@@ -3405,9 +3405,18 @@ public final class DocumentNodeStore
                 fromRev = from.getRootRevision();
                 toRev = to.getRootRevision();
             } catch (RuntimeException e) {
-                LOG.warn("diffJournalChildren failed with " +
-                        e.getClass().getSimpleName() +
-                        ", falling back to classic diff", e);
+                // avoid filling the log file with stack traces for a known issue
+                // see OAK-6016 and OAK-6011
+                if (e instanceof IllegalStateException &&
+                        "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
+                    LOG.warn("diffJournalChildren failed with " +
+                            e.getClass().getSimpleName() +
+                            ", falling back to classic diff : " + e.getMessage());
+                } else {
+                    LOG.warn("diffJournalChildren failed with " +
+                            e.getClass().getSimpleName() +
+                            ", falling back to classic diff", e);
+                }
             }
         }
         if (diff == null) {
