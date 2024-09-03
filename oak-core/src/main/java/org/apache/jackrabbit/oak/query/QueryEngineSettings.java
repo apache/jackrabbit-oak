@@ -138,10 +138,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         this.prefetchFeature = prefetch;
     }
 
-    public void setImproveCostFeature(@Nullable Feature improvedCost) {
-        this.improvedIsNullCostFeature = improvedCost;
-    }
-
     @Override
     public long getLimitInMemory() {
         return limitInMemory;

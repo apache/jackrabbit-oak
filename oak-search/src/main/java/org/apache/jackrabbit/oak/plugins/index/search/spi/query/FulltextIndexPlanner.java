@@ -862,7 +862,7 @@ public class FulltextIndexPlanner {
                     // as all documents with this field can match;
                     weight = 1;
                 } else if (improvedIsNullCost && pr.isNullRestriction()) {
-                    // don't use the weight for "is not null" restrictions
+                    // don't use the weight for "is null" restrictions
                     // as all documents with ":nullProps" can match
                     weight = 1;
                 } else {
