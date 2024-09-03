@@ -29,7 +29,15 @@ public interface QueryLimits {
 
     boolean getFullTextComparisonWithoutIndex();
 
-    boolean getImprovedIsNullCost();
+    /**
+     * See OAK-10532. This method is used for backward compatibility
+     * (bug compatibility) only.
+     *
+     * @return true, except when backward compatibility for OAK-10532 is enabled
+     */
+    default boolean getImprovedIsNullCost() {
+        return true;
+    }
 
     boolean getFailTraversal();
 
