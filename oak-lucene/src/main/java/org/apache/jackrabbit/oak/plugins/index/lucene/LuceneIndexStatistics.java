@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isNullPropsField;
 
 /**
  * This class would populate some statistics from a reader. We want to be careful here such that
@@ -70,7 +71,7 @@ public class LuceneIndexStatistics implements IndexStatistics {
 
         if (fields != null) {
             for(String f : fields) {
-                if (isPropertyField(f)) {
+                if (isPropertyField(f) || isNullPropsField(f)) {
                     int docCntForField = -1;
                     try {
                         if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {

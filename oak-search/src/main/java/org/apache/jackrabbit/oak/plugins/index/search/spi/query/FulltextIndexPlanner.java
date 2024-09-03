@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
@@ -89,6 +90,7 @@ public class FulltextIndexPlanner {
     private final IndexNode indexNode;
     protected PlanResult result;
     protected static boolean useActualEntryCount;
+    private final boolean improvedIsNullCost;
 
     static {
         useActualEntryCount = Boolean.parseBoolean(System.getProperty(FLAG_ENTRY_COUNT, "true"));
@@ -106,6 +108,7 @@ public class FulltextIndexPlanner {
         this.definition = indexNode.getDefinition();
         this.filter = filter;
         this.sortOrder = sortOrder;
+        this.improvedIsNullCost = filter.getQueryLimits().getImprovedIsNullCost();
     }
 
     public IndexPlan getPlan() {
@@ -838,17 +841,29 @@ public class FulltextIndexPlanner {
             if (result.relPropMapping.containsKey(key)) {
                 key = getName(key);
             }
-            int docCntForField = indexStatistics.getDocCountFor(key);
+            PropertyRestriction pr = filter.getPropertyRestriction(key);
+            String fieldName = key;
+            // for "is not null" we can use an asterisk query
+            if (improvedIsNullCost) {
+                if (pr != null && pr.isNullRestriction()) {
+                    fieldName = FieldNames.NULL_PROPS;
+                }
+            }
+            int docCntForField = indexStatistics.getDocCountFor(fieldName);
             if (docCntForField == -1) {
                 continue;
             }
 
             int weight = propDef.getValue().weight;
 
-            PropertyRestriction pr = filter.getPropertyRestriction(key);
             if (pr != null) {
                 if (pr.isNotNullRestriction()) {
                     // don't use weight for "is not null" restrictions
+                    // as all documents with this field can match;
+                    weight = 1;
+                } else if (improvedIsNullCost && pr.isNullRestriction()) {
+                    // don't use the weight for "is null" restrictions
+                    // as all documents with ":nullProps" can match
                     weight = 1;
                 } else {
                     if (weight > 1) {
@@ -1164,7 +1179,7 @@ public class FulltextIndexPlanner {
             nodeNameRestriction = true;
         }
 
-        public void disableUniquePaths(){
+        public void disableUniquePaths() {
             uniquePathsRequired = false;
         }
     }

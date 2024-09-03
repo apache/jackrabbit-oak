@@ -32,10 +32,12 @@ public class AsyncCheckpointCreatorTest {
         NodeStore store = new MemoryNodeStore();
         int minConcurrentCheckpoints = 3;
         int maxConcurrentCheckpoints = 5;
-        AsyncCheckpointCreator task = new AsyncCheckpointCreator(store, "test", 1000, minConcurrentCheckpoints, maxConcurrentCheckpoints);
+        AsyncCheckpointCreator task = new AsyncCheckpointCreator(
+                store, "test", 1000, minConcurrentCheckpoints, maxConcurrentCheckpoints);
         Map<Integer, String> checkpointMap = new LinkedHashMap<>();
         for (int i = 0; i < minConcurrentCheckpoints; i++) {
             List<String> checkpointList = new ArrayList<>();
+            sleepOneMillisecond();
             task.run();
             for(String checkpoint : store.checkpoints()) {
                 if (!checkpointMap.containsValue(checkpoint)) {
@@ -47,14 +49,36 @@ public class AsyncCheckpointCreatorTest {
         }
         // Task run post the minConcurrentCheckpoints should not result in additional
         // checkpoints since the oldest checkpoint should get deleted
-        for (int j = 0; j < 2 ; j++) {
+        for (int j = 0; j < 2; j++) {
             List<String> checkpointList = new ArrayList<>();
+            sleepOneMillisecond();
             task.run();
-            for(String checkpoint : store.checkpoints()) {
+            for (String checkpoint : store.checkpoints()) {
                 checkpointList.add(checkpoint);
             }
             Assert.assertFalse(checkpointList.contains(checkpointMap.get(j + 1)));
             Assert.assertEquals(minConcurrentCheckpoints, checkpointList.size());
+        }
+    }
+    
+    /**
+     * The "oldest" checkpoint is removed, but for this to work reliably, the
+     * checkpoints need to be at least 1 ms apart. So here we wait at least 1 ms,
+     * such that the checkpoints are not on the same millisecond. This is a bit a
+     * hack, but I think it's safer to change the test case than to change the code.
+     */
+    private static void sleepOneMillisecond() {
+        long start = System.currentTimeMillis();
+        while (true) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+            long time = System.currentTimeMillis();
+            if (time - start >= 1) {
+                break;
+            }
         }
     }
 }
