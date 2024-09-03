@@ -67,19 +67,17 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
 
     @Override
     public void doMerge() throws IOException {
-        LOG.info("Merging " + baseFile.getAbsolutePath());
-        LOG.info("and " + incrementalFile.getAbsolutePath());
+        LOG.info("Merging {} and {}", baseFile.getAbsolutePath(), incrementalFile.getAbsolutePath());
         File baseDir = new File(baseFile.getAbsolutePath() + ".files");
-        LOG.info("Unpacking into " + baseDir.getAbsolutePath());
+        LOG.info("Unpacking to {}", baseDir.getAbsolutePath());
         FilePacker.unpack(baseFile, baseDir, true);
-        LOG.info("Merging " + baseDir.getAbsolutePath());
         File mergedDir = new File(mergedFile.getAbsolutePath() + ".files");
-        LOG.info("into " + mergedDir.getAbsolutePath());
+        LOG.info("Merging to {}", mergedDir.getAbsolutePath());
         mergeMetadataFiles();
         mergeIndexStore(baseDir, mergedDir);
-        LOG.info("Packing into " + mergedFile.getAbsolutePath());
+        LOG.info("Packing to {}", mergedFile.getAbsolutePath());
         FilePacker.pack(mergedDir, TreeSession.getFileNameRegex(), mergedFile, true);
-        LOG.info("Done");
+        LOG.info("Completed");
     }
 
     @Override
