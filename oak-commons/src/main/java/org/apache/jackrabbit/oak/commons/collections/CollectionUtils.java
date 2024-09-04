@@ -18,9 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.commons.collections4.IteratorUtils;
-
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +42,9 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     public static <T> List<T> toList(final Iterable<T> iterable) {
-        return IterableUtils.toList(iterable);
+        List<T> result = new ArrayList<>();
+        iterable.forEach(result::add);
+        return result;
     }
 
     /**
@@ -54,7 +54,9 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     public static <T> List<T> toList(final Iterator<T> iterator) {
-        return IteratorUtils.toList(iterator);
+        List<T> result = new ArrayList<>();
+        iterator.forEachRemaining(result::add);
+        return result;
     }
 
     /**
