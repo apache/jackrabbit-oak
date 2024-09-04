@@ -28,7 +28,9 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
+import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -205,7 +207,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
      * Scans the FFS, searching for binary properties that are not inlined and enqueues them for download.
      */
     private class ScanTask implements Runnable {
-        private final NodeStateEntryReader nodeStateEntryReader = new NodeStateEntryReader(blobStore);
+        private final JsonDeserializer jsonDeserializer = new JsonDeserializer(new BlobIdSerializer(blobStore));
         private final ArrayBlockingQueue<Blob> queue;
 
         long linesScanned = 0;
@@ -241,7 +243,8 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                             skippedLinesDueToLaggingIndexing++;
                         } else {
                             // Now we need to parse the json to check if there are any blobs to download
-                            processEntry(entryPath, ffsLine.substring(pipeIndex + 1));
+                            NodeState nodeState = jsonDeserializer.deserialize(ffsLine, pipeIndex + 1);
+                            processEntry(entryPath, nodeState);
                         }
                         linesScanned++;
                         if (linesScanned % 100_000 == 0) {
@@ -270,8 +273,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
             return scannerPosition <= indexerLastKnownPosition;
         }
 
-        private void processEntry(String entryPath, String entryStateAsJson) throws InterruptedException {
-            NodeState nodeState = nodeStateEntryReader.parseState(entryStateAsJson);
+        private void processEntry(String entryPath, NodeState nodeState) throws InterruptedException {
             PropertyState ps = nodeState.getProperty("jcr:data");
             if (ps == null || ps.isArray() || ps.getType() != Type.BINARY) {
                 skippedForOtherReasons++;
