@@ -21,13 +21,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Arrays;
 import java.util.Objects;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
 
@@ -67,7 +67,7 @@ public final class Path implements CacheValue, Comparable<Path> {
      */
     public Path(@NotNull Path parent, @NotNull String name) {
         this(requireNonNull(parent), requireNonNull(name), -1);
-        checkArgument(!name.isEmpty(), "name cannot be the empty String");
+        Validate.isTrue(!name.isEmpty(), "name cannot be the empty String");
     }
 
     /**
@@ -79,8 +79,8 @@ public final class Path implements CacheValue, Comparable<Path> {
      */
     public Path(@NotNull String name) {
         this(null, requireNonNull(name), -1);
-        checkArgument(!name.isEmpty(), "name cannot be the empty String");
-        checkArgument(name.indexOf('/') == -1, "name must not contain path separator: {}", name);
+        Validate.isTrue(!name.isEmpty(), "name cannot be the empty String");
+        Validate.isTrue(name.indexOf('/') == -1, "name must not contain path separator: %s", name);
     }
 
     /**

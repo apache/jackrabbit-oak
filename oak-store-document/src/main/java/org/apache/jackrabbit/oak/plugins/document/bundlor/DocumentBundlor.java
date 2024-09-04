@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
@@ -77,7 +77,7 @@ public class DocumentBundlor {
     private final List<Include> includes;
 
     public static DocumentBundlor from(NodeState nodeState){
-        checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeState [%s] does not have required " +
+        Validate.isTrue(nodeState.hasProperty(PROP_PATTERN), "NodeState [%s] does not have required " +
                 "property [%s]", nodeState, PROP_PATTERN);
        return DocumentBundlor.from(nodeState.getStrings(PROP_PATTERN));
     }
@@ -91,12 +91,12 @@ public class DocumentBundlor {
     }
 
     public static DocumentBundlor from(PropertyState prop){
-        checkArgument(META_PROP_PATTERN.equals(prop.getName()));
+        Validate.isTrue(META_PROP_PATTERN.equals(prop.getName()));
         return from(prop.getValue(Type.STRINGS));
     }
 
     private DocumentBundlor(List<Include> includes) {
-        checkArgument(!includes.isEmpty(), "Include list cannot be empty");
+        Validate.isTrue(!includes.isEmpty(), "Include list cannot be empty");
         this.includes = ImmutableList.copyOf(includes);
     }
 

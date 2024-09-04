@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+
+import org.apache.commons.lang3.Validate;
 
 /**
  * Matcher which matches all child nodes
@@ -30,7 +30,7 @@ class IncludeAllMatcher implements Matcher {
     private final int depth;
 
     IncludeAllMatcher(String matchingPath, int depth) {
-        checkArgument(depth > 0);
+        Validate.isTrue(depth > 0);
         this.matchingPath = matchingPath;
         this.depth = depth;
     }

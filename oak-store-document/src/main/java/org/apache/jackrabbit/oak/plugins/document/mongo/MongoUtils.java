@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Arrays;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoCommandException;
@@ -34,7 +33,6 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.connection.ServerVersion;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
@@ -43,8 +41,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Provides static utility methods for MongoDB.
@@ -92,7 +88,7 @@ class MongoUtils {
                             boolean unique,
                             boolean sparse)
             throws MongoException {
-        checkArgument(fields.length == ascending.length);
+        Validate.isTrue(fields.length == ascending.length);
         BasicDBObject index = new BasicDBObject();
         for (int i = 0; i < fields.length; i++) {
             index.put(fields[i], ascending[i] ? 1 : -1);
@@ -116,7 +112,7 @@ class MongoUtils {
                                    String[] fields,
                                    boolean[] ascending,
                                    String filter) throws MongoException {
-        checkArgument(fields.length == ascending.length);
+        Validate.isTrue(fields.length == ascending.length);
         BasicDBObject index = new BasicDBObject();
         for (int i = 0; i < fields.length; i++) {
             index.put(fields[i], ascending[i] ? 1 : -1);

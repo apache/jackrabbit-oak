@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import java.util.List;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 class CompositeMatcher implements Matcher {
     private final List<Matcher> matchers;
@@ -45,7 +43,7 @@ class CompositeMatcher implements Matcher {
      */
     private CompositeMatcher(List<Matcher> matchers) {
         for (Matcher m : matchers){
-            checkArgument(m.isMatch(), "Non matching matcher found in [%s]", matchers);
+            Validate.isTrue(m.isMatch(), "Non matching matcher found in [%s]", matchers);
         }
         this.matchers = matchers;
     }

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
@@ -557,11 +558,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                                      int prevDocCachePercentage,
                                      int childrenCachePercentage,
                                      int diffCachePercentage) {
-        checkArgument(nodeCachePercentage >= 0);
-        checkArgument(prevDocCachePercentage >= 0);
-        checkArgument(childrenCachePercentage>= 0);
-        checkArgument(diffCachePercentage >= 0);
-        checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
+        Validate.isTrue(nodeCachePercentage >= 0);
+        Validate.isTrue(prevDocCachePercentage >= 0);
+        Validate.isTrue(childrenCachePercentage>= 0);
+        Validate.isTrue(diffCachePercentage >= 0);
+        Validate.isTrue(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
                 diffCachePercentage < 100);
         this.nodeCachePercentage = nodeCachePercentage;
         this.prevDocCachePercentage = prevDocCachePercentage;

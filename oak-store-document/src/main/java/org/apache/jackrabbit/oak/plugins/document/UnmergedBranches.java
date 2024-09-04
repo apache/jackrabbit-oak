@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchReference;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -32,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -121,9 +121,9 @@ class UnmergedBranches {
     Branch create(@NotNull RevisionVector base,
                   @NotNull Revision initial,
                   @Nullable Object guard) {
-        checkArgument(!requireNonNull(base).isBranch(),
+        Validate.isTrue(!requireNonNull(base).isBranch(),
                 "base is not a trunk revision: %s", base);
-        checkArgument(requireNonNull(initial).isBranch(),
+        Validate.isTrue(requireNonNull(initial).isBranch(),
                 "initial is not a branch revision: %s", initial);
         SortedSet<Revision> commits = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
         commits.add(initial);

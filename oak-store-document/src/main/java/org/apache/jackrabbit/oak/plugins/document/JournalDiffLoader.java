@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -31,7 +32,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.asId;
@@ -58,8 +58,8 @@ class JournalDiffLoader implements DiffCache.Loader {
         this.base = requireNonNull(base);
         this.node = requireNonNull(node);
         this.ns = requireNonNull(ns);
-        checkArgument(base.getPath().equals(node.getPath()),
-                "nodes must have matching paths: {} != {}",
+        Validate.isTrue(base.getPath().equals(node.getPath()),
+                "nodes must have matching paths: %s != %s",
                 base.getPath(), node.getPath());
     }
 

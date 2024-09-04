@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
@@ -128,10 +127,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -1010,7 +1008,7 @@ public final class DocumentNodeStore
     }
 
     void setRoot(@NotNull RevisionVector newHead) {
-        checkArgument(!newHead.isBranch());
+        Validate.isTrue(!newHead.isBranch());
         root = getRoot(newHead);
     }
 
@@ -3251,8 +3249,8 @@ public final class DocumentNodeStore
 
     private Commit newTrunkCommit(@NotNull Changes changes,
                                   @NotNull RevisionVector base) {
-        checkArgument(!requireNonNull(base).isBranch(),
-                "base must not be a branch revision: " + base);
+        Validate.isTrue(!requireNonNull(base).isBranch(),
+                "base must not be a branch revision: %s", base);
 
         // build commit before revision is created by the commit queue (OAK-7869)
         CommitBuilder commitBuilder = newCommitBuilder(base, null);
@@ -3278,8 +3276,8 @@ public final class DocumentNodeStore
     private Commit newBranchCommit(@NotNull Changes changes,
                                    @NotNull RevisionVector base,
                                    @Nullable DocumentNodeStoreBranch branch) {
-        checkArgument(requireNonNull(base).isBranch(),
-                "base must be a branch revision: " + base);
+        Validate.isTrue(requireNonNull(base).isBranch(),
+                "base must be a branch revision: %s", base);
 
         checkOpen();
         Revision commitRevision = newRevision();

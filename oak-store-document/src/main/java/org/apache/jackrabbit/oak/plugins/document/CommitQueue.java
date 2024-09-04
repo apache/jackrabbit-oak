@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.util.HashSet;
@@ -31,6 +30,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -83,7 +83,7 @@ final class CommitQueue {
 
     @NotNull
     SortedSet<Revision> createRevisions(int num) {
-        checkArgument(num > 0);
+        Validate.isTrue(num > 0);
         SortedSet<Revision> revs = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
         Revision rev = null;
         synchronized (this) {

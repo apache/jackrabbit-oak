@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 class JournalPropertyHandler {
     private final Map<String, JournalPropertyBuilder<JournalProperty>> builders = Maps.newHashMap();
@@ -93,8 +91,8 @@ class JournalPropertyHandler {
         if (o == null){
             return null;
         }
-        checkArgument(o instanceof JournalProperty, "CommitContext entry for name [%s] " +
-                "having value [%s] is not of type JournalEntry", name, o);
+        Validate.isTrue(o instanceof JournalProperty,
+                "CommitContext entry for name [%s] having value [%s] is not of type JournalEntry", name, o);
         return (JournalProperty) o;
     }
 

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -44,7 +45,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
@@ -280,7 +280,7 @@ public final class JournalEntry extends Document {
                                    @Nullable JournalPropertyHandler journalPropertyHandler)
             throws IOException {
         requireNonNull(path);
-        checkArgument(requireNonNull(from).getClusterId() == requireNonNull(to).getClusterId());
+        Validate.isTrue(requireNonNull(from).getClusterId() == requireNonNull(to).getClusterId());
 
         if (from.compareRevisionTime(to) >= 0) {
             return 0;
@@ -700,7 +700,7 @@ public final class JournalEntry extends Document {
         }
 
         TreeNode(MapFactory mapFactory, TreeNode parent, String name) {
-            checkArgument(!name.contains("/"),
+            Validate.isTrue(!name.contains("/"),
                     "name must not contain '/': {}", name);
 
             this.mapFactory = mapFactory;

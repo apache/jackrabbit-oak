@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import java.util.List;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -95,7 +94,7 @@ class PathFilteringDiff extends ApplyDiff {
     }
 
     private AbstractDocumentNodeState asDocumentState(NodeState state, String name){
-        checkArgument(state instanceof AbstractDocumentNodeState, "Node %s (%s) at [%s/%s] is not" +
+        Validate.isTrue(state instanceof AbstractDocumentNodeState, "Node %s (%s) at [%s/%s] is not" +
                 " of expected type i.e. AbstractDocumentNodeState. Parent %s (%s)",
                 state, state.getClass(), parent.getPath(), name, parent, parent.getClass());
         return (AbstractDocumentNodeState) state;

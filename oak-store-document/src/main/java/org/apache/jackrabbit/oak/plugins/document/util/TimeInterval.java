@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import org.apache.commons.lang3.Validate;
 
 /**
  * A class representing a time interval, with utility methods to derive related
@@ -30,7 +30,7 @@ public class TimeInterval {
     public final long toMs;
 
     public TimeInterval(long fromMs, long toMs) {
-        checkArgument(fromMs <= toMs, "start must be <= end");
+        Validate.isTrue(fromMs <= toMs, "start must be <= end");
         this.fromMs = fromMs;
         this.toMs = toMs;
     }

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -736,7 +737,7 @@ public final class NodeDocument extends Document {
                                final Revision changeRev,
                                final Branch branch,
                                final Set<Revision> collisions) {
-        checkArgument(!baseRev.isBranch() || branch != null,
+        Validate.isTrue(!baseRev.isBranch() || branch != null,
                 "Branch must be non-null if baseRev is a branch revision");
         RevisionVector head = context.getHeadRevision();
         RevisionVector lower = branch != null ? branch.getBase() : baseRev;

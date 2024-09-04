@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.INTERMEDIATE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.NONE;
@@ -25,6 +24,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -135,7 +135,7 @@ public class SplitDocumentCleanUp implements Closeable {
 
     private void disconnectFromIntermediate(NodeDocument splitDoc,
                                             Revision rev) {
-        checkArgument(splitDoc.getSplitDocType() == INTERMEDIATE,
+        Validate.isTrue(splitDoc.getSplitDocType() == INTERMEDIATE,
                 "Illegal type: %s", splitDoc.getSplitDocType());
 
         String splitDocId = splitDoc.getId();
@@ -168,7 +168,7 @@ public class SplitDocumentCleanUp implements Closeable {
     final void markStaleOnMain(NodeDocument main,
                                Revision rev,
                                int height) {
-        checkArgument(main.getSplitDocType() == NONE,
+        Validate.isTrue(main.getSplitDocType() == NONE,
                 "Illegal type: %s", main.getSplitDocType());
 
         UpdateOp update = new UpdateOp(main.getId(), false);

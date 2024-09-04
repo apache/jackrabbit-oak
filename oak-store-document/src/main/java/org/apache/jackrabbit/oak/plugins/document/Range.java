@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,11 +40,11 @@ final class Range {
         this.high = requireNonNull(high);
         this.low = requireNonNull(low);
         this.height = height;
-        checkArgument(high.getClusterId() == low.getClusterId(),
+        Validate.isTrue(high.getClusterId() == low.getClusterId(),
                 "Revisions from have the same clusterId");
-        checkArgument(high.compareRevisionTime(low) >= 0,
+        Validate.isTrue(high.compareRevisionTime(low) >= 0,
                 "High Revision must be later than low Revision, high=%s low=%s" ,high, low);
-        checkArgument(height >= 0);
+        Validate.isTrue(height >= 0);
     }
 
     /**

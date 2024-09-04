@@ -24,6 +24,7 @@ import java.util.TimeZone;
 
 import javax.management.openmbean.CompositeData;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -33,7 +34,6 @@ import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
@@ -170,8 +170,8 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     @Override
     public int recover(String path, int clusterId) {
         requireNonNull(path, "path must not be null");
-        checkArgument(PathUtils.isAbsolute(path), "path must be absolute");
-        checkArgument(clusterId >= 0, "clusterId must not be a negative");
+        Validate.isTrue(PathUtils.isAbsolute(path), "path must be absolute");
+        Validate.isTrue(clusterId >= 0, "clusterId must not be a negative");
 
         DocumentStore docStore = nodeStore.getDocumentStore();
         boolean isActive = false;
