@@ -36,14 +36,11 @@ public class NodeStateEntryReader {
         this.des = new JsonDeserializer(blobDeserializer);
     }
 
-    public NodeStateEntry read(String line) {
-        String[] parts = NodeStateEntryWriter.getParts(line);
-        long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
-        NodeState nodeState = parseState(parts[1]);
-        return new NodeStateEntry(nodeState, parts[0], memUsage, 0, "");
-    }
-
-    public NodeState parseState(String part) {
-        return des.deserialize(part);
+    public NodeStateEntry read(String ffsLine) {
+        long memUsage = estimateMemoryUsage(ffsLine);
+        var idx = ffsLine.indexOf('|');
+        var path = ffsLine.substring(0, idx);
+        NodeState nodeState = des.deserialize(ffsLine, idx + 1);
+        return new NodeStateEntry(nodeState, path, memUsage, 0, "");
     }
 }
