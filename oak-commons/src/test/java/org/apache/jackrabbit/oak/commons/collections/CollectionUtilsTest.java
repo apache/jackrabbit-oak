@@ -22,15 +22,17 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class CollectionUtilsTest {
 
+    final List<String> data = Arrays.asList("one", "two", "three", null);
+
     @Test
     public void iterableToList() {
         // create an iterable
-        final List<String> data = Arrays.asList("one", "two", "three");
         final Iterable<String> iterable = new SimpleIterable<>(data);
 
         Assert.assertEquals(data, CollectionUtils.toList(iterable));
@@ -40,7 +42,6 @@ public class CollectionUtilsTest {
     @Test
     public void iteratorToList() {
         // create an iterator
-        final List<String> data = Arrays.asList("one", "two", "three");
         final Iterable<String> iterable = new SimpleIterable<>(data);
 
         Assert.assertEquals(data, CollectionUtils.toList(iterable.iterator()));
@@ -49,18 +50,18 @@ public class CollectionUtilsTest {
     @Test
     public void iterableToSet() {
         // create an iterable
-        final Set<String> data = Set.of("one", "two", "three");
-        final Iterable<String> iterable = new SimpleIterable<>(data);
+        final Set<String> s = new HashSet<>(data);
+        final Iterable<String> iterable = new SimpleIterable<>(s);
 
-        Assert.assertEquals(data, CollectionUtils.toSet(iterable));
+        Assert.assertEquals(s, CollectionUtils.toSet(iterable));
     }
 
     @Test
     public void iteratorToSet() {
         // create an iterable
-        final Set<String> data = Set.of("one", "two", "three");
-        final Iterable<String> iterable = new SimpleIterable<>(data);
+        final Set<String> s = new HashSet<>(data);
+        final Iterable<String> iterable = new SimpleIterable<>(s);
 
-        Assert.assertEquals(data, CollectionUtils.toSet(iterable.iterator()));
+        Assert.assertEquals(s, CollectionUtils.toSet(iterable.iterator()));
     }
 }

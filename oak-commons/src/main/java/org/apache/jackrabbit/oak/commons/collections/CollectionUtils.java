@@ -23,8 +23,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Utility methods for collections conversions.
@@ -36,7 +34,7 @@ public class CollectionUtils {
     }
 
     /**
-     * Convert an iterable to a list.The returning list is mutable and supports all optional operations.
+     * Convert an iterable to a list. The returning list is mutable and supports all optional operations.
      * @param iterable the iterable to convert
      * @return the list
      * @param <T> the type of the elements
@@ -66,7 +64,9 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     public static <T> Set<T> toSet(final Iterable<T> iterable) {
-        return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toSet());
+        final Set<T> result = new HashSet<>();
+        iterable.forEach(result::add);
+        return result;
     }
 
     /**
@@ -76,9 +76,9 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     public static <T> Set<T> toSet(final Iterator<T> iterator) {
-        final Set<T> set = new HashSet<>();
-        iterator.forEachRemaining(set::add);
-        return set;
+        final Set<T> result = new HashSet<>();
+        iterator.forEachRemaining(result::add);
+        return result;
     }
 
 }
