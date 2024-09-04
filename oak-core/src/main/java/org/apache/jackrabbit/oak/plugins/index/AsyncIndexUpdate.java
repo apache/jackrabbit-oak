@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -51,6 +50,7 @@ import javax.management.openmbean.TabularData;
 
 import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -244,8 +244,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         if (IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName)){
             return asyncName;
         }
-        checkArgument(asyncName.endsWith("async"), "async name [%s] does not confirm to " +
-                "naming pattern of ending with 'async'", asyncName);
+        Validate.isTrue(asyncName.endsWith("async"), "async name [%s] does not confirm to naming pattern of ending with 'async'",
+                asyncName);
         return asyncName;
     }
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
@@ -27,6 +26,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -57,7 +56,7 @@ public class IndexDefinitionUpdater {
     private final Map<String, NodeState> indexNodeStates;
 
     public IndexDefinitionUpdater(File file) throws IOException {
-        checkArgument(file.exists() && file.canRead(), "File [%s] cannot be read", file);
+        Validate.isTrue(file.exists() && file.canRead(), "File [%s] cannot be read", file);
         this.indexNodeStates = getIndexDefnStates(FileUtils.readFileToString(file, StandardCharsets.UTF_8));
     }
 

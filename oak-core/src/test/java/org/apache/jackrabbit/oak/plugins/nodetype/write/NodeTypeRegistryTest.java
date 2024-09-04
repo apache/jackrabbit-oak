@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -54,7 +54,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.commons.cnd.TemplateBuilderFactory;
@@ -92,7 +92,7 @@ public class NodeTypeRegistryTest {
     private ContentSession session = null;
     
     static void registerNodeType(@NotNull Root root, @NotNull String resourceName) throws IOException {
-        checkArgument(!Strings.isNullOrEmpty(resourceName));
+        Validate.isTrue(!Strings.isNullOrEmpty(resourceName));
         requireNonNull(root);
 
         InputStream stream = null;

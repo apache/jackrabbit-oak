@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
@@ -27,8 +26,8 @@ import java.util.Properties;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.lang3.Validate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -93,8 +92,8 @@ public class IndexerInfo {
 
     public static IndexerInfo fromDirectory(File rootDir) throws IOException {
         File infoFile = new File(rootDir, INDEXER_META);
-        checkArgument(infoFile.exists(), "No [%s] file found in [%s]. Not a valid exported index " +
-                "directory", INDEXER_META, rootDir.getAbsolutePath());
+        Validate.isTrue(infoFile.exists(), "No [%s] file found in [%s]. Not a valid exported index directory", INDEXER_META,
+                rootDir.getAbsolutePath());
         Properties p = PropUtils.loadFromFile(infoFile);
         return new IndexerInfo(
                 rootDir,

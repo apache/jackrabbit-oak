@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -27,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 
 import java.util.List;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -69,7 +68,7 @@ public abstract class AbstractMutableTree extends AbstractTree {
     @NotNull
     @Override
     public Tree addChild(@NotNull String name) throws IllegalArgumentException {
-        checkArgument(!isHidden(name));
+        Validate.isTrue(!isHidden(name));
         if (!hasChild(name)) {
             NodeBuilder nodeBuilder = getNodeBuilder();
             nodeBuilder.setChildNode(name);
@@ -170,20 +169,20 @@ public abstract class AbstractMutableTree extends AbstractTree {
 
     @Override
     public void setProperty(@NotNull PropertyState property) {
-        checkArgument(!isHidden(requireNonNull(property).getName()));
+        Validate.isTrue(!isHidden(requireNonNull(property).getName()));
         getNodeBuilder().setProperty(property);
     }
 
     @Override
     public <T> void setProperty(@NotNull String name, @NotNull T value) throws IllegalArgumentException {
-        checkArgument(!isHidden(requireNonNull(name)));
+        Validate.isTrue(!isHidden(requireNonNull(name)));
         getNodeBuilder().setProperty(name, requireNonNull(value));
     }
 
     @Override
     public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type)
             throws IllegalArgumentException {
-        checkArgument(!isHidden(requireNonNull(name)));
+        Validate.isTrue(!isHidden(requireNonNull(name)));
         getNodeBuilder().setProperty(name, requireNonNull(value), requireNonNull(type));
     }
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.Closeable;
@@ -26,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -54,7 +54,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(
@@ -215,7 +214,7 @@ public class AsyncIndexerService {
         List<AsyncConfig> result = Lists.newArrayList();
         for (String config : configs) {
             int idOfEq = config.indexOf(CONFIG_SEP);
-            checkArgument(idOfEq > 0, "Invalid config provided [%s]", Arrays.toString(configs));
+            Validate.isTrue(idOfEq > 0, "Invalid config provided [%s]", Arrays.toString(configs));
 
             String[] configElements = config.split(String.valueOf(CONFIG_SEP));
             String name = configElements[0].trim();

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -63,8 +64,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * UserManagerImpl...
@@ -293,7 +292,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     void onCreate(@NotNull User systemUser) throws RepositoryException {
-        checkArgument(systemUser.isSystemUser());
+        Validate.isTrue(systemUser.isSystemUser());
         for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onCreate(systemUser, root, namePathMapper);
         }

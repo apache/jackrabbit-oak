@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.InputStream;
 import java.util.Map;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -71,7 +71,7 @@ public final class ImmutableRoot implements Root, ReadOnly {
     }
 
     public ImmutableRoot(@NotNull ImmutableTree rootTree) {
-        checkArgument(rootTree.isRoot());
+        Validate.isTrue(rootTree.isRoot());
         this.rootTree = rootTree;
         this.authInfo = AuthInfo.EMPTY;
         this.wspName = null;
@@ -90,7 +90,7 @@ public final class ImmutableRoot implements Root, ReadOnly {
     @NotNull
     @Override
     public ImmutableTree getTree(@NotNull String path) {
-        checkArgument(PathUtils.isAbsolute(path));
+        Validate.isTrue(PathUtils.isAbsolute(path));
         ImmutableTree child = rootTree;
         for (String name : elements(path)) {
             child = child.getChild(name);

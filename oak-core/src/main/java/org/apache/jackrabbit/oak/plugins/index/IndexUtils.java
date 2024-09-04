@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -42,6 +41,7 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -248,8 +248,7 @@ public final class IndexUtils {
             Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));
             asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);
             asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
-            checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +
-                    "index [%s], definition %s", indexPath, idxState);
+            Validate.isTrue(!asyncNames.isEmpty(), "No valid async name found for index [%s], definition %s", indexPath, idxState);
             return Iterables.getOnlyElement(asyncNames);
         }
         return null;

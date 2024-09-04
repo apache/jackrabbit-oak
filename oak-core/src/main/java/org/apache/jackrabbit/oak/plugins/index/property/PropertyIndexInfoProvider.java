@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.io.IOException;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
@@ -31,8 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 @Component
 public class PropertyIndexInfoProvider implements IndexInfoProvider {
@@ -58,7 +56,7 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
     public IndexInfo getInfo(String indexPath) throws IOException {
         NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
 
-        checkArgument(PropertyIndexEditorProvider.TYPE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME)),
+        Validate.isTrue(PropertyIndexEditorProvider.TYPE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME)),
                 "Index definition at [%s] is not of type 'property'", indexPath);
         PropertyIndexInfo info = new PropertyIndexInfo(indexPath);
         computeCountEstimate(info, idxState);

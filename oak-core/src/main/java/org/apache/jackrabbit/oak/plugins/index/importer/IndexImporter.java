@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -55,7 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
@@ -106,8 +106,7 @@ public class IndexImporter {
                          AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider, IndexingReporter indexingReporter) throws IOException {
         this.statisticsProvider = statisticsProvider;
         this.indexingReporter = indexingReporter;
-        checkArgument(indexDir.exists() && indexDir.isDirectory(), "Path [%s] does not point " +
-                "to existing directory", indexDir.getAbsolutePath());
+        Validate.isTrue(indexDir.exists() && indexDir.isDirectory(), "Path [%s] does not point to existing directory", indexDir.getAbsolutePath());
         this.nodeStore = nodeStore;
         this.indexDir = indexDir;
         this.indexEditorProvider = indexEditorProvider;
@@ -386,7 +385,7 @@ public class IndexImporter {
 
 
             NodeState indexState = indexDefinitionUpdater.getIndexState(indexPath);
-            checkArgument(indexState.exists(), "No index node found at path [%s]", indexPath);
+            Validate.isTrue(indexState.exists(), "No index node found at path [%s]", indexPath);
 
             boolean newIndex = !NodeStateUtils.getNode(rootState, indexPath).exists();
 

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -52,7 +53,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -380,7 +380,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      */
     @NotNull
     private NodeBuilder resolve(NodeBuilder node, String relPath) {
-        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path");
+        Validate.isTrue(!PathUtils.isAbsolute(relPath), "Not a relative path");
         for (String name : PathUtils.elements(relPath)) {
             node = node.getChildNode(name);
         }

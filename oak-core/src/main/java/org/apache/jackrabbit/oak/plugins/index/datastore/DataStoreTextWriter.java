@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.datastore;
 
 import java.io.BufferedWriter;
@@ -31,6 +30,7 @@ import java.util.concurrent.Callable;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
@@ -42,7 +42,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -71,7 +70,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
 
     public DataStoreTextWriter(File directory, boolean readOnlyMode) throws IOException {
         if (!directory.exists()) {
-            checkArgument(directory.mkdirs(), "Cannot create directory %s", directory.getAbsolutePath());
+            Validate.isTrue(directory.mkdirs(), "Cannot create directory %s", directory.getAbsolutePath());
         }
         this.directory = directory;
         this.readOnlyMode = readOnlyMode;

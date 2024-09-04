@@ -27,6 +27,7 @@ import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -50,7 +51,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
@@ -130,7 +130,7 @@ public class IdentifierManager {
                     ? identifier
                     : identifier.substring(0, k);
 
-            checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+            Validate.isTrue(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '%s'", identifier);
 
             Tree tree = resolveUUIDToTree(createPropertyValue(uuid));
             if (tree == null) {

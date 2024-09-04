@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.namepath.impl;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,8 +55,8 @@ public class LocalNameMapper extends GlobalNameMapper {
     @Override @NotNull
     public synchronized String getJcrName(@NotNull String oakName) {
         requireNonNull(oakName);
-        checkArgument(!oakName.startsWith(":"), oakName); // hidden name
-        checkArgument(!isExpandedName(oakName), oakName); // expanded name
+        Validate.isTrue(!oakName.startsWith(":"), oakName); // hidden name
+        Validate.isTrue(!isExpandedName(oakName), oakName); // expanded name
 
         if (!local.isEmpty()) {
             int colon = oakName.indexOf(':');

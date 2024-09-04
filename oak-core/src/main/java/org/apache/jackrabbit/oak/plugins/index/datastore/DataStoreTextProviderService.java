@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.datastore;
 
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -33,7 +33,6 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 @Component(
@@ -65,7 +64,7 @@ public class DataStoreTextProviderService {
         String dirPath = config.dir();
         requireNonNull(dirPath, "Directory path not configured via 'dir'");
         File dir = new File(dirPath);
-        checkArgument(dir.exists(), "Directory %s does not exist", dir.getAbsolutePath());
+        Validate.isTrue(dir.exists(), "Directory %s does not exist", dir.getAbsolutePath());
         textWriter = new DataStoreTextWriter(dir, true);
         reg = context.registerService(PreExtractedTextProvider.class.getName(), textWriter, null);
     }

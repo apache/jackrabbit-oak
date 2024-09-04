@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -37,7 +36,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
@@ -48,7 +47,7 @@ public class OrImpl extends ConstraintImpl {
     private final List<ConstraintImpl> constraints;
 
     public OrImpl(List<ConstraintImpl> constraints) {
-        checkArgument(!constraints.isEmpty());
+        Validate.isTrue(!constraints.isEmpty());
         this.constraints = constraints;
     }
 

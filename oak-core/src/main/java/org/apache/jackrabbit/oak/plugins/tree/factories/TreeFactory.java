@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.factories;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.NodeBuilderTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Factory to obtain {@code Tree} objects from {@code NodeState}s
@@ -44,7 +43,7 @@ public final class TreeFactory {
     }
 
     public static Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName, @NotNull NodeState childState) {
-        checkArgument(readOnlyParent instanceof ImmutableTree);
+        Validate.isTrue(readOnlyParent instanceof ImmutableTree);
         return new ImmutableTree((ImmutableTree) readOnlyParent, childName, childState);
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.namepath.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
@@ -37,6 +36,7 @@ import java.util.Map.Entry;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -117,8 +117,8 @@ public class GlobalNameMapper implements NameMapper {
     public String getJcrName(@NotNull String oakName) {
         // Sanity checks, can be turned to assertions if needed for performance
         requireNonNull(oakName);
-        checkArgument(!isHiddenName(oakName), oakName);
-        checkArgument(!isExpandedName(oakName), oakName);
+        Validate.isTrue(!isHiddenName(oakName), oakName);
+        Validate.isTrue(!isExpandedName(oakName), oakName);
 
         return oakName;
     }
@@ -149,7 +149,7 @@ public class GlobalNameMapper implements NameMapper {
 
     @Nullable
     protected String getOakNameFromExpanded(String expandedName) {
-        checkArgument(expandedName.startsWith("{"));
+        Validate.isTrue(expandedName.startsWith("{"));
 
         int brace = expandedName.indexOf('}', 1);
         if (brace > 0) {

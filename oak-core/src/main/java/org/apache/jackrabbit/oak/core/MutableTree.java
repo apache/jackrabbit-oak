@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.core;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -284,7 +285,7 @@ final class MutableTree extends AbstractMutableTree {
      */
     @NotNull
     MutableTree getTree(@NotNull String path) {
-        checkArgument(isAbsolute(requireNonNull(path)));
+        Validate.isTrue(isAbsolute(requireNonNull(path)));
         beforeRead();
         MutableTree child = this;
         for (String name : elements(path)) {

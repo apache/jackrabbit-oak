@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import java.util.List;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * This utility class provides factory methods to create commonly used types of
@@ -105,7 +105,7 @@ public class Cursors {
      */
     public static Cursor newAncestorCursor(Cursor c, int level, QueryLimits settings) {
         requireNonNull(c);
-        checkArgument(level >= 1);
+        Validate.isTrue(level >= 1);
         return new AncestorCursor(c, level, settings);
     }
 
