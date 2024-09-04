@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
@@ -235,21 +236,7 @@ public class FlatFileNodeStoreBuilder {
         File file = indexStoreFiles.storeFiles.get(0);
         IndexStore store;
         if (file.isDirectory()) {
-            TreeStore indexingTreeStore = new TreeStore(
-                    "indexing", file,
-                    new NodeStateEntryReader(blobStore), 10);
-            indexingTreeStore.setIndexDefinitions(indexDefinitions);
-
-            // use a separate tree store (with a smaller cache)
-            // for prefetching, to avoid cache evictions
-            TreeStore prefetchTreeStore = new TreeStore(
-                    "prefetch", file,
-                    new NodeStateEntryReader(blobStore), 3);
-            prefetchTreeStore.setIndexDefinitions(indexDefinitions);
-
-            Prefetcher prefetcher = new Prefetcher(prefetchTreeStore, indexingTreeStore);
-            prefetcher.startPrefetch();
-            store = indexingTreeStore;
+            store = buildTreeStoreForIndexing(indexHelper, file);
         } else {
             store = new FlatFileStore(blobStore, file, metadataFile,
                     new NodeStateEntryReader(blobStore),
@@ -266,6 +253,32 @@ public class FlatFileNodeStoreBuilder {
             return AheadOfTimeBlobDownloadingFlatFileStore.wrap(ffs, indexer, indexHelper);
         }
         return store;
+    }
+
+    public IndexStore buildTreeStoreForIndexing(IndexHelper indexHelper, File file) {
+        TreeStore indexingTreeStore = new TreeStore(
+                "indexing", file,
+                new NodeStateEntryReader(blobStore), 10);
+        indexingTreeStore.setIndexDefinitions(indexDefinitions);
+
+        // use a separate tree store (with a smaller cache)
+        // for prefetching, to avoid cache evictions
+        TreeStore prefetchTreeStore = new TreeStore(
+                "prefetch", file,
+                new NodeStateEntryReader(blobStore), 3);
+        prefetchTreeStore.setIndexDefinitions(indexDefinitions);
+        String blobPrefetchEnableForIndexes = ConfigHelper.getSystemPropertyAsString(
+                AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES, "");
+        Prefetcher prefetcher = new Prefetcher(prefetchTreeStore, indexingTreeStore);
+        String blobSuffix = "";
+        if (AheadOfTimeBlobDownloadingFlatFileStore.isEnabledForIndexes(
+                blobPrefetchEnableForIndexes, indexHelper.getIndexPaths())) {
+            blobSuffix = ConfigHelper.getSystemPropertyAsString(
+                    AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
+        }
+        prefetcher.setBlobSuffix(blobSuffix);
+        prefetcher.startPrefetch();
+        return indexingTreeStore;
     }
 
     public List<IndexStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,

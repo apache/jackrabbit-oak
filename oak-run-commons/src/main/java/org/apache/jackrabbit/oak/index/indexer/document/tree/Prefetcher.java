@@ -51,8 +51,6 @@ public class Prefetcher {
 
     private static final Logger LOG = LoggerFactory.getLogger(Prefetcher.class);
 
-    private static final String BLOB_PREFETCH_PROPERTY_NAME = "oak.index.BlobPrefetchSuffix";
-    private static final String BLOB_PREFETCH_SUFFIX_DEFAULT = "";
     private static final int PRETCH_THREADS = 16;
 
     private final TreeStore prefetchStore;
@@ -69,9 +67,6 @@ public class Prefetcher {
     private volatile long maxBlobSize;
 
     public Prefetcher(TreeStore prefetchStore, TreeStore indexStore) {
-        blobSuffix = System.getProperty(
-                BLOB_PREFETCH_PROPERTY_NAME,
-                BLOB_PREFETCH_SUFFIX_DEFAULT);
         this.prefetchStore = prefetchStore;
         this.indexStore = indexStore;
         this.executorService = Executors.newFixedThreadPool(3 + PRETCH_THREADS, new ThreadFactory() {
@@ -106,15 +101,14 @@ public class Prefetcher {
     public void startPrefetch() {
         LOG.info("Prefetch suffix '{}', prefetch {}, index {}",
                 blobSuffix, prefetchStore, indexStore);
-        if (blobSuffix.isEmpty()) {
-            return;
-        }
         executorService.submit(
                 iterator(PrefetchType.TRACK_INDEXING));
         executorService.submit(
                 iterator(PrefetchType.NODESTORE_CACHE_FILLER));
-        executorService.submit(
-                iterator(PrefetchType.BLOB_PREFETCH));
+        if (!blobSuffix.isEmpty()) {
+            executorService.submit(
+                    iterator(PrefetchType.BLOB_PREFETCH));
+        }
     }
 
     public void sleep(String status) throws InterruptedException {

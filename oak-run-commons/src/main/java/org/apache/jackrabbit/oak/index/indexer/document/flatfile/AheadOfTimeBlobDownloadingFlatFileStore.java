@@ -82,7 +82,15 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
         }
     }
 
-    static boolean isEnabledForIndexes(String indexesEnabledPrefix, List<String> indexPaths) {
+    /**
+     * Whether blob downloading is needed for the given indexes.
+     *
+     * @param indexesEnabledPrefix the comma-separated list of prefixes of the index
+     *                             definitions that benefit from the download
+     * @param indexPaths           the index paths
+     * @return true if any of the indexes start with any of the prefixes
+     */
+    public static boolean isEnabledForIndexes(String indexesEnabledPrefix, List<String> indexPaths) {
         List<String> enableForIndexes = splitAndTrim(indexesEnabledPrefix);
         for (String indexPath : indexPaths) {
             if (enableForIndexes.stream().anyMatch(indexPath::startsWith)) {
