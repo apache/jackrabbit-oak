@@ -20,12 +20,16 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import java.util.Comparator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PathElementComparator implements Comparator<String[]> {
     private final Set<String> preferred;
 
     public PathElementComparator(Set<String> preferredPathElements) {
-        this.preferred = Set.copyOf(preferredPathElements);
+        // Many of the lookups in this set will be for Strings that are interned, so interning the elements in the set
+        // will make it more likely that the elements in the set and the values looked up will be the same object,
+        // which should speed up lookups, as String::equals first tries reference equality before comparing the contents
+        this.preferred = preferredPathElements.stream().map(String::intern).collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
