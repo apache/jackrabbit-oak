@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -44,6 +43,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -59,7 +59,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -444,7 +443,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         root.commit();
 
         Tree tree = root.getTree(SUPPORTED_PATH);
-        Set<String> mixins = StreamSupport.stream(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES).spliterator(), false).collect(toSet());
+        Set<String> mixins = CollectionUtils.toSet(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES));
         mixins.remove(MIX_REP_CUG_MIXIN);
         tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
 

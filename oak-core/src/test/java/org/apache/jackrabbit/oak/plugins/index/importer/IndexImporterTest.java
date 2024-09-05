@@ -27,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -35,6 +34,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -69,7 +69,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -528,8 +527,8 @@ public class IndexImporterTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
                                     String value, Filter filter) {
-        return StreamSupport.stream(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)).spliterator(), false).collect(toSet());
+        return CollectionUtils.toSet(lookup.query(filter, name, value == null ? null
+                : PropertyValues.newString(value)));
     }
 
     private String createIndexDirs(String... indexPaths) throws IOException, CommitFailedException {

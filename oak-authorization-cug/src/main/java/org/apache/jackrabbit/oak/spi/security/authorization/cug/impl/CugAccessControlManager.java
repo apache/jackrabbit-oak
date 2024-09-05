@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -66,7 +67,6 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -167,7 +167,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
                 // remove the rep:CugMixin if it has been explicitly added upon setPolicy
-                Set<String> mixins = StreamSupport.stream(TreeUtil.getNames(tree, JCR_MIXINTYPES).spliterator(), false).collect(toSet());
+                Set<String> mixins = CollectionUtils.toSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
                 } else {

@@ -21,17 +21,16 @@ package org.apache.jackrabbit.oak.plugins.index.upgrade;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -158,7 +157,7 @@ public class IndexDisablerTest {
         PropertyState declaringNodeType = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").getProperty(DECLARING_NODE_TYPES);
         assertEquals(Type.NAMES, declaringNodeType.getType());
 
-        Set<String> names = StreamSupport.stream(declaringNodeType.getValue(Type.NAMES).spliterator(), false).collect(toSet());
+        Set<String> names = CollectionUtils.toSet(declaringNodeType.getValue(Type.NAMES));
         assertThat(names, containsInAnyOrder("oak:TestNode"));
     }
 

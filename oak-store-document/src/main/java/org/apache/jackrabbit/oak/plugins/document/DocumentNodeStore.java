@@ -70,7 +70,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
@@ -82,6 +81,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -2227,7 +2227,7 @@ public final class DocumentNodeStore
             return null;
         }
         // make sure all changes up to checkpoint are visible
-        suspendUntilAll(StreamSupport.stream(rv.spliterator(), false).collect(Collectors.toSet()));
+        suspendUntilAll(CollectionUtils.toSet(rv));
         return getRoot(rv);
     }
 
@@ -4011,7 +4011,7 @@ public final class DocumentNodeStore
         
         // otherwise wait until the visibility token's revisions all become visible
         // (or maxWaitMillis has passed)
-        commitQueue.suspendUntilAll(StreamSupport.stream(visibilityTokenRv.spliterator(), false).collect(Collectors.toSet()), maxWaitMillis);
+        commitQueue.suspendUntilAll(CollectionUtils.toSet(visibilityTokenRv), maxWaitMillis);
         
         // if we got interrupted above would throw InterruptedException
         // otherwise, we don't know why suspendUntilAll returned, so

@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.util.ISO8601;
@@ -368,7 +367,7 @@ public final class TreeUtil {
             return;
         }
 
-        Set<String> subMixins = StreamSupport.stream(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES).spliterator(), false).collect(Collectors.toSet());
+        Set<String> subMixins = CollectionUtils.toSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
 
         for (String mixin : existingMixins.apply(tree)) {
             if (mixinName.equals(mixin) || subMixins.contains(mixin)) {

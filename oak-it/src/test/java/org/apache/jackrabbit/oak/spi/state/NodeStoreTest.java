@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
@@ -39,12 +38,12 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -567,7 +566,7 @@ public class NodeStoreTest extends OakBaseTest {
             cps.add(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
         }
         assertEquals(numCps, cps.size());
-        assertEquals(cps, StreamSupport.stream(store.checkpoints().spliterator(), false).collect(toSet()));
+        assertEquals(cps, CollectionUtils.toSet(store.checkpoints()));
         Set<String> keys = new HashSet<>();
         for (String cp : cps) {
             info = store.checkpointInfo(cp);

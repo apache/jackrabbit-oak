@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -40,10 +41,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.findGroupIdInHierarchy;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isGroup;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMemberProperty;
@@ -112,8 +111,8 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
             if (isDynamicGroup && isMemberProperty(before)) {
-                Set<String> refsBefore = StreamSupport.stream(before.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
-                Set<String> refsAfter = StreamSupport.stream(after.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
+                Set<String> refsBefore = CollectionUtils.toSet(before.getValue(Type.STRINGS));
+                Set<String> refsAfter = CollectionUtils.toSet(after.getValue(Type.STRINGS));
                 refsAfter.removeAll(refsBefore);
                 if (!refsAfter.isEmpty()) {
                     throw commitFailedException(getParentBefore());

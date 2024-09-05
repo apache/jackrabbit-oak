@@ -21,8 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -185,7 +184,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, StreamSupport.stream(Splitter.on(',').split(Permissions.getString(key)).spliterator(), false).collect(Collectors.toSet()));
+            assertEquals(expected, CollectionUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
         });
     }
 
@@ -207,7 +206,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, StreamSupport.stream(Splitter.on(',').split(Permissions.getString(key)).spliterator(), false).collect(Collectors.toSet()));
+            assertEquals(expected, CollectionUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
         });
     }
 
@@ -252,7 +251,7 @@ public class PermissionsTest {
         Set<Long> expected = new HashSet<>(Permissions.PERMISSION_NAMES.keySet());
         expected.removeAll(ImmutableList.of(Permissions.ALL, Permissions.WRITE, Permissions.READ, Permissions.SET_PROPERTY, Permissions.REMOVE));
 
-        assertEquals(expected, StreamSupport.stream(aggregates.spliterator(), false).collect(Collectors.toSet()));
+        assertEquals(expected, CollectionUtils.toSet(aggregates));
     }
 
     @Test

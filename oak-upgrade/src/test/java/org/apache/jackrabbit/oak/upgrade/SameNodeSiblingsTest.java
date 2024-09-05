@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -28,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import javax.jcr.Credentials;
 import javax.jcr.Node;
@@ -40,6 +38,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
@@ -82,7 +81,7 @@ public class SameNodeSiblingsTest {
         });
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
-            Set<String> children = StreamSupport.stream(parent.getChildNodeNames().spliterator(), false).collect(toSet());
+            Set<String> children = CollectionUtils.toSet(parent.getChildNodeNames());
             assertEquals(of("child", "child_2_", "child_3_", "something_else"), children);
         } finally {
             nodeStore.dispose();
@@ -104,7 +103,7 @@ public class SameNodeSiblingsTest {
         });
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
-            Set<String> children = StreamSupport.stream(parent.getChildNodeNames().spliterator(), false).collect(toSet());
+            Set<String> children = CollectionUtils.toSet(parent.getChildNodeNames());
             assertEquals(of("child", "child[2]", "child[3]", "something_else"), children);
         } finally {
             nodeStore.dispose();
@@ -131,7 +130,7 @@ public class SameNodeSiblingsTest {
         });
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
-            Set<String> children = StreamSupport.stream(parent.getChildNodeNames().spliterator(), false).collect(toSet());
+            Set<String> children = CollectionUtils.toSet(parent.getChildNodeNames());
             assertEquals(of("child", "child_2_", "child_3_", "child_2_2", "child_3_2", "child_3_3"), children);
         } finally {
             nodeStore.dispose();

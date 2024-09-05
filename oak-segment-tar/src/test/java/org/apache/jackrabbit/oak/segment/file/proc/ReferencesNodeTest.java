@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file.proc;
 
-import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -30,8 +29,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.junit.Test;
 
@@ -54,7 +53,7 @@ public class ReferencesNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getSegmentReferences("s")).thenReturn(Optional.of(references));
 
-        assertEquals(new HashSet<>(references), StreamSupport.stream(new ReferencesNode(backend, "s").getChildNodeNames().spliterator(), false).collect(toSet()));
+        assertEquals(new HashSet<>(references), CollectionUtils.toSet(new ReferencesNode(backend, "s").getChildNodeNames()));
     }
 
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -40,13 +39,13 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -322,8 +321,8 @@ public class PropertyIndexTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return StreamSupport.stream(lookup.query(filter, name, value == null ? null
-                : PropertyValues.newString(value)).spliterator(), false).collect(toSet());
+        return CollectionUtils.toSet(lookup.query(filter, name, value == null ? null
+                : PropertyValues.newString(value)));
     }
 
     @Test

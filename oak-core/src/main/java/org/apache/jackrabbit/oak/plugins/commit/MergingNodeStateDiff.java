@@ -39,6 +39,7 @@ import java.util.stream.StreamSupport;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -135,8 +136,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                 NodeState oursNS = conflictInfo.getChildNode(OURS);
                 NodeState baseNS = conflictInfo.getChildNode(BASE);
 
-                Set<String> candidates = Sets.union(StreamSupport.stream(oursNS.getChildNodeNames().spliterator(), false).collect(toSet()),
-                        StreamSupport.stream(baseNS.getChildNodeNames().spliterator(), false).collect(toSet()));
+                Set<String> candidates = Sets.union(CollectionUtils.toSet(oursNS.getChildNodeNames()),
+                        CollectionUtils.toSet(baseNS.getChildNodeNames()));
                 for (String name : candidates) {
                     NodeState ours = oursNS.getChildNode(name);
                     NodeState base = baseNS.getChildNode(name);

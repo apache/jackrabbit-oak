@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
@@ -47,7 +46,6 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -56,6 +54,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -712,8 +711,8 @@ public class IndexUpdateTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
         Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
-        return StreamSupport.stream(lookup.query(filter, name,
-                PropertyValues.newString(value)).spliterator(), false).collect(toSet());
+        return CollectionUtils.toSet(lookup.query(filter, name,
+                PropertyValues.newString(value)));
     }
 
     static NodeState checkPathExists(NodeState state, String... verify) {

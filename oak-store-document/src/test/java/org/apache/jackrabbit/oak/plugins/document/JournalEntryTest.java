@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -233,15 +232,15 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r1, r2, store);
-        assertEquals(Set.of("/", "/foo"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
+        assertEquals(Set.of("/", "/foo"), CollectionUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r1, r3, store);
-        assertEquals(Set.of("/", "/foo", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
+        assertEquals(Set.of("/", "/foo", "/bar"), CollectionUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r1, r4, store);
-        assertEquals(Set.of("/", "/foo", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
+        assertEquals(Set.of("/", "/foo", "/bar"), CollectionUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r2, r2, store);
@@ -249,11 +248,11 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r2, r3, store);
-        assertEquals(Set.of("/", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
+        assertEquals(Set.of("/", "/bar"), CollectionUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r2, r4, store);
-        assertEquals(Set.of("/", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
+        assertEquals(Set.of("/", "/bar"), CollectionUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r3, r3, store);
@@ -261,7 +260,7 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r3, r4, store);
-        assertEquals(Set.of("/", "/bar"), StreamSupport.stream(sort.spliterator(), false).collect(toSet()));
+        assertEquals(Set.of("/", "/bar"), CollectionUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r4, r4, store);

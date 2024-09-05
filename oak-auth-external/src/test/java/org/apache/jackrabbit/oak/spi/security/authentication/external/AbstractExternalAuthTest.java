@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -86,8 +87,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         super.before();
 
         getTestUser();
-        ids = new HashSet<>();
-        getAllAuthorizableIds(getUserManager(root)).forEachRemaining(ids::add);
+        ids = CollectionUtils.toSet(getAllAuthorizableIds(getUserManager(root)));
 
         idp = createIDP();
         syncConfig = createSyncConfig();

@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
@@ -83,7 +82,7 @@ public class HybridPropertyIndexLookup {
     }
 
     public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
-        Set<String> values = StreamSupport.stream(value.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
+        Set<String> values = CollectionUtils.toSet(value.getValue(Type.STRINGS));
         return query(filter, propertyName, encode(values));
     }
 

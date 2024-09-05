@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file.proc;
 
-import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -27,8 +26,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class StoreNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getTarNames()).thenReturn(names);
 
-        assertEquals(names, StreamSupport.stream(new StoreNode(backend).getChildNodeNames().spliterator(), false).collect(toSet()));
+        assertEquals(names, CollectionUtils.toSet(new StoreNode(backend).getChildNodeNames()));
     }
 
     @Test

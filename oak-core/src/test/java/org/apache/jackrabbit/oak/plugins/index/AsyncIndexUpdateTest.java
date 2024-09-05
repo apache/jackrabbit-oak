@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.ASYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
@@ -53,7 +52,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
 
 import javax.management.openmbean.CompositeData;
 
@@ -62,6 +60,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
@@ -121,8 +120,8 @@ public class AsyncIndexUpdateTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        return StreamSupport.stream(lookup.query(FilterImpl.newTestInstance(), name,
-                PropertyValues.newString(value)).spliterator(), false).collect(toSet());
+        return CollectionUtils.toSet(lookup.query(FilterImpl.newTestInstance(), name,
+                PropertyValues.newString(value)));
     }
 
     private static NodeState checkPathExists(NodeState state, String... verify) {
@@ -884,9 +883,9 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 1);
         assertTrue(
                 "Expecting one temp checkpoint",
-                StreamSupport.stream(
+                CollectionUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
-                                .getStrings("async-temp").spliterator(), false).collect(toSet()).size() == 1);
+                                .getStrings("async-temp")).size() == 1);
 
         builder = store.getRoot().builder();
         builder.child("testRoot").setProperty("foo", "def");
@@ -897,9 +896,9 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 2);
         assertTrue(
                 "Expecting two temp checkpoints",
-                StreamSupport.stream(
+                CollectionUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
-                                .getStrings("async-temp").spliterator(), false).collect(toSet()).size() == 2);
+                                .getStrings("async-temp")).size() == 2);
 
         canRelease.set(true);
 
@@ -1227,7 +1226,7 @@ public class AsyncIndexUpdateTest {
                 ASYNC);
         assertEquals(firstCp, asyncNode.getString("async-slow"));
         assertEquals(secondCp, asyncNode.getString("async"));
-        assertFalse(StreamSupport.stream(asyncNode.getStrings("async-temp").spliterator(), false).collect(toSet()).contains(
+        assertFalse(CollectionUtils.toSet(asyncNode.getStrings("async-temp")).contains(
                 firstCp));
 
         NodeState indexNode = store.getRoot().getChildNode(

@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -156,9 +155,9 @@ public final class IndexDefinitionBuilder {
     public IndexDefinitionBuilder addTags(String ... additionalTagVals) {
         Set<String> currTags = Collections.emptySet();
         if (tree.hasProperty(INDEX_TAGS)) {
-            currTags = StreamSupport.stream(tree.getProperty(INDEX_TAGS).getValue(STRINGS).spliterator(), false).collect(toSet());
+            currTags = CollectionUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
         }
-        Set<String> tagVals = StreamSupport.stream(Iterables.concat(currTags, asList(additionalTagVals)).spliterator(), false).collect(toSet());
+        Set<String> tagVals = CollectionUtils.toSet(Iterables.concat(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);
@@ -697,7 +696,7 @@ public final class IndexDefinitionBuilder {
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
-            Set<String> async = StreamSupport.stream(state.getValue(Type.STRINGS).spliterator(), false).collect(toSet());
+            Set<String> async = CollectionUtils.toSet(state.getValue(Type.STRINGS));
             async.remove(IndexConstants.INDEXING_MODE_NRT);
             async.remove(IndexConstants.INDEXING_MODE_SYNC);
             return async;

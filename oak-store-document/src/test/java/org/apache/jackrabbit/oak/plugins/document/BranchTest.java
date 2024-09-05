@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import junitx.util.PrivateAccessor;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
@@ -466,6 +465,6 @@ public class BranchTest {
         for (String p : expected) {
             expectedSet.add(Path.fromString(p));
         }
-        assertEquals(expectedSet, StreamSupport.stream(actual.spliterator(), false).collect(toSet()));
+        assertEquals(expectedSet, CollectionUtils.toSet(actual));
     }
 }

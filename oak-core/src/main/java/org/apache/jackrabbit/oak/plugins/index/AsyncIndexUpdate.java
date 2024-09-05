@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
@@ -40,7 +39,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -58,6 +56,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -1450,8 +1449,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public void splitIndexingTask(String paths, String newIndexTaskName) {
-            splitIndexingTask(StreamSupport.stream(Splitter.on(",").trimResults()
-                    .omitEmptyStrings().split(paths).spliterator(), false).collect(toSet()), newIndexTaskName);
+            splitIndexingTask(CollectionUtils.toSet(Splitter.on(",").trimResults()
+                    .omitEmptyStrings().split(paths)), newIndexTaskName);
         }
 
         private void splitIndexingTask(Set<String> paths,

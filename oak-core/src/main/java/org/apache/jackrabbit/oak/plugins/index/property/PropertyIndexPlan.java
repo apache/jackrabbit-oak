@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -25,9 +24,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
@@ -100,7 +99,7 @@ public class PropertyIndexPlan {
         this.name = name;
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
-        this.properties = StreamSupport.stream(definition.getNames(PROPERTY_NAMES).spliterator(), false).collect(toSet());
+        this.properties = CollectionUtils.toSet(definition.getNames(PROPERTY_NAMES));
         pathFilter = PathFilter.from(definition.builder());
         this.strategies = getStrategies(definition, mountInfoProvider);
         this.filter = filter;

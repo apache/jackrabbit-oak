@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.hamcrest.Matchers.hasItem;
@@ -62,7 +61,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
 
     @Test
     public void noErrorIfQueryDefinitionsNotIndexed() throws Exception{
-        Set<String> paths = StreamSupport.stream(indexPathService.getIndexPaths().spliterator(), false).collect(toSet());
+        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
     }
 
@@ -77,7 +76,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
     @Test
     public void nodeTypeIndexed() throws Exception{
         enableIndexDefinitionIndex();
-        Set<String> paths = StreamSupport.stream(indexPathService.getIndexPaths().spliterator(), false).collect(toSet());
+        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
         assertThat(paths, hasItem("/oak:index/nodetype"));
         assertThat(paths, hasItem("/oak:index/reference"));
@@ -92,7 +91,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         fooIndex.setProperty("type", "disabled");
         root.commit();
 
-        Set<String> paths = StreamSupport.stream(indexPathService.getIndexPaths().spliterator(), false).collect(toSet());
+        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/a/b/oak:index/fooIndex"));
     }
 
