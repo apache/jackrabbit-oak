@@ -20,6 +20,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
 import java.util.Iterator;
 
+/**
+ * A helper class to iterate over key-value pairs in a tree store, in ascending
+ * key order. The class helps merging multiple streams of key-value pairs.
+ *
+ * Internally, it is backed by an iterator over positions in the key-value pair.
+ */
 public class SortedStream implements Comparable<SortedStream> {
 
     private final int priority;

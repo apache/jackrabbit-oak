@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Properties;
 
+/**
+ * A helper class to build storage backends for a tree store.
+ */
 public class StoreBuilder {
 
     /**

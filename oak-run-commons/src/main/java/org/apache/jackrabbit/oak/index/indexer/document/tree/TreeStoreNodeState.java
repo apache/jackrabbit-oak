@@ -36,6 +36,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * A node state of an Oak node that is stored in a tree store.
+ *
+ * This is mostly a wrapper. It allows iterating over the children and reading
+ * children directly.
+ */
 public class TreeStoreNodeState implements NodeState, MemoryObject {
 
     private final NodeState delegate;

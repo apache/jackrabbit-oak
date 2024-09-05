@@ -22,7 +22,7 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Storage for files.
+ * Storage for files in a tree store.
  */
 public interface Store {
 

@@ -29,6 +29,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A utility class that allows converting the files of a tree store into one
+ * file (pack the files), and back from a file to a list of files (unpack the
+ * files). This is a bit similar to a zip file, however
+ *
+ * - each entry is already compressed, so no additional compression is needed;
+ * - only files in the same directory can be processed;
+ * - the pack file starts with a header that contains the list of files;
+ * - while packing, the files are (optionally) deleted, so that this doesn't require twice the disk space;
+ * - while unpacking, the pack file is (optionally) truncated, also to conserve disk space.
+ */
 public class FilePacker {
 
     /**

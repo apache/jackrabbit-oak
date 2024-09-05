@@ -24,6 +24,9 @@ import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
 
+/**
+ * The enum allows to disable or enable compression of the storage files.
+ */
 public enum Compression {
     NO {
         @Override

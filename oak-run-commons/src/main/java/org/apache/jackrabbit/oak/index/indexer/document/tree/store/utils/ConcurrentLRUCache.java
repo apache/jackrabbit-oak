@@ -24,6 +24,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * A synchronized LRU cache. The cache size is limited by the amount of memory
+ * (and not number of entries).
+ *
+ * @param <K> the key type
+ * @param <V> the value type
+ */
 public class ConcurrentLRUCache<K, V extends MemoryObject>
         extends LinkedHashMap<K, V> {
 

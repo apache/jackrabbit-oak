@@ -20,6 +20,11 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.PageFile;
 
+/**
+ * A position of an entry in a page file.
+ *
+ * This class is used to iterate over entries in a page file.
+ */
 public class Position {
     public PageFile file;
     public int valuePos;

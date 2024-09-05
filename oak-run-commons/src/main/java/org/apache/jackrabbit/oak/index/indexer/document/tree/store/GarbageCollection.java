@@ -23,6 +23,9 @@ import java.util.List;
 
 /**
  * Remove unreferenced files from the store.
+ *
+ * Only root files and inner nodes are read. This is possible because leaf pages
+ * do not have references to other files.
  */
 public class GarbageCollection {
 

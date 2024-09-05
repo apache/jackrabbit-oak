@@ -44,6 +44,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The tree store is similar to the flat file store, but instead of storing all
+ * key-value pairs in a single file, it stores the entries in multiple files
+ * (except if there are very few nodes).
+ */
 public class TreeStore implements IndexStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(TreeStore.class);

@@ -21,6 +21,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * A wrapper store to simulate a slow backend store. It can be used for
+ * simulations. It is not intended to be used for real-world situations.
+ */
 public class SlowStore implements Store {
 
     private final Properties config;

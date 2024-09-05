@@ -22,6 +22,9 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * An in-memory storage backend for the tree store.
+ */
 public class MemoryStore implements Store {
 
     private final Properties config;

@@ -22,6 +22,9 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * A wrapper for storage backends that allows to log store and read operations.
+ */
 public class LogStore implements Store {
 
     private final Properties config;

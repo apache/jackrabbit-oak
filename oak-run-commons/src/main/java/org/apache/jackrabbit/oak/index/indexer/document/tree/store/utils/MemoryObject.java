@@ -18,7 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils;
 
+/**
+ * A interface for memory-bound cache objects.
+ */
 public interface MemoryObject {
+
     /**
      * Get the estimate memory size. The value must not change afterwards, otherwise
      * the memory calculation is wrong.

@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Read and write keys and values.
+ * A session that allows reading and writing keys and values in a tree store.
  */
 public class TreeSession {
 

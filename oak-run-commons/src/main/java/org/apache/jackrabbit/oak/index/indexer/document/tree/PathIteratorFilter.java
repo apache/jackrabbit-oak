@@ -28,6 +28,13 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 
+/**
+ * A utility class that allows skipping nodes that are not included in the index
+ * definition.
+ *
+ * The use case is to speed up indexing by only traversing over the nodes that
+ * are included in the set of indexes.
+ */
 public class PathIteratorFilter {
 
     private final boolean includeAll;

@@ -24,6 +24,10 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * A wrapper store that allows capturing performance counters for a storage
+ * backend.
+ */
 public class StatsStore implements Store {
 
     private final Properties config;

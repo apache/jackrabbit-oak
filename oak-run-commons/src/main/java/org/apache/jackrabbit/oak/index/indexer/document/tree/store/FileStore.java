@@ -33,6 +33,12 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.TimeUui
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A storage backend for the tree store that stores files on the local file
+ * system.
+ *
+ * This is the main (read-write) storage backend.
+ */
 public class FileStore implements Store {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
