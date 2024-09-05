@@ -26,9 +26,10 @@ public class PathElementComparator implements Comparator<String[]> {
     private final Set<String> preferred;
 
     public PathElementComparator(Set<String> preferredPathElements) {
-        // Many of the lookups in this set will be for Strings that are interned, so interning the elements in the set
-        // will make it more likely that the elements in the set and the values looked up will be the same object,
-        // which should speed up lookups, as String::equals first tries reference equality before comparing the contents
+        // Many of the lookups in this set will be for interned Strings, so interning the elements will speed-up lookups
+        // for Strings that are present in the set, because the call to String::equals done by the Set implementation
+        // will likely be comparing the same String object, so it can return after the reference equality check, avoiding
+        // having to do a comparison of the contents.
         this.preferred = preferredPathElements.stream().map(String::intern).collect(Collectors.toUnmodifiableSet());
     }
 
