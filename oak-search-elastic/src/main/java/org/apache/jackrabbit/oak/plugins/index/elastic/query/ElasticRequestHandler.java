@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
@@ -32,31 +33,6 @@ import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.jcr.PropertyType;
-
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
-import co.elastic.clients.elasticsearch.core.search.Highlight;
-import co.elastic.clients.elasticsearch.core.search.HighlightField;
-import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -94,6 +70,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.KnnQuery;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.SuggestMode;
@@ -105,9 +82,31 @@ import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import co.elastic.clients.elasticsearch.core.search.Highlight;
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
+import co.elastic.clients.json.JsonpUtils;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import javax.jcr.PropertyType;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -192,7 +191,10 @@ public class ElasticRequestHandler {
                         bqb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
                     }
                 } else {
-                    bqb.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
+                  similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
+                    bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
+                        .should(s -> s.knn(similarityQuery))
+                  );
                 }
 
                 // Add should clause to improve relevance using similarity tags only when similarity is
@@ -222,6 +224,61 @@ public class ElasticRequestHandler {
         }
 
         return bqb;
+    }
+
+  public Optional<KnnQuery> similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
+    if (!sp.isEmpty()) {
+      LOG.debug("generating similarity query for {}", text);
+      NodeState targetNodeState = rootState;
+      for (String token : PathUtils.elements(text)) {
+        targetNodeState = targetNodeState.getChildNode(token);
+      }
+      if (!targetNodeState.exists()) {
+        throw new IllegalArgumentException("Could not find node " + text);
+      }
+      for (PropertyDefinition propertyDefinition : sp) {
+        ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+        String propertyPath = PathUtils.getParentPath(pd.name);
+        String propertyName = PathUtils.getName(pd.name);
+        NodeState tempState = targetNodeState;
+        for (String token : PathUtils.elements(propertyPath)) {
+          if (token.isEmpty()) {
+            break;
+          }
+          tempState = tempState.getChildNode(token);
+        }
+        PropertyState ps = tempState.getProperty(propertyName);
+        Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
+        if (property == null) {
+          LOG.warn("Couldn't find property {} on {}", pd.name, text);
+          continue;
+        }
+        byte[] bytes;
+        try {
+          bytes = new BlobByteSource(property).read();
+        } catch (IOException e) {
+          LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
+          continue;
+        }
+
+        String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
+        KnnQuery knnQuery = baseKnnQueryBuilder(similarityPropFieldName, bytes, pd).build();
+        return Optional.of(knnQuery);
+      }
+    }
+    return Optional.empty();
+  }
+
+    @NotNull
+    private KnnQuery.Builder baseKnnQueryBuilder(String similarityPropFieldName, byte[] bytes, ElasticPropertyDefinition pd) {
+        KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder()
+            .field(similarityPropFieldName)
+            .queryVector(toFloats(bytes))
+            .numCandidates(pd.getKnnSearchParameters().getCandidates());
+        if (!pd.getKnnSearchParameters().getSimilarityMetric().equals(DEFAULT_SIMILARITY_METRIC)) {
+            knnQueryBuilder.similarity(pd.getKnnSearchParameters().getSimilarity());
+        }
+        return knnQueryBuilder;
     }
 
     public @NotNull List<SortOptions> baseSorts() {
@@ -301,68 +358,6 @@ public class ElasticRequestHandler {
     public Stream<String> facetFields() {
         return filter.getPropertyRestrictions().stream().filter(pr -> QueryConstants.REP_FACET.equals(pr.propertyName))
                 .map(pr -> FulltextIndex.parseFacetField(pr.first.getValue(Type.STRING)));
-    }
-
-    private BoolQuery similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
-        BoolQuery.Builder query = new BoolQuery.Builder();
-        if (!sp.isEmpty()) {
-            LOG.debug("generating similarity query for {}", text);
-            NodeState targetNodeState = rootState;
-            for (String token : PathUtils.elements(text)) {
-                targetNodeState = targetNodeState.getChildNode(token);
-            }
-            if (!targetNodeState.exists()) {
-                throw new IllegalArgumentException("Could not find node " + text);
-            }
-            for (PropertyDefinition propertyDefinition : sp) {
-                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-                String propertyPath = PathUtils.getParentPath(pd.name);
-                String propertyName = PathUtils.getName(pd.name);
-                NodeState tempState = targetNodeState;
-                for (String token : PathUtils.elements(propertyPath)) {
-                    if (token.isEmpty()) {
-                        break;
-                    }
-                    tempState = tempState.getChildNode(token);
-                }
-                PropertyState ps = tempState.getProperty(propertyName);
-                Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
-                if (property == null) {
-                    LOG.warn("Couldn't find property {} on {}", pd.name, text);
-                    continue;
-                }
-                byte[] bytes;
-                try {
-                    bytes = new BlobByteSource(property).read();
-                } catch (IOException e) {
-                    LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
-                    continue;
-                }
-
-                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
-                String knnQuery = "{" +
-                        "  \"elastiknn_nearest_neighbors\": {" +
-                        "    \"field\": \"" + similarityPropFieldName + "\"," +
-                        "    \"model\": \"" + pd.getSimilaritySearchParameters().getQueryModel() + "\"," +
-                        "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction() + "\"," +
-                        "    \"candidates\": " + pd.getSimilaritySearchParameters().getCandidates() + "," +
-                        "    \"probes\": " + pd.getSimilaritySearchParameters().getProbes() + "," +
-                        "    \"vec\": {" +
-                        "      \"values\": [" +
-                        toDoubles(bytes).stream().map(Objects::toString).collect(Collectors.joining(",")) +
-                        "      ]" +
-                        "    }" +
-                        "  }" +
-                        "}";
-
-                query
-                        .filter(fb -> fb.exists(ef -> ef.field(similarityPropFieldName)))
-                        .should(s -> s
-                                .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
-                );
-            }
-        }
-        return query.build();
     }
 
     /*
@@ -578,7 +573,7 @@ public class ElasticRequestHandler {
                 return true;
             }
         });
-        
+
         return Query.of(q -> q.bool(result.get()));
     }
 
