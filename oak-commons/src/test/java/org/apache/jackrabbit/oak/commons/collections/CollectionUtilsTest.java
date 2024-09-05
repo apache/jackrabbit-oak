@@ -64,4 +64,10 @@ public class CollectionUtilsTest {
 
         Assert.assertEquals(s, CollectionUtils.toSet(iterable.iterator()));
     }
+
+    @Test
+    public void arrayToSet() {
+        final Set<String> s = CollectionUtils.toSet(data);
+        Assert.assertEquals(s, CollectionUtils.toSet(data.toArray()));
+    }
 }

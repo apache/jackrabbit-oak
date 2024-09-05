@@ -81,4 +81,17 @@ public class CollectionUtils {
         return result;
     }
 
+    /**
+     * Convert a vararg list of items to a set.  The returning set is mutable and supports all optional operations.
+     * @param elements elements to convert
+     * @return the set
+     * @param <T> the type of the elements
+     */
+    public static <T> Set<T> toSet(@SuppressWarnings("unchecked") final T... elements) {
+        final Set<T> result = new HashSet<>();
+        for (T element : elements) {
+            result.add(element);
+        }
+        return result;
+    }
 }
