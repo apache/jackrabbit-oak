@@ -17,10 +17,10 @@
   -->
 <configuration>
 
-  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender" additivity="false">
     <target>System.err</target>
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%method:%line] - %msg%n</pattern>
     </encoder>
   </appender>
 
@@ -54,6 +54,11 @@
 
   <!-- Display information messages from oak-run composite-prepare -->
   <logger name="org.apache.jackrabbit.oak.run.CompositePrepareCommand" level="INFO"/>
+
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditFGC" level="TRACE"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector" level="DEBUG"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport" level="DEBUG"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations" level="DEBUG"/>
 
   <root level="warn">
     <appender-ref ref="STDERR" />
