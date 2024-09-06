@@ -547,15 +547,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 downloadTask.download(mongoFilter);
                 downloadTask.reportFinalResults();
-            } catch (InterruptedException | MongoInterruptedException e) {
-                LOG.info("Thread interrupted: {}", e.toString());
+            } catch (Throwable e) {
+                LOG.warn("Error during download: {}", e.toString());
                 throw new RuntimeException(e);
-            } catch (TimeoutException e) {
-                LOG.warn("Timeout: {}", e.toString());
-                throw new RuntimeException(e);
-            } catch (Throwable t) {
-                LOG.error("Error during download: {}", t.toString());
-                throw t;
             } finally {
                 if (mongoServerSelector != null) {
                     mongoServerSelector.threadFinished();
@@ -620,6 +614,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
         private volatile MongoCursor<NodeDocument> mongoCursor = null;
+        private volatile boolean cancelled = false;
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
             this(downloadOrder, downloadStatics, null);
@@ -682,8 +677,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             downloadRange(nextRange, mongoQueryFilter, downloadOrder);
                         }
                         downloadCompleted = true;
+                    } catch (IllegalStateException | InterruptedException | MongoInterruptedException e) {
+                        if (cancelled) {
+                            LOG.info("Download task was cancelled.");
+                            return;
+                        } else {
+                            throw e;
+                        }
                     } catch (MongoException e) {
-                        if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
+                        if (e instanceof MongoIncompatibleDriverException) {
                             // Non-recoverable exceptions
                             throw e;
                         }
@@ -743,6 +745,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
         public void cancelDownload() {
             LOG.info("{} Cancelling download, closing Mongo cursor: {}", downloadOrder, mongoCursor);
+            cancelled = true;
             if (mongoCursor != null) {
                 mongoCursor.close();
             }
