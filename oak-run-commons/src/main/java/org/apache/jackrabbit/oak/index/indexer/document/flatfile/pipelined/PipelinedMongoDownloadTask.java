@@ -692,7 +692,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         if (failuresStartTimestamp == null) {
                             failuresStartTimestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS);
                         }
-                        LOG.warn("Connection error downloading from MongoDB.", e);
+                        LOG.info("Non-fatal connection error downloading from MongoDB: {}", e.toString());
                         long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
                         if (parallelDump && parallelDumpSecondariesOnly && mongoServerSelector.atLeastOneConnectionActive()) {
                             // Special case, the cluster is up because one of the connections is active. This happens when
