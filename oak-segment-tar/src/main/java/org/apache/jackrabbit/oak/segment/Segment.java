@@ -217,6 +217,21 @@ public class Segment {
         }
     }
 
+    public Segment(
+            @NotNull SegmentReader reader,
+            @NotNull SegmentId id,
+            @NotNull SegmentData data,
+            @NotNull RecordNumbers recordNumbers,
+            @NotNull SegmentReferences segmentReferences
+    ) {
+        this.reader = requireNonNull(reader);
+        this.id = requireNonNull(id);
+        this.data = requireNonNull(data);
+        this.recordNumbers = requireNonNull(recordNumbers);
+        this.segmentReferences = requireNonNull(segmentReferences);
+        this.version = LATEST_VERSION;
+    }
+
     private static String toHex(byte[] bytes) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {

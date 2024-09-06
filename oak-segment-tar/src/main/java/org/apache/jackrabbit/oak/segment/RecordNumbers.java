@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A table to translate record numbers to offsets.
  */
-interface RecordNumbers extends Iterable<Entry> {
+public interface RecordNumbers extends Iterable<Entry> {
 
     /**
      * An always empty {@code RecordNumber} table.

@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 /**
  * Represents a list of segment IDs referenced from a segment.
  */
-interface SegmentReferences extends Iterable<SegmentId> {
+public interface SegmentReferences extends Iterable<SegmentId> {
 
     /**
      * Fetch the referenced segment ID associated to the provided reference.
