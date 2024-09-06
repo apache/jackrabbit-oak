@@ -19,22 +19,9 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoDatabase;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
@@ -48,6 +35,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.Pipel
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.Prefetcher;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -62,11 +51,21 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoDatabase;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.tree.Prefetcher;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 
 /**
  * This class is where the strategy being selected for building FlatFileStore.
@@ -324,7 +323,7 @@ public class FlatFileNodeStoreBuilder {
     private IndexStoreFiles createdSortedStoreFiles() throws IOException, CompositeException {
         // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
-        if (sortedFilePath != null && !sortedFilePath.isEmpty()) {
+        if (StringUtils.isNotBlank(sortedFilePath)) {
             File sortedDir = new File(sortedFilePath);
             log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
                     sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
