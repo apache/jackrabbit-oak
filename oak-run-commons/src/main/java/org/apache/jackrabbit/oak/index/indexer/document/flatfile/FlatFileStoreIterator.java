@@ -121,6 +121,16 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     private NodeStateEntry computeNextEntry() {
         if (!buffer.isEmpty()) {
             if (buffer.size() > maxBufferSize || buffer.estimatedMemoryUsage() > maxBufferSizeBytes) {
+                // We need to take the max of the current max and of the current value, because the two metrics above
+                // can and will increase and decrease independently. For instance, consider the following
+                //buffer.size() = 10, buffer.estimatedMemoryUsage() = 1000
+                //10 elements of size 1000 in total.
+                //
+                //And then
+                //buffer.size() = 1, buffer.estimatedMemoryUsage() = 2000
+                //1 element of size 2000.
+                //
+                //So in this case, we want to update the max memory estimate but leave the max size at 10.
                 maxBufferSize = Math.max(buffer.size(), maxBufferSize);
                 maxBufferSizeBytes = Math.max(buffer.estimatedMemoryUsage(), maxBufferSizeBytes);
                 LOG.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
