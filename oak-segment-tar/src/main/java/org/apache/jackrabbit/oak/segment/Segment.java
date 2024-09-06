@@ -18,13 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
-import static org.apache.jackrabbit.oak.segment.RecordNumbers.EMPTY_RECORD_NUMBERS;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
@@ -38,10 +35,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -207,8 +202,8 @@ public class Segment {
 
             });
             this.version = SegmentVersion.fromByte(segmentVersion);
-            this.recordNumbers = readRecordNumberOffsets();
-            this.segmentReferences = readReferencedSegments(idProvider);
+            this.recordNumbers = RecordNumbers.fromSegmentData(this.data);
+            this.segmentReferences = SegmentReferences.fromSegmentData(this.data, idProvider);
         } else {
             this.data = newRawSegmentData(requireNonNull(data).slice());
             this.version = LATEST_VERSION;
@@ -227,91 +222,6 @@ public class Segment {
         } finally {
             closeQuietly(out);
         }
-    }
-
-    /**
-     * Read the serialized table mapping record numbers to offsets.
-     *
-     * @return An instance of {@link RecordNumbers}, never {@code null}.
-     */
-    private RecordNumbers readRecordNumberOffsets() {
-        int recordNumberCount = data.getRecordReferencesCount();
-
-        if (recordNumberCount == 0) {
-            return EMPTY_RECORD_NUMBERS;
-        }
-
-        int maxIndex = data.getRecordReferenceNumber(recordNumberCount - 1);
-
-        byte[] types = new byte[maxIndex + 1];
-        int[] offsets = new int[maxIndex + 1];
-        fill(offsets, -1);
-
-        for (int i = 0; i < recordNumberCount; i++) {
-            int recordNumber = data.getRecordReferenceNumber(i);
-            types[recordNumber] = data.getRecordReferenceType(i);
-            offsets[recordNumber] = data.getRecordReferenceOffset(i);
-        }
-
-        return new ImmutableRecordNumbers(offsets, types);
-    }
-
-    private SegmentReferences readReferencedSegments(final SegmentIdProvider idProvider) {
-        checkState(getReferencedSegmentIdCount() + 1 < 0xffff, "Segment cannot have more than 0xffff references");
-
-        final int referencedSegmentIdCount = getReferencedSegmentIdCount();
-
-        // We need to keep SegmentId references (as opposed to e.g. UUIDs)
-        // here as frequently resolving the segment ids via the segment id
-        // tables is prohibitively expensive.
-        // These SegmentId references are not a problem wrt. heap usage as
-        // their individual memoised references to their underlying segment
-        // is managed via the SegmentCache. It is the size of that cache that
-        // keeps overall heap usage by Segment instances bounded.
-        // See OAK-6106.
-
-        final SegmentId[] refIds = new SegmentId[referencedSegmentIdCount];
-
-        return new SegmentReferences() {
-
-            @Override
-            public SegmentId getSegmentId(int reference) {
-                checkArgument(reference <= referencedSegmentIdCount, "Segment reference out of bounds");
-                SegmentId id = refIds[reference - 1];
-                if (id == null) {
-                    synchronized (refIds) {
-                        id = refIds[reference - 1];
-                        if (id == null) {
-                            long msb = data.getSegmentReferenceMsb(reference - 1);
-                            long lsb = data.getSegmentReferenceLsb(reference - 1);
-                            id = idProvider.newSegmentId(msb, lsb);
-                            refIds[reference - 1] = id;
-                        }
-                    }
-                }
-                return id;
-            }
-
-            @NotNull
-            @Override
-            public Iterator<SegmentId> iterator() {
-                return new AbstractIterator<SegmentId>() {
-
-                    private int reference = 1;
-
-                    @Override
-                    protected SegmentId computeNext() {
-                        if (reference <= referencedSegmentIdCount) {
-                            return getSegmentId(reference++);
-                        } else {
-                            return endOfData();
-                        }
-                    }
-
-                };
-            }
-
-        };
     }
 
     public SegmentVersion getSegmentVersion() {
