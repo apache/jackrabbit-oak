@@ -25,13 +25,13 @@ public class StringData {
 
     private final int length;
 
-    StringData(String string, int length) {
+    public StringData(String string, int length) {
         this.string = string;
         this.length = length;
         this.recordId = null;
     }
 
-    StringData(RecordIdData recordId, int length) {
+    public StringData(RecordIdData recordId, int length) {
         this.recordId = recordId;
         this.length = length;
         this.string = null;
