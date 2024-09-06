@@ -239,6 +239,16 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return storeList;
     }
 
+    public IndexStore buildTreeStore() throws IOException, CommitFailedException {
+        String old = System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE,
+                FlatFileNodeStoreBuilder.SortStrategyType.PIPELINED_TREE.name());
+        try {
+            return buildFlatFileStore();
+        } finally {
+            System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE, old);
+        }
+    }
+
     public IndexStore buildStore() throws IOException, CommitFailedException {
         return buildFlatFileStore();
     }

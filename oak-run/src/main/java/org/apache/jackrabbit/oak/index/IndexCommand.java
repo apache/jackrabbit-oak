@@ -30,7 +30,6 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
@@ -253,14 +252,9 @@ public class IndexCommand implements Command {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
                 if (idxOpts.buildFlatFileStoreSeparately()) {
-                    IndexStore indexStore = indexer.buildFlatFileStore();
-                    if (indexStore instanceof FlatFileStore) {
-                        FlatFileStore ffs = (FlatFileStore) indexStore;
-                        String pathToFFS = ffs.getFlatFileStorePath();
-                        System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
-                    } else {
-                        throw new IllegalArgumentException("Store is not FlatFileStore, cannot cannot use option to build flat file store separately.");
-                    }
+                    IndexStore store = indexer.buildStore();
+                    String pathToStore = store.getStorePath();
+                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToStore);
                 }
                 indexer.reindex();
             }
