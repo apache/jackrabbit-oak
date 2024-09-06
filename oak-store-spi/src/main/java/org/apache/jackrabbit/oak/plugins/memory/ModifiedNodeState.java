@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
@@ -31,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -169,8 +169,9 @@ public class ModifiedNodeState extends AbstractNodeState {
             if (copy) {
                 properties = new HashMap<>(properties);
             }
+            final Set<String> keys = properties.keySet();
             Predicate<PropertyState> predicate = Predicates.compose(
-                    not(in(properties.keySet())), GET_NAME::apply);
+                    not(x-> keys.contains(x)), GET_NAME::apply);
             return concat(
                     filter(base.getProperties(), predicate::test),
                     filter(properties.values(), x -> x != null));
@@ -220,8 +221,9 @@ public class ModifiedNodeState extends AbstractNodeState {
             if (copy) {
                 nodes = new HashMap<>(nodes);
             }
+            final Set<String> keys = nodes.keySet(); 
             return concat(
-                    filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
+                    filter(base.getChildNodeNames(), not(x -> keys.contains(x))),
                     filterValues(nodes, NodeState.EXISTS::test).keySet());
         }
     }
@@ -350,8 +352,9 @@ public class ModifiedNodeState extends AbstractNodeState {
         } else if (nodes.isEmpty()) {
             return base.getChildNodeEntries(); // shortcut
         } else {
+            final Set<String> keys = nodes.keySet();
             Predicate<ChildNodeEntry> predicate = Predicates.compose(
-                    not(in(nodes.keySet())), ChildNodeEntry.GET_NAME::apply);
+                    not(x -> keys.contains(x)), ChildNodeEntry.GET_NAME::apply);
             return concat(
                     filter(base.getChildNodeEntries(), predicate::test),
                     iterable(filterValues(nodes, NodeState.EXISTS::test).entrySet()));

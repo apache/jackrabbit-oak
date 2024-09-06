@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
@@ -110,7 +109,7 @@ public class PropertyIndexPlan {
         this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.deprecated = definition.getBoolean(IndexConstants.INDEX_DEPRECATED);
         this.matchesNodeTypes =
-                matchesAllTypes || any(types, in(filter.getSupertypes()));
+                matchesAllTypes || any(types, x -> filter.getSupertypes().contains(x));
 
         ValuePattern valuePattern = new ValuePattern(definition);
 

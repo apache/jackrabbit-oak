@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
@@ -161,7 +160,7 @@ public class TypePredicate implements Predicate<NodeState> {
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
         }
-        if (mixinTypes != null && any(mixins, in(mixinTypes))) {
+        if (mixinTypes != null && any(mixins, x -> mixinTypes.contains(x))) {
             return true;
         }
         return false;
@@ -175,7 +174,7 @@ public class TypePredicate implements Predicate<NodeState> {
                 return true;
             }
             if (mixinTypes != null
-                    && any(TreeUtil.getNames(input, JCR_MIXINTYPES), in(mixinTypes))) {
+                    && any(TreeUtil.getNames(input, JCR_MIXINTYPES), x -> mixinTypes.contains(x))) {
                 return true;
             }
         }
@@ -193,7 +192,7 @@ public class TypePredicate implements Predicate<NodeState> {
                 return true;
             }
             if (mixinTypes != null
-                    && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
+                    && any(input.getNames(JCR_MIXINTYPES), x -> mixinTypes.contains(x))) {
                 return true;
             }
         }

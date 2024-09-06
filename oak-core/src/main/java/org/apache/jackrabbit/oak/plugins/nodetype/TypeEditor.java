@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -176,7 +175,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
+                || any(mixins, x -> typesToCheck.contains(x));
         this.parent = null;
         this.nodeName = null;
         this.types = requireNonNull(types);
@@ -196,7 +195,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
+                || any(mixins, x -> typesToCheck.contains(x));
         this.parent = requireNonNull(parent);
         this.nodeName = requireNonNull(name);
         this.types = parent.types;
