@@ -46,7 +46,7 @@ public class StoreBuilder {
         if (config == null || config.isEmpty()) {
             return new MemoryStore(new Properties());
         }
-        config = config.replace(' ', '\n').replace("\\", "\\\\");
+        config = config.replace(' ', '\n');
         Properties prop = new Properties();
         try {
             prop.load(new StringReader(config));
