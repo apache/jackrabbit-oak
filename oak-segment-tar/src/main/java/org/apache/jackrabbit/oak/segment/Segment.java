@@ -96,7 +96,7 @@ public class Segment {
     /**
      * Maximum segment size
      */
-    static final int MAX_SEGMENT_SIZE = 1 << 18; // 256kB
+    public static final int MAX_SEGMENT_SIZE = 1 << 18; // 256kB
 
     /**
      * The size limit for small values. The variable length of small values
