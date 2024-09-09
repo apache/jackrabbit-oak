@@ -17,9 +17,8 @@
  * under the License.
  */
 
-
 /**
- * Annotations for internal use in Oak.
+ * Utilities for Java collections and streams.
  */
 @Internal(since = "1.0.0")
 @Version("1.0.0")

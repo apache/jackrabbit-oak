@@ -22,9 +22,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CollectionUtilsTest {
 
@@ -63,5 +67,49 @@ public class CollectionUtilsTest {
         final Iterable<String> iterable = new SimpleIterable<>(s);
 
         Assert.assertEquals(s, CollectionUtils.toSet(iterable.iterator()));
+    }
+
+    @Test
+    public void arrayToSet() {
+        final Set<String> s = CollectionUtils.toSet(data);
+        Assert.assertEquals(s, CollectionUtils.toSet(data.toArray()));
+    }
+
+    @Test
+    public void arrayContainingNullToSet() {
+        final Set<String> expected = Collections.singleton(null);
+        final Set<String> result = CollectionUtils.toSet((String)null);
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullArrayToSet() {
+        CollectionUtils.toSet((String[])null);
+    }
+
+    @Test
+    public void iteratorToIIteratable() {
+        Iterator<String> iterator = List.of("a", "b", "c").iterator();
+        iterator.next();
+        Iterable<String> iterable = CollectionUtils.toIterable(iterator);
+        Iterator<String> testit = iterable.iterator();
+        Assert.assertEquals("b", testit.next());
+        Assert.assertEquals("c", testit.next());
+        Assert.assertFalse(testit.hasNext());
+        try {
+            testit = iterable.iterator();
+            Assert.fail("should only work once");
+        } catch (IllegalStateException expected) {
+            // that's what we want
+        }
+    }
+
+    @Test
+    public void iteratorToStream() {
+        List<String> input = List.of("a", "b", "c");
+        Iterator<String> iterator = input.iterator();
+        Stream<String> stream = CollectionUtils.toStream(iterator);
+        List<String> result = stream.collect(Collectors.toList());
+        Assert.assertEquals(input.toString(), result.toString());
     }
 }
