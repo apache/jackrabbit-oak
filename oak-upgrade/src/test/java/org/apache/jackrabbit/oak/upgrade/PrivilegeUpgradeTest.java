@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -36,13 +35,13 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ADD_CHILD_NODES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT;
@@ -93,14 +92,14 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Test
     public void verifyPrivileges() throws RepositoryException {
-        Set<String> nonAggregatePrivileges = Stream.of(
+        Set<String> nonAggregatePrivileges = CollectionUtils.toSet(
             REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
             REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
             JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
             JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
             JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
             JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-            REP_INDEX_DEFINITION_MANAGEMENT, "test:privilege", "test:privilege2").collect(toSet());
+            REP_INDEX_DEFINITION_MANAGEMENT, "test:privilege", "test:privilege2");
 
         Map<String, Set<String>> aggregatePrivileges = Maps.newHashMap();
         aggregatePrivileges.put(JCR_READ,
@@ -143,7 +142,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
                         assertTrue("Miss match in aggregate privilege " + privilege.getName() +
                                 " expected " + expected +
                                 " actual " + Arrays.toString(actual),
-                            new HashSet<>(expected).equals(Arrays.stream(actual).collect(toSet())));
+                            new HashSet<>(expected).equals(CollectionUtils.toSet(actual)));
                     }
                 } else {
                     nonAggregatePrivileges.remove(privilege.getName());

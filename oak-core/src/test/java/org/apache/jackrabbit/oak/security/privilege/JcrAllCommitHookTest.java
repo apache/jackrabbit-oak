@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.Arrays;
 import java.util.Set;
 import javax.jcr.security.Privilege;
 
@@ -27,12 +26,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
@@ -68,7 +67,7 @@ public class JcrAllCommitHookTest extends AbstractSecurityTest {
     @Test
     public void testJcrAll() throws Exception {
         Privilege all = privilegeManager.getPrivilege(JCR_ALL);
-        Set<Privilege> aggregates = Arrays.stream(all.getDeclaredAggregatePrivileges()).collect(toSet());
+        Set<Privilege> aggregates = CollectionUtils.toSet(all.getDeclaredAggregatePrivileges());
 
         assertTrue(aggregates.contains(newPrivilege));
     }

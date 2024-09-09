@@ -26,14 +26,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
 
@@ -73,7 +72,7 @@ public class ReclaimersTest {
         .build();
 
     private static void assertReclaim(Predicate<GCGeneration> reclaimer, String... reclaims) {
-        Set<String> toReclaim = Arrays.stream(reclaims).collect(Collectors.toSet());
+        Set<String> toReclaim = CollectionUtils.toSet(reclaims);
         for (Entry<String, GCGeneration> generation : gcHistory.entrySet()) {
             if (reclaimer.test(generation.getValue())) {
                 assertTrue(

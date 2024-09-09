@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -28,7 +29,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.Session;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -359,7 +359,7 @@ public final class Permissions {
     public static long getPermissions(@NotNull String jcrActions,
                                       @NotNull TreeLocation location,
                                       boolean isAccessControlContent) {
-        Set<String> actions = Arrays.stream(Text.explode(jcrActions, ',', false)).collect(toSet());
+        Set<String> actions = CollectionUtils.toSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
         // map read action respecting the 'isAccessControlContent' flag.
         if (actions.remove(Session.ACTION_READ)) {
@@ -442,7 +442,7 @@ public final class Permissions {
         if (permissionNames == null || permissionNames.isEmpty()) {
             return NO_PERMISSION;
         } else {
-            return getPermissions(Arrays.stream(permissionNames.split(",")).collect(toSet()));
+            return getPermissions(CollectionUtils.toSet(permissionNames.split(",")));
         }
     }
 

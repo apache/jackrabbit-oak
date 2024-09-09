@@ -21,6 +21,7 @@ import joptsimple.internal.Strings;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,8 +35,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toSet;
 
 public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetItemTest {
     
@@ -87,7 +86,7 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
             } else if (EvaluationType.JCR_PRIVILEGE_NAME_AGGREGATION == evalType) {
                 // evaluation using regular JCR Privilege API 
                 Privilege[] privileges = acMgr.getPrivileges(accessControlledPath);
-                Set<String> privilegeNames = Arrays.stream(AccessControlUtils.namesFromPrivileges(privileges)).collect(toSet());
+                Set<String> privilegeNames = CollectionUtils.toSet(AccessControlUtils.namesFromPrivileges(privileges));
                 Stream.of(privileges).filter(Privilege::isAggregate).forEach(privilege -> Collections.addAll(privilegeNames, AccessControlUtils.namesFromPrivileges(privilege.getAggregatePrivileges())));
                 for (String toTest : privNames) {
                     boolean includes = privilegeNames.contains(toTest);

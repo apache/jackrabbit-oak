@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static java.util.stream.Collectors.toSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -2469,6 +2468,6 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private void assertMatches(Iterable<String> actuals, String... expected) {
-        assertEquals(Arrays.stream(expected).collect(toSet()), CollectionUtils.toSet(actuals));
+        assertEquals(CollectionUtils.toSet(expected), CollectionUtils.toSet(actuals));
     }
 }

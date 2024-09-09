@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.security.Privilege;
@@ -26,11 +25,11 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -117,7 +116,7 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             fail();
         }
 
-        Iterable<String> resultNames = Iterables.transform(Arrays.stream(result).collect(toSet()),
+        Iterable<String> resultNames = Iterables.transform(CollectionUtils.toSet(result),
                 Object::toString);
 
         Iterables.removeAll(resultNames, expectedNames);

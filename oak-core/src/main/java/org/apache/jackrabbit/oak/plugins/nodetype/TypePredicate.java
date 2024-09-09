@@ -20,11 +20,11 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -33,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -115,7 +114,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
     private static Set<String> add(Set<String> names, String name) {
         if (names == null) {
-            return Stream.of(name).collect(toSet());
+            return CollectionUtils.toSet(name);
         } else {
             names.add(name);
             return names;

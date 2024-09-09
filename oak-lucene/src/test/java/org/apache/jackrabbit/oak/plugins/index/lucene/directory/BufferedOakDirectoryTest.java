@@ -27,6 +27,7 @@ import ch.qos.logback.classic.Level;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -38,7 +39,6 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.DELETE_THRESHOLD_UNTIL_REOPEN;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.reReadCommandLineParam;
@@ -85,7 +85,7 @@ public class BufferedOakDirectoryTest {
         base.close();
         buffered.close();
         base = createDir(builder, false);
-        assertEquals(Set.of("file"), Arrays.stream(base.listAll()).collect(toSet()));
+        assertEquals(Set.of("file"), CollectionUtils.toSet(base.listAll()));
         base.close();
 
         buffered = createDir(builder, true);
@@ -94,7 +94,7 @@ public class BufferedOakDirectoryTest {
 
         // must only disappear after buffered is closed
         base = createDir(builder, false);
-        assertEquals(Set.of("file"), Arrays.stream(base.listAll()).collect(toSet()));
+        assertEquals(Set.of("file"), CollectionUtils.toSet(base.listAll()));
         base.close();
         buffered.close();
         base = createDir(builder, false);
@@ -140,12 +140,12 @@ public class BufferedOakDirectoryTest {
                 names.add(name);
             }
         }
-        assertEquals(names, Arrays.stream(dir.listAll()).collect(toSet()));
+        assertEquals(names, CollectionUtils.toSet(dir.listAll()));
         dir.close();
 
         // open unbuffered and check list as well
         dir = createDir(builder, false);
-        assertEquals(names, Arrays.stream(dir.listAll()).collect(toSet()));
+        assertEquals(names, CollectionUtils.toSet(dir.listAll()));
         dir.close();
     }
 

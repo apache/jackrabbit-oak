@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -39,13 +40,11 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
@@ -203,10 +202,10 @@ public class IndexCopierCleanupTest {
         Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
         // local listing
         assertEquals(Set.of("a", "b", "c", "d"),
-                Arrays.stream(new SimpleFSDirectory(localFSDir).listAll()).collect(toSet()));
+                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
         // reader listing
         assertEquals(Set.of("a", "b"),
-                Arrays.stream(cor1.listAll()).collect(toSet()));
+                CollectionUtils.toSet(cor1.listAll()));
 
         // Step 4
         cow2.close();
@@ -224,17 +223,17 @@ public class IndexCopierCleanupTest {
         Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
         // local listing
         assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
-                Arrays.stream(new SimpleFSDirectory(localFSDir).listAll()).collect(toSet()));
+                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
         // reader listing
         assertEquals(Set.of("c", "d"),
-                Arrays.stream(cor2.listAll()).collect(toSet()));
+                CollectionUtils.toSet(cor2.listAll()));
 
         // Step 7
         cor1.close();
 
         // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
         assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
-                Arrays.stream(new SimpleFSDirectory(localFSDir).listAll()).collect(toSet()));
+                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
     @Test
@@ -351,7 +350,7 @@ public class IndexCopierCleanupTest {
         copier.getCoRDir().close();
 
         assertEquals(Set.of("within-margin", "a"),
-                Arrays.stream(new SimpleFSDirectory(localFSDir).listAll()).collect(toSet()));
+                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
     @Test

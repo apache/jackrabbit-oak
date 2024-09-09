@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
@@ -89,7 +90,6 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LOCK_MANAGEMENT;
@@ -1168,15 +1168,15 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(NT_REP_GRANT_ACE, TreeUtil.getPrimaryTypeName(ace));
         assertEquals(testPrincipal.getName(), TreeUtil.getString(ace, REP_PRINCIPAL_NAME));
         assertEquals(
-                Arrays.stream(testPrivileges).collect(toSet()),
-                Arrays.stream(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))).collect(toSet()));
+                CollectionUtils.toSet(testPrivileges),
+                CollectionUtils.toSet(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))));
         assertFalse(ace.hasChild(REP_RESTRICTIONS));
 
         Tree ace2 = children.next();
         assertEquals(NT_REP_DENY_ACE, TreeUtil.getPrimaryTypeName(ace2));
         assertEquals(EveryonePrincipal.NAME, requireNonNull(ace2.getProperty(REP_PRINCIPAL_NAME)).getValue(Type.STRING));
         Privilege[] privs = privilegesFromNames(TreeUtil.getNames(ace2, REP_PRIVILEGES));
-        assertEquals(Arrays.stream(testPrivileges).collect(toSet()), Arrays.stream(privs).collect(toSet()));
+        assertEquals(CollectionUtils.toSet(testPrivileges), CollectionUtils.toSet(privs));
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
         Tree restr = ace2.getChild(REP_RESTRICTIONS);
         assertEquals("*/something", requireNonNull(restr.getProperty(REP_GLOB)).getValue(Type.STRING));

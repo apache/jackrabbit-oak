@@ -63,6 +63,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
@@ -332,12 +333,10 @@ public class FileIOUtilsTest {
         Set<String> added = Set.of("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
-        final Set<String> files = new HashSet<>();
+        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
+                org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
 
-        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()))
-                .forEachRemaining(files::add);
-
-        assertEquals(added, files);
+        assertEquals(added, CollectionUtils.toSet(iterator));
         assertTrue(f.exists());
     }
 
@@ -346,12 +345,10 @@ public class FileIOUtilsTest {
         Set<String> added = Set.of("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
-        final Set<String> files = new HashSet<>();
+        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
+                org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
 
-        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f)
-                .forEachRemaining(files::add);
-
-        assertEquals(added, files);
+        assertEquals(added, CollectionUtils.toSet(iterator));
         assertTrue(!f.exists());
     }
 
@@ -360,12 +357,10 @@ public class FileIOUtilsTest {
         Set<String> added = new HashSet<>(getLineBreakStrings());
         File f = assertWrite(added.iterator(), true, added.size());
 
-        final Set<String> files = new HashSet<>();
-        new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<>(
-                FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks)
-                .forEachRemaining(files::add);
+        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
+                FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks);
 
-        assertEquals(added, files);
+        assertEquals(added, CollectionUtils.toSet(iterator));
         assertTrue(!f.exists());
     }
 
@@ -377,13 +372,10 @@ public class FileIOUtilsTest {
         }
         File f = assertWrite(added.iterator(), true, added.size());
 
-        final Set<String> files = new HashSet<>();
+        org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
+                FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks);
 
-        new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<>(
-                FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks)
-                .forEachRemaining(files::add);
-
-        assertEquals(added, files);
+        assertEquals(added, CollectionUtils.toSet(iterator));
         assertTrue(!f.exists());
     }
 

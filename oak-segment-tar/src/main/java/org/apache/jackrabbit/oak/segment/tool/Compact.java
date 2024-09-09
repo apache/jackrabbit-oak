@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
@@ -31,13 +30,13 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -251,7 +250,7 @@ public class Compact {
         if (files == null) {
             return emptySet();
         }
-        return Arrays.stream(files).collect(toSet());
+        return CollectionUtils.toSet(files);
     }
 
     private static void printFiles(PrintStream s, Set<File> files) {

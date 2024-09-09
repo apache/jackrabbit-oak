@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -75,8 +75,7 @@ public class OakFileDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = new HashSet<>();
-        Iterators.transform(dis, DataIdentifier::toString).forEachRemaining(fileNames::add);
+        Set<String> fileNames = CollectionUtils.toSet(Iterators.transform(dis, DataIdentifier::toString));
 
         Set<String> expectedNames = Set.of("abcdef","bcdefg","cdefgh");
         assertEquals(expectedNames, fileNames);

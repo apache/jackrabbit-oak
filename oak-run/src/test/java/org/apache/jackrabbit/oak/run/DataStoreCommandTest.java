@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -934,16 +935,11 @@ public class DataStoreCommandTest {
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, Type dsOption, Map<String, String> idToNodes,
         boolean encodeId) {
-
-        final Set<String> idAndPathSet = new HashSet<>();
-        Iterators.transform(ids.iterator(), input -> Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))).forEachRemaining(idAndPathSet::add);
-        return idAndPathSet;
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
     }
 
     private static Set<String> encodeIds(Set<String> ids, Type dsOption) {
-        final Set<String> idSet = new HashSet<>();
-        Iterators.transform(ids.iterator(), input -> encodeId(input, dsOption)).forEachRemaining(idSet::add);
-        return idSet;
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> encodeId(input, dsOption)));
     }
 
 

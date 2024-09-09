@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -46,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
@@ -271,7 +270,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @Override
         public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
-            Set<String> in = Arrays.stream(privilegeNames).collect(toSet());
+            Set<String> in = CollectionUtils.toSet(privilegeNames);
             return granted.containsAll(in);
         }
 

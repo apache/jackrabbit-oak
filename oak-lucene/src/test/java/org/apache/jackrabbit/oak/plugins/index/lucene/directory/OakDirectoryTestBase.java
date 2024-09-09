@@ -49,7 +49,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
@@ -58,6 +57,7 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -156,7 +156,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(builder, true, "/foo");
-        assertEquals(fileNames, Arrays.stream(dir.listAll()).collect(Collectors.toSet()));
+        assertEquals(fileNames, CollectionUtils.toSet(dir.listAll()));
     }
 
     @Test
@@ -172,7 +172,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(new ReadOnlyBuilder(builder.getNodeState()), false, "/foo");
-        Set<String> files =  Arrays.stream(dir.listAll()).collect(Collectors.toSet());
+        Set<String> files =  CollectionUtils.toSet(dir.listAll());
         dir.close();
         assertEquals(fileNames, files);
     }

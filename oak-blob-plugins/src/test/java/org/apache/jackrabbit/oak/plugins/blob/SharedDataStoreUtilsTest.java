@@ -31,8 +31,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -43,6 +41,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
@@ -52,8 +51,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -65,7 +62,6 @@ import static org.junit.Assert.assertTrue;
  * Test for SharedDataUtils to test addition, retrieval and deletion of root records.
  */
 public class SharedDataStoreUtilsTest {
-    private static final Logger log = LoggerFactory.getLogger(SharedDataStoreUtilsTest.class);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -274,7 +270,7 @@ public class SharedDataStoreUtilsTest {
         Set<String> repos = SharedDataStoreUtils
             .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 3);
-        assertEquals(Stream.of(repoId2).collect(Collectors.toSet()), repos);
+        assertEquals(CollectionUtils.toSet(repoId2), repos);
     }
 
     @Test
@@ -304,7 +300,7 @@ public class SharedDataStoreUtilsTest {
         Set<String> repos = SharedDataStoreUtils
             .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 2);
-        assertEquals(Stream.of(repoId1, repoId2).collect(Collectors.toSet()), repos);
+        assertEquals(CollectionUtils.toSet(repoId1, repoId2), repos);
     }
 
     @Test
@@ -461,8 +457,7 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = new HashSet<>();
-        dataStore.getAllChunkIds(0).forEachRemaining(retrieved::add);
+        Set<String> retrieved = CollectionUtils.toSet(dataStore.getAllChunkIds(0));
         assertEquals(added, retrieved);
     }
 
@@ -478,10 +473,8 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<DataRecord> recordSet = new HashSet<>();
-        dataStore.getAllRecords().forEachRemaining(recordSet::add);
-        Set<String> retrieved = new HashSet<>();
-        Iterables.transform(recordSet, input -> input.getIdentifier().toString()).forEach(retrieved::add);
+        Set<String> retrieved = CollectionUtils.toSet(Iterables.transform(CollectionUtils.toSet(dataStore.getAllRecords()),
+                input -> input.getIdentifier().toString()));
 
         assertEquals(added, retrieved);
     }
@@ -511,10 +504,8 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<DataRecord> recordSet = new HashSet<>();
-        dataStore.getAllRecords().forEachRemaining(recordSet::add);
-        Set<String> retrieved = new HashSet<>();
-        Iterables.transform(recordSet, input -> input.getIdentifier().toString()).forEach(retrieved::add);
+        Set<String> retrieved = CollectionUtils.toSet(Iterables.transform(CollectionUtils.toSet(dataStore.getAllRecords()),
+                input -> input.getIdentifier().toString()));
 
         assertEquals(added, retrieved);
     }
@@ -529,8 +520,7 @@ public class SharedDataStoreUtilsTest {
             added.add(dataStore.addRecord(randomStream(i, 16516)));
         }
 
-        Set<DataRecord> retrieved = new HashSet<>();
-        dataStore.getAllRecords().forEachRemaining(retrieved::add);
+        Set<DataRecord> retrieved = CollectionUtils.toSet((dataStore.getAllRecords()));
         assertRecords(added, retrieved);
     }
 

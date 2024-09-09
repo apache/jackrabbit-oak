@@ -23,6 +23,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -37,13 +38,11 @@ import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
@@ -223,7 +222,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         // test-session can read-ac at readable path and at principal-based policy
         try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
-            Set<AccessControlPolicy> effective = Arrays.stream(testAcMgr.getEffectivePolicies(path)).collect(toSet());
+            Set<AccessControlPolicy> effective = CollectionUtils.toSet(testAcMgr.getEffectivePolicies(path));
 
             assertEquals(2, effective.size());
             assertTrue(effective.remove(ReadPolicy.INSTANCE));

@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
@@ -443,16 +444,13 @@ public class DataStoreCheckTest {
     }
 
     private static Set<String> encodedIds(Set<String> ids, String dsOption) {
-        final Set<String> idSet = new HashSet<>();
-        Iterators.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)).forEachRemaining(idSet::add);
-        return idSet;
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
     }
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
-        final Set<String> idAndPathSet = new HashSet<>();
-        Iterators.transform(ids.iterator(), input -> Joiner.on(",")
-                .join(DataStoreCheckCommand.encodeId(input, "--"+dsOption), blobsAddedWithNodes.get(input)))
-                .forEachRemaining(idAndPathSet::add);
-        return idAndPathSet;
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(),
+                input -> Joiner.on(",").join(
+                        DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                        blobsAddedWithNodes.get(input))));
     }
 }

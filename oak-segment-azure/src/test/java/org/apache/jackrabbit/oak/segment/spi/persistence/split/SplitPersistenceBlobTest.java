@@ -24,12 +24,12 @@ import java.security.InvalidKeyException;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import com.microsoft.azure.storage.StorageException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -52,7 +52,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 
 public class SplitPersistenceBlobTest {
@@ -128,7 +127,7 @@ public class SplitPersistenceBlobTest {
         throws IOException, CommitFailedException {
         String blobId = createLoad(split, splitFileStore).getContentIdentity();
 
-        assertReferences(2, Stream.of(baseBlobId, blobId).collect(toSet()));
+        assertReferences(2, CollectionUtils.toSet(baseBlobId, blobId));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {

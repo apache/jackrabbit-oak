@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -67,9 +68,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -675,7 +674,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             addACE(cc.getPath(), testPrincipal, JCR_READ);
             root.commit();
 
-            Set<String> paths = Stream.of(aPath, bPath, cPath).collect(toSet());
+            Set<String> paths = CollectionUtils.toSet(aPath, bPath, cPath);
             paths.add(testPath);
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
@@ -728,7 +727,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             addACE(cc.getPath(), testPrincipal, JCR_READ);
             root.commit();
 
-            Set<String> paths = Stream.of(aPath, bPath, cPath).collect(toSet());
+            Set<String> paths = CollectionUtils.toSet(aPath, bPath, cPath);
             paths.add(testPath);
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));

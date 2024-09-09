@@ -24,7 +24,6 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Random;
 import java.util.Set;
-import java.util.stream.Stream;
 import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
@@ -45,11 +44,11 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
@@ -412,7 +411,7 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Test
     public void verifySNS() throws RepositoryException {
-        Set<String> nodeNames = Stream.of("sibling", "sibling[2]", "sibling[3]").collect(toSet());
+        Set<String> nodeNames = CollectionUtils.toSet("sibling", "sibling[2]", "sibling[3]");
         Session session = createAdminSession();
         try {
             Node sns = session.getNode("/sns");

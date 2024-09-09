@@ -46,7 +46,6 @@ import java.util.Random;
 import java.util.Set;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;

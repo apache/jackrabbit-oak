@@ -31,23 +31,16 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newCopyOnWriteArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
-
 
 public class BranchNodeStore implements NodeStore, Observable {
 

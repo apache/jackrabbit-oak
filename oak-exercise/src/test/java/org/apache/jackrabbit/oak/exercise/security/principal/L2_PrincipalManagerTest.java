@@ -18,17 +18,16 @@ package org.apache.jackrabbit.oak.exercise.security.principal;
 
 import java.security.Principal;
 import java.util.Set;
-import java.util.stream.Stream;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 
-import static java.util.stream.Collectors.toSet;
 
 /**
  * <pre>
@@ -153,7 +152,7 @@ public class L2_PrincipalManagerTest extends AbstractJCRTest {
             Principal testPrincipal = principalManager.getPrincipal(principalName);
             assertNotNull(testPrincipal);
 
-            Set<String> groupNames = Stream.of("myGroup", EveryonePrincipal.NAME).collect(toSet());
+            Set<String> groupNames = CollectionUtils.toSet("myGroup", EveryonePrincipal.NAME);
             PrincipalIterator groups = principalManager.getGroupMembership(testPrincipal);
             while (groups.hasNext()) {
                 groupNames.remove(groups.nextPrincipal().getName());

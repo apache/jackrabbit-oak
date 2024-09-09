@@ -30,6 +30,7 @@ import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -135,7 +136,7 @@ public class SplitPersistenceBlobTest {
         throws IOException, CommitFailedException {
         String blobId = createLoad(split, splitFileStore).getContentIdentity();
 
-        assertReferences(2, Stream.of(baseBlobId, blobId).collect(toSet()));
+        assertReferences(2, CollectionUtils.toSet(baseBlobId, blobId));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
