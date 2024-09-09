@@ -104,7 +104,7 @@ public class CollectionUtils {
     @NotNull
     public static <T> Set<T> toSet(@NotNull final T... elements) {
         Objects.requireNonNull(elements);
-        final Set<T> result = new HashSet<>(elements.length);
+        final Set<T> result = new HashSet<>();
         for (T element : elements) {
             result.add(element);
         }
