@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Utility methods for collections conversions.
@@ -93,5 +95,56 @@ public class CollectionUtils {
             result.add(element);
         }
         return result;
+    }
+
+    /**
+     * Convert an {@code Iterator} to an {@code Iterable}.
+     *
+     * @param iterator
+     *            iterator to convert
+     * @return a single-use iterable for the iterator (representing the remaining
+     *         elements in the iterator)
+     * @throws IllegalStateException
+     *             when {@linkplain Iterable#iterator()} is called more than
+     *             once
+     */
+    public static <T> Iterable<T> toIterable(final Iterator<T> iterator) {
+        Iterable<T> delegate = new Iterable<T>() {
+
+            private boolean consumed = false;
+
+            @Override
+            public Iterator<T> iterator() {
+                if (consumed) {
+                    throw new IllegalStateException("Iterator already returned once");
+                } else {
+                    consumed = true;
+                    return iterator;
+                }
+            }
+        };
+
+        return delegate;
+    }
+
+    /**
+     * Generates a (non-parallel) {@linkplain Stream} for the {@linkplain Iterable}
+     * @param iterable iterable to convert
+     * @return the stream
+     */
+    public static <T> Stream<T> toStream(Iterable<T> iterable) {
+        return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    /**
+     * Generates a (non-parallel) {@linkplain Stream} for the
+     * {@linkplain Iterable}
+     *
+     * @param iterator
+     *            iterator to convert
+     * @return the stream (representing the remaining elements in the iterator)
+     */
+    public static <T> Stream<T> toStream(Iterator<T> iterator) {
+        return StreamSupport.stream(toIterable(iterator).spliterator(), false);
     }
 }

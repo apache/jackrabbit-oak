@@ -23,8 +23,11 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CollectionUtilsTest {
 
@@ -69,5 +72,31 @@ public class CollectionUtilsTest {
     public void arrayToSet() {
         final Set<String> s = CollectionUtils.toSet(data);
         Assert.assertEquals(s, CollectionUtils.toSet(data.toArray()));
+    }
+
+    @Test
+    public void iteratorToIIteratable() {
+        Iterator<String> iterator = List.of("a", "b", "c").iterator();
+        iterator.next();
+        Iterable<String> iterable = CollectionUtils.toIterable(iterator);
+        Iterator<String> testit = iterable.iterator();
+        Assert.assertEquals("b", testit.next());
+        Assert.assertEquals("c", testit.next());
+        Assert.assertFalse(testit.hasNext());
+        try {
+            testit = iterable.iterator();
+            Assert.fail("should only work once");
+        } catch (IllegalStateException expected) {
+            // that's what we want
+        }
+    }
+
+    @Test
+    public void iteratorToStream() {
+        List<String> input = List.of("a", "b", "c");
+        Iterator<String> iterator = input.iterator();
+        Stream<String> stream = CollectionUtils.toStream(iterator);
+        List<String> result = stream.collect(Collectors.toList());
+        Assert.assertEquals(input.toString(), result.toString());
     }
 }
