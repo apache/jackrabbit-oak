@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -72,6 +73,18 @@ public class CollectionUtilsTest {
     public void arrayToSet() {
         final Set<String> s = CollectionUtils.toSet(data);
         Assert.assertEquals(s, CollectionUtils.toSet(data.toArray()));
+    }
+
+    @Test
+    public void arrayContainingNullToSet() {
+        final Set<String> expected = Collections.singleton(null);
+        final Set<String> result = CollectionUtils.toSet((String)null);
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullArrayToSet() {
+        CollectionUtils.toSet((String[])null);
     }
 
     @Test

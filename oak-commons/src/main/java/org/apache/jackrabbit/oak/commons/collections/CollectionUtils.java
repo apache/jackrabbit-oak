@@ -22,9 +22,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility methods for collections conversions.
@@ -41,7 +44,9 @@ public class CollectionUtils {
      * @return the list
      * @param <T> the type of the elements
      */
-    public static <T> List<T> toList(final Iterable<T> iterable) {
+    @NotNull
+    public static <T> List<T> toList(@NotNull final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
         List<T> result = new ArrayList<>();
         iterable.forEach(result::add);
         return result;
@@ -53,7 +58,9 @@ public class CollectionUtils {
      * @return the list
      * @param <T> the type of the elements
      */
+    @NotNull
     public static <T> List<T> toList(final Iterator<T> iterator) {
+        Objects.requireNonNull(iterator);
         List<T> result = new ArrayList<>();
         iterator.forEachRemaining(result::add);
         return result;
@@ -65,7 +72,9 @@ public class CollectionUtils {
      * @return the set
      * @param <T> the type of the elements
      */
-    public static <T> Set<T> toSet(final Iterable<T> iterable) {
+    @NotNull
+    public static <T> Set<T> toSet(@NotNull  final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
         final Set<T> result = new HashSet<>();
         iterable.forEach(result::add);
         return result;
@@ -77,7 +86,9 @@ public class CollectionUtils {
      * @return the set
      * @param <T> the type of the elements
      */
-    public static <T> Set<T> toSet(final Iterator<T> iterator) {
+    @NotNull
+    public static <T> Set<T> toSet(@NotNull final Iterator<T> iterator) {
+        Objects.requireNonNull(iterator);
         final Set<T> result = new HashSet<>();
         iterator.forEachRemaining(result::add);
         return result;
@@ -90,7 +101,9 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     @SafeVarargs
-    public static <T> Set<T> toSet(final T... elements) {
+    @NotNull
+    public static <T> Set<T> toSet(@NotNull final T... elements) {
+        Objects.requireNonNull(elements);
         final Set<T> result = new HashSet<>(elements.length);
         for (T element : elements) {
             result.add(element);
@@ -109,7 +122,10 @@ public class CollectionUtils {
      *             when {@linkplain Iterable#iterator()} is called more than
      *             once
      */
-    public static <T> Iterable<T> toIterable(final Iterator<T> iterator) {
+    @NotNull
+    public static <T> Iterable<T> toIterable(@NotNull final Iterator<T> iterator) {
+        Objects.requireNonNull(iterator);
+
         Iterable<T> delegate = new Iterable<T>() {
 
             private boolean consumed = false;
@@ -133,7 +149,9 @@ public class CollectionUtils {
      * @param iterable iterable to convert
      * @return the stream
      */
-    public static <T> Stream<T> toStream(Iterable<T> iterable) {
+    @NotNull
+    public static <T> Stream<T> toStream(@NotNull Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
