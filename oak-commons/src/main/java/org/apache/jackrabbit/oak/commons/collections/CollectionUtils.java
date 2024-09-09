@@ -91,7 +91,7 @@ public class CollectionUtils {
      */
     @SafeVarargs
     public static <T> Set<T> toSet(final T... elements) {
-        final Set<T> result = new HashSet<>();
+        final Set<T> result = new HashSet<>(elements.length);
         for (T element : elements) {
             result.add(element);
         }
