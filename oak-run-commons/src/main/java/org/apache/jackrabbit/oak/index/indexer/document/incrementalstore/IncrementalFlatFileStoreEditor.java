@@ -31,8 +31,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.function.Predicate;
 
-import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
-
 public class IncrementalFlatFileStoreEditor implements Editor {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -40,7 +38,7 @@ public class IncrementalFlatFileStoreEditor implements Editor {
     private final IncrementalFlatFileStoreNodeStateEntryWriter entryWriter;
     private final Predicate<String> predicate;
     private final IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy;
-    private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
+    private static final int LINE_SEP_LENGTH = System.getProperty("line.separator").length();
 
     public IncrementalFlatFileStoreEditor(BufferedWriter bufferedWriter, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter, Predicate<String> predicate,
                                           IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy) {
