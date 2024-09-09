@@ -89,7 +89,8 @@ public class CollectionUtils {
      * @return the set
      * @param <T> the type of the elements
      */
-    public static <T> Set<T> toSet(@SuppressWarnings("unchecked") final T... elements) {
+    @SafeVarargs
+    public static <T> Set<T> toSet(final T... elements) {
         final Set<T> result = new HashSet<>();
         for (T element : elements) {
             result.add(element);
