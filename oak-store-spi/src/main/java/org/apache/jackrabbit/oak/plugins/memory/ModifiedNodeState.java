@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
@@ -34,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -41,8 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.base.Predicates;
 
 /**
  * Immutable snapshot of a mutable node state.
@@ -171,7 +169,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
             final Set<String> keys = properties.keySet();
             Predicate<PropertyState> predicate = Predicates.compose(
-                    not(x-> keys.contains(x)), GET_NAME::apply);
+                    x -> !keys.contains(x), GET_NAME::apply);
             return concat(
                     filter(base.getProperties(), predicate::test),
                     filter(properties.values(), x -> x != null));
@@ -223,7 +221,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
             final Set<String> keys = nodes.keySet(); 
             return concat(
-                    filter(base.getChildNodeNames(), not(x -> keys.contains(x))),
+                    filter(base.getChildNodeNames(), x -> !keys.contains(x)),
                     filterValues(nodes, NodeState.EXISTS::test).keySet());
         }
     }
@@ -354,7 +352,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         } else {
             final Set<String> keys = nodes.keySet();
             Predicate<ChildNodeEntry> predicate = Predicates.compose(
-                    not(x -> keys.contains(x)), ChildNodeEntry.GET_NAME::apply);
+                    x -> !keys.contains(x), ChildNodeEntry.GET_NAME::apply);
             return concat(
                     filter(base.getChildNodeEntries(), predicate::test),
                     iterable(filterValues(nodes, NodeState.EXISTS::test).entrySet()));
