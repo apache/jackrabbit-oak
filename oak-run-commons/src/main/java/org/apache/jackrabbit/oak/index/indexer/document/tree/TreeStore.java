@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SieveCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -67,7 +68,8 @@ public class TreeStore implements IndexStore {
     private final String name;
     private final Store store;
     private final long cacheSizeTreeStoreMB;
-    private final File directory;
+    private final File fileOrDirectory;
+    private final boolean readOnly;
     private final TreeSession session;
     private final NodeStateEntryReader entryReader;
     private final SieveCache<String, TreeStoreNodeState> nodeStateCache;
@@ -79,19 +81,30 @@ public class TreeStore implements IndexStore {
     private int iterationCount;
     private PathIteratorFilter filter = new PathIteratorFilter();
 
-    public TreeStore(String name, File directory, NodeStateEntryReader entryReader, long cacheSizeFactor) {
+    public TreeStore(String name, File fileOrDirectory, NodeStateEntryReader entryReader, long cacheSizeFactor) {
         this.name = name;
-        this.directory = directory;
+        this.fileOrDirectory = fileOrDirectory;
         this.entryReader = entryReader;
         long cacheSizeNodeMB = cacheSizeFactor * CACHE_SIZE_NODE_MB;
         long cacheSizeTreeStoreMB = cacheSizeFactor * CACHE_SIZE_TREE_STORE_MB;
         this.cacheSizeTreeStoreMB = cacheSizeTreeStoreMB;
         nodeStateCache = new SieveCache<>(cacheSizeFactor * cacheSizeNodeMB * MB);
-        String storeConfig = System.getProperty(TREE_STORE_CONFIG,
-                "type=file\n" +
-                TreeSession.CACHE_SIZE_MB + "=" + cacheSizeTreeStoreMB + "\n" +
-                Store.MAX_FILE_SIZE_BYTES + "=" + MAX_FILE_SIZE_MB * MB + "\n" +
-                "dir=" + directory.getAbsolutePath());
+        String storeConfig;
+        if (FilePacker.isPackFile(fileOrDirectory)) {
+            readOnly = true;
+            storeConfig = System.getProperty(TREE_STORE_CONFIG,
+                    "type=pack\n" +
+                    TreeSession.CACHE_SIZE_MB + "=" + cacheSizeTreeStoreMB + "\n" +
+                    Store.MAX_FILE_SIZE_BYTES + "=" + MAX_FILE_SIZE_MB * MB + "\n" +
+                    "file=" + fileOrDirectory.getAbsolutePath());
+        } else {
+            readOnly = false;
+            storeConfig = System.getProperty(TREE_STORE_CONFIG,
+                    "type=file\n" +
+                    TreeSession.CACHE_SIZE_MB + "=" + cacheSizeTreeStoreMB + "\n" +
+                    Store.MAX_FILE_SIZE_BYTES + "=" + MAX_FILE_SIZE_MB * MB + "\n" +
+                    "dir=" + fileOrDirectory.getAbsolutePath());
+        }
         this.store = StoreBuilder.build(storeConfig);
         store.setWriteCompression(Compression.LZ4);
         this.session = new TreeSession(store);
@@ -329,6 +342,9 @@ public class TreeStore implements IndexStore {
     }
 
     public void putNode(String path, String json) {
+        if (readOnly) {
+            throw new IllegalStateException("Read only store");
+        }
         session.put(path, json);
         if (!path.equals("/")) {
             String nodeName = PathUtils.getName(path);
@@ -347,7 +363,7 @@ public class TreeStore implements IndexStore {
 
     @Override
     public String getStorePath() {
-        return directory.getAbsolutePath();
+        return fileOrDirectory.getAbsolutePath();
     }
 
     @Override

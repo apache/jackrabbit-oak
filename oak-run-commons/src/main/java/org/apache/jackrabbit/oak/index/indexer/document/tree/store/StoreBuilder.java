@@ -35,6 +35,7 @@ public class StoreBuilder {
      * - "type=file": file system, with "dir" directory
      * - "type=stats.another": statistics wrapper around another
      * - "type=slow.another": slow wrapper around another (to simulate slowness)
+     * - "type=pack": pack file, with "file" file name
      * - "type=log.another": log wrapper around another (to analyze problems)
      * - "maxFileSizeBytes=16000000": the maximum file size in bytes
      *
@@ -46,7 +47,7 @@ public class StoreBuilder {
         if (config == null || config.isEmpty()) {
             return new MemoryStore(new Properties());
         }
-        config = config.replace(' ', '\n').replace("\\", "\\\\");
+        config = config.replace("\\", "\\\\");
         Properties prop = new Properties();
         try {
             prop.load(new StringReader(config));
@@ -63,6 +64,8 @@ public class StoreBuilder {
             return new MemoryStore(config);
         case "file":
             return new FileStore(config);
+        case "pack":
+            return new PackStore(config);
         }
         if (type.startsWith("stats.")) {
             config.put("type", type.substring("stats.".length()));
