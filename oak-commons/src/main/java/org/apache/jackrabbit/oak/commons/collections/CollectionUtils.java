@@ -116,6 +116,8 @@ public class CollectionUtils {
 
     /**
      * Convert an {@code Iterator} to an {@code Iterable}.
+     * <p>
+     * This method is not thread-safe
      *
      * @param iterator
      *            iterator to convert
@@ -161,6 +163,8 @@ public class CollectionUtils {
     /**
      * Generates a (non-parallel) {@linkplain Stream} for the
      * {@linkplain Iterable}
+     * <p>
+     * This method is not thread-safe
      *
      * @param iterator
      *            iterator to convert
