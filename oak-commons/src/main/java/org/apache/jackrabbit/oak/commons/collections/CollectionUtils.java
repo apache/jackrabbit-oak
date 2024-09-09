@@ -106,7 +106,7 @@ public class CollectionUtils {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
         float loadFactor = (float) 0.75; // HashSet default
-        int initialCapacity = 1+ (int) (elements.length / loadFactor);
+        int initialCapacity = 1 + (int) (elements.length / loadFactor);
         final Set<T> result = new HashSet<>(initialCapacity, loadFactor);
         for (T element : elements) {
             result.add(element);
