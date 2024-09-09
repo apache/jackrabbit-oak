@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -51,6 +50,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -320,7 +320,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     }
 
     private static boolean checkpointExists(NodeStore nodeStore, String checkpoint) {
-        return Iterables.any(nodeStore.checkpoints(), Predicates.equalTo(checkpoint));
+        return Iterables.any(nodeStore.checkpoints(), x -> Objects.equals(x, checkpoint));
     }
 
     private String checkpointDebugInfo() {
