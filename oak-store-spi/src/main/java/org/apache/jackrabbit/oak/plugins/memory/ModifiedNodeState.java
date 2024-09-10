@@ -30,10 +30,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -46,11 +44,6 @@ import org.jetbrains.annotations.NotNull;
  * Immutable snapshot of a mutable node state.
  */
 public class ModifiedNodeState extends AbstractNodeState {
-
-    /**
-     * Mapping from a PropertyState instance to its name.
-     */
-    private static final Function<PropertyState, String> GET_NAME = input -> (input != null) ? input.getName() : null;
 
     /**
      * Unwraps the given {@code NodeState} instance into the given internals
@@ -168,8 +161,8 @@ public class ModifiedNodeState extends AbstractNodeState {
                 properties = new HashMap<>(properties);
             }
             final Set<String> keys = properties.keySet();
-            Predicate<PropertyState> predicate = Predicates.compose(
-                    x -> !keys.contains(x), GET_NAME::apply);
+            Predicate<PropertyState> predicate =
+                    x -> !keys.contains(x == null ? null : x.getName());
             return concat(
                     filter(base.getProperties(), predicate::test),
                     filter(properties.values(), x -> x != null));
@@ -351,8 +344,8 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getChildNodeEntries(); // shortcut
         } else {
             final Set<String> keys = nodes.keySet();
-            Predicate<ChildNodeEntry> predicate = Predicates.compose(
-                    x -> !keys.contains(x), ChildNodeEntry.GET_NAME::apply);
+            Predicate<ChildNodeEntry> predicate =
+                    x -> !keys.contains(x == null ? null : x.getName());
             return concat(
                     filter(base.getChildNodeEntries(), predicate::test),
                     iterable(filterValues(nodes, NodeState.EXISTS::test).entrySet()));
