@@ -118,7 +118,7 @@ public class IOTracerTest extends IOMonitorAdapter {
                         ImmutableSet.of(0, 1, 2),
                         entries.stream()
                             .map(row -> parseInt(row[5])) // depth
-                            .distinct());
+                            .distinct().collect(toSet()));
 
                 assertEquals("Expected max 10 nodes",
                         Optional.of(true),
@@ -158,7 +158,7 @@ public class IOTracerTest extends IOMonitorAdapter {
                         ImmutableSet.of(0, 1),
                         entries.stream()
                             .map(row -> parseInt(row[5])) // depth
-                            .distinct());
+                            .distinct().collect(toSet()));
 
                 assertEquals("Expected max 10 nodes",
                         Optional.of(true),
