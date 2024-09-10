@@ -291,6 +291,7 @@ public class VersionGarbageCollector {
     void setFullGCPaths(@NotNull Set<String> includes, @NotNull Set<String> excludes) {
         this.fullGCIncludePaths = requireNonNull(includes);
         this.fullGCExcludePaths = requireNonNull(excludes);
+        AUDIT_LOG.info("Full GC paths set to include: {} and exclude: {} in mode {}", includes, excludes, fullGcMode);
     }
 
     public void setStatisticsProvider(StatisticsProvider provider) {
@@ -915,6 +916,9 @@ public class VersionGarbageCollector {
                                         // for neither includes nor excludes. If isIncluded returns false here,
                                         // that can only be due to an excluded long path.
                                         // in which case, we can actually honor that and skip this
+                                        if (AUDIT_LOG.isDebugEnabled()){
+                                            AUDIT_LOG.debug("<Skipping> document with excluded path: {}", doc.getPath());
+                                        }
                                     }
                                     phases.stop(GCPhase.FULL_GC_COLLECT_GARBAGE);
                                 }
@@ -931,6 +935,10 @@ public class VersionGarbageCollector {
                             if (gc.hasGarbage() && phases.start(GCPhase.FULL_GC_CLEANUP)) {
                                 gc.removeGarbage(phases.stats);
                                 phases.stop(GCPhase.FULL_GC_CLEANUP);
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("No garbage found to delete from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
+                                }
                             }
                             if (lastDoc != null) {
                                 fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
@@ -1158,6 +1166,9 @@ public class VersionGarbageCollector {
             if (fullGcMode == EMPTYPROPS) {
                 if (!traversedState.exists()) {
                     // doc is an orphan, this mode skips orphans
+                    if (AUDIT_LOG.isDebugEnabled()){
+                        AUDIT_LOG.debug("Skipping orphaned document [{}] for mode [{}]", doc.getId(), fullGcMode);
+                    }
                     return;
                 }
                 collectDeletedProperties(doc, phases, op, traversedState);
@@ -1214,7 +1225,7 @@ public class VersionGarbageCollector {
                 garbageDocsCount++;
                 totalGarbageDocsCount++;
                 monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
-                AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
+                AUDIT_LOG.info("<Collected> [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
                 updateOpList.add(op);
             }
             if (log.isTraceEnabled() && op.hasChanges()) {
