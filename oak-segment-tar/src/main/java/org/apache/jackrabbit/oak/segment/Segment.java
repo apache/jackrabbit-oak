@@ -94,9 +94,9 @@ public class Segment {
     static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
     /**
-     * Maximum segment size
+     * Maximum segment size (in bytes)
      */
-    static final int MAX_SEGMENT_SIZE = 1 << 18; // 256kB
+    public static final int MAX_SEGMENT_SIZE = 1 << 18; // 256 KiB
 
     /**
      * The size limit for small values. The variable length of small values
