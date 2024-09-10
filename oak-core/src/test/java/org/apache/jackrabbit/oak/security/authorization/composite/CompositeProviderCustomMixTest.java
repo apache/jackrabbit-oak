@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -270,7 +270,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @Override
         public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
-            Set<String> in = Sets.newHashSet(privilegeNames);
+            Set<String> in = CollectionUtils.toSet(privilegeNames);
             return granted.containsAll(in);
         }
 

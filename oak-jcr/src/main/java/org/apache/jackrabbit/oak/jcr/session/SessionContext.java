@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +113,7 @@ public class SessionContext implements NamePathMapper {
     private final Set<String> openScopedLocks = newTreeSet();
 
     /** Paths of all session scoped locks held by this session. */
-    private final Set<String> sessionScopedLocks = newHashSet();
+    private final Set<String> sessionScopedLocks = new HashSet<>();
     
     private final SessionQuerySettings sessionQuerySettings;
 

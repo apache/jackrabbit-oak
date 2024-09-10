@@ -25,10 +25,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -230,7 +230,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private Set<String> loadFromFile(File file) throws IOException {
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = new HashSet<>();
         if (file.exists()) {
             result.addAll(Files.readLines(file, StandardCharsets.UTF_8));
         }
@@ -307,7 +307,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
                 return loader.call();
             } catch (Exception e) {
                 log.warn("Error occurred while loading the state via {}", loader, e);
-                return Sets.newHashSet();
+                return new HashSet<>();
             }
         }
     }

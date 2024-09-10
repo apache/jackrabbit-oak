@@ -26,7 +26,6 @@ import org.junit.Test;
 
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 
 public class ModifiedPathDiffTest {
@@ -48,7 +47,7 @@ public class ModifiedPathDiffTest {
         builder.getChildNode("a").child("xyz");
         builder.getChildNode("c").getChildNode("d").child("abc");
         Set<String> paths = ModifiedPathDiff.getModifiedPaths(base, builder.getNodeState());
-        assertEquals(newHashSet("/a/xyz", "/c/d/abc"), paths);
+        assertEquals(Set.of("/a/xyz", "/c/d/abc"), paths);
     }
 
     @Test
@@ -57,7 +56,7 @@ public class ModifiedPathDiffTest {
         builder.getChildNode("a").remove();
         builder.getChildNode("c").getChildNode("d").remove();
         Set<String> paths = ModifiedPathDiff.getModifiedPaths(base, builder.getNodeState());
-        assertEquals(newHashSet("/a", "/c/d"), paths);
+        assertEquals(Set.of("/a", "/c/d"), paths);
     }
 
     @Test
@@ -66,6 +65,6 @@ public class ModifiedPathDiffTest {
         builder.getChildNode("a").setProperty("x", 1l, Type.LONG);
         builder.getChildNode("c").getChildNode("d").setProperty("x", 1l, Type.LONG);
         Set<String> paths = ModifiedPathDiff.getModifiedPaths(base, builder.getNodeState());
-        assertEquals(newHashSet("/a", "/c/d"), paths);
+        assertEquals(Set.of("/a", "/c/d"), paths);
     }
 }

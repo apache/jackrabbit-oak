@@ -645,7 +645,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
 
                 long totalSize = nonExisting.size();
-                Set<String> memberContentIds = Sets.newHashSet(nonExisting.keySet());
+                Set<String> memberContentIds = new HashSet<>(nonExisting.keySet());
                 Set<String> failedContentIds = membershipProvider.addMembers(groupTree, nonExisting);
                 memberContentIds.removeAll(failedContentIds);
 

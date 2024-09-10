@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -149,7 +149,7 @@ public class NodeObserverTest {
                 @NotNull Set<String> changed,
                 @NotNull Map<String, String> properties,
                 @NotNull CommitInfo commitInfo) {
-            this.added.put(path, newHashSet(added));
+            this.added.put(path, new HashSet<>(added));
             if (!properties.isEmpty()) {
                 this.properties.put(path, new HashMap<>(properties));
             }
@@ -163,7 +163,7 @@ public class NodeObserverTest {
                 @NotNull Set<String> changed,
                 @NotNull Map<String, String> properties,
                 @NotNull CommitInfo commitInfo) {
-            this.deleted.put(path, newHashSet(deleted));
+            this.deleted.put(path, new HashSet< >(deleted));
             if (!properties.isEmpty()) {
                 this.properties.put(path, new HashMap<>(properties));
             }
@@ -177,7 +177,7 @@ public class NodeObserverTest {
                 @NotNull Set<String> changed,
                 @NotNull Map<String, String> properties,
                 @NotNull CommitInfo commitInfo) {
-            this.changed.put(path, newHashSet(changed));
+            this.changed.put(path, new HashSet<>(changed));
             if (!properties.isEmpty()) {
                 this.properties.put(path, new HashMap<>(properties));
             }

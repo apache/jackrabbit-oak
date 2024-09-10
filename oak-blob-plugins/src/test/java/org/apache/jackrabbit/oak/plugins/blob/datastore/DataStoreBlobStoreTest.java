@@ -32,13 +32,13 @@ import java.util.UUID;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
@@ -180,9 +180,9 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         when(mockedDS.getRecord(new DataIdentifier("d-30"))).thenReturn(new TimeDataRecord(d30));
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
+        Set<String> expected = Set.of("d-10","d-20");
         Iterator<String> chunks = ds.getAllChunkIds(25);
-        Set<String> expected = Sets.newHashSet("d-10","d-20");
-        assertEquals(expected, Sets.newHashSet(chunks));
+        assertEquals(expected, CollectionUtils.toSet(chunks));
     }
 
     @Test

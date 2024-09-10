@@ -26,6 +26,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -53,7 +54,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Randomized PermissionStore test. It generates a random structure (1110
@@ -76,10 +76,10 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
 
     private List<String> paths = new ArrayList<>();
 
-    final Set<String> allowU = Sets.newHashSet();
-    private final Set<String> denyU = Sets.newHashSet();
-    private final Set<String> allowG = Sets.newHashSet();
-    private final Set<String> denyG = Sets.newHashSet();
+    final Set<String> allowU = new HashSet<>();
+    private final Set<String> denyU = new HashSet<>();
+    private final Set<String> allowG = new HashSet<>();
+    private final Set<String> denyG = new HashSet<>();
 
     private ContentSession testSession;
     private final String groupId = "gr" + UUID.randomUUID();

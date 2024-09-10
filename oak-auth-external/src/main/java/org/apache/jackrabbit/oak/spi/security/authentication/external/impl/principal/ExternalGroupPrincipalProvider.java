@@ -385,7 +385,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
-                Set<Principal> groupPrincipals = Sets.newHashSet();
+                Set<Principal> groupPrincipals = new HashSet<>();
                 for (String principalName : ps.getValue(Type.STRINGS)) {
                     groupPrincipals.add(createExternalGroupPrincipal(principalName, idpName));
                 }

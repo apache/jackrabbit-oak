@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -40,7 +40,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -79,7 +78,7 @@ public class JournalDiffLoaderTest {
         merge(ns, builder);
         DocumentNodeState s2 = ns.getRoot();
 
-        assertEquals(newHashSet("foo"), changeChildNodes(ns, s1, s2));
+        assertEquals(Set.of("foo"), changeChildNodes(ns, s1, s2));
     }
 
     @Test
@@ -93,7 +92,7 @@ public class JournalDiffLoaderTest {
         DocumentNodeState s2 = ns.getRoot();
         ns.runBackgroundOperations();
 
-        assertEquals(newHashSet("foo"), changeChildNodes(ns, s1, s2));
+        assertEquals(Set.of("foo"), changeChildNodes(ns, s1, s2));
     }
 
     @Test
@@ -112,7 +111,7 @@ public class JournalDiffLoaderTest {
         merge(ns, builder);
         DocumentNodeState s2 = ns.getRoot();
 
-        assertEquals(newHashSet("foo", "bar"), changeChildNodes(ns, s1, s2));
+        assertEquals(Set.of("foo", "bar"), changeChildNodes(ns, s1, s2));
     }
 
     @Test
@@ -137,7 +136,7 @@ public class JournalDiffLoaderTest {
 
         DocumentNodeState s2 = ns.getRoot();
 
-        assertEquals(newHashSet("foo", "bar", "baz"), changeChildNodes(ns, s1, s2));
+        assertEquals(Set.of("foo", "bar", "baz"), changeChildNodes(ns, s1, s2));
     }
 
     @Test
@@ -163,7 +162,7 @@ public class JournalDiffLoaderTest {
 
         // will also report 'baz' because that change is also
         // present in the second journal entry
-        assertEquals(newHashSet("foo", "bar", "baz"), changeChildNodes(ns, s1, s2));
+        assertEquals(Set.of("foo", "bar", "baz"), changeChildNodes(ns, s1, s2));
     }
 
     @Test
@@ -192,7 +191,7 @@ public class JournalDiffLoaderTest {
         merge(ns1, builder);
 
         DocumentNodeState s2 = ns1.getRoot();
-        assertEquals(newHashSet("foo", "bar", "baz"), changeChildNodes(ns1, s1, s2));
+        assertEquals(Set.of("foo", "bar", "baz"), changeChildNodes(ns1, s1, s2));
     }
 
     @Test
@@ -296,7 +295,7 @@ public class JournalDiffLoaderTest {
 
         DocumentNodeState fooAfter = (DocumentNodeState) ns1.getRoot().getChildNode("foo");
         journalQueryCounter.set(0);
-        final Set<String> changes = Sets.newHashSet();
+        final Set<String> changes = new HashSet<>();
         fooAfter.compareAgainstBaseState(fooBefore, new DefaultNodeStateDiff() {
             @Override
             public boolean childNodeChanged(String name,
@@ -376,7 +375,7 @@ public class JournalDiffLoaderTest {
                                                 AbstractDocumentNodeState before,
                                                 AbstractDocumentNodeState after) {
         String diff = new JournalDiffLoader(before, after, store).call();
-        final Set<String> changes = newHashSet();
+        final Set<String> changes = new HashSet<>();
         DiffCache.parseJsopDiff(diff, new DiffCache.Diff() {
             @Override
             public boolean childNodeAdded(String name) {

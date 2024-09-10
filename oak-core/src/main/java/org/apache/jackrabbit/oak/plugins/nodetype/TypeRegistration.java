@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
@@ -66,6 +65,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPER
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_UUID;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -96,11 +96,11 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  */
 class TypeRegistration extends DefaultNodeStateDiff {
 
-    private final Set<String> addedTypes = newHashSet();
+    private final Set<String> addedTypes = new HashSet<>();
 
-    private final Set<String> changedTypes = newHashSet();
+    private final Set<String> changedTypes = new HashSet<>();
 
-    private final Set<String> removedTypes = newHashSet();
+    private final Set<String> removedTypes = new HashSet<>();
 
     /**
      * Checks whether any node type modifications were detected during
@@ -125,7 +125,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
      * @return names of modified or removed node types
      */
     Set<String> getModifiedTypes(NodeState beforeTypes) {
-        Set<String> types = newHashSet();
+        Set<String> types = new HashSet<>();
         for (String name : union(changedTypes, removedTypes)) {
             types.add(name);
             NodeState type = beforeTypes.getChildNode(name);

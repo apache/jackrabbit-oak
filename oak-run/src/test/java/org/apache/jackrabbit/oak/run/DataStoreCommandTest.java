@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -716,7 +718,7 @@ public class DataStoreCommandTest {
         DataStoreCommand cmd = new DataStoreCommand();
 
         cmd.execute(argsList.toArray(new String[0]));
-        assertFileEquals(dump, "avail-", Sets.newHashSet());
+        assertFileEquals(dump, "avail-", new HashSet<>());
         assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
     }
 
@@ -911,7 +913,7 @@ public class DataStoreCommandTest {
     private static Set<String> blobs(GarbageCollectableBlobStore blobStore) throws Exception {
         Iterator<String> cur = blobStore.getAllChunkIds(0);
 
-        Set<String> existing = Sets.newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -933,14 +935,11 @@ public class DataStoreCommandTest {
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, Type dsOption, Map<String, String> idToNodes,
         boolean encodeId) {
-
-        return Sets.newHashSet(Iterators.transform(ids.iterator(),
-                input -> Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
     }
 
     private static Set<String> encodeIds(Set<String> ids, Type dsOption) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(),
-                input -> encodeId(input, dsOption)));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> encodeId(input, dsOption)));
     }
 
 
@@ -983,11 +982,11 @@ public class DataStoreCommandTest {
         private Set<String> addedSubset;
 
         public Data() {
-            added = Sets.newHashSet();
+            added = new HashSet<>();
             idToPath = Maps.newHashMap();
-            deleted = Sets.newHashSet();
-            missingDataStore = Sets.newHashSet();
-            addedSubset = Sets.newHashSet();
+            deleted = new HashSet<>();
+            missingDataStore = new HashSet<>();
+            addedSubset = new HashSet<>();
         }
     }
 

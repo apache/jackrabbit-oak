@@ -247,7 +247,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 // remove rep:nodePath restriction before removing the entry from
                 // the node-based policy (see above for adding entries without
                 // this special restriction).
-                Set<Restriction> rstr = Sets.newHashSet(ace.getRestrictions());
+                Set<Restriction> rstr = new HashSet<>(ace.getRestrictions());
                 rstr.removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
                 acl.removeAccessControlEntry(new Entry(ace.getPrincipal(), ace.getPrivilegeBits(), ace.isAllow(), rstr, getNamePathMapper()));
                 setNodeBasedAcl(path, tree, acl);
@@ -599,7 +599,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Result aceResult = searchAces(principals, r);
         Set<AccessControlPolicy> effective = Sets.newTreeSet(new PolicyComparator());
 
-        Set<String> processed = Sets.newHashSet();
+        Set<String> processed = new HashSet<>();
         for (ResultRow row : aceResult.getRows()) {
             Tree aceTree = row.getTree(null);
             String acePath = aceTree.getPath();

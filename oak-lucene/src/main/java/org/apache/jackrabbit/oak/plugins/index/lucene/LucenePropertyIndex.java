@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,7 +43,6 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -155,7 +155,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_EXCERPT;
-import static org.apache.lucene.search.BooleanClause.Occur.*;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
 
 /**
  *
@@ -270,7 +272,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
             private final Deque<FulltextResultRow> queue = Queues.newArrayDeque();
-            private final Set<String> seenPaths = Sets.newHashSet();
+            private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
@@ -399,7 +401,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
 
-                            Set<String> excerptFields = Sets.newHashSet();
+                            Set<String> excerptFields = new HashSet<>();
                             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
                                 if (QueryConstants.REP_EXCERPT.equals(pr.propertyName)) {
                                     String value = pr.first.getValue(Type.STRING);
@@ -623,10 +625,10 @@ public class LucenePropertyIndex extends FulltextIndex {
     private Map<String, String> getExcerpt(Query query, Set<String> excerptFields,
                               Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc, FieldInfos fieldInfos)
             throws IOException {
-        Set<String> excerptFieldNames = Sets.newHashSet();
+        Set<String> excerptFieldNames = new HashSet<>();
         Map<String, String> fieldNameToColumnNameMap = Maps.newHashMap();
         Map<String, String> columnNameToExcerpts = Maps.newHashMap();
-        Set<String> nodeExcerptColumns = Sets.newHashSet();
+        Set<String> nodeExcerptColumns = new HashSet<>();
 
         excerptFields.forEach(columnName -> {
             String fieldName;

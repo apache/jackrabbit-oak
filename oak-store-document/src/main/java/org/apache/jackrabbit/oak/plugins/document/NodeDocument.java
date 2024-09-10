@@ -668,7 +668,7 @@ public final class NodeDocument extends Document {
     Set<Revision> getConflictsFor(@NotNull Iterable<Revision> changes) {
         requireNonNull(changes);
 
-        Set<Revision> conflicts = Sets.newHashSet();
+        Set<Revision> conflicts = new HashSet<>();
         Map<Revision, String> collisions = getLocalMap(COLLISIONS);
         for (Revision r : changes) {
             String value = collisions.get(r.asTrunkRevision());
@@ -743,7 +743,7 @@ public final class NodeDocument extends Document {
         // the clusterIds to check when walking the changes
         Set<Integer> clusterIds = Collections.emptySet();
         if (!getPreviousRanges().isEmpty()) {
-            clusterIds = Sets.newHashSet();
+            clusterIds = new HashSet<>();
             for (Revision prevRev : getPreviousRanges().keySet()) {
                 if (lower.isRevisionNewer(prevRev) ||
                         Objects.equals(prevRev, lower.getRevision(prevRev.getClusterId()))) {
@@ -1978,7 +1978,7 @@ public final class NodeDocument extends Document {
         SortedSet<Revision> mostRecentChanges = Sets.newTreeSet(REVERSE);
         mostRecentChanges.addAll(getLocalRevisions().keySet());
         mostRecentChanges.addAll(getLocalCommitRoot().keySet());
-        Set<Integer> clusterIds = Sets.newHashSet();
+        Set<Integer> clusterIds = new HashSet<>();
         for (Revision r : getLocalRevisions().keySet()) {
             clusterIds.add(r.getClusterId());
         }

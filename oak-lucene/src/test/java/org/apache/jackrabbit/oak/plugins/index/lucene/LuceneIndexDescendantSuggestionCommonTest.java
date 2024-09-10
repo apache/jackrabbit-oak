@@ -28,10 +28,10 @@ import org.junit.rules.TemporaryFolder;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import java.io.File;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -67,7 +67,7 @@ public class LuceneIndexDescendantSuggestionCommonTest extends IndexDescendantSu
         //Without path restriction indexing, descendant clause shouldn't be respected
         validateSuggestions(
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+                Set.of("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
 }

@@ -158,8 +158,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private class DataStoreState {
-        Set<String> blobsAdded = Sets.newHashSet();
-        Set<String> blobsPresent = Sets.newHashSet();
+        Set<String> blobsAdded = new HashSet<>();
+        Set<String> blobsPresent = new HashSet<>();
     }
     
     private HashSet<String> addInlined() throws Exception {
@@ -469,7 +469,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 mk.getNodeStore().getBlobStore();
         Iterator<String> cur = store.getAllChunkIds(0);
 
-        Set<String> existing = Sets.newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -507,7 +507,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             this.root = root;
             this.blobStore = blobStore;
             this.maxLastModifiedInterval = maxLastModifiedInterval;
-            this.additionalBlobs = Sets.newHashSet();
+            this.additionalBlobs = new HashSet<>();
         }
         
         @Override

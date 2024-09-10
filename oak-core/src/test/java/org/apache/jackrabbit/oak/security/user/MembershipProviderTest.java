@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -33,6 +32,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +86,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
     public void testRemoveNonMembers() throws Exception {
         Map<String, String> nonMemberIds = createIdMap(1, 5);
 
-        Set<String> expected = Sets.newHashSet(nonMemberIds.values());
+        Set<String> expected = new HashSet<>(nonMemberIds.values());
         Set<String> failed = mp.removeMembers(getTree(createGroup()), nonMemberIds);
         assertEquals(expected, failed);
     }
@@ -117,7 +117,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
             m.put(getContentID(memberTree), memberId);
         }
 
-        Set<String> expected = Sets.newHashSet(m.values());
+        Set<String> expected = new HashSet<>(m.values());
         Set<String> failed = mp.addMembers(getTree(grp), m);
         assertFalse(failed.isEmpty());
         assertEquals(expected, failed);

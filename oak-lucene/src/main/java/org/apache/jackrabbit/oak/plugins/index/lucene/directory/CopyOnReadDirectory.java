@@ -342,7 +342,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 .collect(Collectors.toSet())
         ;
 
-        Set<String> failedToDelete = Sets.newHashSet();
+        Set<String> failedToDelete = new HashSet<>();
 
         for (String fileName : filesToBeDeleted) {
             boolean deleted = indexCopier.deleteFile(local, fileName, true);

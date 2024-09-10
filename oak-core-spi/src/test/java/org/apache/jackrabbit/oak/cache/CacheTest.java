@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.valueOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -705,8 +704,8 @@ public class CacheTest {
 
     @Test
     public void evictionCallback() throws ExecutionException {
-        final Set<String> evictedKeys = newHashSet();
-        final Set<Integer> evictedValues = newHashSet();
+        final Set<String> evictedKeys = new HashSet<>();
+        final Set<Integer> evictedValues = new HashSet<>();
         CacheLIRS<String, Integer> cache = CacheLIRS.<String, Integer>newBuilder()
                 .maximumSize(100)
                 .evictionCallback(new EvictionCallback<String, Integer>() {

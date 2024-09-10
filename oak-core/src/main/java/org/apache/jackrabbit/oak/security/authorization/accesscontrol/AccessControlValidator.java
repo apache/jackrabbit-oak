@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.jcr.RepositoryException;
@@ -26,7 +27,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -204,7 +204,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             throw accessViolation(4, "Invalid policy node at " + policyTree.getPath() + ": Order of children is not stable.");
         }
 
-        Set<ValidationEntry> aceSet = Sets.newHashSet();
+        Set<ValidationEntry> aceSet = new HashSet<>();
         for (Tree child : policyTree.getChildren()) {
             if (isAccessControlEntry(child)) {
                 ValidationEntry entry = createAceEntry(parent.getPath(), child);

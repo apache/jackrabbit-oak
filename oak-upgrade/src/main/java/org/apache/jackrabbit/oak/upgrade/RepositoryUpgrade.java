@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
@@ -41,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -967,7 +967,7 @@ public class RepositoryUpgrade {
         }
 
         // include child nodes from source individually to avoid deleting other initialized content
-        final Set<String> includes = newHashSet();
+        final Set<String> includes = new HashSet<>();
         for (String childNodeName : sourceRoot.getChildNodeNames()) {
             includes.add("/" + childNodeName);
         }

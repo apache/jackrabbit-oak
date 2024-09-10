@@ -35,10 +35,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -65,7 +65,7 @@ public class CompositeCompareTest {
         builder.child("added");
         final NodeState modified = builder.getNodeState();
 
-        final Set<String> modifiedNodes = newHashSet();
+        final Set<String> modifiedNodes = new HashSet<>();
         modified.compareAgainstBaseState(base, new DefaultNodeStateDiff() {
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
@@ -119,7 +119,7 @@ public class CompositeCompareTest {
 
         NodeState modified = compositeNodeStore.getRoot();
 
-        final Set<String> addedProperties = newHashSet();
+        final Set<String> addedProperties = new HashSet<>();
         modified.compareAgainstBaseState(empty, new DefaultNodeStateDiff() {
             @Override
             public boolean propertyAdded(PropertyState after) {
@@ -155,7 +155,7 @@ public class CompositeCompareTest {
 
         NodeState modified = compositeNodeStore.getRoot();
 
-        final Set<String> addedChildren = newHashSet();
+        final Set<String> addedChildren = new HashSet<>();
         modified.compareAgainstBaseState(empty, new DefaultNodeStateDiff() {
             @Override
             public boolean childNodeAdded(String name, NodeState after) {

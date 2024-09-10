@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
@@ -1447,12 +1447,12 @@ public class CompactionAndCleanupIT {
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             fileStore.flush();
 
-            Set<String> expectedReferences = newHashSet();
+            Set<String> expectedReferences = new HashSet<>();
             fileStore.collectBlobReferences(expectedReferences::add);
 
             for(int k = 1; k <= 3; k++) {
                 fileStore.fullGC();
-                Set<String> actualReferences = newHashSet();
+                Set<String> actualReferences = new HashSet<>();
                 fileStore.collectBlobReferences(actualReferences::add);
                 assertEquals("Binary should be retained after " + k + "-th gc cycle",
                         expectedReferences, actualReferences);
