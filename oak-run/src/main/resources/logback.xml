@@ -55,10 +55,11 @@
   <!-- Display information messages from oak-run composite-prepare -->
   <logger name="org.apache.jackrabbit.oak.run.CompositePrepareCommand" level="INFO"/>
 
-  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditFGC" level="TRACE"/>
-  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector" level="DEBUG"/>
-  <logger name="org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport" level="DEBUG"/>
-  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations" level="DEBUG"/>
+  <!-- Display information messages from oak-run mongo full gc -->
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditFGC" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations" level="INFO"/>
 
   <root level="warn">
     <appender-ref ref="STDERR" />
