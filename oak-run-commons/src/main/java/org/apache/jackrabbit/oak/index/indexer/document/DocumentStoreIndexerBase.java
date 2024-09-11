@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeSto
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.ParallelIndexStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -173,7 +174,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                                                        IndexingReporter reporter) throws IOException {
         List<IndexStore> storeList = new ArrayList<>();
 
-        Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
+        Stopwatch indexStoreWatch = Stopwatch.createStarted();
         int executionCount = 1;
         CompositeException lastException = null;
         List<File> previousDownloadDirs = new ArrayList<>();
@@ -209,15 +210,24 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 if (splitFlatFile) {
                     storeList = builder.buildList(indexHelper, indexerSupport, indexDefinitions);
                 } else {
-                    storeList.add(builder.build(indexHelper, indexer));
+                    log.info("Building index store");
+                    IndexStore store = builder.build(indexHelper, indexer);
+                    int threads = IndexerConfiguration.indexThreadPoolSize();
+                    if (store instanceof ParallelIndexStore && threads > 1) {
+                        log.info("Indexing with {} threads", threads);
+                        ParallelIndexStore ps = (ParallelIndexStore) store;
+                        storeList.addAll(ps.buildParallelStores(threads));
+                    } else {
+                        storeList.add(store);
+                    }
                 }
                 for (IndexStore item : storeList) {
                     closer.register(item);
                 }
             } catch (CompositeException e) {
                 e.logAllExceptions("Underlying throwable caught during download", log);
-                log.info("Could not build flat file store. Execution count {}. Retries left {}. Time elapsed {}",
-                        executionCount, MAX_DOWNLOAD_ATTEMPTS - executionCount, flatFileStoreWatch);
+                log.info("Could not build index store. Execution count {}. Retries left {}. Time elapsed {}",
+                        executionCount, MAX_DOWNLOAD_ATTEMPTS - executionCount, indexStoreWatch);
                 lastException = e;
                 previousDownloadDirs.add(builder.getFlatFileStoreDir());
                 if (executionCount < MAX_DOWNLOAD_ATTEMPTS) {
@@ -233,9 +243,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             executionCount++;
         }
         if (storeList.isEmpty()) {
-            throw new IOException("Could not build flat file store", lastException);
+            throw new IOException("Could not build index store", lastException);
         }
-        log.info("Completed the flat file store build in {}", flatFileStoreWatch);
+        log.info("Completed the index store build in {}", indexStoreWatch);
         return storeList;
     }
 
@@ -432,10 +442,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     private void indexParallel(List<IndexStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
             throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(IndexerConfiguration.indexThreadPoolSize());
-        List<Future> futureList = new ArrayList<>();
+        List<Future<Boolean>> futureList = new ArrayList<>();
 
+        indexer.onIndexingStarting();
         for (IndexStore item : storeList) {
-            Future future = service.submit(() -> {
+            Future<Boolean> future = service.submit(() -> {
                 for (NodeStateEntry entry : item) {
                     reportDocumentRead(entry.getPath(), progressReporter);
                     log.trace("Indexing : {}", entry.getPath());
@@ -447,7 +458,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
 
         try {
-            for (Future future : futureList) {
+            for (Future<Boolean> future : futureList) {
                 future.get();
             }
             log.info("All {} indexing jobs are done", storeList.size());

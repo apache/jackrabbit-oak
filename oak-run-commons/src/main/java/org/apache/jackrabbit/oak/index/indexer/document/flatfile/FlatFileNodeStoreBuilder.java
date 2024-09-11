@@ -278,6 +278,7 @@ public class FlatFileNodeStoreBuilder {
         }
         prefetcher.setBlobSuffix(blobSuffix);
         prefetcher.startPrefetch();
+        indexingTreeStore.setPrefetcher(prefetcher);
         return indexingTreeStore;
     }
 
