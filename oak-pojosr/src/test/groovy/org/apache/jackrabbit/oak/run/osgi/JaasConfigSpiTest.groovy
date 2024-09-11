@@ -19,13 +19,11 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet
 import org.apache.felix.jaas.LoginModuleFactory
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration
 import org.jetbrains.annotations.NotNull
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.Credentials

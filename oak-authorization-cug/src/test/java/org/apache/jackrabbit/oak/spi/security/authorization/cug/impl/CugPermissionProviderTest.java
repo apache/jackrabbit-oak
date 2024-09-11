@@ -545,6 +545,15 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
      */
     @Test
+    public void testHasOneNullPrivilege() {
+        final Tree tree = root.getTree(PathUtils.ROOT_PATH);
+        assertFalse(cugPermProvider.hasPrivileges(tree, PrivilegeConstants.JCR_READ, null, PrivilegeConstants.JCR_WRITE));
+    }
+
+    /**
+     * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
+     */
+    @Test
     public void testHasPrivilegesNonExistingVersionTree() {
         Tree versionTree = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class, ReadOnly.class));
         when(versionTree.exists()).thenReturn(false);

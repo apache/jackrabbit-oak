@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
@@ -344,7 +345,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
      */
     @Override
     public void evicted(K key, V value, RemovalCause cause) {
-        if (async && EVICTION_CAUSES.contains(cause) && value != null) {
+        if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
             boolean qualifiesToPersist = true;
             if (metadata != null && metadata.isReadFromPersistentCache()) {

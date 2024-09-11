@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
@@ -141,7 +142,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             return false;
         }
         for (String privilegeName : privilegeNames) {
-            if (!READ_PRIVILEGE_NAMES.contains(privilegeName)) {
+            if (Objects.nonNull(privilegeName) && !READ_PRIVILEGE_NAMES.contains(privilegeName)) {
                 return false;
             }
         }
