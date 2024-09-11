@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -75,7 +75,7 @@ public class PropertyIndexStatsTest {
 
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
 
         setProperty(builder, "/a/b/c", "foo", "x");
         setProperty(builder, "/a/e/c/d", "foo", "y");
@@ -100,7 +100,7 @@ public class PropertyIndexStatsTest {
 
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
 
         for (int i = 0; i < 10; i++) {
             setProperty(builder, "/a/b/c/d" + i, "foo", "x");

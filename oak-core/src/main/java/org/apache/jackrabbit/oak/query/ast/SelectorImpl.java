@@ -205,9 +205,9 @@ public class SelectorImpl extends SourceImpl {
                 primaryTypes.add(nodeTypeName);
             }
         } else {
-            this.supertypes = ImmutableSet.of();
-            this.primaryTypes = ImmutableSet.of();
-            this.mixinTypes = ImmutableSet.of();
+            this.supertypes = Set.of();
+            this.primaryTypes = Set.of();
+            this.mixinTypes = Set.of();
         }
     }
 

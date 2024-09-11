@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -124,7 +124,7 @@ public class VersionablePathHook implements CommitHook {
                 if (!vhBuilder.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
                     vhBuilder.setProperty(
                             JcrConstants.JCR_MIXINTYPES,
-                            ImmutableSet.of(MIX_REP_VERSIONABLE_PATHS),
+                            Set.of(MIX_REP_VERSIONABLE_PATHS),
                             Type.NAMES);
                 }
 

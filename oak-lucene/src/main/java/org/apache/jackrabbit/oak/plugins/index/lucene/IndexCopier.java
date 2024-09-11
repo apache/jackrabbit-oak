@@ -70,7 +70,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
  * Copies index files to/from the local disk and the datastore.
  */
 public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
-    public static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
+    public static final Set<String> REMOTE_ONLY = Set.of("segments.gen");
     private static final int MAX_FAILURE_ENTRIES = 10000;
     private static final String WORK_DIR_NAME = "indexWriterDir";
 

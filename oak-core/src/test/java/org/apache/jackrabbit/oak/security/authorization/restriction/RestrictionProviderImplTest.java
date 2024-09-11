@@ -105,7 +105,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         int expectedSize = (asComposite) ? 8 : 7;
         assertEquals(expectedSize, defs.size());
 
-        Set<String> stringsPropNames = ImmutableSet.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES);
+        Set<String> stringsPropNames = Set.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES);
         for (RestrictionDefinition def : defs) {
             if (REP_GLOB.equals(def.getName())) {
                 assertEquals(Type.STRING, def.getRequiredType());
@@ -245,12 +245,12 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetPatternFromRestrictionsNullPath() {
-        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, ImmutableSet.of(mock(Restriction.class))));
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, Set.of(mock(Restriction.class))));
     }
 
     @Test
     public void testGetPatternFromEmptyRestrictions() {
-        assertSame(RestrictionPattern.EMPTY, provider.getPattern("/testPath", ImmutableSet.of()));
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern("/testPath", Set.of()));
     }
 
     @Test(expected = AccessControlException.class)

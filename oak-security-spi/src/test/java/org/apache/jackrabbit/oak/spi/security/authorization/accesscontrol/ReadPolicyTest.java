@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -41,7 +41,7 @@ public class ReadPolicyTest {
     public void testHasEffectiveReadPolicyNullPath() {
         assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.emptySet(), null));
         assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), null));
-        assertFalse(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/path", "/another/path"), null));
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Set.of("/some/path", "/another/path"), null));
     }
 
     @Test
@@ -54,9 +54,9 @@ public class ReadPolicyTest {
         
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path), path));
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), path));
-        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/random"), path));
-        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", "/some/random/path"), path));
-        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", PathUtils.ROOT_PATH), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(Set.of("/some/random"), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(Set.of("/another/path", "/some/random/path"), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(Set.of("/another/path", PathUtils.ROOT_PATH), path));
     }
     
     @Test

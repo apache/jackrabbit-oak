@@ -49,7 +49,7 @@ public class PermissionEntryProviderImplTest {
     @Test
     public void testInitLongOverflow() throws Exception {
         MockPermissionStore store = new MockPermissionStore();
-        Set<String> principalNames = ImmutableSet.of(GROUP_LONG_MAX);
+        Set<String> principalNames = Set.of(GROUP_LONG_MAX);
 
         /*
         create a new PermissionEntryProviderImpl to have it's #init() method
@@ -72,7 +72,7 @@ public class PermissionEntryProviderImplTest {
     @Test
     public void testInitLongOverflow2() throws Exception {
         MockPermissionStore store = new MockPermissionStore();
-        Set<String> principalNames = ImmutableSet.of(GROUP_LONG_MAX_MINUS_10, GROUP_50);
+        Set<String> principalNames = Set.of(GROUP_LONG_MAX_MINUS_10, GROUP_50);
 
         /*
         create a new PermissionEntryProviderImpl to have it's #init() method

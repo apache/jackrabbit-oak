@@ -136,7 +136,7 @@ public final class Permissions {
             | INDEX_DEFINITION_MANAGEMENT
     );
 
-    private static final Set<Long> NON_AGGREGATES = ImmutableSet.of(
+    private static final Set<Long> NON_AGGREGATES = Set.of(
             READ_NODE,
             READ_PROPERTY,
             ADD_PROPERTY,
@@ -219,7 +219,7 @@ public final class Permissions {
         PERMISSION_LOOKUP.put("INDEX_DEFINITION_MANAGEMENT", INDEX_DEFINITION_MANAGEMENT);
     }
 
-    private static final Set<String> WRITE_ACTIONS = ImmutableSet.of(
+    private static final Set<String> WRITE_ACTIONS = Set.of(
             Session.ACTION_REMOVE,
             Session.ACTION_ADD_NODE,
             Session.ACTION_SET_PROPERTY,
@@ -253,7 +253,7 @@ public final class Permissions {
      */
     public static Set<String> getNames(long permissions) {
         if (PERMISSION_NAMES.containsKey(permissions)) {
-            return ImmutableSet.of(PERMISSION_NAMES.get(permissions));
+            return Set.of(PERMISSION_NAMES.get(permissions));
         } else {
             Set<String> names = new HashSet<>();
             for (Map.Entry<Long, String> entry : PERMISSION_NAMES.entrySet()) {

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.upgrade;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
@@ -943,8 +942,8 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
+        final Set<String> excludes = union(copyOf(this.excludePaths), Set.of("/jcr:system/jcr:versionStorage"));
+        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 

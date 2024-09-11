@@ -76,7 +76,7 @@ public class CompositeProviderFullScopeTest extends AbstractCompositeProviderTes
     public void testGetPrivileges() throws Exception {
         PrivilegeBitsProvider pbp = new PrivilegeBitsProvider(readOnlyRoot);
         PrivilegeBits readNodes = pbp.getBits(REP_READ_NODES);
-        Set<String> expected = ImmutableSet.of(REP_READ_NODES);
+        Set<String> expected = Set.of(REP_READ_NODES);
 
         for (String path : defPrivileges.keySet()) {
             Set<String> defaultPrivs = defPrivileges.get(path);
@@ -93,7 +93,7 @@ public class CompositeProviderFullScopeTest extends AbstractCompositeProviderTes
 
     @Test
     public void testGetPrivilegesAdmin() throws Exception {
-        Set<String> expected = ImmutableSet.of(REP_READ_NODES);
+        Set<String> expected = Set.of(REP_READ_NODES);
 
         for (String path : NODE_PATHS) {
             Tree tree = readOnlyRoot.getTree(path);
@@ -103,13 +103,13 @@ public class CompositeProviderFullScopeTest extends AbstractCompositeProviderTes
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        Set<String> expected = ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT);
+        Set<String> expected = Set.of(JCR_NAMESPACE_MANAGEMENT);
         assertEquals(expected, cppTestUser.getPrivileges(null));
     }
 
     @Test
     public void testGetPrivilegesOnRepoAdmin() throws Exception {
-        Set<String> expected = ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT);
+        Set<String> expected = Set.of(JCR_NAMESPACE_MANAGEMENT);
         assertEquals(expected, cppAdminUser.getPrivileges(null));
     }
 

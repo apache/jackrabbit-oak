@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -32,7 +32,6 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.ConfigurationSpi;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
@@ -121,7 +120,7 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPreAuthLoginContext() {
-        Subject subject = new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of());
+        Subject subject = new Subject(true, Set.of(), Set.of(), Set.of());
         LoginContext ctx = Subject.doAs(subject, (PrivilegedAction<LoginContext>) () -> {
             try {
                 return lcProvider.getLoginContext(null, null);

@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -76,7 +76,7 @@ public class IndexTrackerTest {
     @Test
     public void update() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+        newLucenePropertyIndexDefinition(index, "lucene", Set.of("foo"), "async");
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -215,7 +215,7 @@ public class IndexTrackerTest {
         IndexTracker tracker2 = new IndexTracker();
 
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+        newLucenePropertyIndexDefinition(index, "lucene", Set.of("foo"), "async");
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -258,7 +258,7 @@ public class IndexTrackerTest {
     public void avoidNonStatusChanges() throws Exception{
 
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+        newLucenePropertyIndexDefinition(index, "lucene", Set.of("foo"), "async");
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -309,7 +309,7 @@ public class IndexTrackerTest {
 
     private void createIndex(String propName){
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, propName, ImmutableSet.of(propName), "async");
+        newLucenePropertyIndexDefinition(index, propName, Set.of(propName), "async");
     }
 
 }

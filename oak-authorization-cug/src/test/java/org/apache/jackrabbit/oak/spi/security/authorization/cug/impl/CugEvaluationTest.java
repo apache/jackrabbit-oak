@@ -380,8 +380,8 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testGetPrivilegesTestGroup() {
-        Set<String> w_rac = ImmutableSet.of(PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        Set<String> r_w_rac = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Set<String> w_rac = Set.of(PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Set<String> r_w_rac = Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
         // testGroup
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
@@ -405,7 +405,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testGetPrivilegesTestGroupEveryone() {
-        Set<String> r_w_rac = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Set<String> r_w_rac = Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
         // testGroup + everyone
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal, EveryonePrincipal.getInstance());
@@ -421,7 +421,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         // testUser + everyone
         PermissionProvider pp = createPermissionProvider(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
 
-        Set<String> r = ImmutableSet.of(PrivilegeConstants.JCR_READ);
+        Set<String> r = Set.of(PrivilegeConstants.JCR_READ);
         assertEquals(r, pp.getPrivileges(content));
         assertEquals(r, pp.getPrivileges(c));
 

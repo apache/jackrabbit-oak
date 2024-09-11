@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -34,6 +33,7 @@ import org.junit.Test;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
@@ -129,8 +129,8 @@ public class RestoreParentNestedCugTest extends AbstractCugTest {
     private void removeParentCug() throws Exception {
         Tree cugPolicyNode = root.getTree("/content/a/rep:cugPolicy");
         cugPolicyNode.removeProperty(HIDDEN_NESTED_CUGS); // remove :nestedCug from rep:cugPolicy
-        PropertyState ps1 = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, ImmutableSet.of(TEST_GROUP_ID), Type.STRINGS);
-        PropertyState ps2 = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, ImmutableSet.of(TEST_GROUP2_ID), Type.STRINGS);
+        PropertyState ps1 = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, Set.of(TEST_GROUP_ID), Type.STRINGS);
+        PropertyState ps2 = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, Set.of(TEST_GROUP2_ID), Type.STRINGS);
         root.getTree("/content/a/b1/rep:cugPolicy").setProperty(ps1);
         root.getTree("/content/a/b2/rep:cugPolicy").setProperty(ps2);
         root.commit(); // should restore :nestedCugs in "/content/a/rep:cugPolicy"

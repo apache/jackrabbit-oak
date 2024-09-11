@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -95,7 +94,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
                                 "foo",
                                 true,
                                 false,
-                                ImmutableSet.of("illegal:namespaceProperty"), null);
+                                Set.of("illegal:namespaceProperty"), null);
                     }
                 })
                 .createContentRepository();

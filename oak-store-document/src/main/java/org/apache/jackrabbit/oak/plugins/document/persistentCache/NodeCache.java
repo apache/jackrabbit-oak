@@ -54,7 +54,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
-    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
+    private static final Set<RemovalCause> EVICTION_CAUSES = Set.of(COLLECTED, EXPIRED, SIZE);
 
     private final PersistentCache cache;
     private final PersistentCacheStats stats;

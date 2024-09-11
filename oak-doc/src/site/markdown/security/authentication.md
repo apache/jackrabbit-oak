@@ -153,7 +153,7 @@ Subclasses are required to implement the following methods:
         @Nonnull
         @Override
         protected Set<Class> getSupportedCredentials() {
-            return ImmutableSet.of(TestCredentials.class);
+            return Set.of(TestCredentials.class);
         }
 
         @Override

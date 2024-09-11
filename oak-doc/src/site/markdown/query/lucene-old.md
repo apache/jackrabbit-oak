@@ -72,9 +72,9 @@ Example:
         .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
         .setProperty("type", "lucene")
         .setProperty("async", "async")
-        .setProperty(PropertyStates.createProperty("includePropertyTypes", ImmutableSet.of(
+        .setProperty(PropertyStates.createProperty("includePropertyTypes", Set.of(
             PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), Type.STRINGS))
-        .setProperty(PropertyStates.createProperty("excludePropertyNames", ImmutableSet.of( 
+        .setProperty(PropertyStates.createProperty("excludePropertyNames", Set.of( 
             "jcr:createdBy", "jcr:lastModifiedBy"), Type.STRINGS))
         .setProperty("reindex", true);
     }

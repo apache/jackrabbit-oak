@@ -132,7 +132,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of());
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of());
         syncContext.syncMembership(mod, a, membershipNestingDepth);
 
         assertSyncedMembership(userManager, a, mod, membershipNestingDepth);
@@ -147,7 +147,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         // sync user with modified membership => must be reflected
         // 2. set with different groups that defined on IDP
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of(
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of(
                 idp.getGroup("a").getExternalId(),
                 idp.getGroup("aa").getExternalId(),
                 idp.getGroup("secondGroup").getExternalId()));

@@ -148,7 +148,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             CugPolicy cug = getCugPolicy(oakPath);
             if (cug == null) {
                 cug = new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), cugExclude);
-                return new AccessControlPolicyIteratorAdapter(ImmutableSet.of(cug));
+                return new AccessControlPolicyIteratorAdapter(Set.of(cug));
             } else {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
             }

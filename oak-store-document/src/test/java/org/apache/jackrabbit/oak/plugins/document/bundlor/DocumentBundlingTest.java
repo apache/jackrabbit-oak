@@ -679,8 +679,8 @@ public class DocumentBundlingTest {
         merge(builder);
         DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
         assertTrue(appNode.hasOnlyBundledChildren());
-        assertEquals(ImmutableSet.of("jcr:content"), appNode.getBundledChildNodeNames());
-        assertEquals(ImmutableSet.of("metadata", "renditions"),
+        assertEquals(Set.of("jcr:content"), appNode.getBundledChildNodeNames());
+        assertEquals(Set.of("metadata", "renditions"),
                 asDocumentState(appNode.getChildNode("jcr:content")).getBundledChildNodeNames());
 
         builder = store.getRoot().builder();
@@ -1102,7 +1102,7 @@ public class DocumentBundlingTest {
     }
 
     private static class AssertingDiff implements NodeStateDiff {
-        private final Set<String> ignoredProps = ImmutableSet.of(
+        private final Set<String> ignoredProps = Set.of(
                 DocumentBundlor.META_PROP_PATTERN,
                 META_PROP_BUNDLED_CHILD,
                 DocumentBundlor.META_PROP_NON_BUNDLED_CHILD

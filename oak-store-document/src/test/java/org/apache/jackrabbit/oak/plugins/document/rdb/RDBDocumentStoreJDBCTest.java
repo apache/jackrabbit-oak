@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -251,10 +250,10 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             rst.close();
 
             if (partialSuccess) {
-                assertEquals("Some of the rows weren't inserted.", of("key-1", "key-2", "key-3"), ids);
+                assertEquals("Some of the rows weren't inserted.", Set.of("key-1", "key-2", "key-3"), ids);
             }
             else {
-                assertEquals("Failure reported, but rows inserted.", of("key-3"), ids);
+                assertEquals("Failure reported, but rows inserted.", Set.of("key-3"), ids);
             }
         } finally {
             con.close();

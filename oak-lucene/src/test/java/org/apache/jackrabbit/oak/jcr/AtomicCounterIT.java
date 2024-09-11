@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -74,7 +73,7 @@ public class AtomicCounterIT {
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder lucene = newLuceneIndexDefinition(index, "lucene", ImmutableSet.of("String"), null, "async");
+        NodeBuilder lucene = newLuceneIndexDefinition(index, "lucene", Set.of("String"), null, "async");
         lucene.setProperty("async", of("async", "nrt"), STRINGS);
         IndexDefinition.updateDefinition(index.child("lucene"));
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

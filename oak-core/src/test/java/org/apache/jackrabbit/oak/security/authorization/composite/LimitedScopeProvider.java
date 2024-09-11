@@ -59,8 +59,8 @@ import org.jetbrains.annotations.Nullable;
  */
 class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeConstants {
 
-    private static final Set<String> GRANTED_PRIVS = ImmutableSet.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
-    private static final Set<String> DENIED_PRIVS = ImmutableSet.of(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES);
+    private static final Set<String> GRANTED_PRIVS = Set.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+    private static final Set<String> DENIED_PRIVS = Set.of(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES);
 
     private static final long GRANTED_PERMS = Permissions.REMOVE_NODE | Permissions.REMOVE_PROPERTY | Permissions.MODIFY_PROPERTY;
     private static final long DENIED_PERMS = Permissions.ADD_NODE | Permissions.ADD_PROPERTY;
@@ -74,11 +74,11 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         if (tree == null) {
-            return ImmutableSet.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
+            return Set.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
         } else if (isSupported(tree)) {
-            return ImmutableSet.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+            return Set.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
         } else {
-            return ImmutableSet.of();
+            return Set.of();
         }
     }
 

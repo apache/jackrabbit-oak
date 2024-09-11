@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -51,7 +50,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
@@ -73,7 +71,7 @@ public class AsyncPropertyIndexTest {
         //add a property index on 'foo'
         NodeBuilder def = createIndexDefinition(
                 builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false,
-                of("foo"), null);
+                Set.of("foo"), null);
         def.setProperty(REINDEX_ASYNC_PROPERTY_NAME, true);
 
         // add some content
@@ -86,7 +84,7 @@ public class AsyncPropertyIndexTest {
         FilterImpl f = createFilter(head, NT_BASE);
         PropertyIndexLookup lookup = new PropertyIndexLookup(head);
         try {
-            assertEquals(of(), find(lookup, "foo", "abc", f));
+            assertEquals(Set.of(), find(lookup, "foo", "abc", f));
             fail();
         } catch (IllegalArgumentException e) {
             // expected: no index for "foo"
@@ -113,7 +111,7 @@ public class AsyncPropertyIndexTest {
         head = store.merge(builder, hook, EMPTY);
         f = createFilter(head, NT_BASE);
         lookup = new PropertyIndexLookup(head);
-        assertEquals(ImmutableSet.of("b", "c"), find(lookup, "foo", "def", f));
+        assertEquals(Set.of("b", "c"), find(lookup, "foo", "def", f));
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {

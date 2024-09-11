@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_WRITE;
@@ -37,7 +38,7 @@ public class ValidationEntryTest extends AbstractAccessControlTest {
     @Before
     public void before() throws Exception {
         super.before();
-        entry = new ValidationEntry("principalName", PrivilegeBits.BUILT_IN.get(JCR_WRITE), false, ImmutableSet.of(mock(Restriction.class)));
+        entry = new ValidationEntry("principalName", PrivilegeBits.BUILT_IN.get(JCR_WRITE), false, Set.of(mock(Restriction.class)));
     }
 
     @Test
@@ -52,7 +53,7 @@ public class ValidationEntryTest extends AbstractAccessControlTest {
         assertNotEquals(entry, new ValidationEntry("other", entry.privilegeBits, entry.isAllow, entry.restrictions));
         assertNotEquals(entry, new ValidationEntry(entry.principalName, PrivilegeBits.BUILT_IN.get(REP_WRITE), entry.isAllow, entry.restrictions));
         assertNotEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, !entry.isAllow, entry.restrictions));
-        assertNotEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, ImmutableSet.of()));
+        assertNotEquals(entry, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, Set.of()));
         assertNotEquals(entry, createEntry(new PrincipalImpl(entry.principalName), entry.privilegeBits, entry.isAllow, entry.restrictions));
     }
 
@@ -66,6 +67,6 @@ public class ValidationEntryTest extends AbstractAccessControlTest {
         assertNotEquals(hc, new ValidationEntry("other", entry.privilegeBits, entry.isAllow, entry.restrictions).hashCode());
         assertNotEquals(hc, new ValidationEntry(entry.principalName, PrivilegeBits.BUILT_IN.get(REP_WRITE), entry.isAllow, entry.restrictions).hashCode());
         assertNotEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, !entry.isAllow, entry.restrictions).hashCode());
-        assertNotEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, ImmutableSet.of()).hashCode());
+        assertNotEquals(hc, new ValidationEntry(entry.principalName, entry.privilegeBits, entry.isAllow, Set.of()).hashCode());
     }
 }

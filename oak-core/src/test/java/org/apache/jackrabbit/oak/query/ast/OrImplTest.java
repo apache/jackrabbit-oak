@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -35,14 +34,14 @@ public class OrImplTest {
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         or = new OrImpl(op1, op2);
-        expected = of(op1, op2);
+        expected = Set.of(op1, op2);
         assertThat(or.convertToUnion(), Matchers.is(expected));
         
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         op3 = mock(ComparisonImpl.class);
         or = new OrImpl(new OrImpl(op1, op2), op3);
-        expected = of(op1, op2, op3);
+        expected = Set.of(op1, op2, op3);
         assertThat(or.convertToUnion(), Matchers.is(expected));
 
         op1 = mock(ComparisonImpl.class);
@@ -50,7 +49,7 @@ public class OrImplTest {
         op3 = mock(ComparisonImpl.class);
         op4 = mock(ComparisonImpl.class);
         or = new OrImpl(new OrImpl(new OrImpl(op1, op4), op2), op3);
-        expected = of(op1, op2, op3, op4);
+        expected = Set.of(op1, op2, op3, op4);
         assertThat(or.convertToUnion(), Matchers.is(expected));
     }
 

@@ -348,7 +348,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             }
         };
 
-        Subject subject = new Subject(false, ImmutableSet.of(), ImmutableSet.of(unsupportedCredentials), ImmutableSet.of());
+        Subject subject = new Subject(false, Set.of(), Set.of(unsupportedCredentials), Set.of());
         LoginModuleImpl lm = createLoginModule(subject, cbh, Maps.newHashMap());
         assertFalse(lm.login());
 
@@ -370,7 +370,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Map<String, Object> sharedState = Maps.newHashMap();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
-        Subject subject = new Subject(false, ImmutableSet.of(foreignPrincipal), ImmutableSet.of(), ImmutableSet.of());
+        Subject subject = new Subject(false, Set.of(foreignPrincipal), Set.of(), Set.of());
         LoginModuleImpl lm = createLoginModule(subject, createCallbackHandler(uaf), sharedState);
         assertTrue(lm.login());
         assertTrue(lm.commit());
@@ -495,7 +495,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testMissingSecurityProviderGuestLogin() throws Exception {
         CallbackHandler cbh = createCallbackHandler(getContentRepository(), null);
 
-        LoginModuleImpl loginModule = createLoginModule(new Subject(false, ImmutableSet.of(), ImmutableSet.of(new GuestCredentials()), ImmutableSet.of()), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(false, Set.of(), Set.of(new GuestCredentials()), Set.of()), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -588,7 +588,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(factory);
         SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
-        Subject subject = new Subject(false, new HashSet<>(), ImmutableSet.of(creds), new HashSet<>());
+        Subject subject = new Subject(false, new HashSet<>(), Set.of(creds), new HashSet<>());
 
         LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
@@ -628,7 +628,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         };
 
         CallbackHandler cbh = createCallbackHandler(factory);
-        Subject subject = new Subject(false, new HashSet<>(), ImmutableSet.of(), new HashSet<>());
+        Subject subject = new Subject(false, new HashSet<>(), Set.of(), new HashSet<>());
 
         LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
@@ -649,7 +649,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testCommitReadOnlySubject() throws Exception {
         Principal principal = new PrincipalImpl("subjetPrincipal");
-        Subject subject = new Subject(true, ImmutableSet.of(principal), ImmutableSet.of(), ImmutableSet.of());
+        Subject subject = new Subject(true, Set.of(principal), Set.of(), Set.of());
 
         Map<String, Object> shared = Maps.newHashMap();
         shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));

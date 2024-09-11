@@ -89,7 +89,7 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
         @NotNull
         @Override
         protected Set<Class> getSupportedCredentials() {
-            return ImmutableSet.of(SimpleCredentials.class)
+            return Set.of(SimpleCredentials.class)
         }
 
         @Override
@@ -125,7 +125,7 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
 
         @Override
         boolean logout() throws LoginException {
-            return super.logout(ImmutableSet.of(credentials), principals);
+            return super.logout(Set.of(credentials), principals);
         }
     }
 }

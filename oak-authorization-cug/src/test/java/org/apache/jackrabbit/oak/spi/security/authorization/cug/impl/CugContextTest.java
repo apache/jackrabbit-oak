@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.List;
+import java.util.Set;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -138,7 +138,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
 
     @Test
     public void testInvalidCug() throws Exception {
-        PropertyState ps = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, ImmutableSet.of(getTestUser().getPrincipal().getName()), Type.STRINGS);
+        PropertyState ps = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, Set.of(getTestUser().getPrincipal().getName()), Type.STRINGS);
 
         // cug at unsupported path -> context doesn't take supported paths into account.
         Tree invalidCug = TreeUtil.addChild(root.getTree(UNSUPPORTED_PATH), CugConstants.REP_CUG_POLICY, CugConstants.NT_REP_CUG_POLICY);

@@ -299,7 +299,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertTrue(lm.login());
         assertTrue(lm.commit());
 
-        assertEquals(ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance()), subject.getPrincipals());
+        assertEquals(Set.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance()), subject.getPrincipals());
         assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
         assertFalse(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
 

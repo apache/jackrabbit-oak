@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE;
 import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE_EXPIRY;
@@ -28,11 +29,11 @@ public class TokenConstantsTest {
 
     @Test
     public void testReservedAttributes() {
-        assertEquals(ImmutableSet.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY), TokenConstants.RESERVED_ATTRIBUTES);
+        assertEquals(Set.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY), TokenConstants.RESERVED_ATTRIBUTES);
     }
 
     @Test
     public void testPropertyNames() {
-        assertEquals(ImmutableSet.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY), TokenConstants.TOKEN_PROPERTY_NAMES);
+        assertEquals(Set.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY), TokenConstants.TOKEN_PROPERTY_NAMES);
     }
 }

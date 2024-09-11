@@ -60,8 +60,8 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -152,7 +152,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Test
     public void simpleAsyncIndexUpdateBasedBlobCollection() throws Exception {
-        createIndex("test1", of("propa"));
+        createIndex("test1", Set.of("propa"));
         root.getTree("/oak:index/counter").remove();
         root.commit();
         asyncIndexUpdate.run();
@@ -190,7 +190,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Test
     public void dontDeleteIfIndexingFailed() throws Exception {
-        createIndex("test1", of("propa"));
+        createIndex("test1", Set.of("propa"));
         root.getTree("/oak:index/counter").remove();
         root.commit();
         asyncIndexUpdate.run();

@@ -26,7 +26,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_BINARY;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -53,7 +52,7 @@ import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.USER_PRO
  */
 public class IndexHelper {
 
-    public static final Set<String> JR_PROPERTY_INCLUDES = of(TYPENAME_STRING,
+    public static final Set<String> JR_PROPERTY_INCLUDES = Set.of(TYPENAME_STRING,
             TYPENAME_BINARY);
 
     /**
