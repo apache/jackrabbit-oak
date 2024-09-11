@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSor
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.Prefetcher;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -234,7 +235,7 @@ public class FlatFileNodeStoreBuilder {
         File metadataFile = indexStoreFiles.metadataFile;
         File file = indexStoreFiles.storeFiles.get(0);
         IndexStore store;
-        if (file.isDirectory()) {
+        if (file.isDirectory() || FilePacker.isPackFile(file)) {
             store = buildTreeStoreForIndexing(indexHelper, file);
         } else {
             store = new FlatFileStore(blobStore, file, metadataFile,
@@ -362,12 +363,12 @@ public class FlatFileNodeStoreBuilder {
                     (dir, name) -> name.endsWith(IndexStoreUtils.getMetadataFileName(algorithm)));
 
             if (storeFiles != null && storeFiles.length != 0) {
-                // Not throwing error for backward compatibility
                 if (metadataFiles == null || metadataFiles.length == 0) {
-                    log.error("Unable to find metadata file in directory:{}", sortedDir.getAbsolutePath());
+                    // the tree store doesn't need a metadata file
+                    log.info("No metadata file found in directory: {}", sortedDir.getAbsolutePath());
                     return new IndexStoreFiles(Arrays.asList(storeFiles), null);
                 } else {
-                    checkState(metadataFiles.length == 1, "Multiple metadata files available at path:{}, metadataFiles:{}", sortedDir.getAbsolutePath(),
+                    checkState(metadataFiles.length == 1, "Multiple metadata files available at path: {}, metadataFiles: {}", sortedDir.getAbsolutePath(),
                             Arrays.asList(metadataFiles));
                     return new IndexStoreFiles(Arrays.asList(storeFiles), metadataFiles[0]);
                 }

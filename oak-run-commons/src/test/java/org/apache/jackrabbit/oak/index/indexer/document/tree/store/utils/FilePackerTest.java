@@ -47,16 +47,35 @@ public class FilePackerTest {
     public static TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
+    public void tinyFile() throws IOException {
+        File tiny = temporaryFolder.newFile();
+        assertFalse(FilePacker.isPackFile(tiny));
+        RandomAccessFile f = new RandomAccessFile(tiny, "rw");
+        f.write('P');
+        f.close();
+        assertFalse(FilePacker.isPackFile(tiny));
+        f = new RandomAccessFile(tiny, "rw");
+        f.write('P');
+        f.write('A');
+        f.write('C');
+        f.write('K');
+        f.close();
+        assertTrue(FilePacker.isPackFile(tiny));
+    }
+
+    @Test
     public void headerMismatch() throws IOException {
-        File pack = temporaryFolder.newFile("pack");
-        File dir = temporaryFolder.newFolder("sourceDir");
+        File pack = temporaryFolder.newFile();
+        File dir = temporaryFolder.newFolder();
         RandomAccessFile f = new RandomAccessFile(pack, "rw");
         f.writeUTF("test");
         try {
+            assertFalse(FilePacker.isPackFile(dir));
             FilePacker.unpack(pack, dir, false);
             fail();
         } catch (IOException e) {
-            assertTrue(e.getMessage().startsWith("File header is not 'PACK'"));
+            e.printStackTrace(System.out);
+            assertTrue(e.getMessage(), e.getMessage().startsWith("File header is not 'PACK'"));
         }
         f.close();
         pack.delete();
@@ -66,6 +85,7 @@ public class FilePackerTest {
     public void sourceIsDirectory() throws IOException {
         File dir = temporaryFolder.newFolder("source");
         try {
+            assertFalse(FilePacker.isPackFile(dir));
             FilePacker.unpack(dir, dir, false);
             fail();
         } catch (IOException e) {
@@ -78,6 +98,8 @@ public class FilePackerTest {
     public void sourceMissing() throws IOException {
         File dir = temporaryFolder.newFolder("source");
         try {
+            assertFalse(FilePacker.isPackFile(new File(dir, "missing")));
+            assertFalse(FilePacker.isPackFile(dir));
             FilePacker.unpack(new File(dir, "missing"), dir, false);
             fail();
         } catch (IOException e) {
@@ -90,6 +112,7 @@ public class FilePackerTest {
     public void targetDirectoryIsFile() throws IOException {
         File target = temporaryFolder.newFile();
         try {
+            assertFalse(FilePacker.isPackFile(target));
             FilePacker.unpack(target, target, false);
             fail();
         } catch (IOException e) {
@@ -130,6 +153,7 @@ public class FilePackerTest {
         // System.out.println(pack.getAbsolutePath());
         // System.out.println(dir.getAbsolutePath());
         FilePacker.pack(dir, TreeSession.getFileNameRegex(), pack, delete);
+        assertTrue(FilePacker.isPackFile(pack));
 
         for (FileEntry f : list) {
             if (delete) {

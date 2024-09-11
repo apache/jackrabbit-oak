@@ -29,6 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A utility class that allows converting the files of a tree store into one
  * file (pack the files), and back from a file to a list of files (unpack the
@@ -41,6 +44,8 @@ import java.util.stream.Collectors;
  * - while unpacking, the pack file is (optionally) truncated, also to conserve disk space.
  */
 public class FilePacker {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FilePacker.class);
 
     /**
      * The header of pack files ("PACK").
@@ -63,16 +68,22 @@ public class FilePacker {
 
     /**
      * Check whether the file starts with the magic header.
+     *
      * @param file
-     * @return
-     * @throws IOException
+     * @return if this is a pack file
      */
-    public static boolean isPackFile(File file) throws IOException {
-        RandomAccessFile source = new RandomAccessFile(file, "rw");
-        byte[] magic = new byte[4];
-        source.readFully(magic);
-        source.close();
-        return PACK_HEADER.equals(new String(magic, StandardCharsets.UTF_8));
+    public static boolean isPackFile(File file) {
+        if (!file.exists() || !file.isFile() || file.length() < 4) {
+            return false;
+        }
+        try (RandomAccessFile source = new RandomAccessFile(file, "r")) {
+            byte[] magic = new byte[4];
+            source.readFully(magic);
+            return PACK_HEADER.equals(new String(magic, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            LOG.warn("IOException reading a possible pack file", e);
+            return false;
+        }
     }
 
     /**
@@ -136,21 +147,7 @@ public class FilePacker {
             targetDirectory.mkdirs();
         }
         RandomAccessFile source = new RandomAccessFile(sourceFile, "rw");
-        byte[] magic = new byte[4];
-        source.readFully(magic);
-        if (!PACK_HEADER.equals(new String(magic, StandardCharsets.UTF_8))) {
-            source.close();
-            throw new IOException("File header is not '" + PACK_HEADER + "': " + sourceFile.getAbsolutePath());
-        }
-        ArrayList<FileEntry> list = new ArrayList<>();
-        long offset = 0;
-        while (source.read() > 0) {
-            byte[] name = new byte[source.readInt()];
-            source.readFully(name);
-            long length = source.readLong();
-            list.add(new FileEntry(new String(name, StandardCharsets.UTF_8), length, offset));
-            offset += length;
-        }
+        ArrayList<FileEntry> list = readDirectoryListing(sourceFile, source);
         long start = source.getFilePointer();
         for (int i = list.size() - 1; i >= 0; i--) {
             FileEntry f = list.get(i);
@@ -169,10 +166,29 @@ public class FilePacker {
         }
     }
 
-    static class FileEntry {
-        final String fileName;
-        final long length;
-        long offset;
+    public static ArrayList<FileEntry> readDirectoryListing(File sourceFile, RandomAccessFile source) throws IOException {
+        byte[] magic = new byte[4];
+        source.readFully(magic);
+        if (!PACK_HEADER.equals(new String(magic, StandardCharsets.UTF_8))) {
+            source.close();
+            throw new IOException("File header is not '" + PACK_HEADER + "': " + sourceFile.getAbsolutePath());
+        }
+        ArrayList<FileEntry> list = new ArrayList<>();
+        long offset = 0;
+        while (source.read() > 0) {
+            byte[] name = new byte[source.readInt()];
+            source.readFully(name);
+            long length = source.readLong();
+            list.add(new FileEntry(new String(name, StandardCharsets.UTF_8), length, offset));
+            offset += length;
+        }
+        return list;
+    }
+
+    public static class FileEntry {
+        public final String fileName;
+        public final long length;
+        public long offset;
         FileEntry(String fileName, long length, long offset) {
             this.fileName = fileName;
             this.length = length;
@@ -181,6 +197,9 @@ public class FilePacker {
         FileEntry(File f) {
             this.fileName = f.getName();
             this.length = f.length();
+        }
+        public String toString() {
+            return fileName + "/" + length + "@" + offset;
         }
     }
 }
