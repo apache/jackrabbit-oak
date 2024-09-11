@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.composite;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -320,7 +320,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     }
 
     private static boolean checkpointExists(NodeStore nodeStore, String checkpoint) {
-        return Iterables.any(nodeStore.checkpoints(), x -> Objects.equals(x, checkpoint));
+        return CollectionUtils.toStream(nodeStore.checkpoints()).anyMatch(x -> Objects.equals(x, checkpoint));
     }
 
     private String checkpointDebugInfo() {
