@@ -486,13 +486,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             // This closes the Mongo cursor, which will cause the download task to abort next time it
                             // performs an operation on the cursor or if it is blocked on the cursor.
                             descendingDownloadTask.cancelDownload();
-                            // This is likely not needed, but we do it anyway in case the thread is not currently
-                            // operating on the Mongo cursor.
+                            // In case the thread is not currently operating on the Mongo cursor, we interrupt the thread
+                            // to ensure that it terminates quickly.
                             descendingDownloadFuture.cancel(true);
                             // Notes:
                             // 1. Calling close() on a Mongo cursor will fail if the cursor was already interrupted. So
-                            //   cancel the cursor first. Any exception thrown by calling close() on the cursor will be
-                            //   ignored, but it's better if we avoid them.
+                            //   we cancel the cursor before interrupting the thread. Any exception thrown by calling
+                            //   close() on the cursor will be ignored, but it's better if we avoid them.
                             // 2. Interrupting the thread is not enough if the thread is blocked waiting on a socket.
                             //   In that state, the thread does not check for interrupts, it will only check when it
                             //   finishes the I/O operation, which can take a long time. So we need to close the cursor,
