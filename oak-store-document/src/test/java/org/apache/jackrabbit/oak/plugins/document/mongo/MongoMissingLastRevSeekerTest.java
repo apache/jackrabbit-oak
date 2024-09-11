@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -90,7 +90,7 @@ public class MongoMissingLastRevSeekerTest {
         }
         assertTrue(store.create(NODES, ops));
 
-        Set<String> ids = Sets.newHashSet();
+        Set<String> ids = new HashSet<>();
         boolean updated = false;
         MissingLastRevSeeker seeker = builder.createMissingLastRevSeeker();
         for (NodeDocument doc : seeker.getCandidates(0)) {

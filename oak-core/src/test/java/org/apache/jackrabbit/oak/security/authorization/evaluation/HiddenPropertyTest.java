@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.junit.Before;
@@ -69,7 +69,7 @@ public class HiddenPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetProperties() {
-        Set<String> propertyNames = Sets.newHashSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
+        Set<String> propertyNames = CollectionUtils.toSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
 
         Tree a = root.getTree("/a");
         for (PropertyState prop : a.getProperties()) {

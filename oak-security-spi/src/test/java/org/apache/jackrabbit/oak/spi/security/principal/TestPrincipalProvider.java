@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -120,7 +121,8 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         if (pName != null) {
             Principal p = principals.get(pName);
             if (p != null) {
-                Set<Principal> s = Sets.newHashSet(p);
+                Set<Principal> s = new HashSet<>();
+                s.add(p);
                 s.addAll(getMembershipPrincipals(p));
                 return s;
             }

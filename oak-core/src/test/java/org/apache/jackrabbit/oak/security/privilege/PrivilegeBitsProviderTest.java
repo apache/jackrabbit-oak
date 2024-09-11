@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.HashSet;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -121,7 +121,7 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
 
         assertEquals(ImmutableSet.of("test1"), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
 
-        Set<String> expected = Sets.newHashSet(NON_AGGREGATE_PRIVILEGES);
+        Set<String> expected = new HashSet<>(NON_AGGREGATE_PRIVILEGES);
         expected.add("test1");
         assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
         assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));

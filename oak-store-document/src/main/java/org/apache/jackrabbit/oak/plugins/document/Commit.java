@@ -525,7 +525,7 @@ public class Commit {
     }
 
     private void updateParentChildStatus() {
-        final Set<Path> processedParents = Sets.newHashSet();
+        final Set<Path> processedParents = new HashSet<>();
         for (Path path : addedNodes) {
             Path parentPath = path.getParent();
             if (parentPath == null) {
@@ -607,7 +607,7 @@ public class Commit {
                         nodeStore, base, revision, branch, collisions);
             }
             String conflictMessage = null;
-            Set<Revision> conflictRevisions = Sets.newHashSet();
+            Set<Revision> conflictRevisions = new HashSet<>();
             if (newestRev == null) {
                 if ((op.isDelete() || !op.isNew())
                         && !allowConcurrentAddRemove(before, op)) {

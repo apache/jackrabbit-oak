@@ -33,7 +33,7 @@ import org.apache.lucene.document.FieldType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 
 /**
  * An example index field provider.
@@ -60,7 +60,7 @@ public class IndexFieldProviderImpl implements IndexFieldProvider {
     
     @Override
     public @NotNull Iterable<Field> getAugmentedFields(String path, NodeState nodeState, NodeState indexDefinition) {
-        Set<Field> fields = newHashSet();
+        Set<Field> fields = new HashSet<>();
         NodeState dynaTags = nodeState.getChildNode(JcrConstants.JCR_CONTENT).getChildNode(METADATA_FOLDER).getChildNode(PREDICTED_TAGS);
         for (String nodeName : dynaTags.getChildNodeNames()) {
             NodeState dynaTag = dynaTags.getChildNode(nodeName);

@@ -23,12 +23,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -488,11 +488,11 @@ public class TreeTest extends OakBaseTest {
 
                 r1 = s1.getLatestRoot();
                 t1 = r1.getTree("/");
-                Set<String> names = Sets.newHashSet();
+                Set<String> names = new HashSet<>();
                 for (Tree t : t1.getChildren()) {
                     names.add(t.getName());
                 }
-                assertEquals(Sets.newHashSet("node1", "node2", "node3", "node4", "node5"), names);
+                assertEquals(Set.of("node1", "node2", "node3", "node4", "node5"), names);
             } finally {
                 s2.close();
             }

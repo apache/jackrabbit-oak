@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.api.Root;
@@ -219,7 +218,7 @@ public class ACETest extends AbstractAccessControlTest {
     public void testRestrictions() {
         Restriction r = new RestrictionImpl(PropertyStates.createProperty("r", "v"), false);
         Restriction r2 = new RestrictionImpl(PropertyStates.createProperty("r2", ImmutableList.of("v"), Type.STRINGS), false);
-        Set<Restriction> restrictions = Sets.newHashSet(r, r2);
+        Set<Restriction> restrictions = Set.of(r, r2);
         ACE ace = mockACE(testPrincipal, PrivilegeBits.BUILT_IN.get(JCR_READ), true, restrictions);
         assertFalse(ace.getRestrictions().isEmpty());
         assertNotSame(restrictions, ace.getRestrictions());

@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -51,7 +51,7 @@ class SolrIndexLookup {
     }
 
     private Collection<String> collectIndexNodePaths(Filter filter, boolean recurse) {
-        Set<String> paths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
 
         collectIndexNodePaths(root, "/", paths);
 

@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,6 @@ import org.junit.runners.Parameterized;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,7 +226,7 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
     private int getBlobCount() throws Exception {
         GarbageCollectableBlobStore ds = (GarbageCollectableBlobStore) getNodeStoreComponent(BlobStore.class);
-        Set<String> chunks = Sets.newHashSet();
+        Set<String> chunks = new HashSet<>();
         Iterator<String> chunkIds = ds.getAllChunkIds(0);
         while (chunkIds.hasNext()) {
             chunks.add(chunkIds.next());

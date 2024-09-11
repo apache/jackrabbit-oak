@@ -43,9 +43,9 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static java.util.Comparator.comparing;
-import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.*;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -130,7 +130,7 @@ public class IndexDefinitionUpdater {
     }
 
     private List<String> getReindexIndexPaths() {
-        return stream(store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().spliterator(), false)
+        return StreamSupport.stream(store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().spliterator(), false)
                 .filter(cne -> !cne.getNodeState().hasProperty(REINDEX_PROPERTY_NAME) || cne.getNodeState().getBoolean(REINDEX_PROPERTY_NAME))
                 .filter(cne -> cne.getNodeState().hasProperty(TYPE_PROPERTY_NAME))
                 .sorted(comparing(cne -> cne.getNodeState().getString(TYPE_PROPERTY_NAME)))
@@ -280,7 +280,7 @@ public class IndexDefinitionUpdater {
                 String v = BLOB_LENGTH.apply(ps.getValue(BINARY));
                 val.append(" = {").append(v).append("}");
             } else if (ps.getType() == BINARIES) {
-                String v = stream(ps.getValue(BINARIES).spliterator(), false)
+                String v = StreamSupport.stream(ps.getValue(BINARIES).spliterator(), false)
                         .map(BLOB_LENGTH)
                         .collect(Collectors.toList()).toString();
                 val.append("[").append(ps.count()).append("] = ").append(v);

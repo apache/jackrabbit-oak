@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
@@ -31,6 +30,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -49,9 +49,9 @@ import org.junit.Test;
  */
 public class ContentMirrorStoreStrategyTest {
 
-    private static final Set<String> EMPTY = newHashSet();
+    private static final Set<String> EMPTY = new HashSet<>();
 
-    private static final Set<String> KEY = newHashSet("key");
+    private static final Set<String> KEY = Set.of("key");
 
     /**
      * <p>

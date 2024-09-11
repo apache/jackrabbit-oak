@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
@@ -314,7 +314,7 @@ public class DocumentMK {
     private void parseJsonDiff(CommitBuilder commit, String json, String rootPath) {
         RevisionVector baseRev = commit.getBaseRevision();
         String baseRevId = baseRev != null ? baseRev.toString() : null;
-        Set<String> added = Sets.newHashSet();
+        Set<String> added = new HashSet<>();
         JsopReader t = new JsopTokenizer(json);
         while (true) {
             int r = t.read();

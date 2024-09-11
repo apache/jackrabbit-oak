@@ -35,11 +35,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 
 /**
@@ -439,7 +439,7 @@ public class VersionableTest extends AbstractJCRTest {
     }
 
     private static Set<String> getNames(Version[] versions) {
-        return newHashSet(transform(asList(versions), input -> {
+        return new HashSet<>(transform(asList(versions), input -> {
             try {
                 return input.getName();
             } catch (RepositoryException e) {

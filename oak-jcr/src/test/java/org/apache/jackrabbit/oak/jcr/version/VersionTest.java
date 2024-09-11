@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.jcr.Node;
@@ -31,7 +32,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -168,7 +168,7 @@ public class VersionTest extends AbstractJCRTest {
 
     private static Set<String> getReferencingPaths(Node n)
             throws RepositoryException {
-        Set<String> refs = Sets.newHashSet();
+        Set<String> refs = new HashSet<>();
         PropertyIterator it = n.getReferences();
         while (it.hasNext()) {
             refs.add(it.nextProperty().getPath());

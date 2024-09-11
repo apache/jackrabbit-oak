@@ -20,9 +20,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -461,10 +461,10 @@ public class BranchTest {
     }
 
     private void assertModifiedPaths(Iterable<Path> actual, String... expected) {
-        Set<Path> expectedSet = Sets.newHashSet();
+        Set<Path> expectedSet = new HashSet<>();
         for (String p : expected) {
             expectedSet.add(Path.fromString(p));
         }
-        assertEquals(expectedSet, Sets.newHashSet(actual));
+        assertEquals(expectedSet, CollectionUtils.toSet(actual));
     }
 }

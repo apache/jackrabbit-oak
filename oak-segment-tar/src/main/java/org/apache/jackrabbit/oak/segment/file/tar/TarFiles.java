@@ -21,7 +21,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static java.util.Collections.emptySet;
 
 import java.io.Closeable;
@@ -715,7 +715,7 @@ public class TarFiles implements Closeable {
             result.reclaimedSize += reader.size();
         }
 
-        Set<UUID> reclaim = newHashSet();
+        Set<UUID> reclaim = new HashSet<>();
 
         for (TarReader reader : cleaned.keySet()) {
             if (shutdown) {

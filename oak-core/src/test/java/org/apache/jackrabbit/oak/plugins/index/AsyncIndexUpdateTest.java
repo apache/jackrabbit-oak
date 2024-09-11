@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.ASYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
@@ -41,6 +40,7 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
@@ -100,7 +101,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import ch.qos.logback.classic.Level;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -120,7 +120,7 @@ public class AsyncIndexUpdateTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        return Sets.newHashSet(lookup.query(FilterImpl.newTestInstance(), name,
+        return CollectionUtils.toSet(lookup.query(FilterImpl.newTestInstance(), name,
                 PropertyValues.newString(value)));
     }
 
@@ -717,7 +717,7 @@ public class AsyncIndexUpdateTest {
         // no changes on diff, no checkpoints left behind
         async.run();
         assertTrue(async.isFinished());
-        Set<String> checkpoints = newHashSet(store.listCheckpoints());
+        Set<String> checkpoints = new HashSet<>(store.listCheckpoints());
         assertTrue("Expecting the initial checkpoint",
                 checkpoints.size() == 1);
         assertEquals(store.getRoot().getChildNode(ASYNC)
@@ -883,7 +883,7 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 1);
         assertTrue(
                 "Expecting one temp checkpoint",
-                newHashSet(
+                CollectionUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
                                 .getStrings("async-temp")).size() == 1);
 
@@ -896,7 +896,7 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 2);
         assertTrue(
                 "Expecting two temp checkpoints",
-                newHashSet(
+                CollectionUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
                                 .getStrings("async-temp")).size() == 2);
 
@@ -1211,11 +1211,11 @@ public class AsyncIndexUpdateTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         IndexTaskSpliter splitter = async.getTaskSplitter();
-        splitter.registerSplit(newHashSet("/oak:index/changedIndex"), "async-slow");
+        splitter.registerSplit(Set.of("/oak:index/changedIndex"), "async-slow");
 
         async.run();
 
-        Set<String> checkpoints = newHashSet(store.listCheckpoints());
+        Set<String> checkpoints = new HashSet<>(store.listCheckpoints());
 
         assertTrue("Expecting two checkpoints",
                 checkpoints.size() == 2);
@@ -1226,7 +1226,7 @@ public class AsyncIndexUpdateTest {
                 ASYNC);
         assertEquals(firstCp, asyncNode.getString("async-slow"));
         assertEquals(secondCp, asyncNode.getString("async"));
-        assertFalse(newHashSet(asyncNode.getStrings("async-temp")).contains(
+        assertFalse(CollectionUtils.toSet(asyncNode.getStrings("async-temp")).contains(
                 firstCp));
 
         NodeState indexNode = store.getRoot().getChildNode(
@@ -1280,10 +1280,10 @@ public class AsyncIndexUpdateTest {
 
         IndexTaskSpliter splitter = async.getTaskSplitter();
         // no match on the provided path
-        splitter.registerSplit(newHashSet("/oak:index/ignored"), "async-slow");
+        splitter.registerSplit(Set.of("/oak:index/ignored"), "async-slow");
         async.run();
 
-        Set<String> checkpoints = newHashSet(store.listCheckpoints());
+        Set<String> checkpoints = new HashSet<>(store.listCheckpoints());
 
         assertTrue("Expecting a single checkpoint",
                 checkpoints.size() == 1);
@@ -1298,7 +1298,7 @@ public class AsyncIndexUpdateTest {
 
     @Test
     public void testAsyncExecutionStats() throws Exception {
-        final Set<String> knownCheckpoints = Sets.newHashSet();
+        final Set<String> knownCheckpoints = new HashSet<>();
         MemoryNodeStore store = new MemoryNodeStore(){
             @Override
             public synchronized NodeState retrieve(@NotNull String checkpoint) {
@@ -2253,7 +2253,7 @@ public class AsyncIndexUpdateTest {
     }
 
     private static class CollectingValidatorProvider extends ValidatorProvider {
-        final Set<String> visitedPaths = Sets.newHashSet();
+        final Set<String> visitedPaths = new HashSet<>();
 
         @Override
         protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {

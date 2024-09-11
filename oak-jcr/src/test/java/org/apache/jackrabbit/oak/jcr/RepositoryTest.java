@@ -142,7 +142,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(session);
         Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
         assertNotNull(principals);
-        Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("admin", "everyone"));
+        Set<String> expectedPrincipalNames = Set.of("admin", "everyone");
         assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
     }
 
@@ -160,7 +160,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
         assertNotNull(principals);
         // admin must not be contained in the principals (altough added in the login attributes)
-        Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("anonymous", "everyone"));
+        Set<String> expectedPrincipalNames = Set.of("anonymous", "everyone");
         assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
         session.logout();
     }

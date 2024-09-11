@@ -1852,7 +1852,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         return new MyCloseableIterable<T>() {
 
-            Set<Iterator<RDBRow>> returned = Sets.newHashSet();
+            Set<Iterator<RDBRow>> returned = new HashSet<>();
 
             @Override
             public Iterator<T> iterator() {

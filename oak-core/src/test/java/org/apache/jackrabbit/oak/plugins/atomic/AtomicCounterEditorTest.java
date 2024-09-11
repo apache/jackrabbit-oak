@@ -34,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -49,7 +50,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
@@ -225,7 +225,7 @@ public class AtomicCounterEditorTest {
         requireNonNull(hiddenProps);
         long totalHiddenValue = 0;
         PropertyState counter = builder.getProperty(PROP_COUNTER);
-        Set<String> hp = Sets.newHashSet(hiddenProps);
+        Set<String> hp = new HashSet<>(hiddenProps);
         
         assertNotNull("counter property cannot be null", counter);
         assertNull("The increment property should not be there",

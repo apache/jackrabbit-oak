@@ -155,17 +155,17 @@ public class SharedBlobStoreGCTest {
         cluster1.gc.collectGarbage(true);
         cluster2.gc.collectGarbage(true);
     
-        Set<String> actualRepoIds = Sets.newHashSet();
+        Set<String> actualRepoIds = new HashSet<>();
         actualRepoIds.add(cluster1.repoId);
         actualRepoIds.add(cluster2.repoId);
     
-        Set<Integer> actualNumBlobs = Sets.newHashSet();
+        Set<Integer> actualNumBlobs = new HashSet<>();
         actualNumBlobs.add(cluster1.initBlobs.size());
         actualNumBlobs.add(cluster2.initBlobs.size());
     
         List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
-        Set<Integer> observedNumBlobs = Sets.newHashSet();
-        Set<String> observedRepoIds = Sets.newHashSet();
+        Set<Integer> observedNumBlobs = new HashSet<>();
+        Set<String> observedRepoIds = new HashSet<>();
         for (GarbageCollectionRepoStats stat : statsList) {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
@@ -261,13 +261,13 @@ public class SharedBlobStoreGCTest {
         Cluster cluster3 = new Cluster(ds3, cluster2.repoId, 120);
         cluster3.init();
 
-        Set<String> actualRepoIds = Sets.newHashSet();
+        Set<String> actualRepoIds = new HashSet<>();
         actualRepoIds.add(cluster1.repoId);
         actualRepoIds.add(cluster2.repoId);
 
         log.debug("Initialized {}", cluster3);
 
-        Set<String> observedRepoIds = Sets.newHashSet();
+        Set<String> observedRepoIds = new HashSet<>();
         List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
         for (GarbageCollectionRepoStats stat : statsList) {
             assertEquals(0, stat.getNumLines());
@@ -285,14 +285,14 @@ public class SharedBlobStoreGCTest {
         cluster3.gc.collectGarbage(true);
 
 
-        Set<Integer> actualNumBlobs = Sets.newHashSet();
+        Set<Integer> actualNumBlobs = new HashSet<>();
         actualNumBlobs.add(cluster1.initBlobs.size());
         actualNumBlobs.add(cluster2.initBlobs.size());
         actualNumBlobs.add(cluster3.initBlobs.size());
 
         statsList = cluster1.gc.getStats();
-        Set<Integer> observedNumBlobs = Sets.newHashSet();
-        observedRepoIds = Sets.newHashSet();
+        Set<Integer> observedNumBlobs = new HashSet<>();
+        observedRepoIds = new HashSet<>();
         for (GarbageCollectionRepoStats stat : statsList) {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
@@ -438,7 +438,7 @@ public class SharedBlobStoreGCTest {
             GarbageCollectableBlobStore store = (GarbageCollectableBlobStore) ds.getBlobStore();
             Iterator<String> cur = store.getAllChunkIds(0);
 
-            Set<String> existing = Sets.newHashSet();
+            Set<String> existing = new HashSet<>();
             while (cur.hasNext()) {
                 existing.add(cur.next());
             }

@@ -27,12 +27,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static org.apache.jackrabbit.guava.common.collect.Collections2.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
 
 /**
@@ -69,7 +69,7 @@ public class VersionHook implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
-        Set<String> existingVersionables = newHashSet();
+        Set<String> existingVersionables = new HashSet<>();
 
         List<EditorProvider> providers = newArrayList();
         providers.add(new VersionEditorProvider());

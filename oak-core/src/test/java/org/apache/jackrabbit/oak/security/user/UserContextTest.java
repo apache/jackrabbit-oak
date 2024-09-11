@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -60,7 +60,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testDefinesUserProperty() {
-        Set<String> propNames = Sets.newHashSet(USER_PROPERTY_NAMES);
+        Set<String> propNames = new HashSet<>(USER_PROPERTY_NAMES);
         propNames.removeAll(GROUP_PROPERTY_NAMES);
 
         for (String propName : propNames) {
@@ -74,7 +74,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testDefinesGroupProperty() {
-        Set<String> propNames = Sets.newHashSet(GROUP_PROPERTY_NAMES);
+        Set<String> propNames = new HashSet<>(GROUP_PROPERTY_NAMES);
         propNames.removeAll(USER_PROPERTY_NAMES);
 
         for (String propName : propNames) {

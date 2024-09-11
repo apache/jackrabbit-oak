@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.observation.NodeObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 public class TestNodeObserver extends NodeObserver {
     public final Map<String, Set<String>> added = new HashMap<>();
@@ -46,7 +46,7 @@ public class TestNodeObserver extends NodeObserver {
             @NotNull Set<String> changed,
             @NotNull Map<String, String> properties,
             @NotNull CommitInfo commitInfo) {
-        this.added.put(path, newHashSet(added));
+        this.added.put(path, new HashSet<>(added));
         if (!properties.isEmpty()) {
             this.properties.put(path, new HashMap<>(properties));
         }
@@ -60,7 +60,7 @@ public class TestNodeObserver extends NodeObserver {
             @NotNull Set<String> changed,
             @NotNull Map<String, String> properties,
             @NotNull CommitInfo commitInfo) {
-        this.deleted.put(path, newHashSet(deleted));
+        this.deleted.put(path, new HashSet<>(deleted));
         if (!properties.isEmpty()) {
             this.properties.put(path, new HashMap<>(properties));
         }
@@ -74,7 +74,7 @@ public class TestNodeObserver extends NodeObserver {
             @NotNull Set<String> changed,
             @NotNull Map<String, String> properties,
             @NotNull CommitInfo commitInfo) {
-        this.changed.put(path, newHashSet(changed));
+        this.changed.put(path, new HashSet<>(changed));
         if (!properties.isEmpty()) {
             this.properties.put(path, new HashMap<>(properties));
         }

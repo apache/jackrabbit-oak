@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -26,6 +25,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -38,7 +38,7 @@ import org.junit.Test;
 
 public class UniqueEntryStoreStrategyTest {
 
-    private static final Set<String> EMPTY = newHashSet();
+    private static final Set<String> EMPTY = new HashSet<>();
     private String indexName;
     private NodeBuilder indexMeta;
     private UniqueEntryStoreStrategy store;
@@ -53,8 +53,8 @@ public class UniqueEntryStoreStrategyTest {
         NodeState root = EMPTY_NODE;
         indexMeta = root.builder();
         Supplier<NodeBuilder> index = memoize(() -> indexMeta.child(INDEX_CONTENT_NODE_NAME));
-        store.update(index, "/some/node1", null, null, EMPTY, newHashSet("key1"));
-        store.update(index, "/some/node2", null, null, EMPTY, newHashSet("key2"));
+        store.update(index, "/some/node1", null, null, EMPTY, Set.of("key1"));
+        store.update(index, "/some/node2", null, null, EMPTY, Set.of("key2"));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class UniqueEntryStoreStrategyTest {
         NodeState root = EMPTY_NODE;
         indexMeta = root.builder();
         Supplier<NodeBuilder> index = memoize(() -> indexMeta.child(INDEX_CONTENT_NODE_NAME));
-        store.update(index, "/some/node1", null, null, EMPTY, newHashSet("key1"));
+        store.update(index, "/some/node1", null, null, EMPTY, Set.of("key1"));
 
         assertTrue(callbackInvoked.get());
     }

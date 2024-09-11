@@ -232,6 +232,6 @@ public class MembershipWriter {
                 }
             }
         }
-        return Sets.newHashSet(memberIds.values());
+        return new HashSet<>(memberIds.values());
     }
 }

@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -30,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
@@ -159,7 +159,7 @@ public class SegmentBufferWriterPoolTest {
         assertEquals(rootId, res5.get());
         assertEquals(rootId, res6.get());
         assertEquals(3, map2.size());
-        assertTrue(intersection(newHashSet(map1.values()), newHashSet(map2.values())).isEmpty());
+        assertTrue(intersection(new HashSet<>(map1.values()), new HashSet<>(map2.values())).isEmpty());
     }
 
     @Test
@@ -209,7 +209,7 @@ public class SegmentBufferWriterPoolTest {
         assertEquals(rootId, res8.get());
         assertEquals(rootId, res9.get());
         assertEquals(3, map3.size());
-        assertTrue(intersection(newHashSet(map1.values()), newHashSet(map3.values())).isEmpty());
+        assertTrue(intersection(new HashSet<>(map1.values()), new HashSet<>(map3.values())).isEmpty());
     }
 
     @Test

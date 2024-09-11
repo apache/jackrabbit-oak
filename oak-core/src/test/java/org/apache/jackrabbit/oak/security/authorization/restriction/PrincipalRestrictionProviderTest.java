@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -35,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.Value;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -100,8 +100,8 @@ public class PrincipalRestrictionProviderTest extends AbstractSecurityTest imple
         Set<Restriction> rs = ImmutableSet.of(new RestrictionImpl(ps, true));
         provider.writeRestrictions("/testPath", t, rs);
 
-        verify(base, never()).writeRestrictions("/testPath", t, Sets.newHashSet(rs));
-        verify(base, times(1)).writeRestrictions("/testPath", t, Sets.newHashSet());
+        verify(base, never()).writeRestrictions("/testPath", t, new HashSet<>(rs));
+        verify(base, times(1)).writeRestrictions("/testPath", t, new HashSet<>());
     }
 
     @Test

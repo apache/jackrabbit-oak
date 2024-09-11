@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 
 /**
  * Test implementation of the {@code AggregatedPermissionProvider} with following
@@ -83,7 +84,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        Set<String> pSet = Sets.newHashSet(privilegeNames);
+        Set<String> pSet = CollectionUtils.toSet(privilegeNames);
         if (tree == null) {
             if (pSet.contains(JCR_NAMESPACE_MANAGEMENT)) {
                 return false;

@@ -25,13 +25,13 @@ import java.nio.channels.WritableByteChannel;
 import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.commons.Buffer;
 
+import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
+
 class SegmentDataUtils {
 
     private SegmentDataUtils() {
         // Prevent instantiation
     }
-
-    private static final int MAX_SEGMENT_SIZE = 1 << 18;
 
     static void hexDump(Buffer buffer, OutputStream stream) throws IOException {
         byte[] data = new byte[buffer.remaining()];

@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -100,7 +100,7 @@ class ExternalIndexObserver implements Observer, Filter {
         int droppedCount = 0;
         int indexedCount = 0;
         TimerStats.Context ctx = timer.time();
-        Set<String> indexPaths = Sets.newHashSet();
+        Set<String> indexPaths = new HashSet<>();
         for (IndexedPathInfo indexData : indexedPaths) {
             String path = indexData.getPath();
             NodeState indexedNode = null;

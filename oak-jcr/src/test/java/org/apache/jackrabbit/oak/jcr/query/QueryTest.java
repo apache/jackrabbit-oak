@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -56,7 +55,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -527,7 +526,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 query, "xpath").execute();
         NodeIterator it = r.getNodes();
 
-        Set<String> expected = Sets.newHashSet("/test/two", "/test/two/child", "/test/one/child");
+        Set<String> expected = CollectionUtils.toSet("/test/two", "/test/two/child", "/test/one/child");
         while (it.hasNext()) {
             String path = it.nextNode().getPath();
             assertTrue("Unexpected path " + path, expected.contains(path));
@@ -680,8 +679,8 @@ public class QueryTest extends AbstractRepositoryTest {
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
         r = q.execute();
         assertEquals(
-                newHashSet("jcr:path", "jcr:score", "jcr:primaryType"),
-                newHashSet(r.getColumnNames()));
+                Set.of("jcr:path", "jcr:score", "jcr:primaryType"),
+                CollectionUtils.toSet(r.getColumnNames()));
     }
 
     @Test
