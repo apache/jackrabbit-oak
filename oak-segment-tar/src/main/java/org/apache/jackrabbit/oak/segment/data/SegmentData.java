@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.data;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
@@ -63,6 +64,10 @@ import org.apache.jackrabbit.oak.commons.Buffer;
  */
 public interface SegmentData {
 
+    int MAX_SMALL_LENGTH_VALUE = 1 << 7;
+
+    int MAX_MEDIUM_LENGTH_VALUE = (1 << 14) + MAX_SMALL_LENGTH_VALUE;
+
     static SegmentData newSegmentData(Buffer buffer) {
         return SegmentDataLoader.newSegmentData(buffer);
     }
@@ -95,11 +100,45 @@ public interface SegmentData {
 
     long getSegmentReferenceLsb(int i);
 
-    long readLength(int recordReferenceOffset);
+    default long readLength(int recordReferenceOffset) {
+        int head = readByte(recordReferenceOffset) & 0xff;
 
-    StringData readString(int recordReferenceOffset);
+        if ((head & 0x80) == 0) {
+            return head;
+        }
 
-    RecordIdData readRecordId(int recordReferenceOffset);
+        if ((head & 0x40) == 0) {
+            return MAX_SMALL_LENGTH_VALUE + (readShort(recordReferenceOffset) & 0x3fff);
+        }
+
+        return MAX_MEDIUM_LENGTH_VALUE + (readLong(recordReferenceOffset) & 0x3fffffffffffffffL);
+    }
+
+    default StringData readString(int recordReferenceOffset) {
+        long length = readLength(recordReferenceOffset);
+
+        if (length >= Integer.MAX_VALUE) {
+            throw new IllegalStateException("String is too long: " + length + "; possibly trying to read a "
+                                            + "BLOB using getString; can not convert BLOB to String");
+        }
+
+        if (length >= MAX_MEDIUM_LENGTH_VALUE) {
+            return new StringData(readRecordId(recordReferenceOffset + Long.BYTES), (int) length);
+        }
+
+        int index = length >= MAX_SMALL_LENGTH_VALUE
+                    ? recordReferenceOffset + Short.BYTES
+                    : recordReferenceOffset + Byte.BYTES;
+        Buffer buffer = readBytes(index, (int) length);
+        String string = buffer.decode(StandardCharsets.UTF_8).toString();
+        return new StringData(string, (int)length);
+    }
+
+    default RecordIdData readRecordId(int recordReferenceOffset) {
+        int segmentReference = readShort(recordReferenceOffset) & 0xffff;
+        int recordNumber = readInt(recordReferenceOffset + Short.BYTES);
+        return new RecordIdData(segmentReference, recordNumber);
+    }
 
     byte readByte(int recordReferenceOffset);
 
