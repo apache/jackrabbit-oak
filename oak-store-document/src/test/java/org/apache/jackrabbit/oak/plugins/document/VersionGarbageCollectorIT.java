@@ -2627,8 +2627,6 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
-        // OAK-10869:
-        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         // create a node with property.
         NodeBuilder nb = store1.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -2649,7 +2647,6 @@ public class VersionGarbageCollectorIT {
         RevisionVector br3 = unmergedBranchCommit(store1, b -> b.child("foo").setProperty("a", "d"));
         RevisionVector br4 = unmergedBranchCommit(store1, b -> b.child("bar").setProperty("x", "z"));
         mergedBranchCommit(store1, b -> b.child("foo").removeProperty("p"));
-        store1.runBackgroundOperations();
 
         // enable the full gc flag
         enableFullGC(gc);
