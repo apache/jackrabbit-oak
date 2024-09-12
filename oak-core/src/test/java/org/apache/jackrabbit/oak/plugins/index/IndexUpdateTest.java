@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -86,7 +87,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class IndexUpdateTest {
 
@@ -711,7 +711,7 @@ public class IndexUpdateTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
         Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
-        return Sets.newHashSet(lookup.query(filter, name,
+        return CollectionUtils.toSet(lookup.query(filter, name,
                 PropertyValues.newString(value)));
     }
 
@@ -741,7 +741,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "" for sync
         base = EmptyNodeState.EMPTY_NODE.builder()
-                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet(INDEXING_MODE_NRT, "async"),
+                .setProperty(ASYNC_PROPERTY_NAME, Set.of(INDEXING_MODE_NRT, "async"),
                         Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -749,7 +749,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "sync" for sync
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
+                ASYNC_PROPERTY_NAME, Set.of("sync", "async"),
                 Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -757,7 +757,7 @@ public class IndexUpdateTest {
 
         // async multiple values: no sync present
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
+                ASYNC_PROPERTY_NAME, Set.of("async", "async-other"),
                 Type.STRINGS);
         assertFalse(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -1084,7 +1084,7 @@ public class IndexUpdateTest {
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path){
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;

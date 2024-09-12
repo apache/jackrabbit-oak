@@ -560,7 +560,7 @@ public class ConfigurationParametersTest {
     public void testKeySet() {
         TestObject value = new TestObject("name");
         ConfigurationParameters options = ConfigurationParameters.of("test", value);
-        assertEquals(Sets.newHashSet("test"), options.keySet());
+        assertEquals(Set.of("test"), options.keySet());
     }
 
     @Test

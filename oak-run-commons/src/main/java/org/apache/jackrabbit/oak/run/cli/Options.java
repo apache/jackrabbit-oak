@@ -29,14 +29,15 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 public class Options {
-    private final Set<OptionsBeanFactory> beanFactories = Sets.newHashSet();
+    private final Set<OptionsBeanFactory> beanFactories = new HashSet<>();
     private final EnumSet<OptionBeans> oakRunOptions;
     private final Map<Class<? extends OptionsBean>, OptionsBean> optionBeans = new HashMap<>();
     private OptionSet optionSet;
@@ -90,8 +91,7 @@ public class Options {
     @SuppressWarnings("unchecked")
     public <T extends OptionsBean> T getOptionBean(Class<T> clazz){
         Object o = optionBeans.get(clazz);
-        checkNotNull(o, "No [%s] found in [%s]",
-                clazz.getSimpleName(), optionBeans);
+        requireNonNull(o, String.format("No [%s] found in [%s]", clazz.getSimpleName(), optionBeans));
         return (T) o;
     }
 

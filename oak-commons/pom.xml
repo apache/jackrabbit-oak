@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.67-SNAPSHOT</version>
+    <version>1.69-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -48,9 +48,11 @@
             <Export-Package>
               org.apache.jackrabbit.oak.commons,
               org.apache.jackrabbit.oak.commons.cache,
+              org.apache.jackrabbit.oak.commons.collections,
               org.apache.jackrabbit.oak.commons.concurrent,
               org.apache.jackrabbit.oak.commons.io,
               org.apache.jackrabbit.oak.commons.json,
+              org.apache.jackrabbit.oak.commons.log,
               org.apache.jackrabbit.oak.commons.sort,
               org.apache.jackrabbit.oak.commons.properties
             </Export-Package>

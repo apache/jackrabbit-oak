@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -38,13 +37,13 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -171,17 +170,17 @@ public class TypeEditor extends DefaultEditor {
             String primary, Iterable<String> mixins, NodeBuilder builder)
             throws CommitFailedException {
         this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
-        this.callback = checkNotNull(callback);
+        this.callback = requireNonNull(callback);
         this.typesToCheck = typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
+                || any(mixins, x -> typesToCheck.contains(x));
         this.parent = null;
         this.nodeName = null;
-        this.types = checkNotNull(types);
+        this.types = requireNonNull(types);
         this.effective = createEffectiveType(null, null, primary, mixins);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.validate = false;
     }
 
@@ -196,12 +195,12 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
-        this.parent = checkNotNull(parent);
-        this.nodeName = checkNotNull(name);
+                || any(mixins, x -> typesToCheck.contains(x));
+        this.parent = requireNonNull(parent);
+        this.nodeName = requireNonNull(name);
         this.types = parent.types;
         this.effective = createEffectiveType(parent.effective, name, primary, mixins);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.validate = validate;
     }
 
@@ -216,7 +215,7 @@ public class TypeEditor extends DefaultEditor {
         this.parent = null;
         this.nodeName = null;
         this.types = EMPTY_NODE;
-        this.effective = checkNotNull(effective);
+        this.effective = requireNonNull(effective);
         this.builder = EMPTY_NODE.builder();
         this.validate = false;
     }
@@ -437,7 +436,7 @@ public class TypeEditor extends DefaultEditor {
 
     private static boolean primaryChanged(NodeState before, String after) {
         String pre = before.getName(JCR_PRIMARYTYPE);
-        return !Objects.equal(pre, after);
+        return !Objects.equals(pre, after);
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {

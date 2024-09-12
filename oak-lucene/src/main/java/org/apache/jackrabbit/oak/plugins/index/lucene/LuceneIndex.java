@@ -300,7 +300,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator itr = new LuceneResultRowIterator() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
-            private final Set<String> seenPaths = Sets.newHashSet();
+            private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;

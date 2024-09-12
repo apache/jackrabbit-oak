@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 
@@ -48,8 +48,8 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
      * @param node child node state
      */
     public MemoryChildNodeEntry(String name, NodeState node) {
-        this.name = checkNotNull(name);
-        this.node = checkNotNull(node);
+        this.name = requireNonNull(name);
+        this.node = requireNonNull(node);
     }
 
     @Override

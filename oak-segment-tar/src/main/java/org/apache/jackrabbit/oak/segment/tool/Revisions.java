@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +58,7 @@ public class Revisions {
          * @return this builder.
          */
         public Builder withPath(String path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -70,7 +70,7 @@ public class Revisions {
          * @return this builder.
          */
         public Builder withOutput(File out) {
-            this.out = checkNotNull(out);
+            this.out = requireNonNull(out);
             return this;
         }
 
@@ -80,8 +80,8 @@ public class Revisions {
          * @return an instance of {@link Runnable}.
          */
         public Revisions build() {
-            checkNotNull(path);
-            checkNotNull(out);
+            requireNonNull(path);
+            requireNonNull(out);
             return new Revisions(this);
         }
 

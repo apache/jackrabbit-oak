@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.Repository.IDENTIFIER_STABILITY;
 import static javax.jcr.Repository.LEVEL_1_SUPPORTED;
 import static javax.jcr.Repository.LEVEL_2_SUPPORTED;
@@ -142,10 +142,10 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                                  @NotNull SecurityProvider securityProvider,
                                  @Nullable Descriptors baseDescriptors,
                                  @Nullable Feature classicMove) {
-        this.nodeStore = checkNotNull(nodeStore);
-        this.commitHook = checkNotNull(commitHook);
-        this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
-        this.securityProvider = checkNotNull(securityProvider);
+        this.nodeStore = requireNonNull(nodeStore);
+        this.commitHook = requireNonNull(commitHook);
+        this.defaultWorkspaceName = requireNonNull(defaultWorkspaceName);
+        this.securityProvider = requireNonNull(securityProvider);
         this.queryEngineSettings = queryEngineSettings != null ? queryEngineSettings : new QueryEngineSettings();
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.baseDescriptors = baseDescriptors;

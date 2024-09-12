@@ -24,12 +24,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -150,7 +149,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
         if (arrayState == State.BEGIN || arrayState == State.STARTED) {
             return;
         }
-        checkNotNull(deferredName);
+        requireNonNull(deferredName);
         w.println();
         space();
         w.print('-');
@@ -161,7 +160,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
     }
 
     private void space() {
-        w.print(Strings.repeat(indent, depth));
+        w.print(indent.repeat(depth));
     }
 
     private void optionalResetArrayState() {

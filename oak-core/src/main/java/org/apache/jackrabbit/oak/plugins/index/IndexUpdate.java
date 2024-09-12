@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -161,14 +160,14 @@ public class IndexUpdate implements Editor, PathSource {
         this.name = null;
         this.path = "/";
         this.rootState = new IndexUpdateRootState(provider, async, root, builder, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
     }
 
     private IndexUpdate(IndexUpdate parent, String name) {
-        this.parent = checkNotNull(parent);
+        this.parent = requireNonNull(parent);
         this.name = name;
         this.rootState = parent.rootState;
-        this.builder = parent.builder.getChildNode(checkNotNull(name));
+        this.builder = parent.builder.getChildNode(requireNonNull(name));
     }
 
     @Override
@@ -577,7 +576,7 @@ public class IndexUpdate implements Editor, PathSource {
         private boolean failOnMissingIndexProvider = Boolean
                 .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
 
-        private final Set<String> ignore = newHashSet("disabled", "ordered");
+        private final Set<String> ignore = Set.of("disabled", "ordered");
 
         public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
                 throws CommitFailedException {
@@ -636,9 +635,9 @@ public class IndexUpdate implements Editor, PathSource {
                                      NodeBuilder builder, IndexUpdateCallback updateCallback,
                                      NodeTraversalCallback traversalCallback,
                                      CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
-            this.provider = checkNotNull(provider);
+            this.provider = requireNonNull(provider);
             this.async = async;
-            this.root = checkNotNull(root);
+            this.root = requireNonNull(root);
             this.commitInfo = commitInfo;
             this.corruptIndexHandler = corruptIndexHandler;
             this.indexDisabler = new IndexDisabler(builder);

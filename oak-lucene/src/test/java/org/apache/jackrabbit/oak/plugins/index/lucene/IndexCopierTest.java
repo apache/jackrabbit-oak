@@ -43,7 +43,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.management.openmbean.TabularData;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -71,7 +71,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
@@ -625,7 +624,7 @@ public class IndexCopierTest {
         //Work dir must be empty post close
         File indexDir = copier.getIndexDir(defn, "foo", INDEX_DATA_CHILD_NAME);
         List<File> files = new ArrayList<File>(FileUtils.listFiles(indexDir, null, true));
-        Set<String> fileNames = Sets.newHashSet();
+        Set<String> fileNames = new HashSet<>();
         for (File f : files){
             fileNames.add(f.getName());
         }
@@ -647,11 +646,11 @@ public class IndexCopierTest {
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
 
-        assertEquals(newHashSet("t1"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t1"), CollectionUtils.toSet(local.listAll()));
         assertEquals(t1.length, local.fileLength("t1"));
 
         byte[] t2 = writeFile(local, "t2");
-        assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), CollectionUtils.toSet(local.listAll()));
         assertEquals(t2.length, local.fileLength("t2"));
 
         assertTrue(local.fileExists("t1"));
@@ -663,10 +662,10 @@ public class IndexCopierTest {
         readAndAssert(local, "t2", t2);
 
         local.deleteFile("t1");
-        assertEquals(newHashSet("t2"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t2"), CollectionUtils.toSet(local.listAll()));
 
         local.deleteFile("t2");
-        assertEquals(newHashSet(), newHashSet(local.listAll()));
+        assertEquals(Set.of(), CollectionUtils.toSet(local.listAll()));
 
 
         try {
@@ -704,7 +703,7 @@ public class IndexCopierTest {
         byte[] t2 = writeFile(remote, "t2");
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
-        assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), CollectionUtils.toSet(local.listAll()));
 
         byte[] t3 = writeFile(local, "t3");
 
@@ -733,7 +732,7 @@ public class IndexCopierTest {
 
     @Test
     public void cowReadDoneFromLocalIfFileExist() throws Exception{
-        final Set<String> readLocal = newHashSet();
+        final Set<String> readLocal = new HashSet<>();
         Directory baseDir = new CloseSafeDir(){
             @Override
             public IndexInput openInput(String name, IOContext context) throws IOException {
@@ -744,7 +743,7 @@ public class IndexCopierTest {
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier copier = new RAMIndexCopier(baseDir, newDirectExecutorService(), getWorkDir());
 
-        final Set<String> readRemotes = newHashSet();
+        final Set<String> readRemotes = new HashSet<>();
         Directory remote = new RAMDirectory() {
             @Override
             public IndexInput openInput(String name, IOContext context) throws IOException {
@@ -759,8 +758,8 @@ public class IndexCopierTest {
         //Read should be served from remote
         readRemotes.clear();readLocal.clear();
         readAndAssert(local, "t1", t1);
-        assertEquals(newHashSet("t1"), readRemotes);
-        assertEquals(newHashSet(), readLocal);
+        assertEquals(Set.of("t1"), readRemotes);
+        assertEquals(Set.of(), readLocal);
 
         //Now pull in the file t1 via CopyOnRead in baseDir
         Directory localForRead = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
@@ -769,8 +768,8 @@ public class IndexCopierTest {
         //Read should be served from local
         readRemotes.clear();readLocal.clear();
         readAndAssert(local, "t1", t1);
-        assertEquals(newHashSet(), readRemotes);
-        assertEquals(newHashSet("t1"), readLocal);
+        assertEquals(Set.of(), readRemotes);
+        assertEquals(Set.of("t1"), readLocal);
 
         local.close();
     }
@@ -905,7 +904,7 @@ public class IndexCopierTest {
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier copier = new RAMIndexCopier(baseDir, executorService, getWorkDir());
 
-        final Set<String> toFail = Sets.newHashSet();
+        final Set<String> toFail = new HashSet<>();
         Directory remote = new CloseSafeDir() {
             @Override
             public IndexOutput createOutput(String name, IOContext context) throws IOException {
@@ -939,7 +938,7 @@ public class IndexCopierTest {
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier copier = new RAMIndexCopier(baseDir, executorService, getWorkDir());
 
-        final Set<String> toPause = Sets.newHashSet();
+        final Set<String> toPause = new HashSet<>();
         final CountDownLatch pauseCopyLatch = new CountDownLatch(1);
         Directory remote = new CloseSafeDir() {
             @Override

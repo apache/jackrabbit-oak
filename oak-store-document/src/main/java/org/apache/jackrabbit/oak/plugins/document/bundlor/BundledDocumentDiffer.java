@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class BundledDocumentDiffer {
@@ -111,7 +111,7 @@ public class BundledDocumentDiffer {
             result = nodeStore.getNode(state.getPath(), state.getLastRevision());
         }
 
-        checkNotNull(result, "Node at [%s] not found for fromRev [%s]", state.getPath(), state.getLastRevision());
+        requireNonNull(result, String.format("Node at [%s] not found for fromRev [%s]", state.getPath(), state.getLastRevision()));
         return result;
     }
 }

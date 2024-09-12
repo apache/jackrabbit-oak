@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.commons.io.FileUtils;
@@ -40,7 +39,6 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
@@ -51,7 +49,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 @Deprecated
 class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
-    private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
+    private static final int LINE_SEP_LENGTH = System.getProperty("line.separator").length();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStateEntryTraverserFactory nodeStatesFactory;

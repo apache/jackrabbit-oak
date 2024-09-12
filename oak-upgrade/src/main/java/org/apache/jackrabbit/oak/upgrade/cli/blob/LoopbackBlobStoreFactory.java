@@ -19,13 +19,13 @@ package org.apache.jackrabbit.oak.upgrade.cli.blob;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class LoopbackBlobStoreFactory implements BlobStoreFactory {
 
     @Override
     public BlobStore create(Closer closer) {
-        checkNotNull(closer, "Closer object cannot be null");
+        requireNonNull(closer, "Closer object cannot be null");
         return new LoopbackBlobStore();
     }
 

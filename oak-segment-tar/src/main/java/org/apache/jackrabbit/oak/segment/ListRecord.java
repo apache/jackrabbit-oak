@@ -44,9 +44,9 @@ class ListRecord extends Record {
     ListRecord(RecordId id, int size) {
         super(id);
         checkArgument(size >= 0,
-                "Negative list size: " + size);
+                "Negative list size: %s", size);
         checkArgument(size <= MAX_ELEMENTS,
-                "Too many elements in list: " + size);
+                "Too many elements in list: %s", size);
         this.size = size;
 
         int bs = 1;

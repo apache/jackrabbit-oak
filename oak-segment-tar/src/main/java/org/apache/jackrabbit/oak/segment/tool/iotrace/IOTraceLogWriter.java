@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ public class IOTraceLogWriter implements IOTraceWriter {
      * @param log
      */
     public IOTraceLogWriter(@NotNull Logger log) {
-        this.log = checkNotNull(log);
+        this.log = requireNonNull(log);
     }
 
     @Override

@@ -470,11 +470,11 @@ public class ChangeCollectorProviderTest {
     public void testPathNotOverflown() throws Exception {
         Root root = session.getLatestRoot();
         Tree rootTree = root.getTree("/test");
-        Set<String> expectedParentPaths = Sets.newHashSet();
+        Set<String> expectedParentPaths = new HashSet<>();
         expectedParentPaths.add("/test");
-        Set<String> expectedParentNodeNames = Sets.newHashSet();
+        Set<String> expectedParentNodeNames = new HashSet<>();
         expectedParentNodeNames.add("test");
-        Set<String> expectedParentNodeTypes = Sets.newHashSet();
+        Set<String> expectedParentNodeTypes = new HashSet<>();
         expectedParentNodeTypes.add("test:parentType");
         // do maxItems-1 iterations only, as the above already adds 1 item - to
         // avoid overflowing
@@ -529,7 +529,7 @@ public class ChangeCollectorProviderTest {
         Tree rootTree = root.getTree("/test");
         Tree child1 = rootTree.getChild("child1");
 
-        Set<String> expectedPropertyNames = Sets.newHashSet();
+        Set<String> expectedPropertyNames = new HashSet<>();
         for (int i = 0; i < collectorProvider.getMaxItems(); i++) {
             child1.setProperty("aProperty" + i, "foo");
             expectedPropertyNames.add("aProperty" + i);
@@ -556,7 +556,7 @@ public class ChangeCollectorProviderTest {
         Tree rootTree = root.getTree("/test");
         Tree child1 = rootTree.getChild("child1");
 
-        Set<String> expectedPropertyNames = Sets.newHashSet();
+        Set<String> expectedPropertyNames = new HashSet<>();
         for (int i = 0; i < collectorProvider.getMaxItems() + overflowCnt; i++) {
             child1.setProperty("aProperty" + i, "foo");
             expectedPropertyNames.add("aProperty" + i);

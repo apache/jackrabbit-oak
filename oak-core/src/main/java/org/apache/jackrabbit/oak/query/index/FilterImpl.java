@@ -146,6 +146,11 @@ public class FilterImpl implements Filter {
             public boolean getFailTraversal() {
                 return false;
             }
+
+            @Override
+            public boolean getImprovedIsNullCost() {
+                return true;
+            }
             
         });
     }

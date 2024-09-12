@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -58,7 +58,7 @@ class NameValidator extends DefaultValidator {
 
     NameValidator(NodeState namespaces, boolean initPhase) {
         this.namespaces = namespaces;
-        this.prefixes = newHashSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
+        this.prefixes = CollectionUtils.toSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
         this.initPhase = initPhase;
     }
 

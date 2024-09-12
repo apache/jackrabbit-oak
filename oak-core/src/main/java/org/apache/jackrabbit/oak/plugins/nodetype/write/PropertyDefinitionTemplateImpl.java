@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
@@ -174,7 +174,7 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
 
     @Override
     public void setAvailableQueryOperators(String[] operators) {
-        checkNotNull(operators);
+        requireNonNull(operators);
         this.queryOperators = new String[operators.length];
         System.arraycopy(operators, 0, this.queryOperators, 0, operators.length);
     }

@@ -45,7 +45,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
@@ -59,7 +59,7 @@ public class WorkspaceDelegate {
     private final SessionContext context;
 
     public WorkspaceDelegate(SessionContext context) {
-        this.context = checkNotNull(context);
+        this.context = requireNonNull(context);
     }
 
     /**

@@ -84,7 +84,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     public void splitRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
-        Set<Revision> revisions = Sets.newHashSet();
+        Set<Revision> revisions = new HashSet<>();
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         revisions.addAll(doc.getLocalRevisions().keySet());
@@ -120,7 +120,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     public void splitDeleted() throws Exception {
         DocumentStore store = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
-        Set<Revision> revisions = Sets.newHashSet();
+        Set<Revision> revisions = new HashSet<>();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -162,7 +162,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Set<Revision> commitRoots = Sets.newHashSet();
+        Set<Revision> commitRoots = new HashSet<>();
         commitRoots.addAll(doc.getLocalCommitRoot().keySet());
         // create nodes
         while (commitRoots.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
@@ -189,7 +189,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Set<Revision> revisions = Sets.newHashSet();
+        Set<Revision> revisions = new HashSet<>();
         // create nodes
         while (revisions.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
             revisions.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
@@ -681,7 +681,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
     @Test
     public void readLocalCommitInfo() throws Exception {
-        final Set<String> readSet = Sets.newHashSet();
+        final Set<String> readSet = new HashSet<>();
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -716,7 +716,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must not access previous document of /test
         doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
-        for (String id : Sets.newHashSet(readSet)) {
+        for (String id : new HashSet<>(readSet)) {
             doc = store.find(NODES, id);
             assertNotNull(doc);
             if (doc.isSplitDocument() && !doc.getMainPath().equals(Path.ROOT)) {
@@ -860,8 +860,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 NodeDocument doc = store.find(NODES, id);
                 List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head,
                         NO_BINARY, NUM_REVS_THRESHOLD);
-                Set<Revision> removed = Sets.newHashSet();
-                Set<Revision> added = Sets.newHashSet();
+                Set<Revision> removed = new HashSet<>();
+                Set<Revision> added = new HashSet<>();
                 for (UpdateOp op : ops) {
                     for (Map.Entry<Key, Operation> e : op.getChanges().entrySet()) {
                         if (!"_deleted".equals(e.getKey().getName())) {
@@ -888,7 +888,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             if (doc.isSplitDocument() || Utils.getDepthFromId(doc.getId()) < 2) {
                 continue;
             }
-            Set<Revision> revs = Sets.newHashSet();
+            Set<Revision> revs = new HashSet<>();
             for (RevisionVector rv : revisions) {
                 Iterables.addAll(revs, rv);
             }

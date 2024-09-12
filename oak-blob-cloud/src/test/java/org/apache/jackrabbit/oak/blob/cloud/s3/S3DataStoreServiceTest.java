@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -33,7 +34,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.activate;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
@@ -77,7 +77,7 @@ public class S3DataStoreServiceTest {
     private S3DataStoreService service;
 
     private void registerBlobStore() throws IOException {
-        Map<String, Object> properties = newHashMap();
+        Map<String, Object> properties = new HashMap<>();
         properties.putAll(Maps.fromProperties(S3DataStoreUtils.getS3Config()));
         properties.put("repository.home", folder.newFolder().getAbsolutePath());
         service = new S3DataStoreService();

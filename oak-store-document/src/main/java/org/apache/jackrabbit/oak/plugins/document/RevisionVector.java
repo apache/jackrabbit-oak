@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.peekingIterator;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
@@ -64,7 +64,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     private RevisionVector(@NotNull Revision[] revisions,
                            boolean checkUniqueClusterIds,
                            boolean sort) {
-        checkNotNull(revisions);
+        requireNonNull(revisions);
         if (checkUniqueClusterIds) {
             checkUniqueClusterIds(revisions);
         }
@@ -97,7 +97,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return the resulting revision vector.
      */
     public RevisionVector update(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         Revision existing = null;
         int i;
         for (i = 0; i < revisions.length; i++) {
@@ -256,7 +256,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return {@code true} if considered newer, {@code false} otherwise.
      */
     public boolean isRevisionNewer(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         for (Revision r : revisions) {
             if (r.getClusterId() == revision.getClusterId()) {
                 return r.compareRevisionTime(revision) < 0;

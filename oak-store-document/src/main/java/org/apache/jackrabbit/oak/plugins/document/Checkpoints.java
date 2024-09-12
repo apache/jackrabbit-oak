@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 
 /**
@@ -199,7 +199,7 @@ class Checkpoints {
             throws IllegalArgumentException {
         Revision r;
         try {
-            r = Revision.fromString(checkNotNull(checkpoint));
+            r = Revision.fromString(requireNonNull(checkpoint));
         } catch (IllegalArgumentException e) {
             LOG.warn("Malformed checkpoint reference: {}", checkpoint);
             return null;
@@ -216,7 +216,7 @@ class Checkpoints {
     }
 
     void setInfoProperty(@NotNull String checkpoint, @NotNull String key, @Nullable String value) {
-        Revision r = Revision.fromString(checkNotNull(checkpoint));
+        Revision r = Revision.fromString(requireNonNull(checkpoint));
         Info info = getCheckpoints().get(r);
         if (info == null) {
             throw new IllegalArgumentException("No such checkpoint: " + checkpoint);

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -160,7 +161,7 @@ public abstract class CacheConsistencyTestBase {
                 // 1) at least one of the documents should be updated
                 // 2) for all documents: reading from cache and uncached
                 // should return the same document
-                Set<String> modifiedDocuments = Sets.newHashSet();
+                Set<String> modifiedDocuments = new HashSet<>();
 
                 for (String id : new String[] { id1, id2, id3 }) {
                     // get cached value

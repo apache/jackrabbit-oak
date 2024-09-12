@@ -35,14 +35,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 public class CompositeCredentialsSupportTest {
 
     private final TestCredentialsSupport tcs = new TestCredentialsSupport();
 
     private final CredentialsSupport credentialsSupport = CompositeCredentialsSupport
-            .newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance(), tcs));
+            .newInstance(() -> Set.of(SimpleCredentialsSupport.getInstance(), tcs));
 
     @Test
     public void testGetCredentialClasses() {
@@ -124,7 +123,7 @@ public class CompositeCredentialsSupportTest {
 
     @Test
     public void testEmpty() {
-        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet());
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(Set::of);
 
         assertTrue(cs.getCredentialClasses().isEmpty());
         assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());
@@ -132,7 +131,7 @@ public class CompositeCredentialsSupportTest {
 
     @Test
     public void testSingleValued() {
-        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance()));
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> Set.of(SimpleCredentialsSupport.getInstance()));
 
         assertEquals(SimpleCredentialsSupport.getInstance().getCredentialClasses(), cs.getCredentialClasses());
         assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());

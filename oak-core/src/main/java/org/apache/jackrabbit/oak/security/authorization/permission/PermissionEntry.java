@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -86,7 +87,7 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
 
     @Override
     public int compareTo(@NotNull PermissionEntry pe) {
-        if (Objects.equal(path, pe.path)) {
+        if (Objects.equals(path, pe.path)) {
             // reverse order
             return Integer.compare(pe.index, index);
         } else {
@@ -117,6 +118,6 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(privilegeBits, index, path, isAllow, restriction);
+        return Objects.hash(privilegeBits, index, path, isAllow, restriction);
     }
 }

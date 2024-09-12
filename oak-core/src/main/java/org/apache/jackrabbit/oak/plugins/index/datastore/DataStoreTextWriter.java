@@ -25,10 +25,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -124,8 +124,8 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     @Override
     public void write(@NotNull String blobId,@NotNull String text) throws IOException {
         checkIfReadOnlyModeEnabled();
-        checkNotNull(blobId, "BlobId cannot be null");
-        checkNotNull(text, "Text passed for [%s] was null", blobId);
+        requireNonNull(blobId, "BlobId cannot be null");
+        requireNonNull(text, String.format("Text passed for [%s] was null", blobId));
 
         File textFile = getFile(stripLength(blobId));
         ensureParentExists(textFile);
@@ -230,7 +230,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private Set<String> loadFromFile(File file) throws IOException {
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = new HashSet<>();
         if (file.exists()) {
             result.addAll(Files.readLines(file, StandardCharsets.UTF_8));
         }
@@ -307,7 +307,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
                 return loader.call();
             } catch (Exception e) {
                 log.warn("Error occurred while loading the state via {}", loader, e);
-                return Sets.newHashSet();
+                return new HashSet<>();
             }
         }
     }

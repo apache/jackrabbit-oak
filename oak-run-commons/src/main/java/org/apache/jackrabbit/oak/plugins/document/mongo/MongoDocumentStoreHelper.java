@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
 import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;
@@ -58,7 +58,7 @@ public class MongoDocumentStoreHelper {
             return;
         }
         
-        Set<Revision> changes = Sets.newHashSet();
+        Set<Revision> changes = new HashSet<>();
         for (String key : doc.keySet()) {
             if (Utils.isPropertyName(key) || NodeDocument.isDeletedEntry(key)) {
                 changes.addAll(NodeDocumentHelper.getLocalMap(doc, key).keySet());

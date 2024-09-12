@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
@@ -120,7 +120,7 @@ public final class UserUtil implements UserConstants {
 
     @Nullable
     public static String getAuthorizableId(@NotNull Tree authorizableTree) {
-        checkNotNull(authorizableTree);
+        requireNonNull(authorizableTree);
         if (UserUtil.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {

@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.scalability;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
@@ -130,7 +129,7 @@ public class ScalabilityRunner {
                                 )
                 ));
 
-        Set<String> argset = Sets.newHashSet(scalabilityOptions.getNonOption().values(options));
+        Set<String> argset = new HashSet<>(scalabilityOptions.getNonOption().values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {

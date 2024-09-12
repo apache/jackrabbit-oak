@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -69,8 +68,8 @@ public final class NodeStateUtils {
      */
     @NotNull
     public static NodeState getNode(@NotNull NodeState node, @NotNull String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            node = node.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            node = node.getChildNode(requireNonNull(name));
         }
         return node;
     }
@@ -92,7 +91,7 @@ public final class NodeStateUtils {
     private static String toString(NodeState ns, int level, String prepend,
             String name) {
         StringBuilder node = new StringBuilder();
-        node.append(repeat(prepend, level)).append(name);
+        node.append(prepend.repeat(level)).append(name);
 
         StringBuilder props = new StringBuilder();
         boolean first = true;

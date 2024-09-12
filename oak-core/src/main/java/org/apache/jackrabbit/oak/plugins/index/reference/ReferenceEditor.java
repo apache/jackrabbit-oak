@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.reference;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static java.util.Collections.emptySet;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -34,11 +33,13 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -117,12 +118,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.path = "/";
         this.definition = definition;
         this.root = root;
-        this.newRefs = newHashMap();
-        this.rmRefs = newHashMap();
-        this.newWeakRefs = newHashMap();
-        this.rmWeakRefs = newHashMap();
-        this.rmIds = newHashSet();
-        this.newIds = newHashSet();
+        this.newRefs = new HashMap<>();
+        this.rmRefs = new HashMap<>();
+        this.newWeakRefs = new HashMap<>();
+        this.rmWeakRefs = new HashMap<>();
+        this.rmIds = new HashSet<>();
+        this.newIds = new HashSet<>();
         this.mountInfoProvider = mountInfoProvider;
     }
 
@@ -298,7 +299,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         for (String key : keys) {
             Set<String> values = map.get(key);
             if (values == null) {
-                values = newHashSet();
+                values = new HashSet<>();
             }
             values.add(asRelative);
             map.put(key, values);

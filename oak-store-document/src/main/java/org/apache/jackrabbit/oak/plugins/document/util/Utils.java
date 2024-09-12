@@ -63,7 +63,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
@@ -361,7 +361,7 @@ public class Utils {
     }
 
     public static String getIdFromPath(@NotNull Path path) {
-        checkNotNull(path);
+        requireNonNull(path);
         int depth = getIdDepth(path);
         Path parent = path.getParent();
         if (parent != null && isLongPath(path)) {
@@ -625,7 +625,7 @@ public class Utils {
     @NotNull
     public static Revision resolveCommitRevision(@NotNull Revision rev,
                                                  @NotNull String tag) {
-        return checkNotNull(tag).startsWith("c-") ?
+        return requireNonNull(tag).startsWith("c-") ?
                 Revision.fromString(tag.substring(2)) : rev;
     }
 
@@ -1067,6 +1067,36 @@ public class Utils {
     }
 
     /**
+     * Returns the minimum timestamp to use for a query for child documents that
+     * have been modified between {@code fromRev} and {@code toRev}.
+     * We use a different calculation method for for DocumentNodeStore#diffManyChildren(), see OAK-10812
+     *
+     * @param fromRev the from revision.
+     * @param toRev the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These
+     *                     are derived from the startTime of a cluster node.
+     * @return the minimum timestamp.
+     */
+    public static long getMinTimestampForDiffManyChildren(@NotNull RevisionVector fromRev,
+                                                          @NotNull RevisionVector toRev,
+                                                          @NotNull RevisionVector minRevisions) {
+        // make sure we have minimum revisions for all known cluster nodes
+        toRev = toRev.pmax(minRevisions);
+        // keep only revision entries that changed
+        RevisionVector from = fromRev.difference(toRev);
+        RevisionVector to = toRev.difference(fromRev);
+        // now calculate minimum timestamp
+        long min = Long.MAX_VALUE;
+        for (Revision r : from) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        for (Revision r : to) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        return min;
+    }
+
+    /**
      * Check whether throttling is enabled or not for document store.
      *
      * @param builder instance for DocumentNodeStoreBuilder
@@ -1144,8 +1174,8 @@ public class Utils {
      */
     public static <T> CloseableIterable<T> abortingIterable(Iterable<T> iterable,
                                                             Predicate<T> p) {
-        checkNotNull(iterable);
-        checkNotNull(p);
+        requireNonNull(iterable);
+        requireNonNull(p);
         return new CloseableIterable<T>(() -> {
             final Iterator<T> it = iterable.iterator();
             return new AbstractIterator<T>() {
@@ -1183,7 +1213,7 @@ public class Utils {
                                                   int clusterId,
                                                   long warnThresholdMillis)
             throws InterruptedException {
-        Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
+        Map<Integer, Revision> lastRevMap = requireNonNull(rootDoc).getLastRev();
         long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
         long localTime = clock.getTime();
         if (externalTime > localTime) {

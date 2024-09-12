@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
@@ -61,7 +61,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
     }
 
     private static boolean isKeyword(@NotNull String term) {
-        return KEYWORDS.contains(checkNotNull(term).toLowerCase());
+        return KEYWORDS.contains(requireNonNull(term).toLowerCase());
     }
 
     @Override

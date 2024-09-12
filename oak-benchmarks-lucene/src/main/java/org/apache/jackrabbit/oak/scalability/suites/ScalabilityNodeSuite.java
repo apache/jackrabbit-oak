@@ -35,7 +35,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -263,7 +263,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             // define lucene index on properties
             case LUCENE_FILE:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
                         new String[]{FILTER_PROP, DATE_PROP},
@@ -272,7 +272,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
                 Map<String, String> propMap = Maps.newHashMap();

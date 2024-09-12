@@ -34,7 +34,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.isNullOrEmpty;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
@@ -51,7 +50,7 @@ public class S3DataRecordAccessProviderIT extends AbstractDataRecordAccessProvid
 
     @BeforeClass
     public static void setupDataStore() throws Exception {
-        assumeTrue(isS3Configured() && !isNullOrEmpty(System.getProperty("test.opts.memory")));
+        assumeTrue(isS3Configured() && !System.getProperty("test.opts.memory", "").isEmpty());
         dataStore = (S3DataStore) getS3DataStore(getFixtures().get(0), S3DataStoreUtils.getS3Config(),
             homeDir.newFolder().getAbsolutePath());
 

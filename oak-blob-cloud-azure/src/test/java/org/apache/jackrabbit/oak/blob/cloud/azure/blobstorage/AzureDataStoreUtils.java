@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -89,7 +88,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     public static Properties getAzureConfig() {
         String config = System.getProperty(SYS_PROP_NAME);
         if (Strings.isNullOrEmpty(config)) {
-            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+            File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }

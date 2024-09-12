@@ -98,7 +98,6 @@ import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -527,7 +526,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(doc);
         Revision newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
                 Revision.newRevision(ns2.getClusterId()),
-                null, Sets.<Revision>newHashSet());
+                null, new HashSet<>());
         assertEquals(r1, newest);
     }
 
@@ -1036,7 +1035,7 @@ public class DocumentNodeStoreTest {
     // OAK-2336
     @Test
     public void readBranchCommit() throws Exception {
-        final Set<String> readSet = Sets.newHashSet();
+        final Set<String> readSet = new HashSet<>();
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1074,7 +1073,7 @@ public class DocumentNodeStoreTest {
 
         // must not access previous document of /test
         doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
-        for (String id : Sets.newHashSet(readSet)) {
+        for (String id : new HashSet<>(readSet)) {
             doc = store.find(NODES, id);
             assertNotNull(doc);
             if (doc.isSplitDocument() && !doc.getMainPath().equals(Path.ROOT)) {
@@ -1154,7 +1153,7 @@ public class DocumentNodeStoreTest {
     // OAK-2359
     @Test
     public void readNullEntry() throws CommitFailedException {
-        final Set<String> reads = Sets.newHashSet();
+        final Set<String> reads = new HashSet<>();
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1201,7 +1200,7 @@ public class DocumentNodeStoreTest {
     // OAK-2464
     @Test
     public void useDocChildCacheForFindingNodes() throws CommitFailedException {
-        final Set<String> reads = Sets.newHashSet();
+        final Set<String> reads = new HashSet<>();
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1252,7 +1251,7 @@ public class DocumentNodeStoreTest {
 
     @Test
     public void ignoreDocChildCacheForIncompleteEntry() throws CommitFailedException {
-        final Set<String> reads = Sets.newHashSet();
+        final Set<String> reads = new HashSet<>();
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1291,7 +1290,7 @@ public class DocumentNodeStoreTest {
 
     @Test
     public void docChildCacheWithIncompatiblDocStoreSort() throws CommitFailedException {
-        final Set<String> reads = Sets.newHashSet();
+        final Set<String> reads = new HashSet<>();
         final ConcurrentSkipListMap<String, NodeDocument> nodes = new ConcurrentSkipListMap<String, NodeDocument>(
                 new Comparator<String>() {
                     @Override
@@ -3095,7 +3094,7 @@ public class DocumentNodeStoreTest {
     // OAK-4733
     @Test
     public void localChangesFromCache2() throws Exception {
-        final Set<String> finds = Sets.newHashSet();
+        final Set<String> finds = new HashSet<>();
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T getIfCached(Collection<T> collection,
@@ -3564,7 +3563,7 @@ public class DocumentNodeStoreTest {
     @Test
     public void disabledBranchesWithBackgroundWrite() throws Exception {
         final Thread current = Thread.currentThread();
-        final Set<Integer> updates = Sets.newHashSet();
+        final Set<Integer> updates = new HashSet<>();
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> List<T> createOrUpdate(Collection<T> collection,

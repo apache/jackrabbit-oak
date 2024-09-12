@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,7 +103,7 @@ public class RevisionsCommand implements Command {
     private static final List<String> LOGGER_NAMES = of(
             "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
             "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper",
-            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditDGC",
+            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditFGC",
             "org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport",
             "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
     );
@@ -131,6 +132,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> compact;
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
+        final OptionSpec<Integer> fullGcMode;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -153,6 +155,8 @@ public class RevisionsCommand implements Command {
                             "during dryRun mode i.e. will verify the effect of fullGC operation on each document after " +
                             "applying the changes in memory and will raise flag if it can cause issues")
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
+            fullGcMode = parser.accepts("fullGcMode", "Mode of fullGC")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(0);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
             fullGCOnly = parser
@@ -205,6 +209,10 @@ public class RevisionsCommand implements Command {
 
         boolean isEmbeddedVerificationEnabled() {
             return embeddedVerification.value(options);
+        }
+
+        int fullGcMode() {
+            return fullGcMode.value(options);
         }
 
         long getOlderThan() {
@@ -314,6 +322,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCEnabled(fullGCEnabled);
         builder.setFullGCIncludePaths(options.includePaths());
         builder.setFullGCExcludePaths(options.excludePaths());
+        builder.setFullGCMode(options.fullGcMode());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -341,6 +350,7 @@ public class RevisionsCommand implements Command {
         System.out.println("Compaction is enabled : " + options.doCompaction());
         System.out.println("IncludePaths are : " + Arrays.toString(options.includePaths()));
         System.out.println("ExcludePaths are : " + Arrays.toString(options.excludePaths()));
+        System.out.println("FullGcMode is : " + options.fullGcMode());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
 
@@ -385,6 +395,8 @@ public class RevisionsCommand implements Command {
 
     private void collect(final RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, fullGCEnabled);
+        // Set a default statistics provider
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
@@ -397,6 +409,10 @@ public class RevisionsCommand implements Command {
                 gc.cancel();
                 finished.acquireUninterruptibly();
                 System.out.println("Stopped Revision GC.");
+                if (fullGCEnabled) {
+                    System.out.println("Full GC Stats:");
+                    System.out.println("    " + gc.getFullGCStatsReport());
+                }
             }));
             if (options.isContinuous()) {
                 while (running.get()) {
@@ -550,6 +566,8 @@ public class RevisionsCommand implements Command {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
         // Set a LoggingGC monitor that will output the fullGC operations
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
+        // Set a default statistics provider
+        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
         // Run fullGC on the given document
         NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
         if (workingDocument == null) {
@@ -558,8 +576,8 @@ public class RevisionsCommand implements Command {
         }
         gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
-        //TODO: Probably we should output some details of fullGCStats. Could be done after OAK-10378
-        //gc.getFullGCStats();
+        System.out.println("Full GC Stats:");
+        System.out.println("    " + gc.getFullGCStatsReport());
     }
 
     private String fmtTimestamp(long ts) {

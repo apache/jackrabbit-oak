@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static java.util.Collections.emptyList;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class DefaultWhiteboard implements Whiteboard {
 
-    private final Map<Class<?>, Set<Service>> registry = newHashMap();
+    private final Map<Class<?>, Set<Service>> registry = new HashMap<>();
 
     private synchronized <T> void registered(Class<T> type, Service service) {
         Set<Service> services = registry.get(type);
@@ -81,8 +82,8 @@ public class DefaultWhiteboard implements Whiteboard {
     @Override
     public <T> Registration register(
             final Class<T> type, final T service, Map<?, ?> properties) {
-        checkNotNull(type);
-        checkNotNull(service);
+        requireNonNull(type);
+        requireNonNull(service);
         checkArgument(type.isInstance(service));
 
         Service s = new Service(service, properties);
@@ -98,7 +99,7 @@ public class DefaultWhiteboard implements Whiteboard {
 
     @Override
     public <T> Tracker<T> track(final Class<T> type) {
-        checkNotNull(type);
+        requireNonNull(type);
         return new Tracker<T>() {
             @Override
             public List<T> getServices() {
@@ -113,7 +114,7 @@ public class DefaultWhiteboard implements Whiteboard {
     @Override
     public <T> Tracker<T> track(Class<T> type, Map<String, String> filterProperties) {
 
-        checkNotNull(type);
+        requireNonNull(type);
         return new Tracker<T>() {
             @Override
             public List<T> getServices() {
@@ -132,7 +133,7 @@ public class DefaultWhiteboard implements Whiteboard {
         private final Map<?, ?> properties;
 
         private Service(@NotNull Object service, Map<?, ?> properties) {
-            checkNotNull(service);
+            requireNonNull(service);
             this.service = service;
             this.properties = properties;
         }

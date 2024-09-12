@@ -20,13 +20,14 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -102,7 +103,7 @@ public class AndImpl extends ConstraintImpl {
 
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
-        Set<PropertyExistenceImpl> result = newHashSet();
+        Set<PropertyExistenceImpl> result = new HashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getPropertyExistenceConditions());
         }
@@ -130,7 +131,7 @@ public class AndImpl extends ConstraintImpl {
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        Set<SelectorImpl> result = newHashSet();
+        Set<SelectorImpl> result = new HashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getSelectors());
         }
@@ -288,7 +289,7 @@ public class AndImpl extends ConstraintImpl {
         // implementation)
         Set<ConstraintImpl> union = Sets.newLinkedHashSet();
         Set<ConstraintImpl> result = Sets.newLinkedHashSet();
-        Set<ConstraintImpl> nonUnion = Sets.newHashSet();
+        Set<ConstraintImpl> nonUnion = new HashSet<>();
         
         for (ConstraintImpl c : constraints) {
             Set<ConstraintImpl> converted = c.convertToUnion();

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -27,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -102,7 +102,7 @@ public class OptimizedChildFetchTest extends BaseDocumentMKTest {
 
 
     private static class TestDocumentStore extends MemoryDocumentStore {
-        Set<String> paths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
 
         @NotNull
         @Override

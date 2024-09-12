@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -336,7 +336,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         // all subtypes of every registered node type
         HashSet<String> explodedNodeTypes = null;
         if (validatedNodeTypeNames != null) {
-            explodedNodeTypes = newHashSet();
+            explodedNodeTypes = new HashSet<>();
             for (String nt : validatedNodeTypeNames) {
                 explodeSubtypes(nt, explodedNodeTypes);
             }
@@ -390,7 +390,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
     private static Set<String> getOakPaths(NamePathMapper mapper, String[] paths, String type)
             throws RepositoryException {
-        Set<String> oakPaths = newHashSet();
+        Set<String> oakPaths = new HashSet<>();
         for (String path : paths) {
             String oakPath = mapper.getOakPath(path);
             if (oakPath != null) {

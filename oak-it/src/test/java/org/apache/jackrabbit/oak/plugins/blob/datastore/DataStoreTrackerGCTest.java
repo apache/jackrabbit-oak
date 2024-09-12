@@ -61,9 +61,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -170,7 +169,7 @@ public class DataStoreTrackerGCTest {
         // Tracked blobs should reflect deletions after gc
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
         // Check that the delete tracker is refreshed
-        assertEquals(Sets.newHashSet(activeDeleted), retrieveActiveDeleteTracked(tracker, folder));
+        assertEquals(new HashSet<>(activeDeleted), retrieveActiveDeleteTracked(tracker, folder));
     }
 
     @Test
@@ -199,13 +198,13 @@ public class DataStoreTrackerGCTest {
         // Tracked blobs should reflect deletions after gc
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
         // Check that the delete tracker is refreshed
-        assertEquals(Sets.newHashSet(), retrieveActiveDeleteTracked(tracker, folder));
+        assertEquals(new HashSet<>(), retrieveActiveDeleteTracked(tracker, folder));
     }
 
     @Test
     public void consistencyCheckNoActiveDeletion() throws Exception {
         File tmpFolder = folder.newFolder();
-        String previousTmp = System.setProperty(JAVA_IO_TMPDIR.key(), tmpFolder.getAbsolutePath());
+        String previousTmp = System.setProperty("java.io.tmpdir", tmpFolder.getAbsolutePath());
 
         try {
             Cluster cluster = new Cluster("cluster1");
@@ -218,9 +217,9 @@ public class DataStoreTrackerGCTest {
             assertTrue(FileUtils.listFiles(tmpFolder, null, true).size() == 0);
         } finally {
             if (previousTmp != null) {
-                System.setProperty(JAVA_IO_TMPDIR.key(), previousTmp);
+                System.setProperty("java.io.tmpdir", previousTmp);
             } else {
-                System.clearProperty(JAVA_IO_TMPDIR.key());
+                System.clearProperty("java.io.tmpdir");
             }
         }
     }
@@ -254,7 +253,7 @@ public class DataStoreTrackerGCTest {
         ArrayList<String> blobs = Lists.newArrayList(state.blobsPresent);
         String removedId = blobs.remove(0);
         ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
-        state.blobsPresent = Sets.newHashSet(blobs);
+        state.blobsPresent = new HashSet<>(blobs);
         File f = folder.newFile();
         writeStrings(Lists.newArrayList(removedId).iterator(), f, false);
         tracker.remove(f);
@@ -540,7 +539,7 @@ public class DataStoreTrackerGCTest {
     private Set<String> iterate(BlobStore blobStore) throws Exception {
         Iterator<String> cur = ((GarbageCollectableBlobStore) blobStore).getAllChunkIds(0);
 
-        Set<String> existing = newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -548,7 +547,7 @@ public class DataStoreTrackerGCTest {
     }
 
     private static Set<String> retrieveTracked(BlobTracker tracker) throws IOException {
-        Set<String> retrieved = newHashSet();
+        Set<String> retrieved = new HashSet<>();
         Iterator<String> iter = tracker.get();
         while(iter.hasNext()) {
             retrieved.add(iter.next());
@@ -666,7 +665,7 @@ public class DataStoreTrackerGCTest {
     }
 
     private class DataStoreState {
-        Set<String> blobsAdded = newHashSet();
-        Set<String> blobsPresent = newHashSet();
+        Set<String> blobsAdded = new HashSet<>();
+        Set<String> blobsPresent = new HashSet<>();
     }
 }

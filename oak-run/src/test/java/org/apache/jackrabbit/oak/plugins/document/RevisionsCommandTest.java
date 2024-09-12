@@ -195,6 +195,19 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("starting gc collect"));
         assertTrue(output.contains("IncludePaths are : [/]"));
         assertTrue(output.contains("ExcludePaths are : []"));
+        assertTrue(output.contains("FullGcMode is : 0"));
+    }
+
+    @Test
+    public void fullGCWithMode() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--fullGcMode", "3"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
+        assertTrue(output.contains("Compaction is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+        assertTrue(output.contains("FullGcMode is : 3"));
     }
 
     @Test

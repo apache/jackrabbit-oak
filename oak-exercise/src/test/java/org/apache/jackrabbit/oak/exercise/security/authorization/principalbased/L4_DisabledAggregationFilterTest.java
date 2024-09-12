@@ -37,7 +37,7 @@ import org.junit.Test;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_MODIFY_PROPERTIES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ_ACCESS_CONTROL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
@@ -121,11 +121,11 @@ public class L4_DisabledAggregationFilterTest extends AbstractPrincipalBasedTest
     private void setupAccessControl() throws Exception {
         JackrabbitAccessControlManager compositeAcMgr = (JackrabbitAccessControlManager) getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal1));
+        PrincipalAccessControlList pacl = requireNonNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal1));
         pacl.addEntry(testPath, privilegesFromNames(REP_READ_NODES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
 
-        pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal2));
+        pacl = requireNonNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal2));
         pacl.addEntry(testPath, privilegesFromNames(REP_READ_PROPERTIES, REP_ADD_PROPERTIES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
 

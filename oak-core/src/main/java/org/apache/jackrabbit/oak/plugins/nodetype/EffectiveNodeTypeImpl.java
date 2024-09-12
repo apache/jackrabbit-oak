@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -66,8 +66,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
         this.ntMgr = ntMgr;
         this.valueFactory = new PartialValueFactory(ntMgr.getNamePathMapper());
 
-        addNodeType(checkNotNull(primary));
-        for (NodeTypeImpl mixin : checkNotNull(mixins)) {
+        addNodeType(requireNonNull(primary));
+        for (NodeTypeImpl mixin : requireNonNull(mixins)) {
             addNodeType(mixin);
         }
         if (!nodeTypes.containsKey(NT_BASE)) {

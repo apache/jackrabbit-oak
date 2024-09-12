@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -60,8 +60,8 @@ public class NodeUtil {
     private final Tree tree;
 
     public NodeUtil(Tree tree, NameMapper mapper) {
-        this.mapper = checkNotNull(mapper);
-        this.tree = checkNotNull(tree);
+        this.mapper = requireNonNull(mapper);
+        this.tree = requireNonNull(tree);
     }
 
     public NodeUtil(Tree tree) {

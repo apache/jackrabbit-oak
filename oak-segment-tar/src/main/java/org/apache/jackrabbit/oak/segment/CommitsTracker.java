@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 
 import java.lang.ref.WeakReference;
@@ -188,7 +186,7 @@ class CommitsTracker {
     }
 
     public Map<String, Long> getCommitsCountPerGroupLastMinute() {
-        Map<String, Long> commitsPerGroup = newHashMap();
+        Map<String, Long> commitsPerGroup = new HashMap<>();
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.getQueued() > t) {

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -76,7 +76,7 @@ public final class NodeBuilderTree extends AbstractMutableTree {
     @Override
     @NotNull
     protected NodeBuilderTree createChild(@NotNull String name) throws IllegalArgumentException {
-        return new NodeBuilderTree(this, nodeBuilder.getChildNode(checkNotNull(name)), name);
+        return new NodeBuilderTree(this, nodeBuilder.getChildNode(requireNonNull(name)), name);
     }
 
 }

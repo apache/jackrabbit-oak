@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -48,7 +48,7 @@ public class CompositeEditorProvider implements EditorProvider {
     @NotNull
     public static EditorProvider compose(
             @NotNull Collection<? extends EditorProvider> providers) {
-        checkNotNull(providers);
+        requireNonNull(providers);
         switch (providers.size()) {
             case 0:
                 return EMPTY_PROVIDER;

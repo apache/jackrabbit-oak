@@ -29,11 +29,11 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -184,7 +184,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, CollectionUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
         });
     }
 
@@ -206,7 +206,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, CollectionUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
         });
     }
 
@@ -248,10 +248,10 @@ public class PermissionsTest {
 
         assertFalse(Iterables.contains(aggregates, Permissions.ALL));
 
-        Set<Long> expected = Sets.newHashSet(Permissions.PERMISSION_NAMES.keySet());
+        Set<Long> expected = new HashSet<>(Permissions.PERMISSION_NAMES.keySet());
         expected.removeAll(ImmutableList.of(Permissions.ALL, Permissions.WRITE, Permissions.READ, Permissions.SET_PROPERTY, Permissions.REMOVE));
 
-        assertEquals(expected, Sets.newHashSet(aggregates));
+        assertEquals(expected, CollectionUtils.toSet(aggregates));
     }
 
     @Test

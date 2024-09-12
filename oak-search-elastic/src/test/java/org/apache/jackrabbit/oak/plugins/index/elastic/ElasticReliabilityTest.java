@@ -37,7 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.9.0");
 
     private ToxiproxyContainer toxiproxy;
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +33,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.NamespaceRegistry;
+
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -183,7 +184,7 @@ class CurrentPattern implements RestrictionPattern {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(treePath, propertyNames);
+        return Objects.hash(treePath, propertyNames);
     }
 
     @Override

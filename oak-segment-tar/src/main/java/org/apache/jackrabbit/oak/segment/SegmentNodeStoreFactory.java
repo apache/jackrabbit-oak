@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.isNullOrEmpty;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
@@ -41,10 +40,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.api.stats.RepositoryStatistics;
-import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
@@ -54,12 +52,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.stats.CounterStats;
-import org.apache.jackrabbit.oak.stats.HistogramStats;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
-import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -411,7 +404,7 @@ public class SegmentNodeStoreFactory {
 
             String getMode() {
                 String mode = configuration.tarmk_mode();
-                if (isNullOrEmpty(mode)) {
+                if (Objects.toString(mode, "").isEmpty()) {
                     return System.getProperty("tarmk.mode", System.getProperty("sun.arch.data.model", "32"));
                 }
                 return mode;
@@ -573,7 +566,7 @@ public class SegmentNodeStoreFactory {
             @Override
             public String getRepositoryHome() {
                 String repositoryHome = OsgiUtil.lookupConfigurationThenFramework(context, "repository.home");
-                if (isNullOrEmpty(repositoryHome)) {
+                if (Objects.toString(repositoryHome, "").isEmpty()) {
                     return "repository";
                 }
                 return repositoryHome;
@@ -592,7 +585,7 @@ public class SegmentNodeStoreFactory {
             @Override
             public File getBackupDirectory() {
                 String backupDirectory = configuration.repository_backup_dir();
-                if (isNullOrEmpty(backupDirectory)) {
+                if (Objects.toString(backupDirectory, "").isEmpty()) {
                     return new File(getRepositoryHome(), appendRole("segmentstore-backup"));
                 }
                 return new File(backupDirectory);

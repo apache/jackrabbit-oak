@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
@@ -49,6 +48,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -380,7 +381,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private Map<String, PropertyState> createProperties(NodePropBundle bundle) {
-        Map<String, PropertyState> properties = newHashMap();
+        Map<String, PropertyState> properties = new HashMap<>();
 
         String primary;
         if (bundle.getNodeTypeName() != null) {
@@ -441,7 +442,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                 && frozenUuid.getType() == STRING
                 && isFrozenNode.test(this)) {
             String frozenPrimary = NT_BASE;
-            Set<String> frozenMixins = newHashSet();
+            Set<String> frozenMixins = new HashSet<>();
 
             PropertyState property = properties.get(JCR_FROZENPRIMARYTYPE);
             if (property != null && property.getType() == NAME) {
@@ -590,7 +591,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private Blob createBlob(final InternalValue value) {
-        checkArgument(checkNotNull(value).getType() == PropertyType.BINARY);
+        checkArgument(requireNonNull(value).getType() == PropertyType.BINARY);
         return new AbstractBlob() {
             @Override
             public long length() {

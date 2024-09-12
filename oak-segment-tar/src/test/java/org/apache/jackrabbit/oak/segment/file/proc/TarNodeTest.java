@@ -28,9 +28,9 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -62,12 +62,12 @@ public class TarNodeTest {
 
     @Test
     public void shouldExposeAllSegmentIds() {
-        Set<String> names = Sets.newHashSet("s1", "s2", "s3");
+        Set<String> names = Set.of("s1", "s2", "s3");
 
         Backend backend = mock(Backend.class);
         when(backend.getSegmentIds("t")).thenReturn(names);
 
-        assertEquals(names, Sets.newHashSet(new TarNode(backend, "t").getChildNodeNames()));
+        assertEquals(names, CollectionUtils.toSet(new TarNode(backend, "t").getChildNodeNames()));
     }
 
     @Test

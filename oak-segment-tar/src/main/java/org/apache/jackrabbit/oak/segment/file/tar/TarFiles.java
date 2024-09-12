@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
+
 import static java.util.Collections.emptySet;
 
 import java.io.Closeable;
@@ -143,7 +143,7 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withDirectory(File directory) {
-            this.directory = checkNotNull(directory);
+            this.directory = requireNonNull(directory);
             return this;
         }
 
@@ -158,22 +158,22 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withTarRecovery(TarRecovery tarRecovery) {
-            this.tarRecovery = checkNotNull(tarRecovery);
+            this.tarRecovery = requireNonNull(tarRecovery);
             return this;
         }
 
         public Builder withIOMonitor(IOMonitor ioMonitor) {
-            this.ioMonitor = checkNotNull(ioMonitor);
+            this.ioMonitor = requireNonNull(ioMonitor);
             return this;
         }
 
         public Builder withFileStoreMonitor(FileStoreMonitor fileStoreStats) {
-            this.fileStoreMonitor = checkNotNull(fileStoreStats);
+            this.fileStoreMonitor = requireNonNull(fileStoreStats);
             return this;
         }
 
         public Builder withRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-            this.remoteStoreMonitor = checkNotNull(remoteStoreMonitor);
+            this.remoteStoreMonitor = requireNonNull(remoteStoreMonitor);
             return this;
         }
 
@@ -308,14 +308,14 @@ public class TarFiles implements Closeable {
     }
 
     private static Map<Integer, Map<Character, String>> collectFiles(SegmentArchiveManager archiveManager) throws IOException {
-        Map<Integer, Map<Character, String>> dataFiles = newHashMap();
+        Map<Integer, Map<Character, String>> dataFiles = new HashMap<>();
         for (String file : archiveManager.listArchives()) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file);
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
                 Map<Character, String> files = dataFiles.get(index);
                 if (files == null) {
-                    files = newHashMap();
+                    files = new HashMap<>();
                     dataFiles.put(index, files);
                 }
                 Character generation = 'a';
@@ -715,7 +715,7 @@ public class TarFiles implements Closeable {
             result.reclaimedSize += reader.size();
         }
 
-        Set<UUID> reclaim = newHashSet();
+        Set<UUID> reclaim = new HashSet<>();
 
         for (TarReader reader : cleaned.keySet()) {
             if (shutdown) {

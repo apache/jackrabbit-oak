@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -49,7 +49,7 @@ public abstract class DiffObserver implements Observer {
     @Override
     public final synchronized void contentChanged(
             @NotNull NodeState root, @NotNull CommitInfo info) {
-        checkNotNull(root);
+        requireNonNull(root);
         if (before != null) {
             NodeStateDiff diff = getRootDiff(before, root, info);
             root.compareAgainstBaseState(before, diff);

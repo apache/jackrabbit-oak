@@ -22,8 +22,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
 
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,10 +47,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
@@ -336,7 +336,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      * An iterator over paths within an index node.
      */
     static class PathIterator implements Iterator<String> {
-        
+
         private final Filter filter;
         private final String indexName;
         private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
@@ -351,11 +351,11 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private String currentPath;
         private boolean pathContainsValue;
         private final boolean prependPathPrefix;
-        
+
         /**
          * Keep the returned path, to avoid returning duplicate entries.
          */
-        private final Set<String> knownPaths = Sets.newHashSet();
+        private final Set<String> knownPaths = new HashSet<>();
         private final QueryLimits settings;
 
         PathIterator(Filter filter, String indexName, String pathPrefix, boolean prependPathPrefix) {
@@ -370,7 +370,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 }
             } else {
                 filterPath = "";
-            }            
+            }
             parentPath = "";
             currentPath = "/";
             this.settings = filter.getQueryLimits();

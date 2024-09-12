@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.state;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.initiated;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
@@ -71,10 +71,10 @@ public class RevisionGC implements RevisionGCMBean {
             @NotNull Runnable cancelGC,
             @NotNull Supplier<String> statusMessage,
             @NotNull Executor executor) {
-        this.runGC = checkNotNull(runGC);
-        this.cancelGC = checkNotNull(cancelGC);
-        this.statusMessage = checkNotNull(statusMessage);
-        this.executor = checkNotNull(executor);
+        this.runGC = requireNonNull(runGC);
+        this.cancelGC = requireNonNull(cancelGC);
+        this.statusMessage = requireNonNull(statusMessage);
+        this.executor = requireNonNull(executor);
     }
 
     /**

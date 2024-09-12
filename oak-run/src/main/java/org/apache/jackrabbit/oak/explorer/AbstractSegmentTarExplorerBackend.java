@@ -38,6 +38,7 @@ import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
 
 /**
@@ -125,7 +125,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
     public void getGcRoots(UUID uuidIn, Map<UUID, Set<Map.Entry<UUID, String>>> links) throws IOException {
         Deque<UUID> todos = new ArrayDeque<UUID>();
         todos.add(uuidIn);
-        Set<UUID> visited = newHashSet();
+        Set<UUID> visited = new HashSet<>();
         while (!todos.isEmpty()) {
             UUID uuid = todos.remove();
             if (!visited.add(uuid)) {
@@ -140,7 +140,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
                             todos.add(uuidP);
                             Set<Map.Entry<UUID, String>> deps = links.get(uuid);
                             if (deps == null) {
-                                deps = newHashSet();
+                                deps = new HashSet<>();
                                 links.put(uuid, deps);
                             }
                             deps.add(new AbstractMap.SimpleImmutableEntry<UUID, String>(
@@ -154,7 +154,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     @Override
     public Set<UUID> getReferencedSegmentIds() {
-        Set<UUID> ids = newHashSet();
+        Set<UUID> ids = new HashSet<>();
 
         for (SegmentId id : store.getReferencedSegmentIds()) {
             ids.add(id.asUUID());

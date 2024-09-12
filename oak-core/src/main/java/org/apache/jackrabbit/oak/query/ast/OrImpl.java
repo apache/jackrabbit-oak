@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.query.ast;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An "or" condition.
@@ -148,7 +147,7 @@ public class OrImpl extends ConstraintImpl {
         Set<PropertyExistenceImpl> result = null;
         for (ConstraintImpl constraint : constraints) {
             if (result == null) {
-                result = newHashSet(constraint.getPropertyExistenceConditions());
+                result = new HashSet<>(constraint.getPropertyExistenceConditions());
             } else {
                 result.retainAll(constraint.getPropertyExistenceConditions());
             }
@@ -174,7 +173,7 @@ public class OrImpl extends ConstraintImpl {
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        Set<SelectorImpl> result = newHashSet();
+        Set<SelectorImpl> result = new HashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getSelectors());
         }
@@ -359,7 +358,7 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public Set<ConstraintImpl> convertToUnion() {
-        Set<ConstraintImpl> result = Sets.newHashSet();
+        Set<ConstraintImpl> result = new HashSet<>();
         for (ConstraintImpl c : getConstraints()) {
             Set<ConstraintImpl> converted = c.convertToUnion(); 
             if (converted.isEmpty()) {
