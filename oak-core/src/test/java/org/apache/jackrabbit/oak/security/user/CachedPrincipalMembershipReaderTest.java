@@ -175,7 +175,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
      */
     @Test
     public void testReadMembershipWithCache() throws Exception {
-        Root systemRoot = getSystemRoot();
+        Root systemRoot = spy(getSystemRoot());
         CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(systemRoot);
 
         Set<Principal> groupPrincipal = new HashSet<>();
@@ -191,6 +191,8 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         //Assert that the cache was used
         assertEquals("Reading membership from cache for '" + userPath + "'", logCustomizer.getLogs().get(2));
         assertEquals(1, groupPrincipal.size());
+        //Assert that the cache was written just once
+        verify(systemRoot, times(1)).commit(CacheValidatorProvider.asCommitAttributes());
     }
 
     /**
@@ -223,7 +225,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         verify(mockedRoot, times(1)).commit(CacheValidatorProvider.asCommitAttributes());
         if (cacheMaxStale == UserPrincipalProvider.NO_STALE_CACHE) {
             assertEquals(NUM_THREADS, logCustomizer.getLogs().size());
-            logCustomizer.getLogs().subList(0, NUM_THREADS - 1).forEach(s -> assertEquals("Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.", s));
+            logCustomizer.getLogs().subList(0, NUM_THREADS - 1).forEach(s -> assertEquals("This thread is not allowed to serve a stale cache; reading from provider without caching.", s));
         } else {
             assertEquals(NUM_THREADS, logCustomizer.getLogs().size());
             logCustomizer.getLogs().subList(0, NUM_THREADS - 1).forEach(s -> assertEquals("Another thread is updating the cache, returning a stale cache for '" + mockedUser.getPath() + "'.", s));
@@ -258,6 +260,8 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
         PropertyState propertyStatePrincipalNames = mock(PropertyState.class);
         when(propertyStatePrincipalNames.getValue(Type.STRING)).thenReturn("groupPrincipal");
+        // Set the property to indicate that the cache is valid
+        when(mockedPrincipalCache.hasProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(true);
         when(mockedPrincipalCache.getProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(propertyStatePrincipalNames);
 
         when(mockedUser.getChild(CacheConstants.REP_CACHE)).thenReturn(mockedPrincipalCache);
