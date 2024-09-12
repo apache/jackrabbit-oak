@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import com.google.common.io.Files;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -348,7 +348,7 @@ public class AzureCheck {
     private final Integer persistentCacheSizeGb;
 
     private final CloudBlobDirectory cloudBlobDirectory;
-    private final AzureStorageCredentialManager azureStorageCredentialManager;
+    private final AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
 
     private AzureCheck(Builder builder) {
         this.path = builder.path;
@@ -367,7 +367,7 @@ public class AzureCheck {
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
         this.cloudBlobDirectory = builder.cloudBlobDirectory;
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
+        this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
     }
 
     private static Integer revisionsToCheckCount(Integer revisionsCount) {
@@ -379,9 +379,9 @@ public class AzureCheck {
         SegmentNodeStorePersistence persistence;
 
         if (cloudBlobDirectory != null) {
-            persistence = new AzurePersistence(cloudBlobDirectory);
+            persistence = new AzurePersistenceV8(cloudBlobDirectory);
         } else {
-            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, azureStorageCredentialManager);
+            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, azureStorageCredentialManagerV8);
         }
 
         if (persistentCachePath != null) {
@@ -428,7 +428,7 @@ public class AzureCheck {
             e.printStackTrace(err);
             return 1;
         } finally {
-            azureStorageCredentialManager.close();
+            azureStorageCredentialManagerV8.close();
         }
     }
 

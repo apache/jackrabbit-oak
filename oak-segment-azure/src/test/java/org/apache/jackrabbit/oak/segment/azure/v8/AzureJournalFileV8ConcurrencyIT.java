@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.azure;
+package org.apache.jackrabbit.oak.segment.azure.v8;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
@@ -39,14 +39,14 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class AzureJournalFileConcurrencyIT {
-    private static final Logger log = LoggerFactory.getLogger(AzureJournalFileConcurrencyIT.class);
+public class AzureJournalFileV8ConcurrencyIT {
+    private static final Logger log = LoggerFactory.getLogger(AzureJournalFileV8ConcurrencyIT.class);
 
     private static CloudBlobContainer container;
 
     private static int suffix;
 
-    private AzurePersistence persistence;
+    private AzurePersistenceV8 persistence;
 
     @BeforeClass
     public static void connectToAzure() throws URISyntaxException, InvalidKeyException, StorageException {
@@ -60,7 +60,7 @@ public class AzureJournalFileConcurrencyIT {
 
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException, IOException, InterruptedException {
-        persistence = new AzurePersistence(container.getDirectoryReference("oak-" + (suffix++)));
+        persistence = new AzurePersistenceV8(container.getDirectoryReference("oak-" + (suffix++)));
         writeJournalLines(300, 0);
         log.info("Finished writing initial content to journal!");
     }

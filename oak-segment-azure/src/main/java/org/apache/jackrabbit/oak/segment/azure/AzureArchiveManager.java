@@ -16,17 +16,19 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.blob.CopyStatus;
-import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import com.azure.core.util.polling.PollResponse;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobCopyInfo;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.models.CopyStatusType;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
@@ -34,38 +36,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.Set;
+import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
+import static com.azure.storage.blob.models.BlobType.BLOCK_BLOB;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getName;
 
 public class AzureArchiveManager implements SegmentArchiveManager {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReader.class);
+    private static final Logger log = LoggerFactory.getLogger(AzureArchiveManager.class);
 
-    protected final CloudBlobDirectory cloudBlobDirectory;
+    protected final BlobContainerClient readBlobContainerClient;
+
+    protected final BlobContainerClient writeBlobContainerClient;
+
+    protected final String rootPrefix;
 
     protected final IOMonitor ioMonitor;
 
     protected final FileStoreMonitor monitor;
     private WriteAccessController writeAccessController;
 
-    public AzureArchiveManager(CloudBlobDirectory segmentstoreDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
-        this.cloudBlobDirectory = segmentstoreDirectory;
+    public AzureArchiveManager(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, String rootPrefix, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
+        this.readBlobContainerClient = readBlobContainerClient;
+        this.writeBlobContainerClient = writeBlobContainerClient;
+        this.rootPrefix = rootPrefix;
         this.ioMonitor = ioMonitor;
         this.monitor = fileStoreMonitor;
         this.writeAccessController = writeAccessController;
@@ -74,17 +81,15 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            List<String> archiveNames = StreamSupport.stream(cloudBlobDirectory
-                    .listBlobs(null, false, EnumSet.noneOf(BlobListingDetails.class), null, null)
-                    .spliterator(), false)
-                    .filter(i -> i instanceof CloudBlobDirectory)
-                    .map(i -> (CloudBlobDirectory) i)
-                    .filter(i -> getName(i).endsWith(".tar"))
-                    .map(CloudBlobDirectory::getPrefix)
+            List<String> archiveNames = readBlobContainerClient.listBlobsByHierarchy(rootPrefix + "/").stream()
+                    .filter(BlobItem::isPrefix)
+                    .filter(blobItem -> blobItem.getName().endsWith(".tar") || blobItem.getName().endsWith(".tar/"))
+                    .map(BlobItem::getName)
                     .map(Paths::get)
                     .map(Path::getFileName)
                     .map(Path::toString)
                     .collect(Collectors.toList());
+
 
             Iterator<String> it = archiveNames.iterator();
             while (it.hasNext()) {
@@ -95,54 +100,57 @@ public class AzureArchiveManager implements SegmentArchiveManager {
                 }
             }
             return archiveNames;
-        } catch (URISyntaxException | StorageException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
 
     /**
      * Check if there's a valid 0000. segment in the archive
+     *
      * @param archiveName
      * @return true if the archive is empty (no 0000.* segment)
      */
-    private boolean isArchiveEmpty(String archiveName) throws IOException, URISyntaxException, StorageException {
-        return !getDirectory(archiveName).listBlobs("0000.").iterator().hasNext();
+    private boolean isArchiveEmpty(String archiveName) throws BlobStorageException {
+        String fullBlobPrefix = String.format("%s/%s", getDirectory(archiveName), "0000.");
+        ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+        listBlobsOptions.setPrefix(fullBlobPrefix);
+        return !readBlobContainerClient.listBlobs(listBlobsOptions, null).iterator().hasNext();
     }
 
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
-            CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
-            if (!archiveDirectory.getBlockBlobReference("closed").exists()) {
+            String closedBlob = String.format("%s/%s", getDirectory(archiveName), "closed");
+            if (!readBlobContainerClient.getBlobClient(closedBlob).exists()) {
                 return null;
             }
-            return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor);
-        } catch (StorageException | URISyntaxException e) {
+            return new AzureSegmentArchiveReader(readBlobContainerClient, rootPrefix, archiveName, ioMonitor);
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
 
     @Override
     public SegmentArchiveReader forceOpen(String archiveName) throws IOException {
-        CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
-        return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor);
+        return new AzureSegmentArchiveReader(readBlobContainerClient, rootPrefix, archiveName, ioMonitor);
     }
 
     @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
-        return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor, writeAccessController);
+        return new AzureSegmentArchiveWriter(writeBlobContainerClient, rootPrefix, archiveName, ioMonitor, monitor, writeAccessController);
     }
 
     @Override
     public boolean delete(String archiveName) {
         try {
             getBlobs(archiveName)
-                    .forEach(cloudBlob -> {
+                    .forEach(blobItem -> {
                         try {
                             writeAccessController.checkWritingAllowed();
-                            cloudBlob.delete();
-                        } catch (StorageException e) {
-                            log.error("Can't delete segment {}", cloudBlob.getUri().getPath(), e);
+                            writeBlobContainerClient.getBlobClient(blobItem.getName()).delete();
+                        } catch (BlobStorageException e) {
+                            log.error("Can't delete segment {}", blobItem.getName(), e);
                         }
                     });
             return true;
@@ -155,14 +163,14 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public boolean renameTo(String from, String to) {
         try {
-            CloudBlobDirectory targetDirectory = getDirectory(to);
+            String targetDirectory = getDirectory(to);
             getBlobs(from)
-                    .forEach(cloudBlob -> {
+                    .forEach(blobItem -> {
                         try {
                             writeAccessController.checkWritingAllowed();
-                            renameBlob(cloudBlob, targetDirectory);
+                            renameBlob(blobItem, targetDirectory);
                         } catch (IOException e) {
-                            log.error("Can't rename segment {}", cloudBlob.getUri().getPath(), e);
+                            log.error("Can't rename segment {}", blobItem.getName(), e);
                         }
                     });
             return true;
@@ -174,13 +182,14 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void copyFile(String from, String to) throws IOException {
-        CloudBlobDirectory targetDirectory = getDirectory(to);
+        String targetDirectory = getDirectory(to);
         getBlobs(from)
-                .forEach(cloudBlob -> {
+                .forEach(blobItem -> {
                     try {
-                        copyBlob(cloudBlob, targetDirectory);
+                        log.info("Backup segment: {}", blobItem.getName());
+                        copyBlob(blobItem, targetDirectory);
                     } catch (IOException e) {
-                        log.error("Can't copy segment {}", cloudBlob.getUri().getPath(), e);
+                        log.error("Can't copy segment {}", blobItem.getName(), e);
                     }
                 });
     }
@@ -188,8 +197,10 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public boolean exists(String archiveName) {
         try {
-            return getDirectory(archiveName).listBlobsSegmented(null, false, null, 1, null, null, null).getLength() > 0;
-        } catch (IOException | StorageException | URISyntaxException e) {
+            ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+            listBlobsOptions.setPrefix(getDirectory(archiveName));
+            return readBlobContainerClient.listBlobs(listBlobsOptions, null).iterator().hasNext();
+        } catch (BlobStorageException e) {
             log.error("Can't check the existence of {}", archiveName, e);
             return false;
         }
@@ -200,7 +211,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         Pattern pattern = Pattern.compile(RemoteUtilities.SEGMENT_FILE_NAME_PATTERN);
         List<RecoveredEntry> entryList = new ArrayList<>();
 
-        for (CloudBlob b : getBlobs(archiveName)) {
+        for (BlobItem b : getBlobs(archiveName)) {
             String name = getName(b);
             Matcher m = pattern.matcher(name);
             if (!m.matches()) {
@@ -208,12 +219,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             }
             int position = Integer.parseInt(m.group(1), 16);
             UUID uuid = UUID.fromString(m.group(2));
-            long length = b.getProperties().getLength();
+            long length = b.getProperties().getContentLength();
             if (length > 0) {
-                byte[] data = new byte[(int) length];
+                byte[] data;
                 try {
-                    b.downloadToByteArray(data, 0);
-                } catch (StorageException e) {
+                    data = readBlobContainerClient.getBlobClient(b.getName()).downloadContent().toBytes();
+                } catch (BlobStorageException e) {
                     throw new IOException(e);
                 }
                 entryList.add(new RecoveredEntry(position, uuid, data, name));
@@ -234,13 +245,13 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     }
 
     private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
-        getBlobs(archiveName)
-                .forEach(cloudBlob -> {
-                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(cloudBlob)))) {
+        getBlobs(archiveName + "/")
+                .forEach(blobItem -> {
+                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(blobItem)))) {
                         try {
-                            cloudBlob.delete();
-                        } catch (StorageException e) {
-                            log.error("Can't delete segment {}", cloudBlob.getUri().getPath(), e);
+                            writeBlobContainerClient.getBlobClient(blobItem.getName()).delete();
+                        } catch (BlobStorageException e) {
+                            log.error("Can't delete segment {}", blobItem.getName(), e);
                         }
                     }
                 });
@@ -257,51 +268,42 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         delete(archiveName, recoveredEntries);
     }
 
-    protected CloudBlobDirectory getDirectory(String archiveName) throws IOException {
-        try {
-            return cloudBlobDirectory.getDirectoryReference(archiveName);
-        } catch (URISyntaxException e) {
-            throw new IOException(e);
-        }
+    protected String getDirectory(String archiveName) {
+        return String.format("%s/%s", rootPrefix, archiveName);
     }
 
-    private List<CloudBlob> getBlobs(String archiveName) throws IOException {
-        return AzureUtilities.getBlobs(getDirectory(archiveName));
+    private List<BlobItem> getBlobs(String archiveName) throws IOException {
+        String archivePath = getDirectory(archiveName);
+        ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+        listBlobsOptions.setPrefix(archivePath);
+
+        return AzureUtilities.getBlobs(readBlobContainerClient, listBlobsOptions);
     }
 
-    private void renameBlob(CloudBlob blob, CloudBlobDirectory newParent) throws IOException {
+    private void renameBlob(BlobItem blob, String newParent) throws IOException {
         copyBlob(blob, newParent);
         try {
-            blob.delete();
-        } catch (StorageException e) {
+            writeBlobContainerClient.getBlobClient(blob.getName()).delete();
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
 
-    private void copyBlob(CloudBlob blob, CloudBlobDirectory newParent) throws IOException {
-        checkArgument(blob instanceof CloudBlockBlob, "Only page blobs are supported for the rename");
-        try {
-            String blobName = getName(blob);
-            CloudBlockBlob newBlob = newParent.getBlockBlobReference(blobName);
-            newBlob.startCopy(blob.getUri());
+    private void copyBlob(BlobItem blob, String newParent) throws IOException {
+         checkArgument(blob.getProperties().getBlobType() == BLOCK_BLOB, "Only page blobs are supported for the rename");
 
-            boolean isStatusPending = true;
-            while (isStatusPending) {
-                newBlob.downloadAttributes();
-                if (newBlob.getCopyState().getStatus() == CopyStatus.PENDING) {
-                    Thread.sleep(100);
-                } else {
-                    isStatusPending = false;
-                }
-            }
+        BlockBlobClient sourceBlobClient = readBlobContainerClient.getBlobClient(blob.getName()).getBlockBlobClient();
 
-            CopyStatus finalStatus = newBlob.getCopyState().getStatus();
-            if (newBlob.getCopyState().getStatus() != CopyStatus.SUCCESS) {
-                throw new IOException("Invalid copy status for " + blob.getUri().getPath() + ": " + finalStatus);
-            }
-        } catch (StorageException | InterruptedException | URISyntaxException e) {
-            throw new IOException(e);
+        String destinationBlob = String.format("%s/%s", newParent, AzureUtilities.getName(blob));
+        BlockBlobClient destinationBlobClient = writeBlobContainerClient.getBlobClient(destinationBlob).getBlockBlobClient();
+
+        PollResponse<BlobCopyInfo> response = destinationBlobClient.beginCopy(sourceBlobClient.getBlobUrl(), Duration.ofMillis(100)).waitForCompletion();
+
+        String finalStatus = response.getValue().getCopyStatus().toString();
+        if (response.getValue().getCopyStatus() != CopyStatusType.SUCCESS) {
+            throw new IOException("Invalid copy status for " + blob.getName() + ": " + finalStatus);
         }
+
     }
 
     private static class RecoveredEntry implements Comparable<RecoveredEntry> {

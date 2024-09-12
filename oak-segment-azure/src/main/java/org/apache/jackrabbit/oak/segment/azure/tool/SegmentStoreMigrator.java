@@ -23,7 +23,7 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
@@ -290,7 +290,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
 
         public Builder withSource(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
-            this.source = new AzurePersistence(dir);
+            this.source = new AzurePersistenceV8(dir);
             this.sourceName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
             return this;
         }
@@ -314,7 +314,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
 
         public Builder withTarget(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
-            this.target = new AzurePersistence(dir);
+            this.target = new AzurePersistenceV8(dir);
             this.targetName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
             return this;
         }

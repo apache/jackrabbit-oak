@@ -48,10 +48,12 @@
                             org.apache.jackrabbit.oak.segment.remote*,
                             com.fasterxml.jackson.annotation;resolution:=optional,
                             com.fasterxml.jackson.databind*;resolution:=optional,
-                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.*;resolution:=optional,
                             com.fasterxml.jackson.datatype*;resolution:=optional,
                             com.azure.identity.broker.implementation;resolution:=optional,
-                            com.azure.xml;resolution:=optional,
+                            com.azure.storage.blob*;resolution:=optional,
+                            com.azure.storage.common*;resolution:=optional,
+                            com.azure.storage.internal*;resolution:=optional,
                             com.microsoft.aad.msal4jextensions*;resolution:=optional,
                             com.nimbusds.langtag;resolution:=optional,
                             com.sun.jna*;resolution:=optional,
@@ -71,11 +73,16 @@
                             org.apache.jackrabbit.oak.segment.azure,
                             org.apache.jackrabbit.oak.segment.azure.queue,
                             org.apache.jackrabbit.oak.segment.azure.util,
+                            com.fasterxml.jackson.dataformat.xml,
+                            com.fasterxml.jackson.dataformat.xml.deser,
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
                             com.microsoft.azure.storage.blob,
                             com.azure.core.credential,
-                            com.azure.identity
+                            com.azure.identity,
+                            com.azure.blob,
+                            com.azure.storage.common,
+                            com.azure.storage.internal.avro.implementation
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
@@ -83,6 +90,11 @@
                             azure-core,
                             azure-identity,
                             azure-json,
+                            azure-xml,
+                            azure-storage-blob,
+                            azure-storage-common,
+                            azure-storage-internal-avro,
+                            jackson-dataformat-xml,
                             guava,
                             jsr305,
                             reactive-streams,
@@ -186,6 +198,28 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
+        </dependency>
+
+        <!-- Azure Blob Storage v12 dependencies -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>12.25.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-common</artifactId>
+            <version>12.24.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-internal-avro</artifactId>
+            <version>12.10.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-xml</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- Azure Identity Client for Microsoft Entra ID dependency -->

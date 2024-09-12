@@ -16,36 +16,37 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.file.TarRevisionsTest;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.file.TarRevisionsTest;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.junit.Before;
 import org.junit.ClassRule;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 public class AzureTarRevisionsTest extends TarRevisionsTest {
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private CloudBlobContainer container;
+    private BlobContainerClient readBlobContainerClient;
+    private BlobContainerClient writeBlobContainerClient;
 
     @Before
     public void setup() throws Exception {
-        container = azurite.getContainer("oak-test");
+        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
+        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
         super.setup();
     }
 
     @Override
     protected SegmentNodeStorePersistence getPersistence() throws IOException {
         try {
-            return new AzurePersistence(container.getDirectoryReference("oak"));
-        } catch (URISyntaxException e) {
+            return new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, "oak");
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }

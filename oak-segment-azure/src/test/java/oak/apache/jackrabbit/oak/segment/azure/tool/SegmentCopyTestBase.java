@@ -49,7 +49,7 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -235,7 +235,7 @@ public abstract class SegmentCopyTestBase {
     }
 
     protected SegmentNodeStorePersistence getAzurePersistence() throws Exception {
-        return new AzurePersistence(azurite.getContainer(AZURE_CONTAINER).getDirectoryReference(AZURE_DIRECTORY));
+        return new AzurePersistenceV8(azurite.getContainer(AZURE_CONTAINER).getDirectoryReference(AZURE_DIRECTORY));
     }
 
     protected String getTarPersistencePathOrUri() {

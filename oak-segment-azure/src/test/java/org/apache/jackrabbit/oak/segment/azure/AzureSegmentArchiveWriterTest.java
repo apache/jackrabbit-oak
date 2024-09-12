@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.BlobContainerClient;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockserver.client.MockServerClient;
@@ -35,11 +35,8 @@ import org.mockserver.junit.MockServerRule;
 import org.mockserver.matchers.Times;
 import org.mockserver.model.BinaryBody;
 import org.mockserver.model.HttpRequest;
-import shaded_package.org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.UUID;
 
 import static org.junit.Assert.assertThrows;
@@ -57,18 +54,23 @@ public class AzureSegmentArchiveWriterTest {
     @SuppressWarnings("unused")
     private MockServerClient mockServerClient;
 
-    private CloudBlobContainer container;
+    @ClassRule
+    public static AzuriteDockerRule azurite = new AzuriteDockerRule();
+
+    private BlobContainerClient readBlobContainerClient;
+    private BlobContainerClient writeBlobContainerClient;
 
     @Before
     public void setUp() throws Exception {
-        container = createCloudBlobContainer();
-
         System.setProperty("azure.segment.archive.writer.retries.intervalMs", "100");
         System.setProperty("azure.segment.archive.writer.retries.max", Integer.toString(MAX_ATTEMPTS));
 
         // Disable Azure SDK own retry mechanism used by AzureSegmentArchiveWriter
-        System.setProperty("segment.azure.retry.attempts", "0");
+        System.setProperty("segment.azure.retry.attempts", "1");
         System.setProperty("segment.timeout.execution", "1");
+
+        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
+        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
     }
 
     @Test
@@ -167,10 +169,10 @@ public class AzureSegmentArchiveWriterTest {
     }
 
     @NotNull
-    private SegmentArchiveWriter createSegmentArchiveWriter() throws URISyntaxException, IOException {
+    private SegmentArchiveWriter createSegmentArchiveWriter() throws  IOException {
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        AzurePersistence azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));/**/
+        AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, "oak");/**/
         azurePersistence.setWriteAccessController(writeAccessController);
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
@@ -186,7 +188,7 @@ public class AzureSegmentArchiveWriterTest {
     private static HttpRequest getWriteBinaryReferencesRequest() {
         return request()
                 .withMethod("PUT")
-                .withPath(BASE_PATH + "/oak/data00000a.tar/data00000a.tar.brf");
+                .withPath(BASE_PATH + "/oak%2Fdata00000a.tar%2Fdata00000a.tar.brf");
     }
 
     private static HttpRequest getWriteGraphRequest() {
@@ -209,15 +211,4 @@ public class AzureSegmentArchiveWriterTest {
                 .withBody(new BinaryBody(new byte[10]));
     }
 
-    @NotNull
-    private CloudBlobContainer createCloudBlobContainer() throws URISyntaxException, StorageException {
-        URI uri = new URIBuilder()
-                .setScheme("http")
-                .setHost(mockServerClient.remoteAddress().getHostName())
-                .setPort(mockServerClient.remoteAddress().getPort())
-                .setPath(BASE_PATH)
-                .build();
-
-        return new CloudBlobContainer(uri);
-    }
 }

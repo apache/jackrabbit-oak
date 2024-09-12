@@ -16,25 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
-
-import com.microsoft.azure.storage.StorageException;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -45,12 +37,17 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -75,9 +72,12 @@ public class SplitPersistenceBlobTest {
     private SegmentNodeStorePersistence splitPersistence;
 
     @Before
-    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, StorageException {
+    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, BlobStorageException {
+        BlobContainerClient readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
+        BlobContainerClient writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
+
         SegmentNodeStorePersistence sharedPersistence =
-            new AzurePersistence(azurite.getContainer("oak-test").getDirectoryReference("oak"));
+            new AzurePersistence(readBlobContainerClient, writeBlobContainerClient,"oak");
         File dataStoreDir = new File(folder.getRoot(), "blobstore");
         BlobStore blobStore = newBlobStore(dataStoreDir);
 

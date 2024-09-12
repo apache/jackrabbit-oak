@@ -18,10 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -40,16 +38,18 @@ public class AzureManifestFileTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private CloudBlobContainer container;
+    private BlobContainerClient readBlobContainerClient;
+    private BlobContainerClient writeBlobContainerClient;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
-        container = azurite.getContainer("oak-test");
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
+        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
+        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
     }
 
     @Test
-    public void testManifest() throws URISyntaxException, IOException {
-        ManifestFile manifestFile = new AzurePersistence(container.getDirectoryReference("oak")).getManifestFile();
+    public void testManifest() throws IOException {
+        ManifestFile manifestFile = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, "oak").getManifestFile();
         assertFalse(manifestFile.exists());
 
         Properties props = new Properties();
