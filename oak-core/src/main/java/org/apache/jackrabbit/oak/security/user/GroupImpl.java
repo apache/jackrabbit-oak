@@ -298,7 +298,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         // calculate the contentID for each memberId and remember ids that cannot be processed
-        Map<String, String> updateMap = new HashMap<>((int)Math.ceil(memberIds.length / 0.75));
+        Map<String, String> updateMap = new HashMap<>(CollectionUtils.ensureCapacity(memberIds.length));
         MembershipProvider mp = getMembershipProvider();
         for (String memberId : memberIds) {
             if (Strings.isNullOrEmpty(memberId)) {
