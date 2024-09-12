@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdateTest.CommitInfoCollector;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService.AsyncConfig;
@@ -118,7 +118,7 @@ public class AsyncIndexerServiceTest {
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("testRoot").setProperty("foo", "abc");
 

@@ -37,7 +37,7 @@ class ReadOnlyBlobStoreWrapper {
     }
 
     private static class ReadOnlyHandler implements InvocationHandler {
-        private final Set<String> writableMethods = ImmutableSet.of(
+        private final Set<String> writableMethods = Set.of(
                 "writeBlob",        //BlobStore
                 "deleteChunks",     //GarbageCollectableBlobStore
                 "countDeleteChunks" //GarbageCollectableBlobStore

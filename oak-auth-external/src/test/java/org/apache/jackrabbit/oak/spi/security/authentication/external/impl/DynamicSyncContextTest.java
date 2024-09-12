@@ -588,12 +588,12 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
-        ExternalUser mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.of());
+        ExternalUser mod = new TestUserWithGroupRefs(externalUser, Set.of());
         syncContext.syncMembership(mod, a, nesting);
         assertDynamicMembership(a, mod, nesting);
 
         // 2. set with different groups than defined on IDP
-        mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.of(
+        mod = new TestUserWithGroupRefs(externalUser, Set.of(
                 idp.getGroup("a").getExternalId(),
                 idp.getGroup("aa").getExternalId(),
                 idp.getGroup("secondGroup").getExternalId()));
@@ -609,7 +609,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of());
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of());
         syncContext.syncMembership(mod, a, nesting);
         assertSyncedMembership(userManager, a, mod, nesting);
     }
@@ -622,7 +622,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
         // sync user with modified membership => must be reflected
         // 2. set with different groups that defined on IDP
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of(
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of(
                         idp.getGroup("a").getExternalId(),
                         idp.getGroup("aa").getExternalId(),
                         idp.getGroup("secondGroup").getExternalId()));

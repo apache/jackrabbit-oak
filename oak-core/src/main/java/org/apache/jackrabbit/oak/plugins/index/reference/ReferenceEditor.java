@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 import static java.util.Collections.emptySet;
 import static javax.jcr.PropertyType.REFERENCE;
@@ -310,15 +309,15 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             NodeBuilder definition, String name, String key, Set<String> add,
             Set<String> rm) throws CommitFailedException {
         for (IndexStoreStrategy store : refStores) {
-            Set<String> empty = of();
+            Set<String> empty = Set.of();
             for (String p : rm) {
                 Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
-                store.update(index, p, name, definition, of(key), empty);
+                store.update(index, p, name, definition, Set.of(key), empty);
             }
             for (String p : add) {
                 // TODO do we still need to encode the values?
                 Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
-                store.update(index, p, name, definition, empty, of(key));
+                store.update(index, p, name, definition, empty, Set.of(key));
             }
         }
     }
@@ -329,7 +328,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
                                   String name,
                                   String key) {
         return definition.hasChildNode(name)
-                && refStore.count(root, definition, of(key), 1) > 0;
+                && refStore.count(root, definition, Set.of(key), 1) > 0;
     }
 
     private static void checkReferentialIntegrity(Set<IndexStoreStrategy> refStores,

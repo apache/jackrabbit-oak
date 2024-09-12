@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -84,7 +83,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
     
-    private static final Set<String> SUPPORTED_LANGUAGES = of(
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of(
             SQL2,  SQL2  + NO_LITERALS,
             SQL,   SQL   + NO_LITERALS,
             XPATH, XPATH + NO_LITERALS,

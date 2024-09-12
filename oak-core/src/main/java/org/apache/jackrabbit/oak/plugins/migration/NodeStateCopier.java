@@ -42,7 +42,6 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
 
 /**
@@ -374,7 +373,7 @@ public class NodeStateCopier {
      */
     public static class Builder {
 
-        private Set<String> includePaths = of("/");
+        private Set<String> includePaths = Set.of("/");
 
         private Set<String> excludePaths = emptySet();
 

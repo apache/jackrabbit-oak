@@ -56,7 +56,7 @@ public class TestLoginModule extends AbstractLoginModule {
     public boolean logout() throws LoginException {
         if (credentials != null) {
             Set<? extends Principal> s = Collections.singleton(EveryonePrincipal.getInstance());
-            return logout(ImmutableSet.of(credentials), s);
+            return logout(Set.of(credentials), s);
         } else {
             return false;
         }

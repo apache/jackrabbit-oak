@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
@@ -44,6 +43,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PARAM_READ_PATHS;
@@ -82,7 +82,7 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     public void testGetParameters() {
         ConfigurationParameters params = authorizationConfiguration.getParameters();
         assertEquals("administrators", params.getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, "undefined"));
-        assertEquals(PermissionConstants.DEFAULT_READ_PATHS, params.getConfigValue(PARAM_READ_PATHS, ImmutableSet.of()));
+        assertEquals(PermissionConstants.DEFAULT_READ_PATHS, params.getConfigValue(PARAM_READ_PATHS, Set.of()));
     }
 
     @Test
@@ -109,7 +109,7 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     @Test
     public void testGetValidators() {
         List<Class> expected = ImmutableList.of(PermissionStoreValidatorProvider.class, PermissionValidatorProvider.class, AccessControlValidatorProvider.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), ImmutableSet.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
+        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
     }
 
     @Test
@@ -125,13 +125,13 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
         ac.setRootProvider(getRootProvider());
         ac.setTreeProvider(getTreeProvider());
 
-        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof PermissionProviderImpl);
     }
 
     @Test
     public void testBindMountInfoProvider() {
-        PermissionProvider pp = authorizationConfiguration.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = authorizationConfiguration.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof MountPermissionProvider);
     }
 

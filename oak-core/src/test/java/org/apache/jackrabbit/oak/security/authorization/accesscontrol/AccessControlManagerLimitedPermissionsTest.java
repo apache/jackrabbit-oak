@@ -191,7 +191,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         }
         for (String path : notAccessible) {
             try {
-                testAcMgr.hasPrivileges(path, ImmutableSet.of(), privs);
+                testAcMgr.hasPrivileges(path, Set.of(), privs);
                 fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
             } catch (PathNotFoundException e) {
                 // success
@@ -491,7 +491,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         root.commit();
 
         testRoot.refresh();
-        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principals = Set.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         assertPolicies(policies, 2);
     }
@@ -516,7 +516,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         testRoot.refresh();
 
-        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principals = Set.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         assertPolicies(policies, 1);
     }
@@ -530,7 +530,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         testRoot.refresh();
 
         // effective policies must NOT include ReadPolicy 
-        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principals = Set.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         assertPolicies(policies, 0, false);
     }
@@ -545,7 +545,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         // effective policies must include ReadPolicy 
         // but no path-not-found must be raised if the readable-path is not accessible
-        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principals = Set.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         // since no other ac-setup exists for 'everyone' principal -> only ReadPolicy is found
         assertPolicies(policies, 1, true);
@@ -560,7 +560,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         testRoot.refresh();
 
         // effective policies must include ReadPolicy 
-        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principals = Set.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         // since no other ac-setup exists for 'everyone' principal -> only ReadPolicy is found
         assertPolicies(policies, 1, true);

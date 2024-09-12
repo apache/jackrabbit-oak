@@ -32,7 +32,7 @@ public interface ThreeRolesConstants {
     String REP_EDITORS = "rep:editors";
     String REP_OWNERS = "rep:owners";
 
-    Set<String> NAMES = ImmutableSet.of(REP_3_ROLES_POLICY, REP_READERS, REP_EDITORS, REP_OWNERS);
+    Set<String> NAMES = Set.of(REP_3_ROLES_POLICY, REP_READERS, REP_EDITORS, REP_OWNERS);
 
     long SUPPORTED_PERMISSIONS =
                     Permissions.READ |

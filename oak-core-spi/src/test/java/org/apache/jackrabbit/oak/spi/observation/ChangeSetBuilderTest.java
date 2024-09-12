@@ -21,7 +21,8 @@ package org.apache.jackrabbit.oak.spi.observation;
 
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import java.util.Set;
+
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -50,7 +51,7 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(5, 2);
         add(cb1, "1");
 
-        ChangeSet cs1 = new ChangeSet(2, null, of("nn-2"), of("nt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs1 = new ChangeSet(2, null, Set.of("nn-2"), Set.of("nt-2"), Set.of("pn-2"), Set.of("nt-2"));
         ChangeSet mcs1 = cb1.add(cs1).build();
         assertNull(mcs1.getParentPaths());
         assertThat(mcs1.getAllNodeTypes(), containsInAnyOrder("nt-1", "nt-2"));
@@ -61,7 +62,7 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
-        ChangeSet cs1 = new ChangeSet(2, null, of("nn-2"), of("pnt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs1 = new ChangeSet(2, null, Set.of("nn-2"), Set.of("pnt-2"), Set.of("pn-2"), Set.of("nt-2"));
         ChangeSet cs = cb1.add(cs1).build();
         assertNull(cs.getParentPaths());
         assertThat(cs.getAllNodeTypes(), containsInAnyOrder("nt-1", "nt-2"));
@@ -69,7 +70,7 @@ public class ChangeSetBuilderTest {
         assertThat(cs.getParentNodeTypes(), containsInAnyOrder("pnt-1", "pnt-2"));
         assertThat(cs.getPropertyNames(), containsInAnyOrder("pn-1", "pn-2"));
 
-        ChangeSet cs2 = new ChangeSet(2, of("p-2", "p-3"), of("nn-2"), of("pnt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs2 = new ChangeSet(2, Set.of("p-2", "p-3"), Set.of("nn-2"), Set.of("pnt-2"), Set.of("pn-2"), Set.of("nt-2"));
         cs = cb1.add(cs2).build();
         assertNull(cs.getParentPaths());
     }
@@ -79,14 +80,14 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
-        ChangeSet cs1 = new ChangeSet(2, of("p-2"), null, of("pnt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs1 = new ChangeSet(2, Set.of("p-2"), null, Set.of("pnt-2"), Set.of("pn-2"), Set.of("nt-2"));
         ChangeSet cs = cb1.add(cs1).build();
         assertNull(cs.getParentNodeNames());
         assertThat(cs.getAllNodeTypes(), containsInAnyOrder("nt-1", "nt-2"));
         assertThat(cs.getParentNodeTypes(), containsInAnyOrder("pnt-1", "pnt-2"));
         assertThat(cs.getPropertyNames(), containsInAnyOrder("pn-1", "pn-2"));
 
-        ChangeSet cs2 = new ChangeSet(2, of("p-2"), of("nn-2", "nn-3"), of("pnt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs2 = new ChangeSet(2, Set.of("p-2"), Set.of("nn-2", "nn-3"), Set.of("pnt-2"), Set.of("pn-2"), Set.of("nt-2"));
         cs = cb1.add(cs2).build();
         assertNull(cs.getParentNodeNames());
     }
@@ -96,7 +97,7 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
-        ChangeSet cs1 = new ChangeSet(2, of("p-2"), of("nn-2"), null, of("pn-2"), of("nt-2"));
+        ChangeSet cs1 = new ChangeSet(2, Set.of("p-2"), Set.of("nn-2"), null, Set.of("pn-2"), Set.of("nt-2"));
         ChangeSet cs = cb1.add(cs1).build();
         assertNull(cs.getParentNodeTypes());
         assertThat(cs.getParentPaths(), containsInAnyOrder("p-1", "p-2"));
@@ -110,7 +111,7 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
-        ChangeSet cs1 = new ChangeSet(2, of("p-2"), of("nn-2"), of("pnt-2"), null, of("nt-2"));
+        ChangeSet cs1 = new ChangeSet(2, Set.of("p-2"), Set.of("nn-2"), Set.of("pnt-2"), null, Set.of("nt-2"));
         ChangeSet cs = cb1.add(cs1).build();
         assertNull(cs.getPropertyNames());
         assertThat(cs.getParentPaths(), containsInAnyOrder("p-1", "p-2"));
@@ -124,7 +125,7 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
-        ChangeSet cs1 = new ChangeSet(2, of("p-2"), of("nn-2"), of("pnt-2"), of("pn-2"), null);
+        ChangeSet cs1 = new ChangeSet(2, Set.of("p-2"), Set.of("nn-2"), Set.of("pnt-2"), Set.of("pn-2"), null);
         ChangeSet cs = cb1.add(cs1).build();
         assertNull(cs.getAllNodeTypes());
         assertThat(cs.getParentPaths(), containsInAnyOrder("p-1", "p-2"));

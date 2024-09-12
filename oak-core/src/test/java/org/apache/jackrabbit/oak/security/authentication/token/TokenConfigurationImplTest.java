@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -34,6 +33,7 @@ import javax.jcr.SimpleCredentials;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE;
 import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE;
@@ -90,7 +90,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> validators = tc.getValidators(root.getContentSession().getWorkspaceName(), ImmutableSet.of(), new MoveTracker());
+        List<? extends ValidatorProvider> validators = tc.getValidators(root.getContentSession().getWorkspaceName(), Set.of(), new MoveTracker());
         assertNotNull(validators);
         assertEquals(1, validators.size());
         assertTrue(validators.get(0) instanceof TokenValidatorProvider);

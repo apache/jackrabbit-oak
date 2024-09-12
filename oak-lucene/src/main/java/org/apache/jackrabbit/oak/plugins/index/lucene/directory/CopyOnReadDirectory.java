@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
@@ -101,7 +102,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     @Override
     public IndexInput openInput(String name, IOContext context) throws IOException {
-        if (IndexCopier.REMOTE_ONLY.contains(name)) {
+        if (Objects.nonNull(name) && IndexCopier.REMOTE_ONLY.contains(name)) {
             log.trace("[{}] opening remote only file {}", indexPath, name);
             return remote.openInput(name, context);
         }

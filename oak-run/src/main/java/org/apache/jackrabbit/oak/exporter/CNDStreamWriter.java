@@ -46,7 +46,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
  * </pre>
  */
 class CNDStreamWriter implements JsopWriter, Closeable {
-    private static final Set<String> COMMON_TYPE_CODES = ImmutableSet.of("nam:", "dat:");
+    private static final Set<String> COMMON_TYPE_CODES = Set.of("nam:", "dat:");
     private enum State {NONE, STARTED, BEGIN, END}
     private final PrintWriter w;
     private State arrayState = State.NONE;

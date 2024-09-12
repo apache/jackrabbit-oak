@@ -79,7 +79,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
     }
 
     private Subject getTestSubject() {
-        return new Subject(true, Collections.singleton(testPrincipal), ImmutableSet.of(), ImmutableSet.of());
+        return new Subject(true, Collections.singleton(testPrincipal), Set.of(), Set.of());
     }
 
     @Test

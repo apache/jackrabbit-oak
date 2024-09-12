@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+
+import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 
@@ -43,7 +44,7 @@ public abstract class AbstractCacheTest {
     @NotNull
     static PrincipalPermissionEntries generatedPermissionEntries(@NotNull String path, boolean isAllow, int index, @NotNull String privilegeName) {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putEntriesByPath(path, ImmutableSet.of(new PermissionEntry(path, isAllow, index, PrivilegeBits.BUILT_IN.get(privilegeName), RestrictionPattern.EMPTY)));
+        ppe.putEntriesByPath(path, Set.of(new PermissionEntry(path, isAllow, index, PrivilegeBits.BUILT_IN.get(privilegeName), RestrictionPattern.EMPTY)));
         return ppe;
     }
 

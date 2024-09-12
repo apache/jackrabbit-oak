@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -43,6 +43,7 @@ import javax.jcr.query.Query;
 import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -96,8 +97,8 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // test that query result corresponds to the direct access (node readable, subnode not readable)
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
-        Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        Iterable<String> expected = Set.of(node.getPath());
+        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), ResultRow::getPath)));
     }
 
     @Test
@@ -123,7 +124,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // test that query result corresponds to the direct access (node readable, subnode not readable)
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
-        Iterable<String> expected = ImmutableSet.of(node.getPath());
+        Iterable<String> expected = Set.of(node.getPath());
         assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
     }
 
@@ -140,7 +141,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // test that query result corresponds to the direct access (node readable, subnode not readable)
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
-        Iterable<String> expected = ImmutableSet.of(node.getPath());
+        Iterable<String> expected = Set.of(node.getPath());
         assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
     }
 

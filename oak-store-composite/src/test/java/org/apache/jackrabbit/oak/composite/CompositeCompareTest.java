@@ -92,7 +92,7 @@ public class CompositeCompareTest {
                 return true;
             }
         });
-        assertEquals(ImmutableSet.of("added", "changed", "deleted"), modifiedNodes);
+        assertEquals(Set.of("added", "changed", "deleted"), modifiedNodes);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class CompositeCompareTest {
                 return true;
             }
         });
-        assertEquals(ImmutableSet.of("global-prop-1", "global-prop-2"), addedProperties);
+        assertEquals(Set.of("global-prop-1", "global-prop-2"), addedProperties);
     }
 
     @Test
@@ -163,7 +163,7 @@ public class CompositeCompareTest {
                 return true;
             }
         });
-        assertEquals(ImmutableSet.of("global-child-1", "global-child-2", "libs"), addedChildren);
+        assertEquals(Set.of("global-child-1", "global-child-2", "libs"), addedChildren);
 
     }
 }
