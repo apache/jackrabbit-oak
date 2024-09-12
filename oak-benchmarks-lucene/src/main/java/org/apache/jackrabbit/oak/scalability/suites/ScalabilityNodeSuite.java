@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.scalability.suites;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -410,7 +410,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             context.startProfiler();
         }
         //Execute the benchmark with the number threads configured 
-        List<Thread> threads = newArrayListWithCapacity(TESTERS);
+        List<Thread> threads = new ArrayList<>(TESTERS);
         for (int idx = 0; idx < TESTERS; idx++) {
             Thread t = new Thread("Tester-" + idx) {
                 @Override

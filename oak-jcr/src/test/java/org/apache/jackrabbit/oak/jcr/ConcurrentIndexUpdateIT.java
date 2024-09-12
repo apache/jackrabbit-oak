@@ -96,7 +96,7 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
     }
 
     private List<Long> diff(List<Long> after, List<Long> before) {
-        List<Long> diff = Lists.newArrayListWithCapacity(after.size());
+        List<Long> diff = new ArrayList<>(after.size());
         for (int i = 0; i < after.size(); i++) {
             diff.add(after.get(i) - before.get(i));
         }
@@ -104,7 +104,7 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
     }
 
     private List<Long> currentValues(List<AtomicLong> counters) {
-        List<Long> values = Lists.newArrayListWithCapacity(counters.size());
+        List<Long> values = new ArrayList<>(counters.size());
         for (AtomicLong v : counters) {
             values.add(v.get());
         }

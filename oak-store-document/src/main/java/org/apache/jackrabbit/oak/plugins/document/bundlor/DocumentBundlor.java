@@ -117,7 +117,7 @@ public class DocumentBundlor {
     }
 
     public Matcher createMatcher(){
-        List<Matcher> matchers = Lists.newArrayListWithCapacity(includes.size());
+        List<Matcher> matchers = new ArrayList<>(includes.size());
         for(Include include : includes){
             matchers.add(include.createMatcher());
         }

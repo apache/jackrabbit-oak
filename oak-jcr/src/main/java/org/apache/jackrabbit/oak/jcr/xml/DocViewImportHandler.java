@@ -83,7 +83,7 @@ class DocViewImportHandler extends TargetImportHandler {
      */
     private Iterable<String> parseNames(String value) throws SAXException {
         String[] names = value.split("\\p{Space}+");
-        List<String> qnames = Lists.newArrayListWithCapacity(names.length);
+        List<String> qnames = new ArrayList<>(names.length);
         for (String name : names) {
             try {
                 qnames.add(new NameInfo(name).getRepoQualifiedName());
