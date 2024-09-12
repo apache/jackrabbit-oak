@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMapWithExpectedSize;
 import static java.util.Collections.nCopies;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -130,8 +130,7 @@ public class SegmentIdTable {
 
     private synchronized Collection<SegmentId> refresh() {
         int size = references.size();
-        Map<SegmentId, WeakReference<SegmentId>> ids =
-                newHashMapWithExpectedSize(size);
+        Map<SegmentId, WeakReference<SegmentId>> ids = new HashMap<>((int)Math.ceil(size / 0.75));
 
         boolean hashCollisions = false;
         boolean emptyReferences = false;

@@ -657,7 +657,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         @NotNull
         Map<String, Authorizable> getAuthorizablesToAdd(@NotNull Group gr, @NotNull Map<String, Authorizable> toRemove,
                                                         @NotNull Map<String, String> nonExisting) throws RepositoryException {
-            Map<String, Authorizable> toAdd = Maps.newHashMapWithExpectedSize(members.size());
+            Map<String, Authorizable> toAdd = new HashMap<>(members.size());
             for (String contentId : members) {
                 // NOTE: no need to check for re-mapped uuids with the referenceTracker because
                 // ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW is not supported for user/group imports (see line 189)
