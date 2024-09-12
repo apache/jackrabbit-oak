@@ -22,6 +22,7 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import org.apache.jackrabbit.guava.common.base.Ticker;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -53,11 +54,18 @@ public class ElasticIndexStatisticsTest {
     @Mock
     private ElasticsearchClient elasticClientMock;
 
+    private AutoCloseable closeable;
+
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        this.closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         when(elasticConnectionMock.getClient()).thenReturn(elasticClientMock);
+    }
+
+    @After
+    public void releaseMocks() throws Exception {
+        closeable.close();
     }
 
     @Test
@@ -73,7 +81,7 @@ public class ElasticIndexStatisticsTest {
         LoadingCache<ElasticIndexStatistics.StatsRequestDescriptor, Integer> cache =
                 ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, ticker);
         ElasticIndexStatistics indexStatistics =
-                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache);
+                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache, null);
 
         CountResponse countResponse = mock(CountResponse.class);
         when(countResponse.count()).thenReturn(100L);
