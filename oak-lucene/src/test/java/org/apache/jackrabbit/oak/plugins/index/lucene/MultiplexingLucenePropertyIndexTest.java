@@ -250,7 +250,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         int firstPropSize = 25;
         List<String> values = LucenePropertyIndexTest.createStrings(firstPropSize);
         List<Long> longValues = LucenePropertyIndexTest.createLongs(LucenePropertyIndexTest.NUMBER_OF_NODES);
-        List<LucenePropertyIndexTest.Tuple2> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<LucenePropertyIndexTest.Tuple2> tuples = new ArrayList<>(values.size());
         Random r = new Random();
         Tree libs = createPath("/libs");
         Tree content = createPath("/content");

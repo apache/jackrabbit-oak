@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -41,6 +40,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.URI;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,7 +151,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
                 return (T) singletonList(getValue(values.getEntry(0), type.getBaseType()));
             } else {
                 Type<?> base = type.getBaseType();
-                List<Object> list = newArrayListWithCapacity(values.size());
+                List<Object> list = new ArrayList<>(values.size());
                 for (RecordId id : values.getEntries()) {
                     list.add(getValue(id, base));
                 }
