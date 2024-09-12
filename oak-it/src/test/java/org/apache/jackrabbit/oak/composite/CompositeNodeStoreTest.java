@@ -41,12 +41,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -666,7 +666,7 @@ public class CompositeNodeStoreTest {
     public void propertyIndex() throws Exception{
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 
@@ -685,7 +685,7 @@ public class CompositeNodeStoreTest {
     public void bigPropertyIndexUpdate() throws Exception{
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 

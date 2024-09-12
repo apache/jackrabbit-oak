@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PrefixPatternTest extends AbstractSecurityTest {
 
-    private final Set<String> prefixes = ImmutableSet.of(NamespaceRegistry.PREFIX_JCR);
+    private final Set<String> prefixes = Set.of(NamespaceRegistry.PREFIX_JCR);
 
     private final PrefixPattern pattern = new PrefixPattern(prefixes);
 
@@ -82,7 +82,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
     
     @Test
     public void testEmptyPrefix() throws Exception {
-        PrefixPattern pp = new PrefixPattern(ImmutableSet.of("", "prefix"));
+        PrefixPattern pp = new PrefixPattern(Set.of("", "prefix"));
         assertTrue(pp.matches("/"));
         assertTrue(pp.matches("/noprefix"));
         assertTrue(pp.matches("/prefix:noprefix"));
@@ -124,9 +124,9 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY)));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("oak")));
+        assertNotEquals(pattern, new PrefixPattern(Set.of(NamespaceRegistry.PREFIX_EMPTY)));
+        assertNotEquals(pattern, new PrefixPattern(Set.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
+        assertNotEquals(pattern, new PrefixPattern(Set.of("oak")));
         assertNotEquals(pattern, new ItemNamePattern(prefixes));
     }
 

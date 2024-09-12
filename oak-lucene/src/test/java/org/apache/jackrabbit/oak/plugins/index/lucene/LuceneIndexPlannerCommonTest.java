@@ -58,7 +58,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
@@ -72,7 +71,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     @Test
     public void useNumDocsOnFieldForCost() throws Exception {
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "foo1", "foo2"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "foo1", "foo2"), "async");
         long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");

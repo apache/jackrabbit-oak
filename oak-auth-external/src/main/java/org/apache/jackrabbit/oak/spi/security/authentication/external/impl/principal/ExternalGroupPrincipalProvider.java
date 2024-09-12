@@ -186,7 +186,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             }
 
         }
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     @NotNull
@@ -196,7 +196,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             return getGroupPrincipals(userManager.getAuthorizable(userID), true);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
-            return ImmutableSet.of();
+            return Set.of();
         }
     }
 
@@ -365,7 +365,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @NotNull
     private Set<Principal> getGroupPrincipals(@Nullable Authorizable authorizable, boolean ignoreGroup) throws RepositoryException {
         if (authorizable == null || (authorizable.isGroup() && ignoreGroup)) {
-            return ImmutableSet.of();
+            return Set.of();
         } else {
             return getGroupPrincipals(authorizable, DynamicGroupUtil.getTree(authorizable, root));
         }

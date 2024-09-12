@@ -798,7 +798,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         assertEquals(2, principalPermissionStore.getChildrenCount(10));
         Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
 
-        assertEquals(ImmutableSet.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
+        assertEquals(Set.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
     }
 
     @Test

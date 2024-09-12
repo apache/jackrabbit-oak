@@ -97,7 +97,7 @@ public class PrincipalRestrictionProviderTest extends AbstractSecurityTest imple
         Tree t = mock(Tree.class);
         Value v = getValueFactory(root).createValue("/path");
         PropertyState ps = PropertyStates.createProperty(REP_NODE_PATH, v);
-        Set<Restriction> rs = ImmutableSet.of(new RestrictionImpl(ps, true));
+        Set<Restriction> rs = Set.of(new RestrictionImpl(ps, true));
         provider.writeRestrictions("/testPath", t, rs);
 
         verify(base, never()).writeRestrictions("/testPath", t, new HashSet<>(rs));

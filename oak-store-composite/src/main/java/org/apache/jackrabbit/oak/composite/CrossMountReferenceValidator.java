@@ -37,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.INTEGRITY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -134,7 +132,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
             return newReferencableNodes.get(uuid);
         }
         for (IndexStoreStrategy store : uuidStores) {
-            for (String path : store.query(Filter.EMPTY_FILTER, null, uuidDefinition, of(uuid))) {
+            for (String path : store.query(Filter.EMPTY_FILTER, null, uuidDefinition, Set.of(uuid))) {
                 return path;
             }
         }

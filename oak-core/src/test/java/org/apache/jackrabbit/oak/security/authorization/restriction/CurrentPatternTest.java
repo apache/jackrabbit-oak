@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,6 +31,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 import static org.junit.Assert.assertEquals;
@@ -290,7 +290,7 @@ public class CurrentPatternTest {
         assertNotEquals(rp, createPattern());
         assertNotEquals(rp, createPattern(PROP_NAME));
         // different restrictions
-        assertNotEquals(rp, new ItemNamePattern(ImmutableSet.of("a", "b")));
-        assertNotEquals(rp, new PrefixPattern(ImmutableSet.of("a", "b", "c")));
+        assertNotEquals(rp, new ItemNamePattern(Set.of("a", "b")));
+        assertNotEquals(rp, new PrefixPattern(Set.of("a", "b", "c")));
     }
 }

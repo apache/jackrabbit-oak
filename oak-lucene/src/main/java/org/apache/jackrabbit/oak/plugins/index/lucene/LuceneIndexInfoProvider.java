@@ -289,7 +289,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     static class FilteringEqualsDiff extends EqualsDiff {
-        private static final Set<String> IGNORED_PROP_NAMES = ImmutableSet.of(
+        private static final Set<String> IGNORED_PROP_NAMES = Set.of(
                 IndexConstants.REINDEX_COUNT,
                 IndexConstants.REINDEX_PROPERTY_NAME
         );

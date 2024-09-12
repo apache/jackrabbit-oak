@@ -119,7 +119,7 @@ public class DataStoreOptions implements OptionsBean {
             "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
+        actionOpts = Set.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
         operationNames = collectionOperationNames(actionOpts);
     }
 

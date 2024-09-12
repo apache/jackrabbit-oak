@@ -95,7 +95,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicyByPrincipal() throws Exception {
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Set.of(validPrincipal));
         assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
@@ -111,7 +111,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicyByPrincipal2() throws Exception {
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal2));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Set.of(validPrincipal2));
         assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
@@ -138,7 +138,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
             ImmutablePrincipalPolicy effectivePolicy = (ImmutablePrincipalPolicy) policy;
 
             // filter expected entries: only entries that take effect at the target path should be taken into consideration
-            ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(ImmutableSet.of(effectivePolicy.getPrincipal()))[0];
+            ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(Set.of(effectivePolicy.getPrincipal()))[0];
             Set<JackrabbitAccessControlEntry> expected = ImmutableSet.copyOf(Iterables.filter(byPrincipal.getEntries(), entry -> {
                 String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
                 return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);

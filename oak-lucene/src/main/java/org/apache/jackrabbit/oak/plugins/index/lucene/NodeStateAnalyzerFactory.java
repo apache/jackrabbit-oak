@@ -72,7 +72,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 final class NodeStateAnalyzerFactory {
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
-    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
+    private static final Set<String> IGNORE_PROP_NAMES = Set.of(
             FulltextIndexConstants.ANL_CLASS,
             FulltextIndexConstants.ANL_NAME,
             JcrConstants.JCR_PRIMARYTYPE

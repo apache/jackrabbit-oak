@@ -54,8 +54,8 @@ class DynamicGroupUtil {
 
     private static final Logger log = LoggerFactory.getLogger(DynamicGroupUtil.class);
 
-    private static final Set<String> MEMBER_NODE_NAMES = ImmutableSet.of(UserConstants.REP_MEMBERS, UserConstants.REP_MEMBERS_LIST);
-    private static final Set<String> MEMBERS_TYPES = ImmutableSet.of(UserConstants.NT_REP_MEMBER_REFERENCES, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, UserConstants.NT_REP_MEMBERS);
+    private static final Set<String> MEMBER_NODE_NAMES = Set.of(UserConstants.REP_MEMBERS, UserConstants.REP_MEMBERS_LIST);
+    private static final Set<String> MEMBERS_TYPES = Set.of(UserConstants.NT_REP_MEMBER_REFERENCES, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, UserConstants.NT_REP_MEMBERS);
 
     private DynamicGroupUtil() {}
 

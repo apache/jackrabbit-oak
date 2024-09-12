@@ -41,7 +41,6 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -135,7 +134,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (policy != null) {
             policies.add(policy);
         }
-        if (readPaths.contains(oakPath)) {
+        if (Objects.nonNull(oakPath) && readPaths.contains(oakPath)) {
             policies.add(ReadPolicy.INSTANCE);
         }
         return policies.toArray(new AccessControlPolicy[0]);
@@ -668,7 +667,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 return false;
             }
 
-            if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(p), configParams)) {
+            if (PermissionUtil.isAdminOrSystem(Set.of(p), configParams)) {
                 log.warn("Attempt to create an ACE for an administrative principal which always has full access: {}", getPath());
                 switch (importBehavior) {
                     case ImportBehavior.IGNORE:

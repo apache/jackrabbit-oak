@@ -151,7 +151,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                 public Iterable<ExternalIdentityRef> getDeclaredGroups() {
                     Set<String> groupIds = userGroupMap.get(userId);
                     if (groupIds == null || groupIds.isEmpty()) {
-                        return ImmutableSet.of();
+                        return Set.of();
                     } else {
                         return Iterables.transform(groupIds,
                                 input -> new ExternalIdentityRef(input, getName()));
@@ -221,7 +221,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                 @NotNull
                 @Override
                 public Iterable<ExternalIdentityRef> getDeclaredGroups() {
-                    return ImmutableSet.of();
+                    return Set.of();
                 }
 
                 @NotNull

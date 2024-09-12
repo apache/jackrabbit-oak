@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.lang.reflect.Field;
+import java.util.Set;
 
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -84,7 +84,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         root.commit();
 
         vMgr = ReadOnlyVersionManager.getInstance(root, NamePathMapper.DEFAULT);
-        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(EveryonePrincipal.getInstance()));
 
         assertTrue(pp instanceof PermissionProviderImpl);
 

@@ -240,7 +240,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         } else if (privilegeNames.length == 1) {
             String privName = privilegeNames[0];
             if (NON_AGGREGATE_PRIVILEGES.contains(privName)) {
-                return ImmutableSet.of(privName);
+                return Set.of(privName);
             } else if (aggregation.containsKey(privName)) {
                 return aggregation.get(privName);
             } else if (AGGREGATE_PRIVILEGES.containsKey(privName)) {

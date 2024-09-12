@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
@@ -89,12 +89,12 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
         for (Principal p : new Principal[] {SystemPrincipal.INSTANCE, admin, suPrincipal}) {
-            PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(p));
+            PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, Set.of(p));
             assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
         }
 
         // however, other principals must not be excluded
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, Set.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
         assertTrue(permissionProvider instanceof CugPermissionProvider);
     }
 
@@ -104,7 +104,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
         context.registerInjectActivateService(cugConfiguration, PROPERTIES);
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, Set.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
         assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
     }
 
@@ -114,7 +114,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
         context.registerInjectActivateService(cugConfiguration, PROPERTIES);
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, Set.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
         assertTrue(permissionProvider instanceof CugPermissionProvider);
     }
 
@@ -126,7 +126,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/"}));
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, Set.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
         assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
     }
 
@@ -138,7 +138,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, Set.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
         assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
     }
 }

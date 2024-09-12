@@ -60,13 +60,13 @@ public class PermissionsTest {
 
     private static final Map<Long, Set<Long>> TEST = ImmutableMap.<Long, Set<Long>>of(
             Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
-            ImmutableSet.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
+            Set.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
             Permissions.LOCK_MANAGEMENT|Permissions.MODIFY_CHILD_NODE_COLLECTION,
-            ImmutableSet.of(Permissions.LOCK_MANAGEMENT, Permissions.MODIFY_CHILD_NODE_COLLECTION),
+            Set.of(Permissions.LOCK_MANAGEMENT, Permissions.MODIFY_CHILD_NODE_COLLECTION),
             Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL,
-            ImmutableSet.of(Permissions.READ_ACCESS_CONTROL,Permissions.MODIFY_ACCESS_CONTROL),
+            Set.of(Permissions.READ_ACCESS_CONTROL,Permissions.MODIFY_ACCESS_CONTROL),
             Permissions.NAMESPACE_MANAGEMENT|Permissions.WORKSPACE_MANAGEMENT|Permissions.NODE_TYPE_DEFINITION_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT,
-            ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT,Permissions.WORKSPACE_MANAGEMENT,Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,Permissions.PRIVILEGE_MANAGEMENT)
+            Set.of(Permissions.NAMESPACE_MANAGEMENT,Permissions.WORKSPACE_MANAGEMENT,Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,Permissions.PRIVILEGE_MANAGEMENT)
     );
 
     private Tree existingTree;
@@ -117,13 +117,13 @@ public class PermissionsTest {
     public void testGetNamesMultiple() {
         Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
                 Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
-                ImmutableSet.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
+                Set.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
                 Permissions.LOCK_MANAGEMENT|Permissions.MODIFY_CHILD_NODE_COLLECTION,
-                ImmutableSet.of(Permissions.LOCK_MANAGEMENT, Permissions.MODIFY_CHILD_NODE_COLLECTION),
+                Set.of(Permissions.LOCK_MANAGEMENT, Permissions.MODIFY_CHILD_NODE_COLLECTION),
                 Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL,
-                ImmutableSet.of(Permissions.READ_ACCESS_CONTROL,Permissions.MODIFY_ACCESS_CONTROL),
+                Set.of(Permissions.READ_ACCESS_CONTROL,Permissions.MODIFY_ACCESS_CONTROL),
                 Permissions.NAMESPACE_MANAGEMENT|Permissions.WORKSPACE_MANAGEMENT|Permissions.NODE_TYPE_DEFINITION_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT,
-                ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT,Permissions.WORKSPACE_MANAGEMENT,Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,Permissions.PRIVILEGE_MANAGEMENT)
+                Set.of(Permissions.NAMESPACE_MANAGEMENT,Permissions.WORKSPACE_MANAGEMENT,Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,Permissions.PRIVILEGE_MANAGEMENT)
         );
 
         test.forEach((key, value) -> {
@@ -139,13 +139,13 @@ public class PermissionsTest {
     public void testGetNamesAggregates() {
         Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
                 Permissions.READ|Permissions.READ_ACCESS_CONTROL,
-                ImmutableSet.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
+                Set.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
                 Permissions.REMOVE|Permissions.SET_PROPERTY,
-                ImmutableSet.of(Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE),
+                Set.of(Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE),
                 Permissions.WRITE|Permissions.SET_PROPERTY,
-                ImmutableSet.of(Permissions.WRITE),
+                Set.of(Permissions.WRITE),
                 Permissions.WRITE|Permissions.VERSION_MANAGEMENT,
-                ImmutableSet.of(Permissions.WRITE, Permissions.VERSION_MANAGEMENT, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.ADD_NODE, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE)
+                Set.of(Permissions.WRITE, Permissions.VERSION_MANAGEMENT, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.ADD_NODE, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE)
         );
 
         test.forEach((key, value) -> {
@@ -192,13 +192,13 @@ public class PermissionsTest {
     public void testGetStringAggregates() {
         Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
                 Permissions.READ|Permissions.READ_ACCESS_CONTROL,
-                ImmutableSet.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
+                Set.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
                 Permissions.REMOVE|Permissions.SET_PROPERTY,
-                ImmutableSet.of(Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE),
+                Set.of(Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE),
                 Permissions.WRITE|Permissions.SET_PROPERTY,
-                ImmutableSet.of(Permissions.WRITE),
+                Set.of(Permissions.WRITE),
                 Permissions.WRITE|Permissions.VERSION_MANAGEMENT,
-                ImmutableSet.of(Permissions.WRITE, Permissions.VERSION_MANAGEMENT, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.ADD_NODE, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE)
+                Set.of(Permissions.WRITE, Permissions.VERSION_MANAGEMENT, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.ADD_NODE, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE)
         );
 
         test.forEach((key, value) -> {
@@ -230,9 +230,9 @@ public class PermissionsTest {
     @Test
     public void testAggregates() {
         Map<Long, Set<Long>> aggregation = ImmutableMap.<Long, Set<Long>>of(
-                Permissions.READ, ImmutableSet.of(Permissions.READ_NODE, Permissions.READ_PROPERTY),
-                Permissions.SET_PROPERTY, ImmutableSet.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
-                Permissions.WRITE, ImmutableSet.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)
+                Permissions.READ, Set.of(Permissions.READ_NODE, Permissions.READ_PROPERTY),
+                Permissions.SET_PROPERTY, Set.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
+                Permissions.WRITE, Set.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)
         );
         aggregation.forEach((key, value) -> assertEquals(value, ImmutableSet.copyOf(Permissions.aggregates(key))));
     }
@@ -256,7 +256,7 @@ public class PermissionsTest {
 
     @Test
     public void testIsRepositoryPermission() {
-        Set<Long> repoPermissions = ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT, Permissions.PRIVILEGE_MANAGEMENT, Permissions.WORKSPACE_MANAGEMENT);
+        Set<Long> repoPermissions = Set.of(Permissions.NAMESPACE_MANAGEMENT, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT, Permissions.PRIVILEGE_MANAGEMENT, Permissions.WORKSPACE_MANAGEMENT);
         for (long permission : Permissions.aggregates(Permissions.ALL)) {
             assertEquals(repoPermissions.contains(permission), Permissions.isRepositoryPermission(permission));
         }

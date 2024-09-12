@@ -106,7 +106,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
      */
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
-    private Set<String> supportedPaths = ImmutableSet.of();
+    private Set<String> supportedPaths = Set.of();
 
     @SuppressWarnings("UnusedDeclaration")
     public CugConfiguration() {

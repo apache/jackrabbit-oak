@@ -28,7 +28,7 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
-    private static final Set<String> KEYWORDS = ImmutableSet.of("or");
+    private static final Set<String> KEYWORDS = Set.of("or");
     private static final Splitter SPACE_SPLITTER = Splitter.on(' ').omitEmptyStrings().trimResults();
 
     public NotFullTextSearchImpl(String selectorName, String propertyName,

@@ -70,7 +70,6 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -473,7 +472,7 @@ public class RepositorySidegrade {
         }
         excludes.add("/:async");
 
-        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
+        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes.build())

@@ -119,7 +119,7 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
         PrivilegeManager pMgr = getPrivilegeManager(root);
         pMgr.registerPrivilege("test1", true, null);
 
-        assertEquals(ImmutableSet.of("test1"), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
+        assertEquals(Set.of("test1"), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
 
         Set<String> expected = new HashSet<>(NON_AGGREGATE_PRIVILEGES);
         expected.add("test1");

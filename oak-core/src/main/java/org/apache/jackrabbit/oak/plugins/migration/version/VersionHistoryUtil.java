@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -174,7 +173,7 @@ public class VersionHistoryUtil {
                 builder.setProperty(nameProperty(JCR_MIXINTYPES, mixins));
             }
         } else {
-            builder.setProperty(nameProperty(JCR_MIXINTYPES, of(name)));
+            builder.setProperty(nameProperty(JCR_MIXINTYPES, Set.of(name)));
         }
     }
 
