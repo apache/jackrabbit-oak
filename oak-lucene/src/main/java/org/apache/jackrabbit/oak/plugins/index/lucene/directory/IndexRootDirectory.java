@@ -193,7 +193,7 @@ public class IndexRootDirectory {
     static String getIndexFolderBaseName(String indexPath) {
         List<String> elements = Lists.newArrayList(PathUtils.elements(indexPath));
         Collections.reverse(elements);
-        List<String> result = Lists.newArrayListWithCapacity(2);
+        List<String> result = new ArrayList<>(2);
 
         //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
         for (String e : Iterables.limit(elements, 3)) {

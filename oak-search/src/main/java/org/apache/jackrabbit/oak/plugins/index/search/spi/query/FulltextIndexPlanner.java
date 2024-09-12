@@ -61,7 +61,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -197,7 +196,7 @@ public class FulltextIndexPlanner {
             return getNativeFunctionPlanBuilder(indexingRule.getBaseNodeType());
         }
 
-        List<String> indexedProps = newArrayListWithCapacity(filter.getPropertyRestrictions().size());
+        List<String> indexedProps = new ArrayList<>(filter.getPropertyRestrictions().size());
 
         for (PropertyDefinition functionIndex : indexingRule.getFunctionRestrictions()) {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
@@ -935,7 +934,7 @@ public class FulltextIndexPlanner {
             return Collections.emptyList();
         }
 
-        List<OrderEntry> orderEntries = newArrayListWithCapacity(sortOrder.size());
+        List<OrderEntry> orderEntries = new ArrayList<>(sortOrder.size());
         for (OrderEntry o : sortOrder) {
             PropertyDefinition pd = rule.getConfig(o.getPropertyName());
             if (pd != null

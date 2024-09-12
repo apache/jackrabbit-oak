@@ -23,7 +23,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -253,8 +253,7 @@ public class SegmentNodeState extends Record implements NodeState {
         readStats.mark();
         Template template = getTemplate();
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
-        List<PropertyState> list =
-                newArrayListWithCapacity(propertyTemplates.length + 2);
+        List<PropertyState> list = new ArrayList<>(propertyTemplates.length + 2);
 
         PropertyState primaryType = template.getPrimaryType();
         if (primaryType != null) {
@@ -410,7 +409,7 @@ public class SegmentNodeState extends Record implements NodeState {
             return singletonList(reader.readString(id));
         }
 
-        List<String> values = newArrayListWithCapacity(size);
+        List<String> values = new ArrayList<>(size);
         ListRecord list = new ListRecord(id, size);
         for (RecordId value : list.getEntries()) {
             values.add(reader.readString(value));

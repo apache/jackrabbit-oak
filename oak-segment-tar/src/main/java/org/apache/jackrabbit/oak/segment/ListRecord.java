@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -88,7 +88,7 @@ class ListRecord extends Record {
         } else if (count == 1) {
             return singletonList(getEntry(index));
         } else {
-            List<RecordId> ids = newArrayListWithCapacity(count);
+            List<RecordId> ids = new ArrayList<>(count);
             getEntries(index, count, ids);
             return ids;
         }

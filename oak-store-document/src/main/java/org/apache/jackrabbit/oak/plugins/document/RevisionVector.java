@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -37,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.peekingIterator;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.sort;
 
 /**
@@ -175,7 +175,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         int capacity = Math.min(revisions.length, vector.revisions.length);
-        List<Revision> pmin = newArrayListWithCapacity(capacity);
+        List<Revision> pmin = new ArrayList<>(capacity);
         PeekingIterator<Revision> it = peekingIterator(vector.iterator());
         for (Revision r : revisions) {
             Revision other = peekRevision(it, r.getClusterId());
@@ -206,7 +206,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         int capacity = Math.max(revisions.length, vector.revisions.length);
-        List<Revision> pmax = newArrayListWithCapacity(capacity);
+        List<Revision> pmax = new ArrayList<>(capacity);
         PeekingIterator<Revision> it = peekingIterator(vector.iterator());
         for (Revision r : revisions) {
             while (it.hasNext() && it.peek().getClusterId() < r.getClusterId()) {
@@ -235,7 +235,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return the difference of the two vectors.
      */
     public RevisionVector difference(RevisionVector vector) {
-        List<Revision> diff = newArrayListWithCapacity(revisions.length);
+        List<Revision> diff = new ArrayList<>(revisions.length);
         PeekingIterator<Revision> it = peekingIterator(vector.iterator());
         for (Revision r : revisions) {
             Revision other = peekRevision(it, r.getClusterId());

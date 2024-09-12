@@ -23,7 +23,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
@@ -35,6 +34,7 @@ import static org.apache.jackrabbit.oak.segment.Template.MANY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.segment.Template.ZERO_CHILD_NODES;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
@@ -759,7 +759,7 @@ public class SegmentParser {
             entries = singletonList(listId);
             return new ListBucketInfo(listId, true, entries, RECORD_ID_BYTES);
         } else if (bucketSize == 1) {
-            entries = newArrayListWithCapacity(count);
+            entries = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 entries.add(segment.readRecordId(listId.getRecordNumber(), 0, index + i));
             }

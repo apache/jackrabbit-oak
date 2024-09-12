@@ -389,11 +389,11 @@ public class Segment {
         return data.size();
     }
 
-    byte readByte(int recordNumber) {
+    public byte readByte(int recordNumber) {
         return data.readByte(recordNumbers.getOffset(recordNumber));
     }
 
-    byte readByte(int recordNumber, int offset) {
+    public byte readByte(int recordNumber, int offset) {
         return data.readByte(recordNumbers.getOffset(recordNumber) + offset);
     }
 
@@ -413,11 +413,11 @@ public class Segment {
         return data.readLong(recordNumbers.getOffset(recordNumber));
     }
 
-    void readBytes(int recordNumber, int position, byte[] buffer, int offset, int length) {
+    public void readBytes(int recordNumber, int position, byte[] buffer, int offset, int length) {
         readBytes(recordNumber, position, length).get(buffer, offset, length);
     }
 
-    Buffer readBytes(int recordNumber, int position, int length) {
+    public Buffer readBytes(int recordNumber, int position, int length) {
         return data.readBytes(recordNumbers.getOffset(recordNumber) + position, length);
     }
 

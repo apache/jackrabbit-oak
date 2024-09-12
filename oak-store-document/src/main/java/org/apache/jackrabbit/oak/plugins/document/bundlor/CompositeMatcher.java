@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
@@ -52,7 +51,7 @@ class CompositeMatcher implements Matcher {
 
     @Override
     public Matcher next(String name) {
-        List<Matcher> nextSet = Lists.newArrayListWithCapacity(matchers.size());
+        List<Matcher> nextSet = new ArrayList<>(matchers.size());
         for (Matcher current : matchers){
             Matcher next = current.next(name);
             if (next.isMatch()){
