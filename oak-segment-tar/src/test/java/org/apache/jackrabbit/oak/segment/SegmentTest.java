@@ -38,7 +38,7 @@ public class SegmentTest {
 
         var segment = new Segment(segmentReader, segmentId, segmentData, recordNumbers, segmentReferences);
 
-        assertEquals(segment.getSegmentVersion(), SegmentVersion.V_12);
+        assertEquals(SegmentVersion.V_12, segment.getSegmentVersion());
     }
 
     @Test
