@@ -80,7 +80,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     private final Codec<Long> longCoded;
     private final Codec<Boolean> booleanCoded;
 
-    private final NodeDocumentFieldFilter fieldFilter = new NodeDocumentFieldFilter();
+    private final NodeDocumentFilter fieldFilter = new NodeDocumentFilter();
 
     // Statistics
     private final AtomicLong totalDocsDecoded = new AtomicLong(0);

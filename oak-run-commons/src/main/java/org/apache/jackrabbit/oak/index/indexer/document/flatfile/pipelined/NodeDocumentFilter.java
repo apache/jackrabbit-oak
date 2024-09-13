@@ -27,13 +27,13 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class NodeDocumentFieldFilter {
-    private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentFieldFilter.class);
+public class NodeDocumentFilter {
+    private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentFilter.class);
 
-    public static final String NODE_DOCUMENT_FILTER_INCLUDE_PATH = "oak.indexer.nodeDocument.filter.includePath";
-    public static final String NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.nodeDocument.filter.suffixesToSkip";
-    private final String includePath = ConfigHelper.getSystemPropertyAsString(NODE_DOCUMENT_FILTER_INCLUDE_PATH, "");
-    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ";");
+    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH = "oak.indexer.pipelined.nodeDocument.filter.includePath";
+    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.pipelined.nodeDocument.filter.suffixesToSkip";
+    private final String includePath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "");
+    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ";");
 
     private final boolean filteringDisabled;
 
@@ -42,7 +42,7 @@ public class NodeDocumentFieldFilter {
     private final AtomicLong longPathSkipped = new AtomicLong(0);
     private final ConcurrentHashMap<String, MutableLong> filteredSuffixesCounts = new ConcurrentHashMap<>();
 
-    public NodeDocumentFieldFilter() {
+    public NodeDocumentFilter() {
         this.filteringDisabled = includePath.isBlank() || suffixesToSkip.isEmpty();
         if (filteringDisabled) {
             LOG.info("Node document filtering disabled.");
