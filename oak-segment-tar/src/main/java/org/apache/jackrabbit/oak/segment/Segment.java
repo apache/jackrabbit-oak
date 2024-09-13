@@ -229,7 +229,7 @@ public class Segment {
         this.data = requireNonNull(data);
         this.recordNumbers = requireNonNull(recordNumbers);
         this.segmentReferences = requireNonNull(segmentReferences);
-        this.version = LATEST_VERSION;
+        this.version = SegmentVersion.fromByte(data.getVersion());
     }
 
     private static String toHex(byte[] bytes) {
