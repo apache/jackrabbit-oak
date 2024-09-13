@@ -107,7 +107,7 @@ public class Prefetcher {
         }
     }
 
-    public void startPrefetch() {
+    public void start() {
         if (started.getAndSet(true)) {
             // already running
             return;
