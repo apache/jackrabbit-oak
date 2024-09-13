@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public class ConfigHelper {
     private static final Logger LOG = LoggerFactory.getLogger(ConfigHelper.class);
 
@@ -47,5 +49,12 @@ public class ConfigHelper {
 
         LOG.info("Config {}={}", name, value);
         return value;
+    }
+
+    public static List<String> getSystemPropertyAsStringList(String nodeDocumentFilterApplyToDocsWithPrefix, String defaultValue, String separator) {
+        String result = System.getProperty(nodeDocumentFilterApplyToDocsWithPrefix, defaultValue);
+        List<String> parts = result.isBlank() ? List.of() : List.of(result.split(separator));
+        LOG.info("Config {}={}", nodeDocumentFilterApplyToDocsWithPrefix, parts);
+        return parts;
     }
 }
