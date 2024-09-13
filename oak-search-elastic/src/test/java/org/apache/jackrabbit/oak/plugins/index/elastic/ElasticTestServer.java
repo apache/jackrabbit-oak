@@ -35,6 +35,7 @@ import java.net.URL;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.Assume.assumeNotNull;
@@ -104,6 +105,8 @@ public class ElasticTestServer implements AutoCloseable {
                         "/tmp/plugins/elastiknn.zip")
                 .withNetwork(network)
                 .withNetworkAliases("elasticsearch")
+                // Default is 30 seconds, which might not be enough on environments with limited resources or network latency
+                .withStartupTimeout(Duration.ofMinutes(3))
                 .withStartupAttempts(3);
         CONTAINER.start();
 
