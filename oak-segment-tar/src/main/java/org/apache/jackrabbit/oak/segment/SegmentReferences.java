@@ -29,7 +29,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 /**
  * Represents a list of segment IDs referenced from a segment.
  */
-interface SegmentReferences extends Iterable<SegmentId> {
+public interface SegmentReferences extends Iterable<SegmentId> {
 
     /** Builds a new instance of {@link SegmentReferences} from the provided {@link SegmentData}. */
     static @NotNull SegmentReferences fromSegmentData(@NotNull SegmentData data, @NotNull SegmentIdProvider idProvider) {
