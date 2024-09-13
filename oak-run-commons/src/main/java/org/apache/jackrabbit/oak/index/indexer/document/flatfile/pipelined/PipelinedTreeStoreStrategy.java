@@ -494,7 +494,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             treeStore.close();
             return resultDir;
         } finally {
-            LOG.info("Shutting down build FFS thread pool");
+            LOG.info("Shutting down build thread pool");
             new ExecutorCloser(threadPool).close();
         }
     }

@@ -60,6 +60,7 @@ public class Prefetcher {
     private final AtomicLong downloadMax = new AtomicLong();
     private final AtomicLong iterateCount = new AtomicLong();
     private final Semaphore semaphore = new Semaphore(PRETCH_THREADS);
+    private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
 
     private String blobSuffix;
@@ -107,6 +108,10 @@ public class Prefetcher {
     }
 
     public void startPrefetch() {
+        if (started.getAndSet(true)) {
+            // already running
+            return;
+        }
         LOG.info("Prefetch suffix '{}', prefetch {}, index {}",
                 blobSuffix, prefetchStore, indexStore);
         executorService.submit(

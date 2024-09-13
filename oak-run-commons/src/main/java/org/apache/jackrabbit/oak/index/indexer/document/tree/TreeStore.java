@@ -152,6 +152,7 @@ public class TreeStore implements ParallelIndexStore {
     }
 
     private Iterator<String> iteratorOverPaths(String start, String end) {
+        prefetcher.startPrefetch();
         final Iterator<Entry<String, String>> firstIterator = session.iterator(start);
         return new Iterator<String>() {
 
@@ -221,6 +222,7 @@ public class TreeStore implements ParallelIndexStore {
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
+        prefetcher.startPrefetch();
         return iterator(null, null);
     }
 
