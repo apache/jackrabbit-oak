@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.directory.api.util.Strings;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -200,7 +199,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testGetDeclaredMembers() throws Exception {
         ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
         Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
-        Iterable<String> memberIds = Iterables.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> memberIds = () -> CollectionUtils.toStream(memberrefs)
+                .map(externalIdentityRef -> externalIdentityRef.getId()).iterator();
 
         Set<String> expected = ImmutableSet.copyOf(TEST_GROUP1_MEMBERS);
         assertEquals(expected, ImmutableSet.copyOf(memberIds));
@@ -212,7 +212,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
         ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
         Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
-        assertTrue(Iterables.isEmpty(memberrefs));
+        assertTrue(!memberrefs.iterator().hasNext());
     }
 
     @Test
@@ -237,7 +237,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         Iterable<ExternalIdentityRef> groupRefs = user.getDeclaredGroups();
-        Iterable<String> groupIds = Iterables.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> groupIds = () -> CollectionUtils.toStream(groupRefs)
+                .map(externalIdentityRef -> externalIdentityRef.getId()).iterator();
         assertEquals(ImmutableSet.copyOf(TEST_USER1_GROUPS), ImmutableSet.copyOf(groupIds));
     }
 
