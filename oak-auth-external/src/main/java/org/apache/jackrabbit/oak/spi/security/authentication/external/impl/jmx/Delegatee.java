@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -54,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -354,25 +356,27 @@ final class Delegatee {
 
     @NotNull
     private Iterator<String> internalListOrphanedIdentities() {
-        try {
-            Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
-            return Iterators.filter(Iterators.transform(it, syncedIdentity -> {
-                if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
-                    try {
-                        // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'
-                        ExternalIdentity extId = idp.getIdentity(requireNonNull(syncedIdentity.getExternalIdRef()));
-                        if (extId == null) {
-                            return syncedIdentity.getId();
-                        }
-                    } catch (ExternalIdentityException e) {
-                        log.error("Error while fetching external identity {}", syncedIdentity, e);
+        Iterable<SyncedIdentity> it = () -> {
+            try {
+                return handler.listIdentities(userMgr);
+            } catch (RepositoryException e) {
+                log.error("Error while listing orphaned users", e);
+                return Collections.emptyIterator();
+            }
+        };
+        return CollectionUtils.toStream(it).map(syncedIdentity -> {
+            if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
+                try {
+                    // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'
+                    ExternalIdentity extId = idp.getIdentity(requireNonNull(syncedIdentity.getExternalIdRef()));
+                    if (extId == null) {
+                        return syncedIdentity.getId();
                     }
+                } catch (ExternalIdentityException e) {
+                    log.error("Error while fetching external identity {}", syncedIdentity, e);
                 }
-                return null;
-            }), x -> x != null);
-        } catch (RepositoryException e) {
-            log.error("Error while listing orphaned users", e);
-            return Collections.emptyIterator();
-        }
+            }
+            return null;
+        }).filter(Objects::nonNull).iterator();
     }
 }

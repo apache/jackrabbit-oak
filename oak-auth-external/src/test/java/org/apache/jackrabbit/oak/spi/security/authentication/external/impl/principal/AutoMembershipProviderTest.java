@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -38,9 +39,11 @@ import org.junit.runners.Parameterized;
 import javax.jcr.RepositoryException;
 import java.text.ParseException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
@@ -108,13 +111,13 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
     
     private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it, @NotNull String... expectedIds) {
-        Set<String> ids = ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
+        Set<String> ids = Collections.unmodifiableSet(CollectionUtils.toStream(it).map(authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {
                 return "";
             }
-        }));
+        }).collect(Collectors.toSet()));
         assertEquals(ImmutableSet.copyOf(expectedIds), ids);
     }
 
