@@ -229,7 +229,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return new AccessControlPolicy[0];
         }
         Root r = getLatestRoot();
-        Set<String> candidates = collectEffectiveCandidates(r, Iterables.transform(principals, Principal::getName));
+        Set<String> candidates = collectEffectiveCandidates(r, () -> principals.stream().map(Principal::getName).iterator());
         if (candidates.isEmpty()) {
             return new AccessControlPolicy[0];
         } else {

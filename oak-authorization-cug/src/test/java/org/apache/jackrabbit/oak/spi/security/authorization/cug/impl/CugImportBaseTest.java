@@ -18,7 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -31,8 +35,6 @@ import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -191,13 +193,13 @@ public abstract class CugImportBaseTest {
 
     static void assertPrincipalNames(@NotNull Set<String> expectedPrincipalNames, @NotNull Value[] principalNames) {
         assertEquals(expectedPrincipalNames.size(), principalNames.length);
-        Set<String> result = ImmutableSet.copyOf(Iterables.transform(ImmutableSet.copyOf(principalNames), principalName -> {
+        Set<String> result = Collections.unmodifiableSet(Arrays.asList(principalNames).stream().map(principalName -> {
             try {
                 return principalName.getString();
             } catch (RepositoryException e) {
                 throw new IllegalStateException(e);
             }
-        }));
+        }).collect(Collectors.toSet()));
         assertEquals(expectedPrincipalNames, result);
     }
 
