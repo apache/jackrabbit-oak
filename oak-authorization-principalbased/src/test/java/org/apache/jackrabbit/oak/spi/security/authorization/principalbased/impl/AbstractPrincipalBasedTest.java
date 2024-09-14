@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -50,7 +49,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,8 +57,6 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
@@ -115,7 +112,8 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @Override
     @NotNull
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> pn = Iterables.transform(ImmutableSet.copyOf(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
+        Iterable<String> pn = () -> Arrays.asList(privilegeNames).stream().map(privName -> getNamePathMapper().getJcrName(privName))
+                .iterator();
         return super.privilegesFromNames(pn);
     }
 

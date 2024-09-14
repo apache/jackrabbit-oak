@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -122,7 +121,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         PropertyState privs = PropertyStates.createProperty(REP_PRIVILEGES, privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
         when(t.getProperty(REP_PRIVILEGES)).thenReturn(privs);
 
-        Iterable props = Iterables.transform(entry.getRestrictions(), Restriction::getProperty);
+        Iterable props = () -> entry.getRestrictions().stream().map(Restriction::getProperty).iterator();
         Tree rTree = mock(Tree.class);
         if (props.iterator().hasNext()) {
             when(rTree.exists()).thenReturn(true);

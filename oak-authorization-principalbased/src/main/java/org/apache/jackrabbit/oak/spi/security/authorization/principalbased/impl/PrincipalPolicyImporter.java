@@ -249,7 +249,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 if (REP_EFFECTIVE_PATH.equals(oakName) && PropertyType.PATH == prop.getType()) {
                     effectivePath = extractEffectivePath(prop);
                 } else if (REP_PRIVILEGES.equals(oakName) && PropertyType.NAME == prop.getType()) {
-                    privs = getPrivileges(Iterables.transform(prop.getTextValues(), TextValue::getString));
+                    privs = getPrivileges(() -> prop.getTextValues().stream().map(TextValue::getString).iterator());
                 } else {
                     throw new ConstraintViolationException("Unsupported property '"+oakName+"' with type "+prop.getType()+" within policy entry of type rep:PrincipalEntry");
                 }

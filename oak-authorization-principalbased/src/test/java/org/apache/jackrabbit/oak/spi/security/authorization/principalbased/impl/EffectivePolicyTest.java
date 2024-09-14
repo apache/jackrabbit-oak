@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -34,9 +32,11 @@ import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
@@ -139,10 +139,11 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
             // filter expected entries: only entries that take effect at the target path should be taken into consideration
             ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(Set.of(effectivePolicy.getPrincipal()))[0];
-            Set<JackrabbitAccessControlEntry> expected = ImmutableSet.copyOf(Iterables.filter(byPrincipal.getEntries(), entry -> {
-                String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
-                return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);
-            }));
+            Set<JackrabbitAccessControlEntry> expected = Collections
+                    .unmodifiableSet(byPrincipal.getEntries().stream().filter(entry -> {
+                        String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
+                        return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);
+                    }).collect(Collectors.toSet()));
 
             assertEquals(expected.size(), effectivePolicy.size());
             List<JackrabbitAccessControlEntry> entries = effectivePolicy.getEntries();
