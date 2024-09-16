@@ -134,7 +134,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
             ConcurrentHashMap<String, MutableLong> filteredSuffixes = fieldFilter.getFilteredSuffixesCounts();
             long totalDocumentsFiltered = filteredSuffixes.values().stream().mapToLong(MutableLong::longValue).sum();
             String filteredRenditionsString = filteredSuffixes.entrySet().stream()
-                    .sorted((e1, e2) -> -e2.getValue().compareTo(e1.getValue()))
+                    .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
                     .map(e -> e.getKey() + "=" + e.getValue())
                     .collect(Collectors.joining(", ", "{", "}"));
             LOG.info("docsDecoded: {}, dataDownloaded: {}, totalDocsDecoded: {}, totalDataDownloaded: {}, docsSkipped {}, filteredRenditions: {}",
