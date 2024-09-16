@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 
 /**
  * A wrapper around the tree store that only iterates over a subset of the
- * nodes. Each parallel tree store for reads the next block (a block is a tiny
+ * nodes. Each parallel tree store reads the next block (a block is a tiny
  * subset of the nodes). Once it has finished iterating over the block, it asks
  * the backend for the next block. The result is that the whole range is
  * covered, but it doesn't matter much which thread is how fast.
