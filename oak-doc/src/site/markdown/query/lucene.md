@@ -486,16 +486,16 @@ type
   Mostly inferred from the indexed value. However in some cases where same property
   type is not used consistently across various nodes then it would recommended
   to specify the type explicitly.
-  A binary is only indexed if there is an associated property `jcr:mimeType`.
-  For binary properties, you do not need to index the property separately. 
-  Binary properties are automatically added to the fulltext index (but only there), 
-  if the node is part of the index, if the node type (or mixin) matches, 
-  if the mime type property is set, and if the mime type is indexed
-  (see the Tika configuration).
+  For binary properties, you do not need to index the property separately.
+  Binary properties are automatically added to the fulltext index (but only there),
+  if the following conditions are met:
+  * The node is part of the index (the node type or mixin matches),
+  * The `jcr:mimeType` of this node is set
+  * The mime type is indexed (see the [Tika configuration](#tika-config)).
 
 propertyIndex
 : Whether the index for this property is used for equality conditions, ordering,
-  and is not null conditions. Example query:
+  and `is not null` conditions. Example query:
     * `/jcr:root/content//element(*, app:Asset)[@status = 'test']`
     
   Binary properties can not be queried in this way; they can only be queried
