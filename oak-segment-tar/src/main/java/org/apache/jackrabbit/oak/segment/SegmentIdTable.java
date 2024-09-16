@@ -24,7 +24,6 @@ import static java.util.Collections.nCopies;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -131,7 +130,7 @@ public class SegmentIdTable {
 
     private synchronized Collection<SegmentId> refresh() {
         int size = references.size();
-        Map<SegmentId, WeakReference<SegmentId>> ids = new HashMap<>(CollectionUtils.ensureCapacity(size));
+        Map<SegmentId, WeakReference<SegmentId>> ids = CollectionUtils.newHashMap(size);
 
         boolean hashCollisions = false;
         boolean emptyReferences = false;

@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGI
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -94,7 +93,7 @@ public final class GraphLoader {
     public static Map<UUID, List<UUID>> parseGraph(Buffer buffer) {
         int nEntries = buffer.getInt(buffer.limit() - 12);
 
-        Map<UUID, List<UUID>> graph = new HashMap<>(CollectionUtils.ensureCapacity(nEntries));
+        Map<UUID, List<UUID>> graph = CollectionUtils.newHashMap(nEntries);
 
         for (int i = 0; i < nEntries; i++) {
             long msb = buffer.getLong();

@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import java.security.Principal;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -298,7 +297,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         // calculate the contentID for each memberId and remember ids that cannot be processed
-        Map<String, String> updateMap = new HashMap<>(CollectionUtils.ensureCapacity(memberIds.length));
+        Map<String, String> updateMap = CollectionUtils.newHashMap(memberIds.length);
         MembershipProvider mp = getMembershipProvider();
         for (String memberId : memberIds) {
             if (Strings.isNullOrEmpty(memberId)) {

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -658,7 +657,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         @NotNull
         Map<String, Authorizable> getAuthorizablesToAdd(@NotNull Group gr, @NotNull Map<String, Authorizable> toRemove,
                                                         @NotNull Map<String, String> nonExisting) throws RepositoryException {
-            Map<String, Authorizable> toAdd = new HashMap<>(CollectionUtils.ensureCapacity(members.size()));
+            Map<String, Authorizable> toAdd = CollectionUtils.newHashMap(members.size());
             for (String contentId : members) {
                 // NOTE: no need to check for re-mapped uuids with the referenceTracker because
                 // ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW is not supported for user/group imports (see line 189)
