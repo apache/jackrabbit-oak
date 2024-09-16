@@ -347,15 +347,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
         final ThreadMonitor threadMonitor = new ThreadMonitor();
-        ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
-                new ThreadFactoryBuilder()
-                        .setThreadFactory(r -> {
-                            Thread t = new Thread(r);
-                            threadMonitor.registerThread(t);
-                            return t;
-                        })
-                        .setDaemon(true).build()
-        );
+        var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
+        ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
@@ -394,7 +387,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     pathFilters,
                     statisticsProvider,
                     indexingReporter,
-                    threadMonitor
+                    threadFactory
             ));
 
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
@@ -519,7 +512,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
                         .build());
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
-                threadMonitor.printStatistics();
+                // Unique heading to make it easier to find in the logs
+                threadMonitor.printStatistics("Final Thread/Memory report");
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (Throwable e) {
                 INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:FAIL] Metrics: {}, Error: {}",
