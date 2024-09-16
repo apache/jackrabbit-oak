@@ -31,8 +31,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
@@ -473,8 +473,8 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = CollectionUtils.toSet(Iterables.transform(CollectionUtils.toSet(dataStore.getAllRecords()),
-                input -> input.getIdentifier().toString()));
+        Set<String> retrieved = CollectionUtils.toStream(dataStore.getAllRecords()).map(input -> input.getIdentifier().toString())
+                .collect(Collectors.toSet());
 
         assertEquals(added, retrieved);
     }
@@ -504,8 +504,8 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = CollectionUtils.toSet(Iterables.transform(CollectionUtils.toSet(dataStore.getAllRecords()),
-                input -> input.getIdentifier().toString()));
+        Set<String> retrieved = CollectionUtils.toStream(dataStore.getAllRecords()).map(input -> input.getIdentifier().toString())
+                .collect(Collectors.toSet());
 
         assertEquals(added, retrieved);
     }
