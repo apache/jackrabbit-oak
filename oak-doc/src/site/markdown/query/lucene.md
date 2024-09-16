@@ -452,7 +452,7 @@ analyzed
     * `/jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')]`
     * `/jcr:root/content//element(*, app:Asset)[jcr:contains(jcr:content/metadata/@format, 'image')]`
   
-  Binary properties can not be queries in this way; they can only be queried
+  Binary properties can not be queried in this way; they can only be queried
   using the fulltext condition on the node, e.g. `jcr:contains(., 'image')`.
 
 
@@ -498,7 +498,7 @@ propertyIndex
   and is not null conditions. Example query:
     * `/jcr:root/content//element(*, app:Asset)[@status = 'test']`
     
-  Binary properties can not be queries in this way; they can only be queried
+  Binary properties can not be queried in this way; they can only be queried
   using the fulltext condition on the node, e.g. `jcr:contains(., 'image')`.
 
 notNullCheckEnabled
