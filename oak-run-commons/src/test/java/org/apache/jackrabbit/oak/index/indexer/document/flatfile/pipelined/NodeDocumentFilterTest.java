@@ -23,8 +23,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentFilter.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentFilter.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
+import java.util.List;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -35,9 +35,7 @@ public class NodeDocumentFilterTest {
 
     @Test
     public void filterInDirectory() {
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "/foo/bar");
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "/skip/me;/dont/include/me;/not_this_one");
-        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter();
+        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter("/foo/bar", List.of("/skip/me", "/dont/include/me", "/not_this_one"));
 
         // nodes are in the include paths for filtering
         assertTrue(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "5:/foo/bar/a/b/not_this_one"));
@@ -65,9 +63,7 @@ public class NodeDocumentFilterTest {
 
     @Test
     public void filterIncludePathRoot() {
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "/");
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "/skip/me");
-        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter();
+        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter("/", List.of("/skip/me"));
 
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "1:/skip"));
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "1:/me"));
@@ -77,9 +73,7 @@ public class NodeDocumentFilterTest {
 
     @Test
     public void filterDisabled() {
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "");
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "/not_this_one");
-        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter();
+        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter("", List.of("/not_this_one"));
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "3:/a/b/not_this_one"));
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.PATH, "/a/b/not_this_one"));
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "1:/a"));
@@ -88,9 +82,7 @@ public class NodeDocumentFilterTest {
 
     @Test
     public void emptySuffixList() {
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "/");
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "");
-        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter();
+        NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter("/", List.of());
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "3:/a/b/not_this_one"));
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.PATH, "/a/b/not_this_one"));
         assertFalse(nodeDocumentFilter.shouldSkip(NodeDocument.ID, "/a"));

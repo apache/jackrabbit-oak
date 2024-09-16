@@ -65,8 +65,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentFilter.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentFilter.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;

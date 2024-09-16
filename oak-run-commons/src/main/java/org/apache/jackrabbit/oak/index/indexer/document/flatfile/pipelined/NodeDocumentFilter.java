@@ -27,13 +27,25 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Implements a filter to decide if a given document should be processed or ignored based on its path. The filter has
+ * two configuration parameters:
+ *
+ * <ul>
+ * <li> includePath - The path where the filter is applied. Only the documents inside this path will be considered for filtering.
+ *   Documents in other paths will all be accepted.
+ * <li> suffixesToSkip - A list of suffixes to filter. That is, any document whose path ends in one of these suffixes will
+ *   be filtered.
+ * </ul>
+ * <p>
+ * The intent of this filter is to be applied as close as possible to the download/decoding of the documents from Mongo,
+ * in order to filter unnecessary documents early and avoid spending resources processing them.
+ */
 public class NodeDocumentFilter {
     private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentFilter.class);
 
-    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH = "oak.indexer.pipelined.nodeDocument.filter.includePath";
-    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.pipelined.nodeDocument.filter.suffixesToSkip";
-    private final String includePath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "");
-    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ";");
+    private final String includePath;
+    private final List<String> suffixesToSkip;
 
     private final boolean filteringDisabled;
 
@@ -42,25 +54,20 @@ public class NodeDocumentFilter {
     private final AtomicLong longPathSkipped = new AtomicLong(0);
     private final ConcurrentHashMap<String, MutableLong> filteredSuffixesCounts = new ConcurrentHashMap<>();
 
-    public NodeDocumentFilter() {
+    public NodeDocumentFilter(String includePath, List<String> suffixesToSkip) {
+        this.includePath = includePath;
+        this.suffixesToSkip = suffixesToSkip;
         this.filteringDisabled = includePath.isBlank() || suffixesToSkip.isEmpty();
         if (filteringDisabled) {
             LOG.info("Node document filtering disabled.");
         }
     }
 
-    public long getSkippedFields() {
-        return skippedFields.get();
-    }
-
-    public long getLongPathSkipped() {
-        return longPathSkipped.get();
-    }
-
-    public ConcurrentHashMap<String, MutableLong> getFilteredSuffixesCounts() {
-        return filteredSuffixesCounts;
-    }
-
+    /**
+     * @param fieldName     Name of the Mongo document field. Expected to be either  _id or _path
+     * @param idOrPathValue The value of the field
+     * @return true if the document should be skipped, false otherwise
+     */
     public boolean shouldSkip(String fieldName, String idOrPathValue) {
         if (filteringDisabled) {
             return false;
@@ -84,7 +91,7 @@ public class NodeDocumentFilter {
                     if (fieldName.equals(NodeDocument.PATH)) {
                         longPathSkipped.incrementAndGet();
                     }
-                    if (skippedSoFar % 100_000 == 0) {
+                    if (skippedSoFar % 50_000 == 0) {
                         LOG.info("skippedSoFar: {}. Long path: {}, Doc: {}={}", skippedSoFar, longPathSkipped.get(), fieldName, idOrPathValue);
                     }
                     return true;
@@ -92,5 +99,17 @@ public class NodeDocumentFilter {
             }
         }
         return false;
+    }
+
+    public long getSkippedFields() {
+        return skippedFields.get();
+    }
+
+    public long getLongPathSkipped() {
+        return longPathSkipped.get();
+    }
+
+    public ConcurrentHashMap<String, MutableLong> getFilteredSuffixesCounts() {
+        return filteredSuffixesCounts;
     }
 }
