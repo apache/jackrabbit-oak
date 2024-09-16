@@ -111,7 +111,7 @@ class SimpleExcerptProvider {
         if (q instanceof QueryImpl) {
             return extractFulltext(((QueryImpl) q).getConstraint());
         }
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     private static Set<String> extractFulltext(ConstraintImpl c) {

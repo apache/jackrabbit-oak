@@ -28,7 +28,6 @@ import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -69,7 +68,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -231,7 +229,7 @@ public class IndexImporterTest {
     public void importData_IncrementalUpdate() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null)
+                "fooIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", "abc");
@@ -250,7 +248,7 @@ public class IndexImporterTest {
 
         FilterImpl f = createFilter(store.getRoot(), NT_BASE);
         PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
-        assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
 
         IndexImporterProvider importerProvider = new IndexImporterProvider() {
             @Override
@@ -285,7 +283,7 @@ public class IndexImporterTest {
 
         lookup = new PropertyIndexLookup(store.getRoot());
         //It would not pickup /e as thats not yet indexed as part of last checkpoint
-        assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
         assertNull(store.retrieve(checkpoint));
         assertNull(store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
     }
@@ -352,7 +350,7 @@ public class IndexImporterTest {
 
         FilterImpl f = createFilter(store.getRoot(), NT_BASE);
         PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
-        assertEquals(of("a", "c", "d"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("a", "c", "d"), find(lookup, "foo", "abc", f));
 
         NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
         assertEquals(2, idx.getLong("reindexCount"));
@@ -362,7 +360,7 @@ public class IndexImporterTest {
     public void importData_DisabledIndexes() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder idxa = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+                "fooIndex", true, false, Set.of("foo"), null);
         idxa.setProperty(ASYNC_PROPERTY_NAME, "async");
         idxa.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/barIndex"), Type.STRINGS);
 
@@ -377,7 +375,7 @@ public class IndexImporterTest {
         builder = store.getRoot().builder();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "barIndex", true, false, ImmutableSet.of("foo"), null);
+                "barIndex", true, false, Set.of("foo"), null);
 
         builder.child("c").setProperty("foo", "abc");
         builder.child("d").setProperty("foo", "abc");
@@ -410,7 +408,7 @@ public class IndexImporterTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         builder.child("a").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
         EditorHook hook = new EditorHook(
@@ -444,7 +442,7 @@ public class IndexImporterTest {
     public void laneUnlockedInCaseOfFailure() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null)
+                "fooIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", "abc");
@@ -566,7 +564,7 @@ public class IndexImporterTest {
     private String importDataIncrementalUpdateBeforeSetupMethod() throws IOException, CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null)
+                "fooIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", "abc");
@@ -584,7 +582,7 @@ public class IndexImporterTest {
 
         FilterImpl f = createFilter(store.getRoot(), NT_BASE);
         PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
-        assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
 
         builder = store.getRoot().builder();
         builder.child("e").setProperty("foo", "abc");
@@ -631,11 +629,11 @@ public class IndexImporterTest {
             assertEquals("async", idx.getString("async"));
             FilterImpl f = createFilter(store.getRoot(), NT_BASE);
             PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
-            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
 
             lookup = new PropertyIndexLookup(store.getRoot());
             //It would not pickup /e as thats not yet indexed as part of last checkpoint
-            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
             // checkpoint is not released because of failure
             assertNotNull(store.retrieve(checkpoint));
             // As failure is on switchlanes no update happened i.e. no state change got committed
@@ -679,11 +677,11 @@ public class IndexImporterTest {
             assertEquals("async", idx.getString("async"));
             FilterImpl f = createFilter(store.getRoot(), NT_BASE);
             PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
-            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
 
             lookup = new PropertyIndexLookup(store.getRoot());
             //It would not pickup /e as thats not yet indexed as part of last checkpoint
-            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
             assertNotNull(store.retrieve(checkpoint));
             assertEquals("State matching failed",
                     IndexImporter.IndexImportState.SWITCH_LANE.toString(),
@@ -706,7 +704,7 @@ public class IndexImporterTest {
             FilterImpl f = createFilter(store.getRoot(), NT_BASE);
             PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
             //It would not pickup /e as thats not yet indexed as part of last checkpoint
-            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertEquals(Set.of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
             assertNull(store.retrieve(checkpoint));
             assertEquals("State matching failed",
                     null,

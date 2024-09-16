@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -101,7 +102,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                 try {
                     long start = PERF_LOGGER.start();
                     int maxSize = docsQueue.size();
-                    List<LuceneDoc> docs = Lists.newArrayListWithCapacity(maxSize);
+                    List<LuceneDoc> docs = new ArrayList<>(maxSize);
                     ListMultimap<String, LuceneDoc> docsPerIndex = ArrayListMultimap.create();
 
                     //Do the processing in batches

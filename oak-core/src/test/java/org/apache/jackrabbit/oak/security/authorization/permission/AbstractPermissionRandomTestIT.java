@@ -249,9 +249,9 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         @Override
         public Set<String> getPrivileges(Tree tree) {
             if (canRead(tree.getPath())) {
-                return ImmutableSet.of(JCR_READ);
+                return Set.of(JCR_READ);
             } else {
-                return ImmutableSet.of();
+                return Set.of();
             }
         }
 

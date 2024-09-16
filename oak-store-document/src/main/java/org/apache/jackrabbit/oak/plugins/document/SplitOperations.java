@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -43,8 +44,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.filter;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
@@ -228,7 +228,7 @@ class SplitOperations {
     }
 
     private boolean hasBinaryPropertyForSplit(Iterable<String> values) {
-        return doc.hasBinary() && any(transform(values, binarySize::apply), BINARY_FOR_SPLIT_THRESHOLD::test);
+        return doc.hasBinary() && CollectionUtils.toStream(values).map(binarySize).anyMatch(BINARY_FOR_SPLIT_THRESHOLD);
     }
 
     /**

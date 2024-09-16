@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMapWithExpectedSize;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -100,7 +100,7 @@ public final class GraphLoader {
             long lsb = buffer.getLong();
             int nVertices = buffer.getInt();
 
-            List<UUID> vertices = newArrayListWithCapacity(nVertices);
+            List<UUID> vertices = new ArrayList<>(nVertices);
 
             for (int j = 0; j < nVertices; j++) {
                 long vMsb = buffer.getLong();

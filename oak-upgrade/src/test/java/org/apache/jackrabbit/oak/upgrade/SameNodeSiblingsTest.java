@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.junit.Assert.assertEquals;
 
@@ -82,7 +81,7 @@ public class SameNodeSiblingsTest {
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
             Set<String> children = CollectionUtils.toSet(parent.getChildNodeNames());
-            assertEquals(of("child", "child_2_", "child_3_", "something_else"), children);
+            assertEquals(Set.of("child", "child_2_", "child_3_", "something_else"), children);
         } finally {
             nodeStore.dispose();
         }
@@ -104,7 +103,7 @@ public class SameNodeSiblingsTest {
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
             Set<String> children = CollectionUtils.toSet(parent.getChildNodeNames());
-            assertEquals(of("child", "child[2]", "child[3]", "something_else"), children);
+            assertEquals(Set.of("child", "child[2]", "child[3]", "something_else"), children);
         } finally {
             nodeStore.dispose();
         }
@@ -131,7 +130,7 @@ public class SameNodeSiblingsTest {
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
             Set<String> children = CollectionUtils.toSet(parent.getChildNodeNames());
-            assertEquals(of("child", "child_2_", "child_3_", "child_2_2", "child_3_2", "child_3_3"), children);
+            assertEquals(Set.of("child", "child_2_", "child_3_", "child_2_2", "child_3_2", "child_3_3"), children);
         } finally {
             nodeStore.dispose();
         }

@@ -89,7 +89,7 @@ public class TikaCommandOptions implements OptionsBean {
         populateAction = parser.accepts("populate", "Populates extraction store based on supplied indexed data and csv file");
         extractAction = parser.accepts("extract", "Performs the text extraction based on the csv file");
 
-        operationNames = ImmutableSet.of("report", "generate", "populate", "extract");
+        operationNames = Set.of("report", "generate", "populate", "extract");
     }
 
     @Override

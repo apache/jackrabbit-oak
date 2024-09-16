@@ -189,13 +189,13 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         @NotNull
         @Override
         public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
-            return ImmutableSet.of();
+            return Set.of();
         }
 
         @NotNull
         @Override
         public Set<? extends Principal> getPrincipals(@NotNull String userID) {
-            return ImmutableSet.of();
+            return Set.of();
         }
 
         @NotNull

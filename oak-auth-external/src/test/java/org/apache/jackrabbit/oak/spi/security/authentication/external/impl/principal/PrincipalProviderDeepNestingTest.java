@@ -85,7 +85,7 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Override
     @Test
     public void testFindPrincipalsByHintTypeGroup() {
-        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("a"), new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
+        Set<? extends Principal> expected = Set.of(new PrincipalImpl("a"), new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
         Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
 
         assertEquals(expected, res);
@@ -94,7 +94,7 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Override
     @Test
     public void testFindPrincipalsByHintTypeAll() {
-        Set<? extends Principal> expected = ImmutableSet.of(
+        Set<? extends Principal> expected = Set.of(
                 new PrincipalImpl("a"),
                 new PrincipalImpl("aa"),
                 new PrincipalImpl("aaa"));

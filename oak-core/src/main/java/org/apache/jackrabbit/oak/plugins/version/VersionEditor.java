@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
+
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -256,7 +258,7 @@ class VersionEditor implements Editor {
     }
 
     private boolean isLockProperty(PropertyState state) {
-        return LockConstants.LOCK_PROPERTY_NAMES.contains(state.getName());
+        return Objects.nonNull(state) && LockConstants.LOCK_PROPERTY_NAMES.contains(state.getName());
     }
 
     /**

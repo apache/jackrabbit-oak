@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 final class UserContext implements Context, UserConstants {
 
     private static final Context INSTANCE = new UserContext();
@@ -60,7 +62,7 @@ final class UserContext implements Context, UserConstants {
     @Override
     public boolean definesTree(@NotNull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
-        return NT_NAMES.contains(ntName);
+        return Objects.nonNull(ntName) && NT_NAMES.contains(ntName);
     }
 
     @Override

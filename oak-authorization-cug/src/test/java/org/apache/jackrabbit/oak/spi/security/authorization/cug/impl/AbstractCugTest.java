@@ -227,7 +227,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
         Preconditions.checkState(tree.exists());
 
         TreeUtil.addMixin(tree, MIX_REP_CUG_MIXIN, root.getTree(NODE_TYPES_PATH), null);
-        TreeUtil.addChild(tree, REP_CUG_POLICY, NT_REP_CUG_POLICY).setProperty(REP_PRINCIPAL_NAMES, ImmutableSet.of(principalName), Type.STRINGS);
+        TreeUtil.addChild(tree, REP_CUG_POLICY, NT_REP_CUG_POLICY).setProperty(REP_PRINCIPAL_NAMES, Set.of(principalName), Type.STRINGS);
     }
 
     Principal getTestGroupPrincipal() throws Exception {

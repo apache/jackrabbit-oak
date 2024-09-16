@@ -160,7 +160,7 @@ public class VersionTest extends AbstractJCRTest {
         // Similar to above, the version is actually also referenced
         // from the rootVersion's jcr:successors property, but for
         // compatibility reasons it is not returned
-        Set<String> expected = ImmutableSet.of(
+        Set<String> expected = Set.of(
                 concat(n.getPath(), jcrBaseVersion)
         );
         assertEquals("references mismatch", expected, refs);

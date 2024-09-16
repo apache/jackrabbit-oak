@@ -123,7 +123,7 @@ public class VersionGCQueryTest {
         builder.child("test");
         merge(builder);
         String id = Utils.getIdFromPath("/test");
-        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(), INTERMEDIATE::test)) {
+        while (!store.find(Collection.NODES, id).getPreviousRanges().values().stream().anyMatch(INTERMEDIATE::test)) {
             InputStream s = new RandomStream(10 * 1024, 42);
             PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
             builder = ns.getRoot().builder();

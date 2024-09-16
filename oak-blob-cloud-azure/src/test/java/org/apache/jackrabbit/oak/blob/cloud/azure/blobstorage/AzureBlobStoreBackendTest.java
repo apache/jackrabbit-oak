@@ -63,7 +63,7 @@ public class AzureBlobStoreBackendTest {
     private static final String CONTAINER_NAME = "blobstore";
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
-    private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
+    private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private CloudBlobContainer container;
 
@@ -125,7 +125,7 @@ public class AzureBlobStoreBackendTest {
         azureBlobStoreBackend.init();
 
         assertWriteAccessGranted(azureBlobStoreBackend, "file");
-        assertReadAccessGranted(azureBlobStoreBackend, ImmutableSet.of("file"));
+        assertReadAccessGranted(azureBlobStoreBackend, Set.of("file"));
     }
 
     @Test
@@ -136,7 +136,7 @@ public class AzureBlobStoreBackendTest {
         azureBlobStoreBackend.init();
 
         assertWriteAccessGranted(azureBlobStoreBackend, "file");
-        assertReadAccessGranted(azureBlobStoreBackend, ImmutableSet.of("file"));
+        assertReadAccessGranted(azureBlobStoreBackend, Set.of("file"));
     }
 
     @Test
@@ -289,7 +289,7 @@ public class AzureBlobStoreBackendTest {
         return Instant.now().minus(Duration.ofDays(1));
     }
 
-    private static ImmutableSet<String> concat(ImmutableSet<String> set, String element) {
+    private static Set<String> concat(Set<String> set, String element) {
         return ImmutableSet.<String>builder().addAll(set).add(element).build();
     }
 

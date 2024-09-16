@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.scalability.suites;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -167,7 +167,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         // recreate paths created in this run
         searchPaths = newArrayList();
-        readPaths = newArrayListWithCapacity(READERS);
+        readPaths = new ArrayList<>(READERS);
 
         // create the blob load for this iteration
         createLoad(context);

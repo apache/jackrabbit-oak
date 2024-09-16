@@ -63,7 +63,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalUser> users = idp.listUsers();
         Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
+        Set<String> expectedIds = Set.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 
@@ -73,7 +73,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalUser> users = idp.listUsers();
         Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
+        Set<String> expectedIds = Set.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 
@@ -296,7 +296,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalGroup> groups = idp.listGroups();
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
+        Set<String> expectedIds = Set.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 
@@ -307,7 +307,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalGroup> groups = idp.listGroups();
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
+        Set<String> expectedIds = Set.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 }

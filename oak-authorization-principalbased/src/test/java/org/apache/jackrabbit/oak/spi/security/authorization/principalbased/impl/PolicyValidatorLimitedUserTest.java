@@ -33,6 +33,8 @@ import org.junit.Test;
 
 import javax.jcr.SimpleCredentials;
 
+import java.util.Set;
+
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.MIX_REP_PRINCIPAL_BASED_MIXIN;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_ENTRY;
@@ -115,7 +117,7 @@ public class PolicyValidatorLimitedUserTest extends AbstractPrincipalBasedTest {
         testRoot.refresh();
 
         entry = testRoot.getTree(entry.getPath());
-        entry.setProperty(REP_PRIVILEGES, ImmutableSet.of(JCR_READ, JCR_WRITE), Type.NAMES);
+        entry.setProperty(REP_PRIVILEGES, Set.of(JCR_READ, JCR_WRITE), Type.NAMES);
         try {
             testRoot.commit();
             fail("CommitFailedException expected; type ACCESS; code 3");
