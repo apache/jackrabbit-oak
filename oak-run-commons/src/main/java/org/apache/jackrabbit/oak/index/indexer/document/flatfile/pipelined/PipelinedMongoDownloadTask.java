@@ -787,10 +787,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     while (cursor.hasNext()) {
                         NodeDocument next = cursor.next();
                         // If the id is not set, then the document was filtered by NodeDocumentFilter and should be ignored
-                        if (next.getId() == null) {
+                        String id = next.getId();
+                        if (id == null) {
                             continue;
                         }
-                        String id = next.getId();
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
                         this.nextLastModified = next.getModified();
