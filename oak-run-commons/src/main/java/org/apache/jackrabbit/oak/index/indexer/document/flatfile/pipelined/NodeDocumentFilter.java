@@ -78,7 +78,7 @@ public class NodeDocumentFilter {
         // we look up for the first occurrence of /
         int idxOfFirstForwardSlash = idOrPathValue.indexOf('/');
         if (idxOfFirstForwardSlash < 0) {
-            LOG.info("Invalid field. {} = {}", fieldName, idOrPathValue);
+            LOG.warn("Invalid field. {} = {}", fieldName, idOrPathValue);
             return false;
         }
         if (idOrPathValue.startsWith(filteredPath, idxOfFirstForwardSlash)) {

@@ -33,20 +33,20 @@ public class ConfigHelperTest {
 
     @Test
     public void getSystemPropertyAsStringList() {
-        assertEquals(List.of(), ConfigHelper.getSystemPropertyAsStringList("not.defined", "", ";"));
-        assertEquals(List.of("default"), ConfigHelper.getSystemPropertyAsStringList("not.defined", "default", ";"));
-        assertEquals(List.of("default1", "default2"), ConfigHelper.getSystemPropertyAsStringList("not.defined", "default1;default2", ";"));
+        assertEquals(List.of(), ConfigHelper.getSystemPropertyAsStringList("not.defined", "", ';'));
+        assertEquals(List.of("default"), ConfigHelper.getSystemPropertyAsStringList("not.defined", "default", ';'));
+        assertEquals(List.of("default1", "default2"), ConfigHelper.getSystemPropertyAsStringList("not.defined", "default1;default2", ';'));
 
         System.setProperty("key1", "value1");
-        assertEquals(List.of("value1"), ConfigHelper.getSystemPropertyAsStringList("key1", "default", ";"));
+        assertEquals(List.of("value1"), ConfigHelper.getSystemPropertyAsStringList("key1", "default", ';'));
 
         System.setProperty("key2", " ");
-        assertEquals(List.of(), ConfigHelper.getSystemPropertyAsStringList("key2", "default", ";"));
+        assertEquals(List.of(), ConfigHelper.getSystemPropertyAsStringList("key2", "default", ';'));
 
         System.setProperty("key3", "v1;v2");
-        assertEquals(List.of("v1", "v2"), ConfigHelper.getSystemPropertyAsStringList("key3", "default", ";"));
+        assertEquals(List.of("v1", "v2"), ConfigHelper.getSystemPropertyAsStringList("key3", "default", ';'));
 
         System.setProperty("key4", "v1; v2");
-        assertEquals(List.of("v1", "v2"), ConfigHelper.getSystemPropertyAsStringList("key4", "default", ";"));
+        assertEquals(List.of("v1", "v2"), ConfigHelper.getSystemPropertyAsStringList("key4", "default", ';'));
     }
 }

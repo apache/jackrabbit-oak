@@ -65,7 +65,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH = "oak.indexer.pipelined.nodeDocument.filter.filteredPath";
     public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.pipelined.nodeDocument.filter.suffixesToSkip";
     private final String filteredPath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH, "");
-    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ";");
+    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "",';');
 
     // The estimated size is stored in the NodeDocument itself
     public final static String SIZE_FIELD = "_ESTIMATED_SIZE_";
@@ -109,11 +109,13 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
      * an internal buffer, while reading requires converting them to a Java data type (typically String).
      */
     private void skipUntilEndOfDocument(BsonReader reader) {
-        BsonType bsonType = reader.readBsonType();
-        while (bsonType != BsonType.END_OF_DOCUMENT) {
+        while (true) {
+            BsonType bsonType = reader.readBsonType();
+            if (bsonType == BsonType.END_OF_DOCUMENT) {
+                break;
+            }
             reader.skipName();
             reader.skipValue();
-            bsonType = reader.readBsonType();
         }
         reader.readEndDocument();
     }

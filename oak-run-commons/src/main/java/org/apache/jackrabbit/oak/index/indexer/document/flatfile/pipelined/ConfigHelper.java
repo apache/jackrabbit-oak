@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +54,17 @@ public class ConfigHelper {
         return value;
     }
 
-    public static List<String> getSystemPropertyAsStringList(String name, String defaultValue, String separator) {
+    /**
+     * white space at the start/end of the string or at the start/end of the parts delimited by separator are trimmed
+     */
+    public static List<String> getSystemPropertyAsStringList(String name, String defaultValue, char separator) {
         String result = System.getProperty(name, defaultValue);
-        List<String> parts = result.isBlank() ? List.of() : Arrays.stream(result.split(separator)).map(String::trim).collect(Collectors.toList());
+        List<String> parts = splitString(result, separator);
         LOG.info("Config {}={}", name, parts);
         return parts;
+    }
+
+    private static List<String> splitString(String str, char separator) {
+        return str.isBlank() ? List.of() : Arrays.stream(StringUtils.split(str, separator)).map(String::trim).collect(Collectors.toList());
     }
 }
