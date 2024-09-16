@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -1360,7 +1359,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(4, acl.getAccessControlEntries().length);
 
         Iterable<Tree> aceTrees = root.getTree(testPath).getChild(REP_POLICY).getChildren();
-        String[] aceNodeNames = Iterables.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
+        String[] aceNodeNames = CollectionUtils.toStream(aceTrees).map(Tree::getName).toArray(String[]::new);
         assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }
 

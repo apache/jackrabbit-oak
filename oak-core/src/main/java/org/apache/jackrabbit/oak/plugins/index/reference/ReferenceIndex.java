@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -33,7 +31,9 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -138,9 +137,9 @@ class ReferenceIndex implements QueryIndex {
         Iterable<String> paths = Iterables.concat(iterables);
 
         if (!"*".equals(name)) {
-            paths = filter(paths, path -> name.equals(getName(path)));
+            paths = CollectionUtils.toStream(paths).filter(path -> name.equals(getName(path))).collect(Collectors.toList());
         }
-        paths = transform(paths, path -> getParentPath(path));
+        paths = CollectionUtils.toStream(paths).map(path -> getParentPath(path)).collect(Collectors.toList());
         return newPathCursor(paths, filter.getQueryLimits());
     }
 

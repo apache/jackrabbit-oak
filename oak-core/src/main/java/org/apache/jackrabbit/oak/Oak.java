@@ -51,7 +51,6 @@ import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
@@ -63,6 +62,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
@@ -703,14 +703,14 @@ public class Oak {
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+        Iterable<WorkspaceInitializer> workspaceInitializers = () -> CollectionUtils.toStream(securityProvider.getConfigurations()).map(
                 sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {
                             ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
                         }
                         return wi;
-                    });
+                    }).iterator();
         OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, initHook);
     }
 

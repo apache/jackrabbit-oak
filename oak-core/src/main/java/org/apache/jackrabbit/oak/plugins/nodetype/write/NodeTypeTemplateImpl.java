@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -180,9 +179,13 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     private static void writeItemDefinitions(@NotNull Tree nodeTypeTree, @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
                                              @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
         // first remove existing
-        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName)::test)) {
-            t.remove();
+        SameNamePredicate p = new SameNamePredicate(nodeName);
+        for (Tree t : nodeTypeTree.getChildren()) {
+            if (p.test(t)) {
+                t.remove();
+            }
         }
+
         // now write definitions
         int index = 1;
         if (itemDefTemplates != null) {

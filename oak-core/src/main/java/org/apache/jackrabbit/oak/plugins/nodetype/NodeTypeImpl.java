@@ -66,7 +66,6 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefWriter;
@@ -187,8 +186,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         Map<Integer, PropertyDefinition> definitions = newTreeMap();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE::test)) {
-            definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
+        for (Tree child : definition.getChildren()) {
+            if (PrimaryTypePredicate.PROPERTY_DEF_PREDICATE.test(child)) {
+                definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
+            }
         }
         return definitions.values().toArray(NO_PROPERTY_DEFINITIONS);
     }
@@ -201,8 +202,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         Map<Integer, NodeDefinition> definitions = newTreeMap();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE::test)) {
-            definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
+        for (Tree child : definition.getChildren()) {
+            if (PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE.test(child)) {
+                definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
+            }
         }
         return definitions.values().toArray(NO_NODE_DEFINITIONS);
     }

@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -67,7 +68,7 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
         assertEquals(expectedNames.length, aggr.length);
 
         Set<String> expected = CollectionUtils.toSet(expectedNames);
-        Set<String> result = CollectionUtils.toSet(Iterables.transform(ImmutableSet.copyOf(aggr), Privilege::getName));
+        Set<String> result = Arrays.stream(aggr).map(Privilege::getName).collect(Collectors.toSet());
 
         assertEquals(expected, result);
     }

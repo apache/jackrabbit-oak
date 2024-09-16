@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -558,13 +557,15 @@ public class UserManagerImpl implements UserManager {
      *
      * @return A {@code List} of {@code GroupAction}s. List may be empty.
      */
+    @SuppressWarnings("unchecked")
     @NotNull
     private Iterable<GroupAction> filterGroupActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
+        return () -> (Iterator<GroupAction>) actionProvider.getAuthorizableActions(securityProvider).stream().filter(GroupAction.class::isInstance).iterator();
     }
 
+    @SuppressWarnings("unchecked")
     @NotNull
     private Iterable<UserAction> filterUserActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
+        return () -> (Iterator<UserAction>) actionProvider.getAuthorizableActions(securityProvider).stream().filter(UserAction.class::isInstance).iterator();
     }
 }

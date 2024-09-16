@@ -18,11 +18,14 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -66,10 +69,9 @@ public class JcrAllTest extends AbstractSecurityTest implements PrivilegeConstan
         PrivilegeBits all = bitsProvider.getBits(JCR_ALL);
 
         PrivilegeManager pMgr = getSecurityProvider().getConfiguration(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
-        Iterable<Privilege> declaredAggr = Arrays.asList(pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
-        String[] allAggregates = Iterables.toArray(Iterables.transform(
-                declaredAggr,
-                privilege -> requireNonNull(privilege).getName()), String.class);
+        List<Privilege> declaredAggr = Arrays.asList(pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
+        String[] allAggregates = declaredAggr.stream().map(privilege -> requireNonNull(privilege).getName())
+                .collect(Collectors.toList()).toArray(new String[0]);
         PrivilegeBits all2 = bitsProvider.getBits(allAggregates);
 
         assertEquals(all, all2);

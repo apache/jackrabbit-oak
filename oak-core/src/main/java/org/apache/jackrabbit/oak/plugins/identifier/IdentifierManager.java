@@ -25,7 +25,6 @@ import java.util.function.Function;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
@@ -318,9 +318,8 @@ public class IdentifierManager {
                             QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), row -> row.getTree(null));
-            return Iterables.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
-            );
+            return () -> CollectionUtils.toStream(result.getRows()).map(row -> row.getTree(null))
+                    .filter(tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)).iterator();
         } catch (ParseException e) {
             log.error("query failed", e);
             return Collections.emptySet();

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -99,7 +100,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
         assertFalse(aTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         List<String> expected = ImmutableList.of("/a/bb", "/a/b");
-        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(), input -> input.getPath());
+        List<String> childPaths = CollectionUtils.toStream(aTree.getChildren()).map(Tree::getPath).collect(Collectors.toList());
         assertTrue(childPaths.toString(), Iterables.elementsEqual(expected, childPaths));
     }
 }

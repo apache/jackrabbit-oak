@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -36,7 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -194,9 +194,7 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getPropertyCount();
         } else {
-            return size(filter(
-                    builder.getProperties(),
-                    new ReadablePropertyPredicate()::test));
+            return CollectionUtils.toStream(builder.getProperties()).filter(new ReadablePropertyPredicate()).count();
         }
     }
 
@@ -206,9 +204,8 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getProperties();
         } else {
-            return filter(
-                    builder.getProperties(),
-                    new ReadablePropertyPredicate()::test);
+            return CollectionUtils.toIterable(
+                    CollectionUtils.toStream(builder.getProperties()).filter(new ReadablePropertyPredicate()).iterator());
         }
     }
 
@@ -285,9 +282,8 @@ class SecureNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public Iterable<String> getChildNodeNames() {
-        return filter(
-                builder.getChildNodeNames(),
-                input -> input != null && getChildNode(input).exists());
+        return () -> CollectionUtils.toStream(builder.getChildNodeNames())
+                .filter(input -> input != null && getChildNode(input).exists()).iterator();
     }
 
     @Override
