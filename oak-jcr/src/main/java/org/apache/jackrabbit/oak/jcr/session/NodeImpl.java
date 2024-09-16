@@ -20,7 +20,6 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -67,7 +66,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -81,6 +79,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -804,15 +803,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
                 Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
-                Iterable<Property> properties = Iterables.transform(
-                        propertyOakPaths,
-                        oakPath -> {
-                                PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
-                                return pd == null ? null : new PropertyImpl(pd, sessionContext);
-                            }
-                        );
+                Iterator<? extends Property> properties = CollectionUtils.toStream(propertyOakPaths).map(oakPath -> {
+                    PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
+                    return pd == null ? null : new PropertyImpl(pd, sessionContext);
+                }).iterator();
 
-                return new PropertyIteratorAdapter(sessionDelegate.sync(properties.iterator()));
+                return new PropertyIteratorAdapter(sessionDelegate.sync(properties));
             }
         });
     }
@@ -1351,16 +1347,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         return getNodeTypeManager().getEffectiveNodeType(dlg.getTree());
     }
 
-    private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
-        return sessionDelegate.sync(transform(
-                childNodes,
-                nodeDelegate -> new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext)));
+    private Iterator<? extends Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
+        return sessionDelegate.sync(CollectionUtils.toStream(childNodes)
+                .map(nodeDelegate -> new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext)).iterator());
     }
 
-    private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
-        return sessionDelegate.sync(transform(
-                properties,
-                propertyDelegate -> new PropertyImpl(propertyDelegate, sessionContext)));
+    private Iterator<? extends Property> propertyIterator(Iterator<PropertyDelegate> properties) {
+        return sessionDelegate.sync(CollectionUtils.toStream(properties)
+                .map(propertyDelegate -> new PropertyImpl(propertyDelegate, sessionContext)).iterator());
     }
 
     private void checkValidWorkspace(String workspaceName)
