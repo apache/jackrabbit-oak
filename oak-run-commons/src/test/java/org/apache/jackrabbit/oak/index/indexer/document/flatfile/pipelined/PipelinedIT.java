@@ -65,6 +65,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
@@ -349,6 +351,52 @@ public class PipelinedIT {
                 pathPredicate,
                 List.of(contentDamPathFilter),
                 excludedPathsRegexTestExpected);
+    }
+
+
+    @Test
+    public void createFFSFilterMongoDocuments() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH, "/content/dam/2022");
+        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "/01;/03;/02/28");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        Predicate<String> pathPredicate = s -> true;
+        PathFilter pathFilter = new PathFilter(List.of("/content/dam/2022", "/content/dam/2023"), List.of());
+        List<PathFilter> pathFilters = List.of(pathFilter);
+
+        // The full list of nodes under /content/dam/2022 and /content/dam/2023 is:
+        //  /content
+        //  /content/dam
+        //  /content/dam/2022
+        //  /content/dam/2022/01
+        //  /content/dam/2022/01/01
+        //  /content/dam/2022/02
+        //  /content/dam/2022/02/01
+        //  /content/dam/2022/02/02
+        //  /content/dam/2022/02/03
+        //  /content/dam/2022/02/04
+        //  /content/dam/2022/03
+        //  /content/dam/2022/04
+        //  /content/dam/2023
+        //  /content/dam/2023/01
+        //  /content/dam/2023/02
+        //  /content/dam/2023/02/28
+        // We are filtering nodes ending in /01 and /03 inside /content/dam/2022.
+        // Nodes in /content/dam/2023 should not be filtered, even if they match the suffixes
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/2022|{}",
+                "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+                "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
+                "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
+                "/content/dam/2022/04|{\"p1\":\"v202204\"}",
+                "/content/dam/2023|{\"p2\":\"v2023\"}",
+                "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+                "/content/dam/2023/02|{}",
+                "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
+        ), true);
     }
 
     private void buildNodeStoreForExcludedRegexTest(DocumentNodeStore rwNodeStore) {
