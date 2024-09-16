@@ -209,6 +209,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final int maxBatchNumberOfDocuments;
     private final BlockingQueue<NodeDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
+    private final ThreadMonitor threadMonitor;
     private final StatisticsProvider statisticsProvider;
     private final IndexingReporter reporter;
 
@@ -235,6 +236,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider,
                                       IndexingReporter reporter) {
+        this(mongoClientURI, docStore, maxBatchSizeBytes, maxBatchNumberOfDocuments, queue, pathFilters, statisticsProvider, reporter, null);
+    }
+
+    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+                                      MongoDocumentStore docStore,
+                                      int maxBatchSizeBytes,
+                                      int maxBatchNumberOfDocuments,
+                                      BlockingQueue<NodeDocument[]> queue,
+                                      List<PathFilter> pathFilters,
+                                      StatisticsProvider statisticsProvider,
+                                      IndexingReporter reporter,
+                                      ThreadMonitor threadMonitor) {
         this.mongoClientURI = mongoClientURI;
         this.docStore = docStore;
         this.statisticsProvider = statisticsProvider;
@@ -243,6 +256,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.maxBatchNumberOfDocuments = maxBatchNumberOfDocuments;
         this.mongoDocQueue = queue;
         this.pathFilters = pathFilters;
+        this.threadMonitor = threadMonitor;
 
         // Default retries for 5 minutes.
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
@@ -436,7 +450,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask ascendingDownloadTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics, parallelDownloadCoordinator);
             DownloadTask descendingDownloadTask = new DownloadTask(DownloadOrder.DESCENDING, downloadStageStatistics, parallelDownloadCoordinator);
 
-            ExecutorService downloadThreadPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder().setDaemon(true).build());
+            ExecutorService downloadThreadPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder()
+                    .setThreadFactory(r -> {
+                        var t = new Thread(r);
+                        if (threadMonitor != null) threadMonitor.registerThread(t);
+                        return t;
+                    })
+                    .setDaemon(true).build());
             ExecutorCompletionService<Void> ecs = new ExecutorCompletionService<>(downloadThreadPool);
             Future<?> ascendingDownloadFuture = submitDownloadTask(ecs, ascendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-ascending");
             Future<?> descendingDownloadFuture = submitDownloadTask(ecs, descendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-descending");
