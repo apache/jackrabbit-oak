@@ -86,7 +86,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     private final Codec<Long> longCoded;
     private final Codec<Boolean> booleanCoded;
 
-    private final NodeDocumentFilter fieldFilter = new NodeDocumentFilter(filteredPath, suffixesToSkip);
+    private final NodeDocumentFilter nodeDocumentFilter = new NodeDocumentFilter(filteredPath, suffixesToSkip);
 
     // Statistics
     private final AtomicLong totalDocsDecoded = new AtomicLong(0);
@@ -126,8 +126,13 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
             String fieldName = reader.readName();
             Object value = readValue(reader, fieldName, threadLocalContext);
             // Once we read the _id or the _path, apply the filter
-            if (fieldName.equals(NodeDocument.ID) || fieldName.equals(NodeDocument.PATH)) {
-                if (fieldFilter.shouldSkip(fieldName, (String) value)) {
+            if (!nodeDocumentFilter.isFilteringDisabled()
+                    && (fieldName.equals(NodeDocument.ID) || fieldName.equals(NodeDocument.PATH))
+                    && (value instanceof String)) {
+                // value should always be non-null and of type String, but we do not want the filter to ever break the
+                // downlaoder as filtering is best-effort and just a performance optimization. So we check anyway that
+                // value is what we expect it to be, and if not, just skip trying to filter.
+                if (nodeDocumentFilter.shouldSkip(fieldName, (String) value)) {
                     skipUntilEndOfDocument(reader);
                     // The Mongo driver requires us to return a document. To indicate that the document should be skipped,
                     // we return an empty document. The logic reading from the Mongo cursor can then check if the _id of
@@ -143,7 +148,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         long docsDecodedLocal = totalDocsDecoded.incrementAndGet();
         long dataDownloadedLocal = totalDataDownloaded.addAndGet(threadLocalContext.estimatedSizeOfCurrentObject);
         if (docsDecodedLocal % 500_000 == 0) {
-            ConcurrentHashMap<String, MutableLong> filteredSuffixes = fieldFilter.getFilteredSuffixesCounts();
+            ConcurrentHashMap<String, MutableLong> filteredSuffixes = nodeDocumentFilter.getFilteredSuffixesCounts();
             long totalDocumentsFiltered = filteredSuffixes.values().stream().mapToLong(MutableLong::longValue).sum();
             String filteredRenditionsString = filteredSuffixes.entrySet().stream()
                     .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))

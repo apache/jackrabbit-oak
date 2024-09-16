@@ -101,6 +101,11 @@ public class NodeDocumentFilter {
         return false;
     }
 
+
+    public boolean isFilteringDisabled() {
+        return filteringDisabled;
+    }
+
     public long getSkippedFields() {
         return skippedFields.get();
     }
