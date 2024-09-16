@@ -70,7 +70,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     // The estimated size is stored in the NodeDocument itself
     public final static String SIZE_FIELD = "_ESTIMATED_SIZE_";
 
-    private static class StatsDecoderContext {
+    private static class NodeDocumentDecoderContext {
         long docsDecoded = 0;
         long dataDownloaded = 0;
         int estimatedSizeOfCurrentObject = 0;
@@ -91,7 +91,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     // Statistics
     private final AtomicLong totalDocsDecoded = new AtomicLong(0);
     private final AtomicLong totalDataDownloaded = new AtomicLong(0);
-    private final ThreadLocal<StatsDecoderContext> perThreadContext = ThreadLocal.withInitial(StatsDecoderContext::new);
+    private final ThreadLocal<NodeDocumentDecoderContext> perThreadContext = ThreadLocal.withInitial(NodeDocumentDecoderContext::new);
 
     public NodeDocumentCodec(MongoDocumentStore store, Collection<NodeDocument> collection, CodecRegistry defaultRegistry) {
         this.store = store;
@@ -104,6 +104,10 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         this.booleanCoded = (Codec<Boolean>) bsonTypeCodecMap.get(BsonType.BOOLEAN);
     }
 
+    /**
+     * Skipping over values in the BSON file is faster than reading them. Skipping is done by advancing a pointer in
+     * an internal buffer, while reading requires converting them to a Java data type (typically String).
+     */
     private void skipUntilEndOfDocument(BsonReader reader) {
         BsonType bsonType = reader.readBsonType();
         while (bsonType != BsonType.END_OF_DOCUMENT) {
@@ -117,25 +121,29 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     @Override
     public NodeDocument decode(BsonReader reader, DecoderContext decoderContext) {
         NodeDocument nodeDocument = collection.newDocument(store);
-        StatsDecoderContext statsContext = perThreadContext.get();
-        statsContext.estimatedSizeOfCurrentObject = 0;
+        NodeDocumentDecoderContext threadLocalContext = perThreadContext.get();
+        threadLocalContext.estimatedSizeOfCurrentObject = 0;
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
-            Object value = readValue(reader, fieldName, statsContext);
+            Object value = readValue(reader, fieldName, threadLocalContext);
+            // Once we read the _id or the _path, apply the filter
             if (fieldName.equals(NodeDocument.ID) || fieldName.equals(NodeDocument.PATH)) {
                 if (fieldFilter.shouldSkip(fieldName, (String) value)) {
                     skipUntilEndOfDocument(reader);
+                    // The Mongo driver requires us to return a document. To indicate that the document should be skipped,
+                    // we return an empty document. The logic reading from the Mongo cursor can then check if the _id of
+                    // the document is null, which indicates that the document should be skipped.
                     return emptyNodeDocument;
                 }
             }
             nodeDocument.put(fieldName, value);
         }
         reader.readEndDocument();
-        statsContext.docsDecoded++;
-        statsContext.dataDownloaded += statsContext.estimatedSizeOfCurrentObject;
+        threadLocalContext.docsDecoded++;
+        threadLocalContext.dataDownloaded += threadLocalContext.estimatedSizeOfCurrentObject;
         long docsDecodedLocal = totalDocsDecoded.incrementAndGet();
-        long dataDownloadedLocal = totalDataDownloaded.addAndGet(statsContext.estimatedSizeOfCurrentObject);
+        long dataDownloadedLocal = totalDataDownloaded.addAndGet(threadLocalContext.estimatedSizeOfCurrentObject);
         if (docsDecodedLocal % 200_000 == 0) {
             ConcurrentHashMap<String, MutableLong> filteredSuffixes = fieldFilter.getFilteredSuffixesCounts();
             long totalDocumentsFiltered = filteredSuffixes.values().stream().mapToLong(MutableLong::longValue).sum();
@@ -143,12 +151,12 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                     .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
                     .map(e -> e.getKey() + "=" + e.getValue())
                     .collect(Collectors.joining(", ", "{", "}"));
-            LOG.info("docsDecoded: {}, dataDownloaded: {}, totalDocsDecoded: {}, totalDataDownloaded: {}, docsSkipped {}, filteredRenditions: {}",
-                    statsContext.docsDecoded, IOUtils.humanReadableByteCountBin(statsContext.dataDownloaded),
+            LOG.info("docsDecodedThread: {}, dataDownloadedThread: {}, docsDecodedTotal: {}, dataDownloadedTotal: {}, docsSkippedTotal {}, filteredRenditionsTotal: {}",
+                    threadLocalContext.docsDecoded, IOUtils.humanReadableByteCountBin(threadLocalContext.dataDownloaded),
                     totalDocsDecoded, IOUtils.humanReadableByteCountBin(dataDownloadedLocal),
                     totalDocumentsFiltered, filteredRenditionsString);
         }
-        nodeDocument.put(SIZE_FIELD, statsContext.estimatedSizeOfCurrentObject);
+        nodeDocument.put(SIZE_FIELD, threadLocalContext.estimatedSizeOfCurrentObject);
         return nodeDocument;
     }
 
@@ -162,7 +170,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         return NodeDocument.class;
     }
 
-    private Object readValue(BsonReader reader, String fieldName, StatsDecoderContext statsContext) {
+    private Object readValue(BsonReader reader, String fieldName, NodeDocumentDecoderContext threadContext) {
         BsonType bsonType = reader.getCurrentBsonType();
         Object value;
         int valSize;
@@ -177,7 +185,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 valSize = 16;
                 break;
             case DOCUMENT:
-                value = readDocument(reader, statsContext);
+                value = readDocument(reader, threadContext);
                 valSize = 0; // the size is updated by the recursive calls inside readDocument
                 break;
             case BOOLEAN:
@@ -203,16 +211,16 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 }
                 break;
         }
-        statsContext.estimatedSizeOfCurrentObject += 16 + fieldName.length() + valSize;
+        threadContext.estimatedSizeOfCurrentObject += 16 + fieldName.length() + valSize;
         return value;
     }
 
-    private SortedMap<Revision, Object> readDocument(BsonReader reader, StatsDecoderContext statsContext) {
+    private SortedMap<Revision, Object> readDocument(BsonReader reader, NodeDocumentDecoderContext threadContext) {
         TreeMap<Revision, Object> map = new TreeMap<>(StableRevisionComparator.REVERSE);
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
-            Object value = readValue(reader, fieldName, statsContext);
+            Object value = readValue(reader, fieldName, threadContext);
             map.put(Revision.fromString(fieldName), value);
         }
         reader.readEndDocument();
