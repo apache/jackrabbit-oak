@@ -28,11 +28,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Implements a filter to decide if a given document should be processed or ignored based on its path. The filter has
+ * Implements a filter to decide if a given Mongo document should be processed or ignored based on its path. The filter has
  * two configuration parameters:
  *
  * <ul>
- * <li> includePath - The path where the filter is applied. Only the documents inside this path will be considered for filtering.
+ * <li> filteredPath - The path where the filter is applied. Only the documents inside this path will be considered for filtering.
  *   Documents in other paths will all be accepted.
  * <li> suffixesToSkip - A list of suffixes to filter. That is, any document whose path ends in one of these suffixes will
  *   be filtered.
@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class NodeDocumentFilter {
     private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentFilter.class);
 
-    private final String includePath;
+    private final String filteredPath;
     private final List<String> suffixesToSkip;
 
     private final boolean filteringDisabled;
@@ -54,10 +54,10 @@ public class NodeDocumentFilter {
     private final AtomicLong longPathSkipped = new AtomicLong(0);
     private final ConcurrentHashMap<String, MutableLong> filteredSuffixesCounts = new ConcurrentHashMap<>();
 
-    public NodeDocumentFilter(String includePath, List<String> suffixesToSkip) {
-        this.includePath = includePath;
+    public NodeDocumentFilter(String filteredPath, List<String> suffixesToSkip) {
+        this.filteredPath = filteredPath;
         this.suffixesToSkip = suffixesToSkip;
-        this.filteringDisabled = includePath.isBlank() || suffixesToSkip.isEmpty();
+        this.filteringDisabled = filteredPath.isBlank() || suffixesToSkip.isEmpty();
         if (filteringDisabled) {
             LOG.info("Node document filtering disabled.");
         }
@@ -81,7 +81,7 @@ public class NodeDocumentFilter {
             LOG.info("Invalid field. {} = {}", fieldName, idOrPathValue);
             return false;
         }
-        if (idOrPathValue.startsWith(includePath, idxOfFirstForwardSlash)) {
+        if (idOrPathValue.startsWith(filteredPath, idxOfFirstForwardSlash)) {
             // Match the include path. Check if it ends with any of the suffixes to skip.
             for (String suffix : suffixesToSkip) {
                 if (idOrPathValue.endsWith(suffix)) {

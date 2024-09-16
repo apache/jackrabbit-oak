@@ -65,7 +65,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
@@ -356,7 +356,7 @@ public class PipelinedIT {
 
     @Test
     public void createFFSFilterMongoDocuments() throws Exception {
-        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "/content/dam/2022");
+        System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH, "/content/dam/2022");
         System.setProperty(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "/01;/03;/02/28");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 

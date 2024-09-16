@@ -62,9 +62,9 @@ import java.util.stream.Collectors;
 public class NodeDocumentCodec implements Codec<NodeDocument> {
     private final static Logger LOG = LoggerFactory.getLogger(NodeDocumentCodec.class);
 
-    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH = "oak.indexer.pipelined.nodeDocument.filter.includePath";
+    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH = "oak.indexer.pipelined.nodeDocument.filter.filteredPath";
     public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.pipelined.nodeDocument.filter.suffixesToSkip";
-    private final String includePath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_INCLUDE_PATH, "");
+    private final String filteredPath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH, "");
     private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ";");
 
     // The estimated size is stored in the NodeDocument itself
@@ -86,7 +86,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     private final Codec<Long> longCoded;
     private final Codec<Boolean> booleanCoded;
 
-    private final NodeDocumentFilter fieldFilter = new NodeDocumentFilter(includePath, suffixesToSkip);
+    private final NodeDocumentFilter fieldFilter = new NodeDocumentFilter(filteredPath, suffixesToSkip);
 
     // Statistics
     private final AtomicLong totalDocsDecoded = new AtomicLong(0);
