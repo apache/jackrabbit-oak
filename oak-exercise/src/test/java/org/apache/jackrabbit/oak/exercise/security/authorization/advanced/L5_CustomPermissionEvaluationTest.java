@@ -25,7 +25,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -212,7 +211,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
     }
 
     private Iterable<String> getTreePaths() {
-        return Iterables.transform(trees, Tree::getPath);
+        return () -> trees.stream().map(Tree::getPath).iterator();
     }
 
     private Set<Principal> getGuestPrincipals() throws Exception {
