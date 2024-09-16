@@ -96,7 +96,7 @@ Following index definition would allow using Lucene index for above query
 The index definition node for a lucene-based index
 
 * must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`lucene`__
+* must have the `type` property set to `lucene`
 * must contain the `async` property set to the value `async`, this is what
   sends the index update process to a background thread
 
@@ -323,12 +323,12 @@ indexNodeName
 : Default to false. If set to true then index would also be created for node name.
   This would enable faster evaluation of queries involving constraints on Node
   name. For example
-    * _select [jcr:path] from [nt:base] where NAME() = 'kite'_
-    * _select [jcr:path] from [nt:base] where NAME() LIKE 'kite%'_
-    * /jcr:root//kite
-    * /jcr:root//*[jcr:like(fn:name(), 'kite%')]
-    * /jcr:root//element(*, app:Asset)[fn:name() = 'kite']
-    * /jcr:root//element(kite, app:Asset)
+    * `select [jcr:path] from [nt:base] where NAME() = 'kite'`
+    * `select [jcr:path] from [nt:base] where NAME() LIKE 'kite%'`
+    * `/jcr:root//kite`
+    * `/jcr:root//*[jcr:like(fn:name(), 'kite%')]`
+    * `/jcr:root//element(*, app:Asset)[fn:name() = 'kite']`
+    * `/jcr:root//element(kite, app:Asset)`
 
 ##### <a name="cost-overrides"></a> Cost Overrides
 
@@ -430,9 +430,9 @@ useInExcerpt
 
 nodeScopeIndex
 : Control whether the value of a property should be part of fulltext index. That
-  is, you can do a _jcr:contains(., 'foo')_ and it will return nodes that have a
+  is, you can do a `jcr:contains(., 'foo')` and it will return nodes that have a
   string property that contains the word foo. Example
-    * /jcr:root/content//element(*, app:Asset)[jcr:contains(., 'image')]_
+    * `/jcr:root/content//element(*, app:Asset)[jcr:contains(., 'image')]`
 
   In case of aggregation all properties would be indexed at node level by default
   if the property type is part of `includePropertyTypes`. However, if there is an
@@ -445,21 +445,25 @@ nodeScopeIndex
   This could result in large index size in case of indexRules on broader node types such as nt:base.
 
   So it's advisable to use nodeScopeIndex for broader node types only if it's absolutely
-  needed to support queries like _jcr:contains(., 'foo')_
+  needed to support queries like `jcr:contains(., 'foo')`
 
 analyzed
 : Set this to true if the property is used as part of `contains`. Example
-    * /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')]_
-    * /jcr:root/content//element(*, app:Asset)[jcr:contains(jcr:content/metadata/@format, 'image')]_
+    * `/jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')]`
+    * `/jcr:root/content//element(*, app:Asset)[jcr:contains(jcr:content/metadata/@format, 'image')]`
+  
+  Binary properties can not be queried in this way; they can only be queried
+  using the fulltext condition on the node, e.g. `jcr:contains(., 'image')`.
+
 
 <a name="ordered"></a>
 ordered
-: If the property is to be used in _order by_ clause to perform sorting then
+: If the property is to be used in `order by` clause to perform sorting then
   this should be set to true. This should be set to true only if the property
   is to be used to perform sorting as it increases the index size. Example
-    * /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')] order by @size_
-    * /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')] order by
-    jcr:content/@jcr:lastModified_
+    * `/jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')] order by @size`
+    *` /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')] order by
+    jcr:content/@jcr:lastModified`
 
   Refer to [Lucene based Sorting][OAK-2196] for more details. Note that this is
   only supported for single value property. Enabling this on multi value property
@@ -468,7 +472,7 @@ ordered
   Ordering is supported on properties, and on functions. To order on the name of the node,
   use the following query and index definition:
 
-    SELECT * FROM [sling:Folder] WHERE ISCHILDNODE('/content') ORDER BY NAME()
+    `SELECT * FROM [sling:Folder] WHERE ISCHILDNODE('/content') ORDER BY NAME()`
     
     + sling:Folder
       + properties (nt:unstructured)
@@ -482,15 +486,24 @@ type
   Mostly inferred from the indexed value. However in some cases where same property
   type is not used consistently across various nodes then it would recommended
   to specify the type explicitly.
-  A binary is only indexed if there is an associated property `jcr:mimeType`.
+  For binary properties, you do not need to index the property separately.
+  Binary properties are automatically added to the fulltext index (but only there),
+  if the following conditions are met:
+  * The node is part of the index (the node type or mixin matches),
+  * The `jcr:mimeType` of this node is set
+  * The mime type is indexed (see the [Tika configuration](#tika-config)).
 
 propertyIndex
 : Whether the index for this property is used for equality conditions, ordering,
-  and is not null conditions.
+  and `is not null` conditions. Example query:
+    * `/jcr:root/content//element(*, app:Asset)[@status = 'test']`
+    
+  Binary properties can not be queried in this way; they can only be queried
+  using the fulltext condition on the node, e.g. `jcr:contains(., 'image')`.
 
 notNullCheckEnabled
 : Since 1.1.8
-: If the property is checked for _is not null_ then this should be set to true.
+: If the property is checked for `is not null` then this should be set to true.
   To reduce the index size,
   this should only be enabled for nodeTypes that are not generic.
     * /jcr:root/content//element(*, app:Asset)[jcr:content/@excludeFromSearch]
@@ -499,10 +512,10 @@ notNullCheckEnabled
 
 nullCheckEnabled
 : Since 1.0.12
-: If the property is checked for _is null_ then this should be set to true. This
+: If the property is checked for `is null` then this should be set to true. This
   should only be enabled for nodeTypes that are not generic as it leads to index
   entry for all nodes of that type where this property is not set.
-    * /jcr:root/content//element(*, app:Asset)[not(jcr:content/@excludeFromSearch)]
+    * `/jcr:root/content//element(*, app:Asset)[not(jcr:content/@excludeFromSearch)]`
 
   It would be better to use a query which checks for property existence or property
   being set to specific values as such queries can make use of index without any
@@ -551,16 +564,16 @@ unique
 
 Property name can be one of following
 
-1. Simple name - Like _assetType_ etc. These are used for properties which are
+1. Simple name - Like `assetType` etc. These are used for properties which are
    defined directly on the indexed node
-2. Relative name - Like _jcr:content/metadata/title_. These are used for
+2. Relative name - Like `jcr:content/metadata/title`. These are used for
    properties which are defined relative to the node being indexed.
-3. Regular Expression - Like _.*_. Used when only property whose name
+3. Regular Expression - Like `.*`. Used when only property whose name
    match given pattern are to be indexed.
    They can also be used for relative properties like
-   _jcr:content/metadata/dc:.*$_
-   which indexes all property names starting with _dc_ from node with
-   relative path _jcr:content/metadata_
+   `jcr:content/metadata/dc:.*$`
+   which indexes all property names starting with `dc` from node with
+   relative path `jcr:content/metadata`
 4. The string `:nodeName` - this special case indexes node name as if it's a
    virtual property of the node being indexed. Setting this along with
    `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
@@ -575,10 +588,10 @@ Consider a query like
     select * from [app:Asset] as a where isdescendantnode(a, [/content/app/old]) AND contains(*, 'white')
 
 By default, the index would return all node which _contain white_ and Query
-engine would filter out nodes which are not under _/content/app/old_. This
+engine would filter out nodes which are not under `/content/app/old`. This
 can perform slow if lots of nodes are not under that path. To speed up such
 queries one can enable `evaluatePathRestrictions` in Lucene index and index
-would only return nodes which are under _/content/app/old_.
+would only return nodes which are under `/content/app/old`.
 
 Enabling this feature would incur cost in terms of slight increase in index
 size. Refer to [OAK-2306][OAK-2306] for more details.
@@ -746,10 +759,10 @@ relativeNode
 **Aggregation and Recursion**
 
 While performing aggregation the aggregation rules are again applied on node
-being aggregated. For example while aggregating for _app:Asset_ above when
-_renditions/original/*_ is being aggregated then aggregation rule would again
-be applied. In this case as  _renditions/original_ is _nt:file_ then aggregation
-rule applicable for _nt:file_ would be applied. Such a logic might result in
+being aggregated. For example while aggregating for `app:Asset` above when
+`renditions/original/*` is being aggregated then aggregation rule would again
+be applied. In this case as  `renditions/original` is `nt:file` then aggregation
+rule applicable for `nt:file` would be applied. Such a logic might result in
 recursion. (See [JCR-2989][JCR-2989] for details).
 
 For such case `reaggregateLimit` is set on aggregate definition node and
@@ -927,7 +940,7 @@ Points to note
     * https://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters#Specifying_an_Analyzer_in_the_schema
 7. When defining synonyms:
     * in the synonym file, lines like _plane, airplane, aircraft_ refer to tokens that are mutual synoyms whereas lines
-    like _plane => airplane_ refer to _one way_ synonyms, so that plane will be expanded to airplane but not vice versa
+    like `plane => airplane` refer to _one way_ synonyms, so that plane will be expanded to airplane but not vice versa
     * continuing with the point above, since oak would use the same
     analyzer for indexing as well as querying, using one-way synonyms in
     any practical way is not supported at the moment.
@@ -1006,8 +1019,8 @@ SELECT * FROM [app:Asset]
 WHERE CONTAINS(., 'Batman')
 ```
 
-Would have those node (of type app:Asset) come first where _Batman_ is found in
-_jcr:title_. While those nodes where search text is found in other field
+Would have those node (of type `app:Asset`) come first where `Batman` is found in
+`jcr:title`. While those nodes where search text is found in other field
 like aggregated content would come later
 
 #### <a name="stored-index-definition"></a>Effective Index Definition
@@ -1511,8 +1524,8 @@ if top 10 spellchecks are not part of that subtree. For details look at [OAK-399
 
 `@since Oak 1.3.14`
 
-Lucene property indexes can also be used for retrieving facets, in order to do so the property _facets_ must be set to
- _true_ on the property definition.
+Lucene property indexes can also be used for retrieving facets, in order to do so the property `facets` must be set to
+ `true` on the property definition.
 
 ```
 /oak:index/lucene-with-facets
@@ -1530,9 +1543,9 @@ Lucene property indexes can also be used for retrieving facets, in order to do s
           - propertyIndex = true
 ```
 
-Specific facet related features for Lucene property index can be configured in a separate _facets_ node below the
+Specific facet related features for Lucene property index can be configured in a separate `facets` node below the
  index definition.
-`@since Oak 1.5.15` The no. of facets to be retrieved is configurable via the _topChildren_ property, which defaults to 10.
+`@since Oak 1.5.15` The no. of facets to be retrieved is configurable via the `topChildren` property, which defaults to 10.
 ```
 /oak:index/lucene-with-more-facets
   - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -1553,7 +1566,7 @@ Specific facet related features for Lucene property index can be configured in a
 
 By default, ACL checks are always performed on facets by the Lucene property index.
 This is secure (no information leakage is possible), but can be slow.
-The _secure_ configuration property allows to configure how facet counts are performed.
+The `secure` configuration property allows to configure how facet counts are performed.
 `@since Oak 1.6.16, 1.8.10, 1.9.13` `secure` property is a string with allowed values of `secure`, `statistical` and
 `insecure` - `secure` being the default value. Before that `secure` was a boolean property and to maintain compatibility
 `false` maps to `insecure` while `true` (default at the time) maps to `secure`.
@@ -1617,7 +1630,7 @@ Notice that error rate does increase with large result set sizes but it flattens
 that even with 50% results being accessible, error rate averages at less that 3%.
 
 So, in most cases, sampling size of 1000 should give fairly decent estimation of facet counts. On the off chance that
-the setup is such that error rates are intolerable, sample size can be configured with _sampleSize_ property under
+the setup is such that error rates are intolerable, sample size can be configured with `sampleSize` property under
 _facets_ configuration node. Error rates are generally inversely proportional to `√sample-size`. So, to reduce error
 rate by 1/2 sample size needs to increased 4 times.
 
@@ -1661,17 +1674,17 @@ and querying as documented in javadocs.
 
 ### <a name="similar-fv"></a>Search by similar feature vectors
 
-Oak Lucene index currently supports _rep:similar_ queries via _MoreLikeThis_ for text properties, this allows to search
+Oak Lucene index currently supports `rep:similar` queries via _MoreLikeThis_ for text properties, this allows to search
 for similar nodes by looking at texts.
-This capability extends _rep:similar_ support to feature vectors, typically used to represent binary content like images,
+This capability extends `rep:similar` support to feature vectors, typically used to represent binary content like images,
 in order to search for similar nodes by looking at such vectors.
 
 In order to index JCR properties holding vector values for similarity search, either in form of blobs or in form of texts,
-the index definition should have a rule for each such property with the _useInSimilarity_ parameter set to _true_.
+the index definition should have a rule for each such property with the `useInSimilarity` parameter set to `true`.
 As a result, after (re)indexing, each vector will be indexed so that an approximate nearest neighbour search is possible,
 not requiring brute force nearest neighbour search over the entire set of indexed vectors.
 
-By default, another property for feature vector similarity search, called _similarityRerank_, is set to _true_ in order
+By default, another property for feature vector similarity search, called `similarityRerank`, is set to _true_ in order
 to allow reranking of the top 15 results using brute force nearest neighbour.
 Therefore, in a first iteration an approximate nearest neighbour search is performed to obtain all the possibly relevant
 results (expecting high recall), then a brute force nearest neighbour over the top 15 search results is performed to
@@ -1680,7 +1693,7 @@ improve precision (see [OAK-7824](https://issues.apache.org/jira/browse/OAK-7824
 
 As a further improvement for the accuracy of similarity search results if nodes having feature vectors also have properties
  holding text values that can be used as keywords or tags that well describe the feature vector contents, the
- _similarityTags_ configuration can be set to _true_ for such properties (see [OAK-8118](https://issues.apache.org/jira/browse/OAK-8118)).
+ `similarityTags` configuration can be set to _true_ for such properties (see [OAK-8118](https://issues.apache.org/jira/browse/OAK-8118)).
 
 See also [OAK-7575](https://issues.apache.org/jira/browse/OAK-7575).
 
