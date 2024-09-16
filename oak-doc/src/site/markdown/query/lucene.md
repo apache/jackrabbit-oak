@@ -490,8 +490,8 @@ type
   For binary properties, you do not need to index the property separately. 
   Binary properties are automatically added to the fulltext index (but only there), 
   if the node is part of the index, if the node type (or mixin) matches, 
-  if the mime type property is set, if the mime type is indexed 
-  (see the Tika configuration), and if the node is part of the index.
+  if the mime type property is set, and if the mime type is indexed
+  (see the Tika configuration).
 
 propertyIndex
 : Whether the index for this property is used for equality conditions, ordering,
