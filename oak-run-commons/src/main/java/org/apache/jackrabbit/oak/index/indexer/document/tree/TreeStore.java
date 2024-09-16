@@ -20,11 +20,15 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -50,7 +54,7 @@ import org.slf4j.LoggerFactory;
  * key-value pairs in a single file, it stores the entries in multiple files
  * (except if there are very few nodes).
  */
-public class TreeStore implements IndexStore {
+public class TreeStore implements ParallelIndexStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(TreeStore.class);
 
@@ -64,6 +68,8 @@ public class TreeStore implements IndexStore {
 
     private static final long MAX_FILE_SIZE_MB = 4;
     private static final long MB = 1024 * 1024;
+
+    private static final int SPLIT_POINT_COUNT = 512;
 
     private final String name;
     private final Store store;
@@ -80,6 +86,10 @@ public class TreeStore implements IndexStore {
     private final AtomicLong nodeCacheFills = new AtomicLong();
     private int iterationCount;
     private PathIteratorFilter filter = new PathIteratorFilter();
+    private ArrayList<String> splitPoints;
+
+    // the prefetcher, if any. we keep a references so we can shut it down on close
+    private Prefetcher prefetcher;
 
     public TreeStore(String name, File fileOrDirectory, NodeStateEntryReader entryReader, long cacheSizeFactor) {
         this.name = name;
@@ -138,7 +148,12 @@ public class TreeStore implements IndexStore {
     }
 
     public Iterator<String> iteratorOverPaths() {
-        final Iterator<Entry<String, String>> firstIterator = session.iterator();
+        return iteratorOverPaths(null, null);
+    }
+
+    private Iterator<String> iteratorOverPaths(String start, String end) {
+        startPrefetch();
+        final Iterator<Entry<String, String>> firstIterator = session.iterator(start);
         return new Iterator<String>() {
 
             Iterator<Entry<String, String>> it = firstIterator;
@@ -152,6 +167,9 @@ public class TreeStore implements IndexStore {
                 while (it.hasNext()) {
                     Entry<String, String> e = it.next();
                     String key = e.getKey();
+                    if (end != null && key.compareTo(end) > 0) {
+                        break;
+                    }
                     String value = e.getValue();
                     // if the value is empty (not null!) this is a child node reference,
                     // without node data
@@ -204,7 +222,12 @@ public class TreeStore implements IndexStore {
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
-        Iterator<String> it = iteratorOverPaths();
+        startPrefetch();
+        return iterator(null, null);
+    }
+
+    private Iterator<NodeStateEntry> iterator(String start, String end) {
+        Iterator<String> it = iteratorOverPaths(start, end);
         return new Iterator<NodeStateEntry>() {
 
             NodeStateEntry current;
@@ -234,8 +257,12 @@ public class TreeStore implements IndexStore {
 
     @Override
     public void close() throws IOException {
+        LOG.info("Closing " + toString());
         session.flush();
         store.close();
+        if (prefetcher != null) {
+            prefetcher.shutdown();
+        }
     }
 
     public String getHighestReadKey() {
@@ -383,6 +410,73 @@ public class TreeStore implements IndexStore {
     @Override
     public boolean isIncremental() {
         return false;
+    }
+
+    @Override
+    public Collection<IndexStore> buildParallelStores(int pieces) {
+        LOG.info("Building in {} pieces", pieces);
+        this.splitPoints = new ArrayList<>();
+        splitPoints.add(session.getMinKey());
+        splitPoints.add(session.getMaxKey());
+        Random r = new Random(1);
+        // split in a loop, doubling the number of entries each time
+        while (splitPoints.size() < SPLIT_POINT_COUNT) {
+            ArrayList<String> nextSplitPoints = new ArrayList<>();
+            for (int i = 1; i < splitPoints.size(); i++) {
+                String min = splitPoints.get(i - 1);
+                String max = splitPoints.get(i);
+                String mid = session.getApproximateMedianKey(min, max, r);
+                if (mid.compareTo(min) < 0) {
+                    throw new IllegalStateException();
+                }
+                if (mid.compareTo(max) > 0) {
+                    throw new IllegalStateException();
+                }
+                nextSplitPoints.add(min);
+                nextSplitPoints.add(mid);
+            }
+            nextSplitPoints.add(splitPoints.get(splitPoints.size() - 1));
+            splitPoints = nextSplitPoints;
+        }
+        // remove duplicates (in case there are few entries)
+        for (int i = 1; i < splitPoints.size(); i++) {
+            String prev = splitPoints.get(i - 1);
+            String current = splitPoints.get(i);
+            if (prev.equals(current)) {
+                splitPoints.remove(i);
+                i--;
+            } else if (prev.compareTo(current) > 0) {
+                throw new IllegalStateException();
+            }
+        }
+        splitPoints.add(0, null);
+        splitPoints.add(null);
+        ArrayList<IndexStore> result = new ArrayList<>();
+        AtomicInteger openCount = new AtomicInteger(pieces);
+        for (int i = 0; i < pieces; i++) {
+            result.add(new ParallelTreeStore(this, openCount));
+        }
+        return result;
+    }
+
+    public synchronized Iterator<NodeStateEntry> nextSubsetIterator() {
+        if (splitPoints.size() < 2) {
+            return null;
+        }
+        String start = splitPoints.get(0);
+        String end = splitPoints.get(1);
+        splitPoints.remove(0);
+        return iterator(start, end);
+    }
+
+    private void startPrefetch() {
+        if (prefetcher != null) {
+            prefetcher.start();
+        }
+    }
+
+    public void setPrefetcher(Prefetcher prefetcher) {
+        this.prefetcher = prefetcher;
     }
 
 }

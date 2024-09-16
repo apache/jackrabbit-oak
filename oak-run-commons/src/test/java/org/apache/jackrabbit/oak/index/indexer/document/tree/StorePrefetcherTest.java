@@ -60,7 +60,7 @@ public class StorePrefetcherTest {
         prefetcher.setBlobReadAheadSize(1);
         prefetcher.setNodeReadAheadCount(1);
         prefetcher.setBlobSuffix("/test.txt");
-        prefetcher.startPrefetch();
+        prefetcher.start();
         Iterator<NodeStateEntry> it = indexStore.iterator();
         while (it.hasNext()) {
             Thread.sleep(100);

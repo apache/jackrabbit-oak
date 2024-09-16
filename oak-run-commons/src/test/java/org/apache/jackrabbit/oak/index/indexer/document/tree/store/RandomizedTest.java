@@ -71,8 +71,9 @@ public class RandomizedTest {
         assertEquals("0", min);
         String max = session.getMaxKey();
         assertEquals("99", max);
-        String median = session.getApproximateMedianKey(min, max);
-        assertEquals("53", median);
+        Random r1 = new Random(42);
+        String median = session.getApproximateMedianKey(min, max, r1);
+        assertEquals("85", median);
     }
 
     private void verify(HashMap<String, String> verify, TreeSession session, String key) {
