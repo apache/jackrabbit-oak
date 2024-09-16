@@ -46,14 +46,12 @@ public class ConfigHelperTest {
     }
 
     private void test(List<String> expected, String sysPropertyValue, String defaultValue, char separator) {
-        String oldValue = System.getProperty("key");
-        System.setProperty("key", sysPropertyValue);
+        String key = "$$ConfigHelperTest_KEY$$";
+        System.setProperty(key, sysPropertyValue);
         try {
-            assertEquals(expected, ConfigHelper.getSystemPropertyAsStringList("key", defaultValue, separator));
+            assertEquals(expected, ConfigHelper.getSystemPropertyAsStringList(key, defaultValue, separator));
         } finally {
-            if (oldValue != null) {
-                System.setProperty("key", oldValue);
-            }
+            System.clearProperty(key);
         }
     }
 }
