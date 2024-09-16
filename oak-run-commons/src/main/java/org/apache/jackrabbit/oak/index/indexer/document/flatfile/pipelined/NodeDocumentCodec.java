@@ -65,7 +65,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH = "oak.indexer.pipelined.nodeDocument.filter.filteredPath";
     public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.pipelined.nodeDocument.filter.suffixesToSkip";
     private final String filteredPath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH, "");
-    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "",';');
+    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ';');
 
     // The estimated size is stored in the NodeDocument itself
     public final static String SIZE_FIELD = "_ESTIMATED_SIZE_";
@@ -109,11 +109,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
      * an internal buffer, while reading requires converting them to a Java data type (typically String).
      */
     private void skipUntilEndOfDocument(BsonReader reader) {
-        while (true) {
-            BsonType bsonType = reader.readBsonType();
-            if (bsonType == BsonType.END_OF_DOCUMENT) {
-                break;
-            }
+        while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             reader.skipName();
             reader.skipValue();
         }
@@ -146,14 +142,15 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         threadLocalContext.dataDownloaded += threadLocalContext.estimatedSizeOfCurrentObject;
         long docsDecodedLocal = totalDocsDecoded.incrementAndGet();
         long dataDownloadedLocal = totalDataDownloaded.addAndGet(threadLocalContext.estimatedSizeOfCurrentObject);
-        if (docsDecodedLocal % 200_000 == 0) {
+        if (docsDecodedLocal % 500_000 == 0) {
             ConcurrentHashMap<String, MutableLong> filteredSuffixes = fieldFilter.getFilteredSuffixesCounts();
             long totalDocumentsFiltered = filteredSuffixes.values().stream().mapToLong(MutableLong::longValue).sum();
             String filteredRenditionsString = filteredSuffixes.entrySet().stream()
                     .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
+                    .limit(10)
                     .map(e -> e.getKey() + "=" + e.getValue())
                     .collect(Collectors.joining(", ", "{", "}"));
-            LOG.info("docsDecodedThread: {}, dataDownloadedThread: {}, docsDecodedTotal: {}, dataDownloadedTotal: {}, docsSkippedTotal {}, filteredRenditionsTotal: {}",
+            LOG.info("docsDecodedByThread: {}, dataDownloadedByThread: {}, docsDecodedTotal: {}, dataDownloadedTotal: {}, docsSkippedTotal {}, filteredRenditionsTotal (top 10): {}",
                     threadLocalContext.docsDecoded, IOUtils.humanReadableByteCountBin(threadLocalContext.dataDownloaded),
                     totalDocsDecoded, IOUtils.humanReadableByteCountBin(dataDownloadedLocal),
                     totalDocumentsFiltered, filteredRenditionsString);
