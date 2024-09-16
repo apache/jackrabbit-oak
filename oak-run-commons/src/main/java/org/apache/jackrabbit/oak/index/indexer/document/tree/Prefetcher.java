@@ -102,6 +102,7 @@ public class Prefetcher {
         try {
             return executorService.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             LOG.info("Prefetcher termination was interrupted: {}", e.toString());
             return false;
         }

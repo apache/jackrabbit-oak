@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -53,15 +54,16 @@ public class ParallelTreeStore implements IndexStore {
                 while (currentIterator != null && !currentIterator.hasNext()) {
                     currentIterator = backend.nextSubsetIterator();
                 }
-                if (currentIterator == null) {
-                    return false;
-                }
-                return true;
+                return currentIterator != null;
             }
 
             @Override
             public NodeStateEntry next() {
-                hasNext();
+                // hasNext() is needed to ensure currentIterator is changed when needed.
+                // It might not have a next entry still.
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
                 return currentIterator.next();
             }
 
