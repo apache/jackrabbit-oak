@@ -29,6 +29,7 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 import com.mongodb.BasicDBObject;
@@ -153,8 +153,8 @@ public class DocumentNodeStoreHelper {
                     mds, Collection.NODES);
             Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
             FindIterable<BasicDBObject> cursor = dbCol.find(query);
-            return Iterables.transform(cursor,
-                    input -> MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input));
+            return () -> CollectionUtils.toStream(cursor)
+                    .map(input -> MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input)).iterator();
         } else {
             return Utils.getSelectedDocuments(store,
                     NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
