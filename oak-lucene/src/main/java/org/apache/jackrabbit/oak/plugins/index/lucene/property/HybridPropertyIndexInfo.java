@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -91,7 +90,7 @@ public class HybridPropertyIndexInfo {
         TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
             @Override
             public Iterable<NodeState> children(NodeState root) {
-                return Iterables.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+                return () -> CollectionUtils.toStream(root.getChildNodeEntries()).map(ChildNodeEntry::getNodeState).iterator();
             }
         };
         AtomicInteger matches = new AtomicInteger();

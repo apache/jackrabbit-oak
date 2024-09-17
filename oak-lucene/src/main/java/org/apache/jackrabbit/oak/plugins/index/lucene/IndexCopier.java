@@ -40,7 +40,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
@@ -61,8 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
@@ -609,8 +607,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     @Override
     public String[] getGarbageDetails() {
-        return toArray(transform(failedToDeleteFiles.values(),
-                input -> input.deleteLog()), String.class);
+        return failedToDeleteFiles.values().stream().map(input -> input.deleteLog()).toArray(String[]::new);
     }
 
     @Override
@@ -653,8 +650,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     @Override
     public String[] getCopyInProgressDetails() {
-        return toArray(transform(copyInProgressFiles,
-                input -> input.copyLog()), String.class);
+        return copyInProgressFiles.stream().map(input -> input.copyLog()).toArray(String[]::new);
     }
 
     @Override

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
@@ -102,13 +102,14 @@ public class HybridPropertyIndexLookup {
             result = querySimple(filter, indexName, propIndexNode, encodedValues);
         }
 
-        Iterable<String> paths = transform(result, path -> isAbsolute(path) ? path : "/" + path);
+        Iterable<String> paths = CollectionUtils.toStream(result).map(path -> isAbsolute(path) ? path : "/" + path)
+                .collect(Collectors.toList());
 
         if (log.isTraceEnabled()) {
-            paths = transform(paths, path -> {
+            paths = CollectionUtils.toStream(paths).map(path -> {
                 log.trace("[{}] {} = {} -> {}", indexPath, propertyName, encodedValues, path);
                 return path;
-            });
+            }).collect(Collectors.toList());
         }
         return paths;
     }
