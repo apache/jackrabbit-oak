@@ -36,6 +36,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CollectionUtils {
 
+    // Maximum capacity for a hash based collection. (used internally by JDK).
+    // Also, it helps to avoid overflow errors when calculating the capacity
     private static final int MAX_CAPACITY = 1 << 30;
 
     private CollectionUtils() {
