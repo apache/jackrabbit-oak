@@ -19,9 +19,11 @@
 package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -33,6 +35,8 @@ import org.jetbrains.annotations.NotNull;
  * Utility methods for collections conversions.
  */
 public class CollectionUtils {
+
+    private static final int MAX_CAPACITY = 1 << 30;
 
     private CollectionUtils() {
         // no instances for you
@@ -105,13 +109,26 @@ public class CollectionUtils {
     public static <T> Set<T> toSet(@NotNull final T... elements) {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
-        float loadFactor = (float) 0.75; // HashSet default
-        int initialCapacity = 1 + (int) (elements.length / loadFactor);
-        final Set<T> result = new HashSet<>(initialCapacity, loadFactor);
+        final Set<T> result = new HashSet<>(ensureCapacity(elements.length));
         for (T element : elements) {
             result.add(element);
         }
         return result;
+    }
+
+    /**
+     * Creates a new, empty HashMap with expected capacity.
+     * <p>
+     * The returned map uses the default load factor of 0.75, and its capacity is
+     * large enough to add expected number of elements without resizing.
+     *
+     * @param capacity the expected number of elements
+     * @throws IllegalArgumentException if capacity is negative
+     */
+    @NotNull
+    public static <K, V> Map<K, V> newHashMap(final int capacity) {
+        // make sure the set does not need to be resized given the initial content
+        return new HashMap<>(ensureCapacity(capacity));
     }
 
     /**
@@ -131,12 +148,12 @@ public class CollectionUtils {
     public static <T> Iterable<T> toIterable(@NotNull final Iterator<T> iterator) {
         Objects.requireNonNull(iterator);
 
-        Iterable<T> delegate = new Iterable<T>() {
+        return new Iterable<>() {
 
             private boolean consumed = false;
 
             @Override
-            public Iterator<T> iterator() {
+            public @NotNull Iterator<T> iterator() {
                 if (consumed) {
                     throw new IllegalStateException("Iterator already returned once");
                 } else {
@@ -145,8 +162,6 @@ public class CollectionUtils {
                 }
             }
         };
-
-        return delegate;
     }
 
     /**
@@ -170,7 +185,27 @@ public class CollectionUtils {
      *            iterator to convert
      * @return the stream (representing the remaining elements in the iterator)
      */
-    public static <T> Stream<T> toStream(Iterator<T> iterator) {
+    @NotNull
+    public static <T> Stream<T> toStream(@NotNull Iterator<T> iterator) {
         return StreamSupport.stream(toIterable(iterator).spliterator(), false);
+    }
+
+    /**
+     * Ensure the capacity of a map or set given the expected number of elements.
+     *
+     * @param capacity the expected number of elements
+     * @return the capacity to use to avoid rehashing & collisions
+     */
+    static int ensureCapacity(final int capacity) {
+
+        if (capacity < 0) {
+            throw new IllegalArgumentException("Capacity must be non-negative");
+        }
+
+        if (capacity > MAX_CAPACITY) {
+            return MAX_CAPACITY;
+        }
+
+        return 1 + (int) (capacity / 0.75f);
     }
 }
