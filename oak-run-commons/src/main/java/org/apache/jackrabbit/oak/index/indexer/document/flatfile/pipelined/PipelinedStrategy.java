@@ -346,7 +346,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
-        final ThreadMonitor threadMonitor = new ThreadMonitor();
+        ThreadMonitor threadMonitor = new ThreadMonitor();
         var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for

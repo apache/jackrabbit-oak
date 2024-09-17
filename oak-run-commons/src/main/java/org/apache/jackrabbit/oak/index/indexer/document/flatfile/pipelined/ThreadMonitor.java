@@ -29,21 +29,38 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.ThreadMXBean;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-
+/**
+ * Keeps track of a list of threads and prints statistics of CPU usage of the threads. It also prints statistics
+ * of memory usage and garbage collections
+ */
 public class ThreadMonitor {
-    static class AutoRegisteringThreadFactory implements ThreadFactory {
+    /**
+     * Thread factory that registers all new threads with a given thread monitor. This can be passed to an Executor, so
+     * that all of its threads will be monitored, which may be simpler than manually registering each individual thread.
+     */
+    public static class AutoRegisteringThreadFactory implements ThreadFactory {
         private final ThreadMonitor threadMonitor;
         private final ThreadFactory delegate;
 
+        /**
+         * @param threadMonitor The thread monitor where to register new threads.
+         * @param delegate      A thread factory to create new threads.
+         */
         public AutoRegisteringThreadFactory(ThreadMonitor threadMonitor, ThreadFactory delegate) {
             this.threadMonitor = threadMonitor;
             this.delegate = delegate;
         }
 
+        /**
+         * Uses Executors.defaultThreadFactory() to create new threads.
+         *
+         * @param threadMonitor The thread monitor where to register new threads.
+         */
         public AutoRegisteringThreadFactory(ThreadMonitor threadMonitor) {
             this.threadMonitor = threadMonitor;
             this.delegate = Executors.defaultThreadFactory();
@@ -59,6 +76,10 @@ public class ThreadMonitor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThreadMonitor.class);
     private final CopyOnWriteArraySet<Thread> threadIds = new CopyOnWriteArraySet<>();
+
+    private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+    private final List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
+    private final MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
 
     private final Stopwatch stopwatch = Stopwatch.createUnstarted();
 
@@ -81,18 +102,21 @@ public class ThreadMonitor {
     public void printStatistics(String heading) {
         long timeSinceStartMillis = stopwatch.elapsed().toMillis();
 
-        StringBuilder sb = new StringBuilder(heading + ". Time elapsed: " + stopwatch + "\n");
-        MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
+        StringBuilder sb = new StringBuilder(heading + ". Time since start of monitoring: " + stopwatch + "\n");
+
+        // Memory usage
         sb.append(String.format("  Heap memory usage: %s, Non-heap memory usage: %s\n",
                 memoryMxBean.getHeapMemoryUsage(), memoryMxBean.getNonHeapMemoryUsage()));
-        for (GarbageCollectorMXBean gcBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+
+        // Garbage collection
+        for (GarbageCollectorMXBean gcBean : gcMxBeans) {
             sb.append(String.format("  Collector: %s, collectionCount: %d, collectionTime: %d ms (%.2f%%)\n",
                     gcBean.getName(), gcBean.getCollectionCount(), gcBean.getCollectionTime(),
                     FormattingUtils.safeComputePercentage(gcBean.getCollectionTime(), timeSinceStartMillis))
             );
         }
 
-        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        // Thread CPU usage
         threadIds.stream().sorted(Comparator.comparing(Thread::getId)).forEach(thread -> {
             long threadCpuTimeMillis = threadMXBean.getThreadCpuTime(thread.getId()) / 1_000_000;
             long threadUserTimeMillis = threadMXBean.getThreadUserTime(thread.getId()) / 1_000_000;
