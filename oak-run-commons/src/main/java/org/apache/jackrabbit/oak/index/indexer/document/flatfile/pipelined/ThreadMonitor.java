@@ -39,6 +39,64 @@ import java.util.concurrent.ThreadFactory;
  * of memory usage and garbage collections
  */
 public class ThreadMonitor {
+    private static final Logger LOG = LoggerFactory.getLogger(ThreadMonitor.class);
+    private final CopyOnWriteArraySet<Thread> monitoredThreads = new CopyOnWriteArraySet<>();
+
+    private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+    private final List<GarbageCollectorMXBean> gcMXBeans = ManagementFactory.getGarbageCollectorMXBeans();
+    private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+
+    private final Stopwatch stopwatch = Stopwatch.createUnstarted();
+
+    public void start() {
+        stopwatch.start();
+    }
+
+    public void registerThread(Thread thread) {
+        monitoredThreads.add(thread);
+    }
+
+    public void unregisterThread(Thread thread) {
+        monitoredThreads.remove(thread);
+    }
+
+    public void printStatistics() {
+        printStatistics("Thread/Memory report");
+    }
+
+    public void printStatistics(String heading) {
+        long timeSinceStartMillis = stopwatch.elapsed().toMillis();
+
+        StringBuilder sb = new StringBuilder(heading + ". Time since start of monitoring: " + stopwatch + "\n");
+
+        // Memory usage
+        sb.append(String.format("  Heap memory usage: %s, Non-heap memory usage: %s\n",
+                memoryMXBean.getHeapMemoryUsage(), memoryMXBean.getNonHeapMemoryUsage()));
+
+        // Garbage collection
+        for (GarbageCollectorMXBean gcBean : gcMXBeans) {
+            sb.append(String.format("  Collector: %s, collectionCount: %d, collectionTime: %d ms (%.2f%%)\n",
+                    gcBean.getName(), gcBean.getCollectionCount(), gcBean.getCollectionTime(),
+                    FormattingUtils.safeComputePercentage(gcBean.getCollectionTime(), timeSinceStartMillis))
+            );
+        }
+
+        // Thread CPU usage
+        monitoredThreads.stream().sorted(Comparator.comparing(Thread::getId)).forEach(thread -> {
+            long threadCpuTimeMillis = threadMXBean.getThreadCpuTime(thread.getId()) / 1_000_000;
+            long threadUserTimeMillis = threadMXBean.getThreadUserTime(thread.getId()) / 1_000_000;
+            double threadCpuTimePercentage = FormattingUtils.safeComputePercentage(threadCpuTimeMillis, timeSinceStartMillis);
+            double threadUserTimePercentage = FormattingUtils.safeComputePercentage(threadUserTimeMillis, timeSinceStartMillis);
+            sb.append(String.format("  Thread %-26s - cpuTime: %6d (%.2f%%), userTime: %6d (%.2f%%)\n",
+                    thread.getName() + "/" + thread.getId(),
+                    threadCpuTimeMillis, threadCpuTimePercentage,
+                    threadUserTimeMillis, threadUserTimePercentage)
+            );
+        });
+        // Remove the last newline
+        LOG.info(sb.substring(0, sb.length() - 1));
+    }
+
     /**
      * Thread factory that registers all new threads with a given thread monitor. This can be passed to an Executor, so
      * that all of its threads will be monitored, which may be simpler than manually registering each individual thread.
@@ -72,63 +130,5 @@ public class ThreadMonitor {
             threadMonitor.registerThread(t);
             return t;
         }
-    }
-
-    private static final Logger LOG = LoggerFactory.getLogger(ThreadMonitor.class);
-    private final CopyOnWriteArraySet<Thread> threadIds = new CopyOnWriteArraySet<>();
-
-    private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-    private final List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
-    private final MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
-
-    private final Stopwatch stopwatch = Stopwatch.createUnstarted();
-
-    public void start() {
-        stopwatch.start();
-    }
-
-    public void registerThread(Thread thread) {
-        threadIds.add(thread);
-    }
-
-    public void unregisterThread(Thread thread) {
-        threadIds.remove(thread);
-    }
-
-    public void printStatistics() {
-        printStatistics("Thread/Memory report");
-    }
-
-    public void printStatistics(String heading) {
-        long timeSinceStartMillis = stopwatch.elapsed().toMillis();
-
-        StringBuilder sb = new StringBuilder(heading + ". Time since start of monitoring: " + stopwatch + "\n");
-
-        // Memory usage
-        sb.append(String.format("  Heap memory usage: %s, Non-heap memory usage: %s\n",
-                memoryMxBean.getHeapMemoryUsage(), memoryMxBean.getNonHeapMemoryUsage()));
-
-        // Garbage collection
-        for (GarbageCollectorMXBean gcBean : gcMxBeans) {
-            sb.append(String.format("  Collector: %s, collectionCount: %d, collectionTime: %d ms (%.2f%%)\n",
-                    gcBean.getName(), gcBean.getCollectionCount(), gcBean.getCollectionTime(),
-                    FormattingUtils.safeComputePercentage(gcBean.getCollectionTime(), timeSinceStartMillis))
-            );
-        }
-
-        // Thread CPU usage
-        threadIds.stream().sorted(Comparator.comparing(Thread::getId)).forEach(thread -> {
-            long threadCpuTimeMillis = threadMXBean.getThreadCpuTime(thread.getId()) / 1_000_000;
-            long threadUserTimeMillis = threadMXBean.getThreadUserTime(thread.getId()) / 1_000_000;
-            double threadCpuTimePercentage = FormattingUtils.safeComputePercentage(threadCpuTimeMillis, timeSinceStartMillis);
-            double threadUserTimePercentage = FormattingUtils.safeComputePercentage(threadUserTimeMillis, timeSinceStartMillis);
-            sb.append(String.format("  Thread %d/%s - cpuTime: %d (%.2f%%), userTime: %d (%.2f%%)\n",
-                    thread.getId(), thread.getName(),
-                    threadCpuTimeMillis, threadCpuTimePercentage,
-                    threadUserTimeMillis, threadUserTimePercentage)
-            );
-        });
-        // Remove the last newline
-        LOG.info(sb.substring(0, sb.length() - 1));
     }
 }
