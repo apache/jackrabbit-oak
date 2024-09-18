@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryT
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -77,7 +76,7 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
-    public @Nullable ExtractedTextCache getTextCache() {
+    public ExtractedTextCache getTextCache() {
         return textCache;
     }
 

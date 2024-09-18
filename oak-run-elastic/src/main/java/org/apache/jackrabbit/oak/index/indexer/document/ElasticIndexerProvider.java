@@ -75,7 +75,7 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
-    public @Nullable ExtractedTextCache getTextCache() {
+    public ExtractedTextCache getTextCache() {
         return textCache;
     }
 
