@@ -91,7 +91,7 @@ public class NodeDocumentFilter {
                     if (fieldName.equals(NodeDocument.PATH)) {
                         longPathSkipped.incrementAndGet();
                     }
-                    if (skippedSoFar % 50_000 == 0) {
+                    if (skippedSoFar % 200_000 == 0) {
                         LOG.info("skippedSoFar: {}. Long path: {}, Doc: {}={}", skippedSoFar, longPathSkipped.get(), fieldName, idOrPathValue);
                     }
                     return true;
