@@ -256,7 +256,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                     queue.clear();
                     LOG.info("Scan task interrupted, exiting");
                 } finally {
-                    LOG.info("Scanner reached end of FFS, stopping download threads. Statistics: {}", formatAggregateStatistics());
+                    LOG.info("Scanner reached end of FFS, stopping download threads. Statistics: {} {}", formatAggregateStatistics(), throttler.formatStats());
                     Thread.currentThread().setName(oldName);
                     queue.put(SENTINEL);
                 }
