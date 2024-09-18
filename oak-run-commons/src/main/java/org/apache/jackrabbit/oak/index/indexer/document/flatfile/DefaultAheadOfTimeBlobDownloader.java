@@ -226,6 +226,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
             try (LineIterator ffsLineIterator = new LineIterator(IndexStoreUtils.createReader(ffsPath, algorithm))) {
                 String oldName = Thread.currentThread().getName();
                 Thread.currentThread().setName("scanner");
+                LOG.info("Starting scanning FFS for blobs to download, matching suffix: {}", binaryBlobsPathSuffix);
                 try {
                     while (ffsLineIterator.hasNext()) {
                         String ffsLine = ffsLineIterator.next();
@@ -247,7 +248,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                             processEntry(entryPath, nodeState);
                         }
                         linesScanned++;
-                        if (linesScanned % 100_000 == 0) {
+                        if (linesScanned % 1_000_000 == 0) {
                             LOG.info("[{}] Last path scanned: {}. Aggregated statistics: {}", linesScanned, entryPath, formatAggregateStatistics());
                         }
                     }

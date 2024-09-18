@@ -25,6 +25,7 @@ import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.IndexHelper;
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
@@ -397,6 +399,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         }
                     }
                     log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
+
+                    indexerProviders.forEach(indexProvider -> {
+                        ExtractedTextCache extractedTextCache = indexProvider.getTextCache();
+                        CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
+                        log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
+                    });
                 }
 
                 progressReporter.reindexingTraversalEnd();

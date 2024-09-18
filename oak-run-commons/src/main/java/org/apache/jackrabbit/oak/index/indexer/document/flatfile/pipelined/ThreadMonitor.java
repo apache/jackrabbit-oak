@@ -87,7 +87,7 @@ public class ThreadMonitor {
             long threadUserTimeMillis = threadMXBean.getThreadUserTime(thread.getId()) / 1_000_000;
             double threadCpuTimePercentage = FormattingUtils.safeComputePercentage(threadCpuTimeMillis, timeSinceStartMillis);
             double threadUserTimePercentage = FormattingUtils.safeComputePercentage(threadUserTimeMillis, timeSinceStartMillis);
-            sb.append(String.format("  Thread %-26s - cpuTime: %6d (%.2f%%), userTime: %6d (%.2f%%)\n",
+            sb.append(String.format("  Thread %-26s - cpuTime: %7d (%.2f%%), userTime: %7d (%.2f%%)\n",
                     thread.getName() + "/" + thread.getId(),
                     threadCpuTimeMillis, threadCpuTimePercentage,
                     threadUserTimeMillis, threadUserTimePercentage)

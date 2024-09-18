@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryT
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -45,12 +46,11 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
     private final ExtendedIndexHelper extendedIndexHelper;
-    private final DirectoryFactory dirFactory;
     private final LuceneIndexWriterFactory indexWriterFactory;
 
     public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
         this.extendedIndexHelper = extendedIndexHelper;
-        this.dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
+        DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
         this.indexWriterFactory = new DefaultIndexWriterFactory(extendedIndexHelper.getMountInfoProvider(),
                 dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
     }
@@ -74,6 +74,11 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
                 textExtractor,
                 progressReporter
         );
+    }
+
+    @Override
+    public @Nullable ExtractedTextCache getTextCache() {
+        return textCache;
     }
 
     @Override
