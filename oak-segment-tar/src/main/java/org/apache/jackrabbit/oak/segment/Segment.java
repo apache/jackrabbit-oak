@@ -34,16 +34,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.data.RecordIdData;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
@@ -127,9 +123,6 @@ public class Segment {
     static final int RECORD_NUMBER_COUNT_OFFSET = 18;
 
     @NotNull
-    private final SegmentReader reader;
-
-    @NotNull
     private final SegmentId id;
 
     private final SegmentData data;
@@ -164,14 +157,12 @@ public class Segment {
 
     Segment(
         @NotNull SegmentId id,
-        @NotNull SegmentReader reader,
         byte @NotNull [] buffer,
         @NotNull RecordNumbers recordNumbers,
         @NotNull SegmentReferences segmentReferences,
         @NotNull String info
     ) {
         this.id = requireNonNull(id);
-        this.reader = requireNonNull(reader);
         this.info = requireNonNull(info);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(Buffer.wrap(buffer));
@@ -185,10 +176,8 @@ public class Segment {
     }
 
     public Segment(@NotNull SegmentIdProvider idProvider,
-                   @NotNull SegmentReader reader,
                    @NotNull final SegmentId id,
         @NotNull final Buffer data) {
-        this.reader = requireNonNull(reader);
         this.id = requireNonNull(id);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(requireNonNull(data).slice());
@@ -213,13 +202,11 @@ public class Segment {
     }
 
     public Segment(
-            @NotNull SegmentReader reader,
             @NotNull SegmentId id,
             @NotNull SegmentData data,
             @NotNull RecordNumbers recordNumbers,
             @NotNull SegmentReferences segmentReferences
     ) {
-        this.reader = requireNonNull(reader);
         this.id = requireNonNull(id);
         this.data = requireNonNull(data);
         this.recordNumbers = requireNonNull(recordNumbers);
@@ -394,68 +381,6 @@ public class Segment {
         }
 
         throw new IllegalStateException("Invalid return value");
-    }
-
-    @NotNull
-    Template readTemplate(int recordNumber) {
-        int head = readInt(recordNumber);
-        boolean hasPrimaryType = (head & (1 << 31)) != 0;
-        boolean hasMixinTypes = (head & (1 << 30)) != 0;
-        boolean zeroChildNodes = (head & (1 << 29)) != 0;
-        boolean manyChildNodes = (head & (1 << 28)) != 0;
-        int mixinCount = (head >> 18) & ((1 << 10) - 1);
-        int propertyCount = head & ((1 << 18) - 1);
-
-        int offset = 4;
-
-        PropertyState primaryType = null;
-        if (hasPrimaryType) {
-            RecordId primaryId = readRecordId(recordNumber, offset);
-            primaryType = PropertyStates.createProperty(
-                    "jcr:primaryType", reader.readString(primaryId), Type.NAME);
-            offset += RECORD_ID_BYTES;
-        }
-
-        PropertyState mixinTypes = null;
-        if (hasMixinTypes) {
-            String[] mixins = new String[mixinCount];
-            for (int i = 0; i < mixins.length; i++) {
-                RecordId mixinId = readRecordId(recordNumber, offset);
-                mixins[i] =  reader.readString(mixinId);
-                offset += RECORD_ID_BYTES;
-            }
-            mixinTypes = PropertyStates.createProperty(
-                    "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
-        }
-
-        String childName = Template.ZERO_CHILD_NODES;
-        if (manyChildNodes) {
-            childName = Template.MANY_CHILD_NODES;
-        } else if (!zeroChildNodes) {
-            RecordId childNameId = readRecordId(recordNumber, offset);
-            childName = reader.readString(childNameId);
-            offset += RECORD_ID_BYTES;
-        }
-
-        PropertyTemplate[] properties;
-        properties = readProps(propertyCount, recordNumber, offset);
-        return new Template(reader, primaryType, mixinTypes, properties, childName);
-    }
-
-    private PropertyTemplate[] readProps(int propertyCount, int recordNumber, int offset) {
-        PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
-        if (propertyCount > 0) {
-            RecordId id = readRecordId(recordNumber, offset);
-            ListRecord propertyNames = new ListRecord(id, properties.length);
-            offset += RECORD_ID_BYTES;
-            for (int i = 0; i < propertyCount; i++) {
-                byte type = readByte(recordNumber, offset++);
-                properties[i] = new PropertyTemplate(i,
-                        reader.readString(propertyNames.getEntry(i)), Type.fromTag(
-                                Math.abs(type), type < 0));
-            }
-        }
-        return properties;
     }
 
     static long readLength(RecordId id) {

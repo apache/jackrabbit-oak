@@ -117,7 +117,7 @@ public class MemoryStore implements SegmentStore {
         Buffer buffer = Buffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = new Segment(tracker, segmentReader, id, buffer);
+        Segment segment = new Segment(tracker, id, buffer);
         if (segments.putIfAbsent(id, segment) != null) {
             throw new IOException("Segment override: " + id);
         }
