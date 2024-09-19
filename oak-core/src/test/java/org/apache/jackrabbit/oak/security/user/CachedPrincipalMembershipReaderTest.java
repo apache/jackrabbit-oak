@@ -203,7 +203,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
      */
     @Test
     public void testCacheGroupMembershipGetMemberStaleCache() throws Exception {
-        initMocks();
+        initMocks(false);
 
         // Test getMembership from multiple threads on expired cache and verify that:
         // - only one thread updated the cache
@@ -233,7 +233,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
         assertTrue(logCustomizer.getLogs().get(NUM_THREADS - 1).startsWith("Cached membership at " + mockedUser.getPath()));
     }
 
-    private void initMocks() throws CommitFailedException {
+    private void initMocks(boolean emptyCache) throws CommitFailedException {
         mockedRoot = mock(Root.class);
         doAnswer(invocation -> {
             Thread.sleep(3000);
@@ -260,9 +260,12 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
         PropertyState propertyStatePrincipalNames = mock(PropertyState.class);
         when(propertyStatePrincipalNames.getValue(Type.STRING)).thenReturn("groupPrincipal");
-        // Set the property to indicate that the cache is valid
-        when(mockedPrincipalCache.hasProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(true);
-        when(mockedPrincipalCache.getProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(propertyStatePrincipalNames);
+        if (!emptyCache) {
+            // Set the property to indicate that the cache is valid
+            when(mockedPrincipalCache.hasProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(true);
+            when(mockedPrincipalCache.getProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(
+                    propertyStatePrincipalNames);
+        }
 
         when(mockedUser.getChild(CacheConstants.REP_CACHE)).thenReturn(mockedPrincipalCache);
 
@@ -330,5 +333,35 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
             }
         }
     }
+
+    @Test
+    public void testCacheBeingBuiltReturnCallsOriginalProvider() throws Exception {
+        {
+            initMocks(true);
+
+            // Test getMembership from multiple threads on expired cache and verify that:
+            // - only one thread updated the cache
+            // - the stale value was provided
+            Thread[] getMembershipThreads = new Thread[NUM_THREADS];
+            for (int i = 0; i < getMembershipThreads.length; i++) {
+                getMembershipThreads[i] = new Thread(() -> {
+                    Set<Principal> groupPrincipals = new HashSet<>();
+                    CachedPrincipalMembershipReader cachedGroupMembershipReader = new CachedPrincipalMembershipReader(mockedMembershipProvider, mockedGroupPrincipalFactory, getUserConfiguration(), mockedRoot);
+                    cachedGroupMembershipReader.readMembership(mockedUser, groupPrincipals);
+                    assertEquals(groupPrincipals.size(),1);
+                });
+                getMembershipThreads[i].start();
+            }
+            for (Thread getMembershipThread : getMembershipThreads) {
+                getMembershipThread.join();
+            }
+
+            verify(mockedRoot, times(1)).commit(CacheValidatorProvider.asCommitAttributes());
+            assertEquals(NUM_THREADS, logCustomizer.getLogs().size());
+            logCustomizer.getLogs().subList(0, NUM_THREADS - 1).forEach(s -> assertEquals("This thread is not allowed to serve a stale cache; reading from provider without caching.", s));
+            assertTrue(logCustomizer.getLogs().get(NUM_THREADS - 1).startsWith("Cached membership at " + mockedUser.getPath()));
+        }
+    }
+
 
 }
