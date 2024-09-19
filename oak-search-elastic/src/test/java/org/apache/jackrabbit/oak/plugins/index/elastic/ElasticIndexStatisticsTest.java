@@ -31,7 +31,7 @@ import org.mockito.MockitoAnnotations;
 import java.io.IOException;
 import java.time.Duration;
 
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.assertEventually;
+import static org.apache.jackrabbit.oak.plugins.index.TestUtil.assertEventually;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
