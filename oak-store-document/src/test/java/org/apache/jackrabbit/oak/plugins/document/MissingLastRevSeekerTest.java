@@ -230,7 +230,6 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     
     @Test
     public void getNonSplitDocs() throws Exception {
-        //assertTrue();
         String nodeName = this.getClass().getName() + "-foo";
         DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(new DocumentStoreWrapper(store) {
             @Override
