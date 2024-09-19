@@ -230,6 +230,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     
     @Test
     public void getNonSplitDocs() throws Exception {
+        //assertTrue();
         String nodeName = this.getClass().getName() + "-foo";
         DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(new DocumentStoreWrapper(store) {
             @Override
@@ -248,6 +249,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
             dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
         dns.runBackgroundOperations();
+        Thread.sleep(1001);
         //seeker should return only non split documents
         int docs = Iterables.size(seeker.getCandidates(0));
         assertEquals(2, docs);
