@@ -29,11 +29,11 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.NodeIncludeResult;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.PropertyIncludeResult;
@@ -104,11 +104,12 @@ public class AggregateTest {
 
         NodeState state = nb.getNodeState();
         final AtomicInteger counter = new AtomicInteger();
-        Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
-                input -> {
+        Iterable<? extends ChildNodeEntry> countingIterator = CollectionUtils
+                .toIterable(CollectionUtils.toStream(state.getChildNodeEntries()).map(input -> {
                     counter.incrementAndGet();
+                    System.out.println(input);
                     return input;
-                });
+                }).iterator());
         NodeState mocked = spy(state);
         doReturn(countingIterator).when(mocked).getChildNodeEntries();
         ag.collectAggregates(mocked, col);
