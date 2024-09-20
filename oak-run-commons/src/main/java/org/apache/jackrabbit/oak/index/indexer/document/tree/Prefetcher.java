@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -59,6 +60,8 @@ public class Prefetcher {
     private final AtomicLong downloadMax = new AtomicLong();
     private final AtomicLong iterateCount = new AtomicLong();
     private final Semaphore semaphore = new Semaphore(PRETCH_THREADS);
+    private final AtomicBoolean started = new AtomicBoolean();
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     private String blobSuffix;
 
@@ -93,12 +96,23 @@ public class Prefetcher {
         this.nodeReadAheadCount = nodeReadAheadCount;
     }
 
-    public boolean shutdown() throws InterruptedException {
+    public boolean shutdown() {
+        closed.set(true);
         executorService.shutdown();
-        return executorService.awaitTermination(1, TimeUnit.SECONDS);
+        try {
+            return executorService.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.info("Prefetcher termination was interrupted: {}", e.toString());
+            return false;
+        }
     }
 
-    public void startPrefetch() {
+    public void start() {
+        if (started.getAndSet(true)) {
+            // already running
+            return;
+        }
         LOG.info("Prefetch suffix '{}', prefetch {}, index {}",
                 blobSuffix, prefetchStore, indexStore);
         executorService.submit(
@@ -126,6 +140,9 @@ public class Prefetcher {
                 long inlinedBlobCount = 0;
                 long totalBlobSize = 0;
                 while (it.hasNext()) {
+                    if (closed.get()) {
+                        break;
+                    }
                     String path = it.next();
                     if (++count % 1_000_000 == 0) {
                         int available = semaphore.availablePermits();
@@ -183,9 +200,9 @@ public class Prefetcher {
                     }
                     String indexingPos = indexStore.getHighestReadKey();
                     if (indexingPos.compareTo(path) >= 0) {
-                        // we are behind indexing!
-                        // do not download, in order to catch up
-                        LOG.info("Indexing is ahead; ignoring {}", path);
+                        // we are behind indexing, so skip downloading,
+                        // in order to catch up
+                        // (this can happen eg. when indexing in parallel)
                         continue;
                     }
                     while (totalBlobSize - blobReadAheadSize > downloadMax.get()) {
