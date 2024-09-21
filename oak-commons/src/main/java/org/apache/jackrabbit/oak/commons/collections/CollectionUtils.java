@@ -119,6 +119,20 @@ public class CollectionUtils {
     }
 
     /**
+     * Creates a new, empty HashSet with expected capacity.
+     * <p>
+     * The returned set is large enough to add expected no. of elements without resizing.
+     *
+     * @param capacity the expected number of elements
+     * @throws IllegalArgumentException if capacity is negative
+     */
+    @NotNull
+    public static <K> Set<K> newHashSet(final int capacity) {
+        // make sure the set does not need to be resized given the initial content
+        return new HashSet<>(ensureCapacity(capacity));
+    }
+
+    /**
      * Creates a new, empty HashMap with expected capacity.
      * <p>
      * The returned map uses the default load factor of 0.75, and its capacity is
