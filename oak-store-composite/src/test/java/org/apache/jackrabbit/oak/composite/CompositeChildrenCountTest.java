@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -42,7 +42,6 @@ import java.util.Map;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
@@ -223,7 +222,8 @@ public class CompositeChildrenCountTest {
                 Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
                 return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
-                return asCountingIterable(transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
+                return asCountingIterable(
+                        () -> asList(children).stream().map(input -> new MemoryChildNodeEntry(input, EMPTY_NODE)).iterator());
             }
         }
 
@@ -239,10 +239,10 @@ public class CompositeChildrenCountTest {
         }
 
         private <T> Iterable<T> asCountingIterable(Iterable<T> input) {
-            return Iterables.transform(input, inp -> {
-                    fetchedChildren++;
-                    return inp;
-            });
+            return () -> CollectionUtils.toStream(input).map(inp -> {
+                fetchedChildren++;
+                return inp;
+            }).iterator();
         }
     }
 }
