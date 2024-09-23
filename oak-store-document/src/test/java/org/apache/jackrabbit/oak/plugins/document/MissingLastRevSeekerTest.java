@@ -250,38 +250,8 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         dns.runBackgroundOperations();
         //seeker should return only non split documents
         int docs = Iterables.size(seeker.getCandidates(0));
-        assertEventually(() -> assertEquals(2, docs), 10000);
+        assertEquals(2, docs);
         markDocumentsForCleanup();
         dns.dispose();
-    }
-
-    public static void assertEventually(Runnable r, long timeoutMillis) {
-        final long start = System.currentTimeMillis();
-        long lastAttempt = 0;
-        int attempts = 0;
-
-        while (true) {
-            try {
-                attempts++;
-                LOG.info("assertEventually attempt count:{}", attempts);
-                lastAttempt = System.currentTimeMillis();
-                r.run();
-                return;
-            } catch (Throwable e) {
-                long elapsedTime = lastAttempt - start;
-                LOG.trace("assertEventually attempt {} failed because of {}", attempts, e.getMessage());
-                if (elapsedTime >= timeoutMillis) {
-                    String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
-                            elapsedTime / 1000d, attempts);
-                    throw new AssertionError(msg, e);
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-
-            }
-        }
     }
 }
