@@ -85,6 +85,19 @@ public class MutableSegmentReferencesTest {
     }
 
     @Test
+    public void shouldEstimateMemoryUsage() throws Exception {
+        MemoryStore store = new MemoryStore();
+        MutableSegmentReferences table = new MutableSegmentReferences();
+
+        for (int i = 0; i < 3; i++) {
+            SegmentId id = store.getSegmentIdProvider().newDataSegmentId();
+            table.addOrReference(id);
+        }
+
+        assertEquals(8 * 3, table.estimateMemoryUsage());
+    }
+
+    @Test
     public void shouldContainAddedSegment() throws Exception {
         MemoryStore store = new MemoryStore();
         SegmentId id = store.getSegmentIdProvider().newDataSegmentId();

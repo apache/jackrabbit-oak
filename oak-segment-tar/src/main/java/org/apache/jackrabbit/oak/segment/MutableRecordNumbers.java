@@ -56,6 +56,11 @@ class MutableRecordNumbers implements RecordNumbers {
             : entries[index * 2];
     }
 
+    @Override
+    public int estimateMemoryUsage() {
+        return size / 2 * RecordNumbers.MEMORY_USAGE_PER_NUMBER;
+    }
+
     @NotNull
     @Override
     public synchronized Iterator<Entry> iterator() {

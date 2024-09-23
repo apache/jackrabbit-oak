@@ -19,9 +19,15 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.jetbrains.annotations.NotNull;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import java.util.Iterator;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -44,5 +50,28 @@ public class RecordNumbersTest {
         assertEquals(262088, recordNumbers.getOffset(2));
         assertEquals(262080, recordNumbers.getOffset(3));
         assertEquals(-1, recordNumbers.getOffset(4));
+    }
+
+    @Test
+    public void shouldEstimateMemoryUsageWithDefaultImplementation() throws Exception {
+        MemoryStore store = new MemoryStore();
+
+        RecordNumbers.Entry entry = Mockito.mock(RecordNumbers.Entry.class);
+        List<RecordNumbers.Entry> list = List.of(entry, entry, entry);
+
+        var customRecordNumbersImplementation = new RecordNumbers() {
+            @NotNull
+            @Override
+            public Iterator<Entry> iterator() {
+                return list.iterator();
+            }
+
+            @Override
+            public int getOffset(int recordNumber) {
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        assertEquals(list.size() * 5, customRecordNumbersImplementation.estimateMemoryUsage());
     }
 }
