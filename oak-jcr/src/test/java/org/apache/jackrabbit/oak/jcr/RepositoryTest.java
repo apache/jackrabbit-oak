@@ -1997,6 +1997,55 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void testUnregisterNamespaceWhenUsed() throws RepositoryException {
+
+        // see OAK-11138
+
+        String testNamespaceName1 = "file:///foo";
+        String testNamespaceName2 = "file:///bar";
+        Session session = getAdminSession();
+
+        NamespaceRegistry nsReg = session.getWorkspace().getNamespaceRegistry();
+        assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
+        assertFalse(asList(nsReg.getURIs()).contains(testNamespaceName1));
+
+        nsReg.registerNamespace("foo", testNamespaceName1);
+        assertTrue(asList(nsReg.getPrefixes()).contains("foo"));
+        assertTrue(asList(nsReg.getURIs()).contains(testNamespaceName1));
+
+        // check that nodes are "same" independent of how retrieved
+        Node x1 = session.getRootNode().addNode("foo:test");
+        session.save();
+        Node x2 = session.getRootNode().getNode("{" + testNamespaceName1 + "}test");
+        assertTrue(x1.isSame(x2));
+
+        // unregister and add with a new name
+        nsReg.unregisterNamespace("foo");
+        assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
+        assertFalse(asList(nsReg.getURIs()).contains(testNamespaceName1));
+        nsReg.registerNamespace("foo", testNamespaceName2);
+        assertTrue(asList(nsReg.getPrefixes()).contains("foo"));
+        assertTrue(asList(nsReg.getURIs()).contains(testNamespaceName2));
+
+        try {
+            session.getRootNode().getNode("{" + testNamespaceName1 + "}test");
+        } catch (PathNotFoundException expected) {
+            // we expect that this fails as the namespace name has been removed
+        }
+
+        // after remapping, the node created earlier is stil accessible with the
+        // name prefix, but the expanded name has changed
+        Node x3 = session.getRootNode().getNode("{" + testNamespaceName2 + "}test");
+        Node x4 = session.getRootNode().getNode("foo:test");
+        assertTrue(x3.isSame(x4));
+
+        nsReg.unregisterNamespace("foo");
+
+        session.getRootNode().getNode("foo:test").remove();
+        session.save();
+    }
+
+    @Test
     public void sessionRemappedNamespace() throws RepositoryException {
         NamespaceRegistry nsReg =
                 getAdminSession().getWorkspace().getNamespaceRegistry();
