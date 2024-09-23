@@ -675,6 +675,7 @@ public class PipelinedTreeStoreIT {
                 pathPredicate,
                 mongoRegexPathFilter,
                 null,
+                0,
                 statsProvider,
                 indexingReporter);
     }

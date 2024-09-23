@@ -76,10 +76,19 @@ public class IndexerSupport {
     private File indexDefinitions;
     private final String checkpoint;
     private File existingDataDumpDir;
+    private long minModified;
 
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
         this.indexHelper = indexHelper;
         this.checkpoint = checkpoint;
+    }
+
+    public long getMinModified() {
+        return minModified;
+    }
+
+    public void setMinModified(long minModified) {
+        this.minModified = minModified;
     }
 
     public IndexerSupport withExistingDataDumpDir(File existingDataDumpDir) {
