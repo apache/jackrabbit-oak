@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -60,6 +61,15 @@ public class CollectionUtilsTest {
         final Iterable<String> iterable = new SimpleIterable<>(s);
 
         Assert.assertEquals(s, CollectionUtils.toSet(iterable));
+    }
+
+    @Test
+    public void iterableToLinkedSet() {
+        // create an iterable
+        final Set<String> s = new LinkedHashSet<>(data);
+        final Iterable<String> iterable = new SimpleIterable<>(s);
+
+        Assert.assertEquals(s, CollectionUtils.toLinkedSet(iterable));
     }
 
     @Test

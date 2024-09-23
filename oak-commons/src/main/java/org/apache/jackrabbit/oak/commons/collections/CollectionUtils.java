@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,6 +88,20 @@ public class CollectionUtils {
     }
 
     /**
+     * Convert an iterable to a {@link LinkedHashSet}. The returning set is mutable and supports all optional operations.
+     * @param iterable the iterable to convert
+     * @return the linkedHashSet
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> Set<T> toLinkedSet(@NotNull  final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
+        final Set<T> result = new LinkedHashSet<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
      * Convert an iterator to a set. The returning set is mutable and supports all optional operations.
      * @param iterator the iterator to convert
      * @return the set
@@ -125,11 +140,29 @@ public class CollectionUtils {
      *
      * @param capacity the expected number of elements
      * @throws IllegalArgumentException if capacity is negative
+     * @see CollectionUtils#newHashMap(int)
+     * @see CollectionUtils#newLinkedHashSet(int)
      */
     @NotNull
     public static <K> Set<K> newHashSet(final int capacity) {
         // make sure the set does not need to be resized given the initial content
         return new HashSet<>(ensureCapacity(capacity));
+    }
+
+    /**
+     * Creates a new, empty LinkedHashSet with expected capacity.
+     * <p>
+     * The returned set is large enough to add expected no. of elements without resizing.
+     *
+     * @param capacity the expected number of elements
+     * @throws IllegalArgumentException if capacity is negative
+     * @see CollectionUtils#newHashMap(int)
+     * @see CollectionUtils#newHashSet(int)
+     */
+    @NotNull
+    public static <K> Set<K> newLinkedHashSet(final int capacity) {
+        // make sure the set does not need to be resized given the initial content
+        return new LinkedHashSet<>(ensureCapacity(capacity));
     }
 
     /**
@@ -140,10 +173,12 @@ public class CollectionUtils {
      *
      * @param capacity the expected number of elements
      * @throws IllegalArgumentException if capacity is negative
+     * @see CollectionUtils#newHashSet(int)
+     * @see CollectionUtils#newLinkedHashSet(int)
      */
     @NotNull
     public static <K, V> Map<K, V> newHashMap(final int capacity) {
-        // make sure the set does not need to be resized given the initial content
+        // make sure the Map does not need to be resized given the initial content
         return new HashMap<>(ensureCapacity(capacity));
     }
 
