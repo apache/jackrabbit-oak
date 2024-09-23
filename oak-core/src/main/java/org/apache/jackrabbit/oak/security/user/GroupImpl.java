@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -298,7 +297,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         // calculate the contentID for each memberId and remember ids that cannot be processed
-        Map<String, String> updateMap = Maps.newHashMapWithExpectedSize(memberIds.length);
+        Map<String, String> updateMap = CollectionUtils.newHashMap(memberIds.length);
         MembershipProvider mp = getMembershipProvider();
         for (String memberId : memberIds) {
             if (Strings.isNullOrEmpty(memberId)) {

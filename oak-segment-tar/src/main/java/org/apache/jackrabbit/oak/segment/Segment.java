@@ -18,13 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
-import static org.apache.jackrabbit.oak.segment.RecordNumbers.EMPTY_RECORD_NUMBERS;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
@@ -37,18 +34,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.data.RecordIdData;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
@@ -132,9 +123,6 @@ public class Segment {
     static final int RECORD_NUMBER_COUNT_OFFSET = 18;
 
     @NotNull
-    private final SegmentReader reader;
-
-    @NotNull
     private final SegmentId id;
 
     private final SegmentData data;
@@ -169,14 +157,12 @@ public class Segment {
 
     Segment(
         @NotNull SegmentId id,
-        @NotNull SegmentReader reader,
         byte @NotNull [] buffer,
         @NotNull RecordNumbers recordNumbers,
         @NotNull SegmentReferences segmentReferences,
         @NotNull String info
     ) {
         this.id = requireNonNull(id);
-        this.reader = requireNonNull(reader);
         this.info = requireNonNull(info);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(Buffer.wrap(buffer));
@@ -190,10 +176,8 @@ public class Segment {
     }
 
     public Segment(@NotNull SegmentIdProvider idProvider,
-                   @NotNull SegmentReader reader,
                    @NotNull final SegmentId id,
         @NotNull final Buffer data) {
-        this.reader = requireNonNull(reader);
         this.id = requireNonNull(id);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(requireNonNull(data).slice());
@@ -207,14 +191,27 @@ public class Segment {
 
             });
             this.version = SegmentVersion.fromByte(segmentVersion);
-            this.recordNumbers = readRecordNumberOffsets();
-            this.segmentReferences = readReferencedSegments(idProvider);
+            this.recordNumbers = RecordNumbers.fromSegmentData(this.data);
+            this.segmentReferences = SegmentReferences.fromSegmentData(this.data, idProvider);
         } else {
             this.data = newRawSegmentData(requireNonNull(data).slice());
             this.version = LATEST_VERSION;
             this.recordNumbers = new IdentityRecordNumbers();
             this.segmentReferences = new IllegalSegmentReferences();
         }
+    }
+
+    public Segment(
+            @NotNull SegmentId id,
+            @NotNull SegmentData data,
+            @NotNull RecordNumbers recordNumbers,
+            @NotNull SegmentReferences segmentReferences
+    ) {
+        this.id = requireNonNull(id);
+        this.data = requireNonNull(data);
+        this.recordNumbers = requireNonNull(recordNumbers);
+        this.segmentReferences = requireNonNull(segmentReferences);
+        this.version = SegmentVersion.fromByte(data.getVersion());
     }
 
     private static String toHex(byte[] bytes) {
@@ -227,91 +224,6 @@ public class Segment {
         } finally {
             closeQuietly(out);
         }
-    }
-
-    /**
-     * Read the serialized table mapping record numbers to offsets.
-     *
-     * @return An instance of {@link RecordNumbers}, never {@code null}.
-     */
-    private RecordNumbers readRecordNumberOffsets() {
-        int recordNumberCount = data.getRecordReferencesCount();
-
-        if (recordNumberCount == 0) {
-            return EMPTY_RECORD_NUMBERS;
-        }
-
-        int maxIndex = data.getRecordReferenceNumber(recordNumberCount - 1);
-
-        byte[] types = new byte[maxIndex + 1];
-        int[] offsets = new int[maxIndex + 1];
-        fill(offsets, -1);
-
-        for (int i = 0; i < recordNumberCount; i++) {
-            int recordNumber = data.getRecordReferenceNumber(i);
-            types[recordNumber] = data.getRecordReferenceType(i);
-            offsets[recordNumber] = data.getRecordReferenceOffset(i);
-        }
-
-        return new ImmutableRecordNumbers(offsets, types);
-    }
-
-    private SegmentReferences readReferencedSegments(final SegmentIdProvider idProvider) {
-        checkState(getReferencedSegmentIdCount() + 1 < 0xffff, "Segment cannot have more than 0xffff references");
-
-        final int referencedSegmentIdCount = getReferencedSegmentIdCount();
-
-        // We need to keep SegmentId references (as opposed to e.g. UUIDs)
-        // here as frequently resolving the segment ids via the segment id
-        // tables is prohibitively expensive.
-        // These SegmentId references are not a problem wrt. heap usage as
-        // their individual memoised references to their underlying segment
-        // is managed via the SegmentCache. It is the size of that cache that
-        // keeps overall heap usage by Segment instances bounded.
-        // See OAK-6106.
-
-        final SegmentId[] refIds = new SegmentId[referencedSegmentIdCount];
-
-        return new SegmentReferences() {
-
-            @Override
-            public SegmentId getSegmentId(int reference) {
-                checkArgument(reference <= referencedSegmentIdCount, "Segment reference out of bounds");
-                SegmentId id = refIds[reference - 1];
-                if (id == null) {
-                    synchronized (refIds) {
-                        id = refIds[reference - 1];
-                        if (id == null) {
-                            long msb = data.getSegmentReferenceMsb(reference - 1);
-                            long lsb = data.getSegmentReferenceLsb(reference - 1);
-                            id = idProvider.newSegmentId(msb, lsb);
-                            refIds[reference - 1] = id;
-                        }
-                    }
-                }
-                return id;
-            }
-
-            @NotNull
-            @Override
-            public Iterator<SegmentId> iterator() {
-                return new AbstractIterator<SegmentId>() {
-
-                    private int reference = 1;
-
-                    @Override
-                    protected SegmentId computeNext() {
-                        if (reference <= referencedSegmentIdCount) {
-                            return getSegmentId(reference++);
-                        } else {
-                            return endOfData();
-                        }
-                    }
-
-                };
-            }
-
-        };
     }
 
     public SegmentVersion getSegmentVersion() {
@@ -469,68 +381,6 @@ public class Segment {
         }
 
         throw new IllegalStateException("Invalid return value");
-    }
-
-    @NotNull
-    Template readTemplate(int recordNumber) {
-        int head = readInt(recordNumber);
-        boolean hasPrimaryType = (head & (1 << 31)) != 0;
-        boolean hasMixinTypes = (head & (1 << 30)) != 0;
-        boolean zeroChildNodes = (head & (1 << 29)) != 0;
-        boolean manyChildNodes = (head & (1 << 28)) != 0;
-        int mixinCount = (head >> 18) & ((1 << 10) - 1);
-        int propertyCount = head & ((1 << 18) - 1);
-
-        int offset = 4;
-
-        PropertyState primaryType = null;
-        if (hasPrimaryType) {
-            RecordId primaryId = readRecordId(recordNumber, offset);
-            primaryType = PropertyStates.createProperty(
-                    "jcr:primaryType", reader.readString(primaryId), Type.NAME);
-            offset += RECORD_ID_BYTES;
-        }
-
-        PropertyState mixinTypes = null;
-        if (hasMixinTypes) {
-            String[] mixins = new String[mixinCount];
-            for (int i = 0; i < mixins.length; i++) {
-                RecordId mixinId = readRecordId(recordNumber, offset);
-                mixins[i] =  reader.readString(mixinId);
-                offset += RECORD_ID_BYTES;
-            }
-            mixinTypes = PropertyStates.createProperty(
-                    "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
-        }
-
-        String childName = Template.ZERO_CHILD_NODES;
-        if (manyChildNodes) {
-            childName = Template.MANY_CHILD_NODES;
-        } else if (!zeroChildNodes) {
-            RecordId childNameId = readRecordId(recordNumber, offset);
-            childName = reader.readString(childNameId);
-            offset += RECORD_ID_BYTES;
-        }
-
-        PropertyTemplate[] properties;
-        properties = readProps(propertyCount, recordNumber, offset);
-        return new Template(reader, primaryType, mixinTypes, properties, childName);
-    }
-
-    private PropertyTemplate[] readProps(int propertyCount, int recordNumber, int offset) {
-        PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
-        if (propertyCount > 0) {
-            RecordId id = readRecordId(recordNumber, offset);
-            ListRecord propertyNames = new ListRecord(id, properties.length);
-            offset += RECORD_ID_BYTES;
-            for (int i = 0; i < propertyCount; i++) {
-                byte type = readByte(recordNumber, offset++);
-                properties[i] = new PropertyTemplate(i,
-                        reader.readString(propertyNames.getEntry(i)), Type.fromTag(
-                                Math.abs(type), type < 0));
-            }
-        }
-        return properties;
     }
 
     static long readLength(RecordId id) {

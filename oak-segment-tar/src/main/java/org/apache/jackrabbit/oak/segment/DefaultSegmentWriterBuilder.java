@@ -218,20 +218,20 @@ public final class DefaultSegmentWriterBuilder {
 
     @NotNull
     private WriteOperationHandler createWriter(@NotNull FileStore store, @Nullable PoolType poolType) {
-        return createWriter(store.getSegmentIdProvider(), store.getReader(), poolType);
+        return createWriter(store.getSegmentIdProvider(), poolType);
     }
 
     @NotNull
     private WriteOperationHandler createWriter(@NotNull MemoryStore store, @Nullable PoolType poolType) {
-        return createWriter(store.getSegmentIdProvider(), store.getReader(), poolType);
+        return createWriter(store.getSegmentIdProvider(), poolType);
     }
 
     @NotNull
-    private WriteOperationHandler createWriter(@NotNull SegmentIdProvider idProvider, @NotNull SegmentReader reader, @Nullable PoolType poolType) {
+    private WriteOperationHandler createWriter(@NotNull SegmentIdProvider idProvider, @Nullable PoolType poolType) {
         if (poolType == null) {
-            return new SegmentBufferWriter(idProvider, reader, name, generation.get());
+            return new SegmentBufferWriter(idProvider, name, generation.get());
         } else {
-            return SegmentBufferWriterPool.factory(idProvider, reader, name, generation).newPool(poolType);
+            return SegmentBufferWriterPool.factory(idProvider, name, generation).newPool(poolType);
         }
     }
 }

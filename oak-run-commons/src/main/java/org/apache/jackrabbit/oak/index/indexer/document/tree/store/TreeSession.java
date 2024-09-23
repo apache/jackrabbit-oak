@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Properties;
+import java.util.Random;
 
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.ConcurrentLRUCache;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Position;
@@ -881,16 +882,16 @@ public class TreeSession {
         }
     }
 
-    public String getApproximateMedianKey(String low, String high) {
+    public String getApproximateMedianKey(String low, String high, Random r) {
         if (getFile(ROOT_NAME).getNextRoot() != null) {
             throw new UnsupportedOperationException("Not fully merged");
         }
         String fileName = ROOT_NAME;
+        if (low.compareTo(high) >= 0) {
+            return low;
+        }
         while (true) {
             PageFile file = getFile(fileName);
-            if (!file.isInnerNode()) {
-                return file.getKey(0);
-            }
             int i1 = file.getKeyIndex(low);
             int i2 = file.getKeyIndex(high);
             if (i1 < 0) {
@@ -899,11 +900,21 @@ public class TreeSession {
             if (i2 < 0) {
                 i2 = -i2 - 1;
             }
-            if (i2 != i1) {
-                int middle = (i1 + i2) / 2;
+            int middle = Math.min(file.getValueCount() - 1, (i1 + i2) / 2);
+            if (middle != i1 || !file.isInnerNode()) {
                 return file.getKey(middle);
             }
-            fileName = file.getChildValue(i1);
+            if (middle >= file.getValueCount() - 1) {
+                fileName = file.getChildValue(middle);
+            } else if (high.compareTo(file.getKey(middle)) <= 0) {
+                fileName = file.getChildValue(middle);
+            } else if (low.compareTo(file.getKey(middle)) >= 0) {
+                fileName = file.getChildValue(middle + 1);
+            } else if (r.nextInt() > 0) {
+                fileName = file.getChildValue(middle);
+            } else {
+                fileName = file.getChildValue(middle + 1);
+            }
         }
     }
 

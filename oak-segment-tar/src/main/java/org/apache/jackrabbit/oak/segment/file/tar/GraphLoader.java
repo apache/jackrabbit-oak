@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMapWithExpectedSize;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 
 import java.io.IOException;
@@ -29,6 +28,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +93,7 @@ public final class GraphLoader {
     public static Map<UUID, List<UUID>> parseGraph(Buffer buffer) {
         int nEntries = buffer.getInt(buffer.limit() - 12);
 
-        Map<UUID, List<UUID>> graph = newHashMapWithExpectedSize(nEntries);
+        Map<UUID, List<UUID>> graph = CollectionUtils.newHashMap(nEntries);
 
         for (int i = 0; i < nEntries; i++) {
             long msb = buffer.getLong();
