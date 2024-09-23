@@ -68,7 +68,7 @@ public class SegmentBufferWriterPoolTest {
 
     public SegmentBufferWriterPoolTest(SegmentBufferWriterPool.PoolType poolType) throws IOException {
         pool = SegmentBufferWriterPool.factory(
-                store.getSegmentIdProvider(), store.getReader(), "", () -> gcGeneration)
+                store.getSegmentIdProvider(), "", () -> gcGeneration)
                 .newPool(poolType);
     }
 
