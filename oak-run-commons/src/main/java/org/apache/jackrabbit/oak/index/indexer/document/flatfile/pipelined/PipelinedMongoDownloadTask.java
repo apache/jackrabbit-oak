@@ -377,7 +377,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
                 try {
                     downloadStartWatch.start();
-                    if (retryOnConnectionErrors) {
+                    if (retryOnConnectionErrors && minModified == 0) {
                         downloadWithRetryOnConnectionErrors();
                     } else {
                         downloadWithNaturalOrdering();
