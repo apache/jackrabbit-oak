@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -61,6 +60,7 @@ import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -1353,12 +1353,12 @@ public final class NodeDocument extends Document {
             }
 
             // didn't find entry -> scan through remaining head ranges
-            return filter(transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
-                    if (input.getValue().includes(revision)) {
-                       return getPreviousDoc(input.getKey(), input.getValue());
-                    }
-                    return null;
-                }), input ->input != null && input.getValueMap(property).containsKey(revision));
+            return () -> getPreviousRanges().headMap(revision).entrySet().stream().map(input -> {
+                if (input.getValue().includes(revision)) {
+                    return getPreviousDoc(input.getKey(), input.getValue());
+                }
+                return null;
+            }).filter(input -> input != null && input.getValueMap(property).containsKey(revision)).iterator();
         }
     }
 
@@ -1559,8 +1559,9 @@ public final class NodeDocument extends Document {
         Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
         List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
         Map<Revision, String> localChanges = getLocalMap(property);
+
         if (!localChanges.isEmpty()) {
-            changes.add(filter(localChanges.entrySet(), p::test));
+            changes.add(() -> localChanges.entrySet().stream().filter(p).iterator());
         }
 
         for (Revision r : readRevision) {
@@ -1664,7 +1665,7 @@ public final class NodeDocument extends Document {
         } else {
             changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
+        return () -> CollectionUtils.toStream(changes).filter(input -> !readRev.isRevisionNewer(input.getKey())).iterator();
     }
 
     /**
@@ -1760,8 +1761,8 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     RevisionVector getSweepRevisions() {
-        return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
-                s -> Revision.fromString(s)));
+        return new RevisionVector(
+                getLocalMap(SWEEP_REV).values().stream().map(s -> Revision.fromString(s)).toArray(Revision[]::new));
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------

@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -751,7 +750,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
             Set<Revision> collisions = new HashSet<>(doc.getLocalMap(COLLISIONS).keySet());
             Set<Revision> commits = new HashSet<>();
-            Iterables.transform(b.getCommits(), Revision::asTrunkRevision).forEach(commits::add);
+            b.getCommits().stream().map(Revision::asTrunkRevision).forEach(commits::add);
             Set<Revision> conflicts = Sets.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,

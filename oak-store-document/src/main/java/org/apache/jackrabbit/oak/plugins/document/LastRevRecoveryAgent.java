@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
@@ -45,6 +43,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
@@ -286,7 +285,7 @@ public class LastRevRecoveryAgent {
             // invalidate all suspects (OAK-9908)
             log.info("Starting cache invalidation before sweep...");
             CacheInvalidationStats stats = store.invalidateCache(
-                    transform(suspects, Document::getId));
+                    () -> CollectionUtils.toStream(suspects).map(Document::getId).iterator());
             log.info("Invalidation stats: {}", stats);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
@@ -761,10 +760,10 @@ public class LastRevRecoveryAgent {
      * @return the recovery candidate nodes.
      */
     public Iterable<Integer> getRecoveryCandidateNodes() {
-        return Iterables.transform(filter(missingLastRevUtil.getAllClusters(),
-                input ->revisionContext.getClusterId() != input.getClusterId()
-                        && input.isRecoveryNeeded(revisionContext.getClock().getTime())),
-                ClusterNodeInfoDocument::getClusterId);
+        return () -> CollectionUtils.toStream(missingLastRevUtil.getAllClusters())
+                .filter(input -> revisionContext.getClusterId() != input.getClusterId()
+                        && input.isRecoveryNeeded(revisionContext.getClock().getTime()))
+                .map(ClusterNodeInfoDocument::getClusterId).iterator();
     }
 
     private static class ClusterPredicate implements Predicate<Revision> {

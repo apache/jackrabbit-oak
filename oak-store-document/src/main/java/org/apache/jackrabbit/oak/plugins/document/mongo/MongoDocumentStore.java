@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -118,8 +119,6 @@ import com.mongodb.client.result.UpdateResult;
 
 import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static com.mongodb.client.model.Projections.include;
@@ -528,7 +527,8 @@ public class MongoDocumentStore implements DocumentStore {
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modStamps);
-            for (String id : filter(ids, x -> !modStamps.keySet().contains(x))) {
+            Iterable<String> filteredIds = () -> ids.stream().filter(x -> !modStamps.keySet().contains(x)).iterator();
+            for (String id : filteredIds) {
                 nodesCache.invalidate(id);
                 invalidated++;
             }
@@ -1262,9 +1262,9 @@ public class MongoDocumentStore implements DocumentStore {
                 results.put(op, findAndUpdate(collection, op));
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps, UpdateOp::getId));
+            throw handleException(e, collection, () -> updateOps.stream().map(UpdateOp::getId).iterator());
         } finally {
-            stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(toList()),
+            stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(Collectors.toList()),
                     true, retryCount);
         }
         final List<T> resultList = new ArrayList<>(results.values());
@@ -1363,8 +1363,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps,
-                    input -> input.getId()));
+            throw handleException(e, collection, () -> updateOps.stream().map(UpdateOp::getId).iterator());
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
                     collection, Lists.transform(updateOps, input -> input.getId()));

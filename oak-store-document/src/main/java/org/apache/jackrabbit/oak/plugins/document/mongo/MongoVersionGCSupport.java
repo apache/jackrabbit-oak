@@ -26,8 +26,7 @@ import static com.mongodb.client.model.Projections.include;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
@@ -53,6 +52,7 @@ import java.util.regex.Pattern;
 
 import com.mongodb.client.MongoCursor;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -143,8 +143,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).batchSize(batchSize);
 
-        return CloseableIterable.wrap(transform(cursor,
-                input -> store.convertFromDBObject(NODES, input)));
+        return wrap(() -> CollectionUtils.toStream(cursor).map(input -> store.convertFromDBObject(NODES, input)).iterator());
     }
 
     /**
@@ -267,7 +266,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .hint(modifiedIdHint)
                 .sort(sort)
                 .limit(limit);
-        return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+        return wrap(() -> CollectionUtils.toStream(cursor).map(input -> store.convertFromDBObject(NODES, input)).iterator());
     }
 
     /**
@@ -331,10 +330,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // of the query as part of OAK-8351 does), it nevertheless 
             // makes any future similar problem more visible than long running
             // queries alone (15min is still long).
-            Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
-                    .maxTime(15, TimeUnit.MINUTES).hint(hint),
-                    input -> store.convertFromDBObject(NODES, input)),
-                    input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));
+            Iterable<NodeDocument> iterable = () ->
+            CollectionUtils.toStream(getNodeCollection().find(query).maxTime(15, TimeUnit.MINUTES).hint(hint))
+                    .map(input -> store.convertFromDBObject(NODES, input))
+                    .filter(input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs)).iterator();
             allResults = concat(allResults, iterable);
         }
         return allResults;

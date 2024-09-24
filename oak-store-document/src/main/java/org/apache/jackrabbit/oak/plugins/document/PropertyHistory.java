@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static java.util.AbstractMap.SimpleImmutableEntry;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -55,17 +55,19 @@ class PropertyHistory implements Iterable<NodeDocument> {
 
     @Override
     public Iterator<NodeDocument> iterator() {
-        return ensureOrder(filter(transform(doc.getPreviousRanges().entrySet(), input -> {
-                Revision r = input.getKey();
-                int h = input.getValue().height;
-                String prevId = Utils.getPreviousIdFor(mainPath, r, h);
-                NodeDocument prev = doc.getPreviousDocument(prevId);
-                if (prev == null) {
-                    LOG.debug("Document with previous revisions not found: " + prevId);
-                    return null;
-                }
-                return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
-            }), x -> x != null));
+        Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>> transformer = input -> {
+            Revision r = input.getKey();
+            int h = input.getValue().height;
+            String prevId = Utils.getPreviousIdFor(mainPath, r, h);
+            NodeDocument prev = doc.getPreviousDocument(prevId);
+            if (prev == null) {
+                LOG.debug("Document with previous revisions not found: " + prevId);
+                return null;
+            }
+            return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
+        };
+
+        return ensureOrder(() -> doc.getPreviousRanges().entrySet().stream().map(transformer).filter(Objects::nonNull).iterator());
     }
 
     /**

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
@@ -61,8 +61,8 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
 
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).sort(sortFields);
-        return CloseableIterable.wrap(transform(cursor,
-                input -> store.convertFromDBObject(NODES, input)));
+        return CloseableIterable
+                .wrap(() -> CollectionUtils.toStream(cursor).map(input -> store.convertFromDBObject(NODES, input)).iterator());
     }
 
     @Override

@@ -40,6 +40,7 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -54,7 +55,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -283,8 +283,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
         assertNotNull(garbage);
         assertEquals(totalSplits, Iterables.size(garbage));
-        assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1)::test)));
-        assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2)::test)));
+        assertEquals(numSplit1, CollectionUtils.toStream(garbage).filter(splitDocsWithClusterId(1)).count());
+        assertEquals(numSplit2, CollectionUtils.toStream(garbage).filter(splitDocsWithClusterId(2)).count());
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);
