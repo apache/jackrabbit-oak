@@ -91,7 +91,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
     // Set with the ids of blobs that were already enqueued for download. Avoids creating a large number of download
     // requests for the blobs that are referenced by many nodes. Although this is a HashMap it is used as a set. The
     // value is just a placeholder, we use Boolean.TRUE for no particular reason.
-    private static final int DOWNLOADED_BLOB_IDS_CACHE_SIZE = 4096;
+    private static final int DOWNLOADED_BLOB_IDS_CACHE_SIZE = 1024;
     private final LinkedHashMap<String, Boolean> downloadedBlobs = new LinkedHashMap<>(DOWNLOADED_BLOB_IDS_CACHE_SIZE, 0.75f, true) {
         // Avoid resizing operations
         private final static int MAX_ENTRIES = (int) (DOWNLOADED_BLOB_IDS_CACHE_SIZE * 0.70);
@@ -226,6 +226,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
             try (LineIterator ffsLineIterator = new LineIterator(IndexStoreUtils.createReader(ffsPath, algorithm))) {
                 String oldName = Thread.currentThread().getName();
                 Thread.currentThread().setName("scanner");
+                LOG.info("Starting scanning FFS for blobs to download, matching suffix: {}", binaryBlobsPathSuffix);
                 try {
                     while (ffsLineIterator.hasNext()) {
                         String ffsLine = ffsLineIterator.next();
@@ -247,7 +248,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                             processEntry(entryPath, nodeState);
                         }
                         linesScanned++;
-                        if (linesScanned % 100_000 == 0) {
+                        if (linesScanned % 1_000_000 == 0) {
                             LOG.info("[{}] Last path scanned: {}. Aggregated statistics: {}", linesScanned, entryPath, formatAggregateStatistics());
                         }
                     }
@@ -255,7 +256,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                     queue.clear();
                     LOG.info("Scan task interrupted, exiting");
                 } finally {
-                    LOG.info("Scanner reached end of FFS, stopping download threads. Statistics: {}", formatAggregateStatistics());
+                    LOG.info("Scanner reached end of FFS, stopping download threads. Statistics: {} {}", formatAggregateStatistics(), throttler.formatStats());
                     Thread.currentThread().setName(oldName);
                     queue.put(SENTINEL);
                 }
@@ -299,7 +300,10 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                     LOG.debug("[{}] Blob already downloaded or enqueued for download: {}", linesScanned, blob.getContentIdentity());
                     continue;
                 }
-                throttler.reserveSpaceForBlob(linesScanned, blob.length());
+                if (!throttler.reserveSpaceForBlob(linesScanned, blob.length())) {
+                    skippedLinesDueToLaggingIndexing++;
+                    continue;
+                }
                 downloadedBlobs.put(blob.getContentIdentity(), Boolean.TRUE);
                 queue.put(blob);
                 blobsEnqueuedForDownload++;

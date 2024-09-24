@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
@@ -42,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -427,7 +427,7 @@ public class SegmentParserTest {
     public void nonEmptyList() throws IOException {
         int count = 100000;
         Random rnd = new Random();
-        List<RecordId> list = newArrayListWithCapacity(count);
+        List<RecordId> list = new ArrayList<>(count);
         for (int k = 0; k < count; k++) {
             list.add(writer.writeString("string " + rnd.nextLong()));
         }

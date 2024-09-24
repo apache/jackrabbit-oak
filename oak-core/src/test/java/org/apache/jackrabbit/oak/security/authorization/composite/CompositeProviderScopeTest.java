@@ -131,14 +131,14 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
                 PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable().diff(denied).unmodifiable();
                 assertEquals(expected, pbp.getBits(privNames));
             } else {
-                assertEquals(path, ImmutableSet.of(JCR_ALL), privNames);
+                assertEquals(path, Set.of(JCR_ALL), privNames);
             }
         }
     }
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        Set<String> expected = ImmutableSet.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
+        Set<String> expected = Set.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
         assertEquals(expected, cppTestUser.getPrivileges(null));
     }
 
@@ -282,7 +282,7 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testIsGrantedAction() throws Exception {
-        Set<String> denied = ImmutableSet.of(Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY);
+        Set<String> denied = Set.of(Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY);
 
         for (String p : defActionsGranted.keySet()) {
             String[] actions = defActionsGranted.get(p);

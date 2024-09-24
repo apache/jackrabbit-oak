@@ -23,9 +23,9 @@ import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -154,7 +154,7 @@ public class MapRecord extends Record {
     }
 
     private List<MapRecord> getBucketList(Segment segment) {
-        List<MapRecord> buckets = newArrayListWithCapacity(BUCKETS_PER_LEVEL);
+        List<MapRecord> buckets = new ArrayList<>(BUCKETS_PER_LEVEL);
         int bitmap = segment.readInt(getRecordNumber(), 4);
         int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
@@ -325,7 +325,7 @@ public class MapRecord extends Record {
         if (isBranch(size, level)) {
             List<MapRecord> buckets = getBucketList(segment);
             List<Iterable<String>> keys =
-                    newArrayListWithCapacity(buckets.size());
+                    new ArrayList<>(buckets.size());
             for (final MapRecord bucket : buckets) {
                 keys.add(new Iterable<String>() {
                     @NotNull
@@ -375,7 +375,7 @@ public class MapRecord extends Record {
         if (isBranch(size, level)) {
             List<MapRecord> buckets = getBucketList(segment);
             List<Iterable<MapEntry>> entries =
-                    newArrayListWithCapacity(buckets.size());
+                    new ArrayList<>(buckets.size());
             for (final MapRecord bucket : buckets) {
                 entries.add(new Iterable<MapEntry>() {
                     @NotNull

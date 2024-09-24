@@ -127,7 +127,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexDisabling_typeNotExist() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode"));
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex/@oak:BarType"), Type.STRINGS);
@@ -141,7 +141,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexDisabling_typeExist() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode", "oak:BarType"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode", "oak:BarType"));
 
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
@@ -219,7 +219,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexToBeDisabled_TypeNotExists() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode"));
         recreateDisabler();
 
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
@@ -232,7 +232,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexToBeDisabled_TypeExists() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode"));
         recreateDisabler();
 
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,

@@ -58,8 +58,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void hasPrivilegesTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NAMESPACE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NAMESPACE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
         // tests all possible 256 shuffles
@@ -83,8 +83,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void isGrantedTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
         Map<String, Long> grantMap = Maps.newHashMap();
@@ -130,8 +130,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void getRepositoryPermissionTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
         Map<String, Long> grantMap = Maps.newHashMap();
@@ -160,8 +160,8 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void getTreePermissionTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
         Map<String, Long> grantMap = Maps.newHashMap();

@@ -120,7 +120,7 @@ public class LuceneIndexImporterTest {
     }
 
     private static Set<List<String>> fileNameSet(Directory expected) throws IOException {
-        return ImmutableSet.of(Arrays.asList(expected.listAll()));
+        return Set.of(Arrays.asList(expected.listAll()));
     }
 
     private static byte[] toBytes(IndexInput input) throws IOException {

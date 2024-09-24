@@ -151,7 +151,7 @@ public class CompositeCredentialsSupportTest {
         @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
-            return ImmutableSet.of(TestCredentials.class);
+            return Set.of(TestCredentials.class);
         }
 
         @Nullable

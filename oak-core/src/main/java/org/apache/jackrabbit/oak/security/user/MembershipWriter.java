@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -59,7 +58,7 @@ public class MembershipWriter {
      * @return {@code true} if the member was added
      */
     boolean addMember(@NotNull Tree groupTree, @NotNull String memberContentId) {
-        Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
+        Map<String, String> m = new HashMap<>(1);
         m.put(memberContentId, "-");
         return addMembers(groupTree, m).isEmpty();
     }
@@ -189,7 +188,7 @@ public class MembershipWriter {
      * @return {@code true} if the member was removed.
      */
     boolean removeMember(@NotNull Tree groupTree, @NotNull String memberContentId) {
-        Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
+        Map<String, String> m = new HashMap<>(1);
         m.put(memberContentId, "-");
         return removeMembers(groupTree, m).isEmpty();
     }

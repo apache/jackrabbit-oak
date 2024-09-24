@@ -48,7 +48,7 @@ class PredefinedPermissionProvider implements PermissionProvider {
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         // EXERCISE: complete PermissionProvider implementation
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     @Override

@@ -355,7 +355,7 @@ public class Persistence {
         private void configureGlobalFullTextIndex() {
             String indexName = "lucene";
             if (!index.hasChildNode(indexName)) {
-                Set<String> INCLUDE_PROPS = ImmutableSet.of("test");
+                Set<String> INCLUDE_PROPS = Set.of("test");
                 IndexDefinitionBuilder indexBuilder = new LuceneIndexDefinitionBuilder(index.child(indexName))
                         .codec("Lucene46")
                         .excludedPaths("/libs");

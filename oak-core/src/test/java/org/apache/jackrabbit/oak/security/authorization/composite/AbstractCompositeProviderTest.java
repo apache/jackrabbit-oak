@@ -147,14 +147,14 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
                         Permissions.VERSION_MANAGEMENT).
                 build();
         defPrivileges = ImmutableMap.<String, Set<String>>builder().
-                put(ROOT_PATH, ImmutableSet.of()).
-                put(TEST_PATH_2, ImmutableSet.of()).
-                put(TEST_PATH, ImmutableSet.of(JCR_READ)).
-                put(TEST_CHILD_PATH, ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL)).
-                put(TEST_A_PATH, ImmutableSet.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B2_PATH, ImmutableSet.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B_PATH, ImmutableSet.of(JCR_READ, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B_C_PATH, ImmutableSet.of(REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
+                put(ROOT_PATH, Set.of()).
+                put(TEST_PATH_2, Set.of()).
+                put(TEST_PATH, Set.of(JCR_READ)).
+                put(TEST_CHILD_PATH, Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL)).
+                put(TEST_A_PATH, Set.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
+                put(TEST_A_B2_PATH, Set.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
+                put(TEST_A_B_PATH, Set.of(JCR_READ, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
+                put(TEST_A_B_C_PATH, Set.of(REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
                 build();
 
         defActionsGranted = ImmutableMap.<String, String[]>builder().

@@ -183,6 +183,13 @@ public class UserContextTest implements UserConstants {
     }
 
     @Test
+    public void testNullNotDefinesTree() {
+        for (String ntName : NT_NAMES) {
+            assertTrue(ctx.definesTree(mockTree("anyName", ntName)));
+        }
+    }
+
+    @Test
     public void testEmptyNotDefinesTree() {
         TreeProvider treeProvider = new TreeProviderService();
         assertFalse(ctx.definesTree(treeProvider.createReadOnlyTree(EmptyNodeState.EMPTY_NODE)));

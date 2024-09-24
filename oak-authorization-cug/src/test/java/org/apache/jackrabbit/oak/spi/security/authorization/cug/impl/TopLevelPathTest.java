@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -136,7 +136,7 @@ public class TopLevelPathTest extends AbstractCugTest {
         assertTrue(tlp.contains(cugPath));
 
         CugPermissionProvider cugPermProvider = createCugPermissionProvider(
-                        ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
+                        Set.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
                         getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
 
         Tree t = readOnlyRoot.getTree(ROOT_PATH);
@@ -171,7 +171,7 @@ public class TopLevelPathTest extends AbstractCugTest {
         assertFalse(tlp.contains(SUPPORTED_PATH3));
 
         CugPermissionProvider cugPermProvider = createCugPermissionProvider(
-                ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
+                Set.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
                 getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
 
         Tree t = readOnlyRoot.getTree(PathUtils.ROOT_PATH);

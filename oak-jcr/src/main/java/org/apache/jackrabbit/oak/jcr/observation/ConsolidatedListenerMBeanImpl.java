@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -203,7 +204,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
      * @return map of EventListenerMBean and corresponding Observer
      */
     private List<ListenerMBeans> getListenerMBeans() {
-        List<ListenerMBeans> mbeans = Lists.newArrayListWithCapacity(eventListeners.size());
+        List<ListenerMBeans> mbeans = new ArrayList<>(eventListeners.size());
         for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
             String listenerId = getListenerId(e.getKey());
             ListenerMBeans m = new ListenerMBeans();

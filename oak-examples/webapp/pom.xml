@@ -210,7 +210,7 @@
       <plugin>
          <groupId>org.eclipse.jetty</groupId>
          <artifactId>jetty-maven-plugin</artifactId>
-         <version>11.0.21</version>
+         <version>11.0.24</version>
          <configuration>
            <scan>-1</scan>
            <httpConnector>

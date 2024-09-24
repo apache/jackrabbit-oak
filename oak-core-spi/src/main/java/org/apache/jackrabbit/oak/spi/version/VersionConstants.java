@@ -140,12 +140,12 @@ public interface VersionConstants extends JcrConstants {
             REP_CONFIGURATIONS
     ));
 
-    Set<String> VERSION_STORE_ROOT_NAMES = ImmutableSet.of(
+    Set<String> VERSION_STORE_ROOT_NAMES = Set.of(
             JcrConstants.JCR_VERSIONSTORAGE,
             VersionConstants.JCR_CONFIGURATIONS,
             VersionConstants.JCR_ACTIVITIES);
 
-    Set<String> VERSION_STORE_NT_NAMES = ImmutableSet.of(
+    Set<String> VERSION_STORE_NT_NAMES = Set.of(
             VersionConstants.REP_VERSIONSTORAGE,
             VersionConstants.REP_ACTIVITIES,
             VersionConstants.REP_CONFIGURATIONS

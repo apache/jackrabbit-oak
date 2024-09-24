@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -42,7 +43,7 @@ public class MongoConnection {
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
-    private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
+    private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
 
@@ -297,7 +298,7 @@ public class MongoConnection {
         if (client.getReplicaSetStatus() == null) {
             return true;
         } else {
-            return REPLICA_RC.contains(r);
+            return Objects.nonNull(r) && REPLICA_RC.contains(r);
         }
     }
 

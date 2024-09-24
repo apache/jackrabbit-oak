@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -162,7 +162,7 @@ public class IndexTracker {
         indexPaths.addAll(original.keySet());
         indexPaths.addAll(badIndexTracker.getIndexPaths());
 
-        List<Editor> editors = newArrayListWithCapacity(indexPaths.size());
+        List<Editor> editors = new ArrayList<>(indexPaths.size());
         for (final String path : indexPaths) {
             editors.add(new SubtreeEditor(new DefaultEditor() {
                 @Override

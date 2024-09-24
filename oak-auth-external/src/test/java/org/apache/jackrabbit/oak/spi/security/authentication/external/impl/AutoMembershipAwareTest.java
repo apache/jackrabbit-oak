@@ -136,8 +136,8 @@ public class AutoMembershipAwareTest extends AbstractExternalAuthTest {
 
         assertEquals(sh.getName(), config.getName());
         // verify that the 2 configurations get property aggregated
-        assertEquals(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1), config.getAutoMembership(authorizable));
-        assertEquals(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID), config.getAutoMembership(user));
+        assertEquals(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1), config.getAutoMembership(authorizable));
+        assertEquals(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID), config.getAutoMembership(user));
 
         // verify that DefaultSyncHandler was notified about the service
         verify(amc).getAutoMembership(authorizable);
@@ -166,24 +166,24 @@ public class AutoMembershipAwareTest extends AbstractExternalAuthTest {
         DefaultSyncConfig.User scU = syncConfig.user();
         DefaultSyncConfig.Group scG = syncConfig.group();
         
-        assertEquals(ImmutableSet.of(USER_AUTOMEMBERSHIP_ID), scU.getAutoMembership());
-        assertEquals(ImmutableSet.of(GROUP_AUTOMEMBERSHIP_ID), scG.getAutoMembership());
+        assertEquals(Set.of(USER_AUTOMEMBERSHIP_ID), scU.getAutoMembership());
+        assertEquals(Set.of(GROUP_AUTOMEMBERSHIP_ID), scG.getAutoMembership());
         
-        assertEquals(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1, USER_AUTOMEMBERSHIP_ID), scU.getAutoMembership(authorizable));
-        assertEquals(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID), scU.getAutoMembership(user));
+        assertEquals(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1, USER_AUTOMEMBERSHIP_ID), scU.getAutoMembership(authorizable));
+        assertEquals(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID), scU.getAutoMembership(user));
 
-        assertEquals(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1, GROUP_AUTOMEMBERSHIP_ID), scG.getAutoMembership(authorizable));
-        assertEquals(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID, GROUP_AUTOMEMBERSHIP_ID), scG.getAutoMembership(user));
+        assertEquals(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1, GROUP_AUTOMEMBERSHIP_ID), scG.getAutoMembership(authorizable));
+        assertEquals(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID, GROUP_AUTOMEMBERSHIP_ID), scG.getAutoMembership(user));
     }
     
     private static void injectAutoMembershipConfig(@NotNull AutoMembershipConfig amc1, 
                                                                      @NotNull AutoMembershipConfig amc2, 
                                                                      @NotNull OsgiContext context, @NotNull DefaultSyncHandler syncHandler) {
         when(amc1.getName()).thenReturn(syncHandler.getName());
-        when(amc1.getAutoMembership(any(Authorizable.class))).thenReturn(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1));
+        when(amc1.getAutoMembership(any(Authorizable.class))).thenReturn(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1));
 
         when(amc2.getName()).thenReturn(syncHandler.getName());
-        when(amc2.getAutoMembership(any(User.class))).thenReturn(ImmutableSet.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID));
+        when(amc2.getAutoMembership(any(User.class))).thenReturn(Set.of(CONFIG_AUTOMEMBERSHIP_ID_1, CONFIG_AUTOMEMBERSHIP_ID_2, USER_AUTOMEMBERSHIP_ID));
 
         context.registerService(AutoMembershipConfig.class, amc1, Collections.singletonMap(AutoMembershipConfig.PARAM_SYNC_HANDLER_NAME, syncHandler.getName()));
         context.registerService(AutoMembershipConfig.class, amc2, Collections.singletonMap(AutoMembershipConfig.PARAM_SYNC_HANDLER_NAME, syncHandler.getName()));

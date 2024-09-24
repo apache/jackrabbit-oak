@@ -26,6 +26,7 @@ import static org.junit.Assert.assertFalse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +54,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class AsyncIndexUpdateClusterTestIT {
@@ -157,7 +157,7 @@ public class AsyncIndexUpdateClusterTestIT {
 
     private static void createIndexDefinition(NodeBuilder builder) {
         IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
     }
 

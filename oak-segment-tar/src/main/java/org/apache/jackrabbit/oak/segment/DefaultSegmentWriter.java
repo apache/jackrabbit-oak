@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositio
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
@@ -52,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -345,7 +345,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
             checkElementIndex(size, MapRecord.MAX_SIZE);
             int bitmap = 0;
-            List<RecordId> bucketIds = newArrayListWithCapacity(buckets.length);
+            List<RecordId> bucketIds = new ArrayList<>(buckets.length);
             for (int i = 0; i < buckets.length; i++) {
                 if (buckets[i] != null) {
                     bitmap |= 1L << i;

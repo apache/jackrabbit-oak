@@ -110,7 +110,6 @@ public class SegmentBufferWriterTest {
 
             SegmentBufferWriter writer = new SegmentBufferWriter(
                 store.getSegmentIdProvider(),
-                store.getReader(),
                 "t",
                 store.getRevisions().getHead().getSegment().getGcGeneration()
             );

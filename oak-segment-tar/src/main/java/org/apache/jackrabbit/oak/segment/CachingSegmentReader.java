@@ -19,11 +19,16 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.util.SafeEncode;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -116,7 +121,71 @@ public class CachingSegmentReader implements SegmentReader {
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
         return templateCache.get(msb, lsb, id.getRecordNumber(),
-                offset -> segmentId.getSegment().readTemplate(offset));
+                offset -> readTemplate(segmentId.getSegment(), offset));
+    }
+
+    private Template readTemplate(Segment segment, int recordNumber) {
+        int head = segment.readInt(recordNumber);
+        boolean hasPrimaryType = (head & (1 << 31)) != 0;
+        boolean hasMixinTypes = (head & (1 << 30)) != 0;
+        boolean zeroChildNodes = (head & (1 << 29)) != 0;
+        boolean manyChildNodes = (head & (1 << 28)) != 0;
+        int mixinCount = (head >> 18) & ((1 << 10) - 1);
+        int propertyCount = head & ((1 << 18) - 1);
+
+        int offset = 4;
+
+        PropertyState primaryType = null;
+        if (hasPrimaryType) {
+            RecordId primaryId = segment.readRecordId(recordNumber, offset);
+            primaryType = PropertyStates.createProperty(
+                    "jcr:primaryType", readString(primaryId), Type.NAME);
+            offset += RECORD_ID_BYTES;
+        }
+
+        PropertyState mixinTypes = null;
+        if (hasMixinTypes) {
+            String[] mixins = new String[mixinCount];
+            for (int i = 0; i < mixins.length; i++) {
+                RecordId mixinId = segment.readRecordId(recordNumber, offset);
+                mixins[i] =  readString(mixinId);
+                offset += RECORD_ID_BYTES;
+            }
+            mixinTypes = PropertyStates.createProperty(
+                    "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
+        }
+
+        String childName = Template.ZERO_CHILD_NODES;
+        if (manyChildNodes) {
+            childName = Template.MANY_CHILD_NODES;
+        } else if (!zeroChildNodes) {
+            RecordId childNameId = segment.readRecordId(recordNumber, offset);
+            childName = readString(childNameId);
+            offset += RECORD_ID_BYTES;
+        }
+
+        PropertyTemplate[] properties;
+        properties = readProps(segment, propertyCount, recordNumber, offset);
+        return new Template(this, primaryType, mixinTypes, properties, childName);
+    }
+
+    private PropertyTemplate[] readProps(Segment segment,
+                                         int propertyCount,
+                                         int recordNumber,
+                                         int offset) {
+        PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
+        if (propertyCount > 0) {
+            RecordId id = segment.readRecordId(recordNumber, offset);
+            ListRecord propertyNames = new ListRecord(id, properties.length);
+            offset += RECORD_ID_BYTES;
+            for (int i = 0; i < propertyCount; i++) {
+                byte type = segment.readByte(recordNumber, offset++);
+                properties[i] = new PropertyTemplate(i,
+                        readString(propertyNames.getEntry(i)), Type.fromTag(
+                        Math.abs(type), type < 0));
+            }
+        }
+        return properties;
     }
 
     private static String safeEncode(String value) {

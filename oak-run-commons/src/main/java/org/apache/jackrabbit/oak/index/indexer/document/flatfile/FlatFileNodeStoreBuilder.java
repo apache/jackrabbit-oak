@@ -277,7 +277,7 @@ public class FlatFileNodeStoreBuilder {
                     AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
         }
         prefetcher.setBlobSuffix(blobSuffix);
-        prefetcher.startPrefetch();
+        indexingTreeStore.setPrefetcher(prefetcher);
         return indexingTreeStore;
     }
 

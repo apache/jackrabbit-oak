@@ -95,8 +95,8 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         assertTrue(groupAction.onMembersAddedCalled);
         assertTrue(groupAction.onMembersAddedContentIdCalled);
         assertEquals(g1.getID(), groupAction.group.getID());
-        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
-        assertEquals(ImmutableSet.of(nonExistingUUID), groupAction.memberContentIds);
+        assertEquals(Set.of(user1.getID(), user2.getID()), groupAction.memberIds);
+        assertEquals(Set.of(nonExistingUUID), groupAction.memberContentIds);
         assertFalse(groupAction.failedIds.iterator().hasNext()); // duplicate uuids are swallowed by the set in userImporter: nonExisting#add
     }
 

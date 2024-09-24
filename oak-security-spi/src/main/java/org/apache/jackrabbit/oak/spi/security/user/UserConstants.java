@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user;
 
 import java.util.Collection;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import java.util.Set;
 
 /**
  * User management related constants. Please note that all names and paths
@@ -50,13 +50,13 @@ public interface UserConstants {
     String REP_PWD = "rep:pwd";
     String REP_PWD_HISTORY = "rep:pwdHistory";
 
-    Collection<String> GROUP_PROPERTY_NAMES = ImmutableSet.of(
+    Collection<String> GROUP_PROPERTY_NAMES = Set.of(
             REP_PRINCIPAL_NAME,
             REP_AUTHORIZABLE_ID,
             REP_MEMBERS
     );
 
-    Collection<String> USER_PROPERTY_NAMES = ImmutableSet.of(
+    Collection<String> USER_PROPERTY_NAMES = Set.of(
             REP_PRINCIPAL_NAME,
             REP_AUTHORIZABLE_ID,
             REP_PASSWORD,
@@ -64,11 +64,11 @@ public interface UserConstants {
             REP_IMPERSONATORS
     );
 
-    Collection<String> PWD_PROPERTY_NAMES = ImmutableSet.of(
+    Collection<String> PWD_PROPERTY_NAMES = Set.of(
             REP_PASSWORD_LAST_MODIFIED
     );
 
-    Collection<String> NT_NAMES = ImmutableSet.of(
+    Collection<String> NT_NAMES = Set.of(
             NT_REP_USER, NT_REP_GROUP, NT_REP_PASSWORD,
             NT_REP_MEMBERS, NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST);
 

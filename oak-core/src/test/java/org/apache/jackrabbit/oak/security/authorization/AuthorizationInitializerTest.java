@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -25,6 +23,8 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -42,7 +42,7 @@ public class AuthorizationInitializerTest  {
     @Before
     public void before() {
         Mount m = when(mock(Mount.class).getPathFragmentName()).thenReturn("mount").getMock();
-        MountInfoProvider mip = when(mock(MountInfoProvider.class).getNonDefaultMounts()).thenReturn(ImmutableSet.of(m)).getMock();
+        MountInfoProvider mip = when(mock(MountInfoProvider.class).getNonDefaultMounts()).thenReturn(Set.of(m)).getMock();
         initializer = new AuthorizationInitializer(mip);
 
         builder = mock(NodeBuilder.class);

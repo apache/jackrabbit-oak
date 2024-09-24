@@ -77,13 +77,13 @@ public class ObserverTrackerTest {
     @Test
     public void registerUnregister() {
         tracker.addingService(ref1);
-        assertEquals(ImmutableSet.of(observer1), observers);
+        assertEquals(Set.of(observer1), observers);
 
         tracker.addingService(ref2);
-        assertEquals(ImmutableSet.of(observer1, observer2), observers);
+        assertEquals(Set.of(observer1, observer2), observers);
 
         tracker.removedService(ref1, null);
-        assertEquals(ImmutableSet.of(observer2), observers);
+        assertEquals(Set.of(observer2), observers);
 
         tracker.removedService(ref2, null);
         assertTrue(observers.isEmpty());
@@ -92,11 +92,11 @@ public class ObserverTrackerTest {
     @Test
     public void registerTwice() {
         tracker.addingService(ref1);
-        assertEquals(ImmutableSet.of(observer1), observers);
+        assertEquals(Set.of(observer1), observers);
 
         // Adding an already added service should have no effect
         tracker.addingService(ref1);
-        assertEquals(ImmutableSet.of(observer1), observers);
+        assertEquals(Set.of(observer1), observers);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class ObserverTrackerTest {
     @Test
     public void unregisterTwice() {
         tracker.addingService(ref1);
-        assertEquals(ImmutableSet.of(observer1), observers);
+        assertEquals(Set.of(observer1), observers);
 
         tracker.removedService(ref1, null);
         assertTrue(observers.isEmpty());

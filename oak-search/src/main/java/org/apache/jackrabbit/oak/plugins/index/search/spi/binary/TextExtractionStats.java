@@ -44,7 +44,6 @@ final class TextExtractionStats {
     private long startTimeNanos = System.nanoTime();
 
     public void reset() {
-        log.info("Resetting statistics");
         this.numberOfExtractions = 0;
         this.totalBytesRead = 0;
         this.totalExtractedTextLength = 0;
@@ -100,12 +99,11 @@ final class TextExtractionStats {
         double timeExtractingPercentage = FormattingUtils.safeComputePercentage(totalExtractionTimeNanos, timeSinceStartNanos);
         long avgExtractionTimeMillis = Math.round(FormattingUtils.safeComputeAverage(totalExtractionTimeNanos / 1_000_000, numberOfExtractions));
 
-        return String.format("extractions: %d, timeExtracting: %s (%2.1f%%), totalTime: %s, " +
+        return String.format("extractions: %d, timeExtracting: %s (%2.1f%%), " +
                         "avgExtractionTime: %s ms, bytesRead: %s, extractedTextSize: %s",
                 numberOfExtractions,
                 FormattingUtils.formatNanosToSeconds(totalExtractionTimeNanos),
                 timeExtractingPercentage,
-                FormattingUtils.formatNanosToSeconds(timeSinceStartNanos),
                 avgExtractionTimeMillis,
                 humanReadableByteCount(totalBytesRead), humanReadableByteCount(totalExtractedTextLength));
     }

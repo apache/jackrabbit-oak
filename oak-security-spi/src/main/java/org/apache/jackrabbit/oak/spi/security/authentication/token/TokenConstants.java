@@ -36,12 +36,12 @@ public interface TokenConstants {
 
     String TOKEN_NT_NAME = "rep:Token";
 
-    Set<String> RESERVED_ATTRIBUTES = ImmutableSet.of(
+    Set<String> RESERVED_ATTRIBUTES = Set.of(
             TOKEN_ATTRIBUTE,
             TOKEN_ATTRIBUTE_EXPIRY,
             TOKEN_ATTRIBUTE_KEY);
 
-    Set<String> TOKEN_PROPERTY_NAMES = ImmutableSet.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
+    Set<String> TOKEN_PROPERTY_NAMES = Set.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
 
     /**
      * Flag set on the TokenCredentials to skip refreshing the token expiration time
