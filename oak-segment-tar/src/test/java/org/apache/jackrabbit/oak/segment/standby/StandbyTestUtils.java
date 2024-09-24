@@ -47,12 +47,11 @@ public class StandbyTestUtils {
     public static Segment mockSegment(UUID uuid, byte[] buffer) {
         SegmentStore store = mock(SegmentStore.class);
         SegmentIdProvider idProvider = mock(SegmentIdProvider.class);
-        SegmentReader reader = mock(SegmentReader.class);
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
         SegmentId id = new SegmentId(store, msb, lsb);
         Buffer data = Buffer.wrap(buffer);
-        return new Segment(idProvider, reader, id, data);
+        return new Segment(idProvider, id, data);
     }
 
     public static long hash(byte[] data) {

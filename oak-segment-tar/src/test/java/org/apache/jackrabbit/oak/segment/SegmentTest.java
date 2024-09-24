@@ -29,27 +29,25 @@ import static org.mockito.Mockito.when;
 public class SegmentTest {
     @Test
     public void createsSegmentFromCustomSegmentData() {
-        var segmentReader = mock(SegmentReader.class);
         var segmentId = mock(SegmentId.class);
         var segmentData = mock(SegmentData.class);
         when(segmentData.getVersion()).thenReturn((byte) 12);
         var recordNumbers = mock(RecordNumbers.class);
         var segmentReferences = mock(SegmentReferences.class);
 
-        var segment = new Segment(segmentReader, segmentId, segmentData, recordNumbers, segmentReferences);
+        var segment = new Segment(segmentId, segmentData, recordNumbers, segmentReferences);
 
         assertEquals(SegmentVersion.V_12, segment.getSegmentVersion());
     }
 
     @Test
     public void creatingSegmentWithInvalidVersionNumberThrows() {
-        var segmentReader = mock(SegmentReader.class);
         var segmentId = mock(SegmentId.class);
         var segmentData = mock(SegmentData.class);
         when(segmentData.getVersion()).thenReturn((byte) 42);
         var recordNumbers = mock(RecordNumbers.class);
         var segmentReferences = mock(SegmentReferences.class);
 
-        assertThrows(IllegalArgumentException.class, () -> new Segment(segmentReader, segmentId, segmentData, recordNumbers, segmentReferences));
+        assertThrows(IllegalArgumentException.class, () -> new Segment(segmentId, segmentData, recordNumbers, segmentReferences));
     }
 }

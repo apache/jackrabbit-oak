@@ -100,9 +100,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     @NotNull
     private final SegmentIdProvider idProvider;
 
-    @NotNull
-    private final SegmentReader reader;
-
     /**
      * Id of this writer.
      */
@@ -141,11 +138,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private boolean dirty;
 
     public SegmentBufferWriter(@NotNull SegmentIdProvider idProvider,
-                               @NotNull SegmentReader reader,
                                @Nullable String wid,
                                @NotNull GCGeneration gcGeneration) {
         this.idProvider = requireNonNull(idProvider);
-        this.reader = requireNonNull(reader);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
@@ -214,7 +209,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             "{\"wid\":\"" + wid + '"' +
             ",\"sno\":" + idProvider.getSegmentIdCount() +
             ",\"t\":" + currentTimeMillis() + "}";
-        segment = new Segment(idProvider.newDataSegmentId(), reader, buffer, recordNumbers, segmentReferences, metaInfo);
+        segment = new Segment(idProvider.newDataSegmentId(), buffer, recordNumbers, segmentReferences, metaInfo);
 
         statistics = new Statistics();
         statistics.id = segment.getSegmentId();

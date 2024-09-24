@@ -548,7 +548,7 @@ public class FileStore extends AbstractFileStore {
                     data = Buffer.wrap(buffer, offset, length);
                 }
 
-                segment = new Segment(tracker, segmentReader, id, data);
+                segment = new Segment(tracker, id, data);
 
                 if (eagerSegmentCaching) {
                     segmentCache.putSegment(segment);

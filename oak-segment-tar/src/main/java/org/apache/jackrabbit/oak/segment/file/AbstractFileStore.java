@@ -233,7 +233,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             SegmentId segmentId = tracker.newSegmentId(msb, lsb);
-            Segment segment = new Segment(tracker, segmentReader, segmentId, buffer);
+            Segment segment = new Segment(tracker, segmentId, buffer);
             segmentCache.putSegment(segment);
             w.addSegment(segment);
             populateTarGraph(segment, w);
@@ -298,7 +298,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             throw new SegmentNotFoundException(id);
         }
         segmentBufferMonitor.trackAllocation(buffer);
-        return new Segment(tracker, segmentReader, id, buffer);
+        return new Segment(tracker, id, buffer);
     }
 
     /**
