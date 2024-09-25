@@ -46,6 +46,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class MergeIncrementalTreeStore implements MergeIncrementalStore {
 
+    public static final String TOPUP_FILE = "topup.lz4";
     private static final String MERGE_BASE_AND_INCREMENTAL_TREE_STORE = "MergeBaseAndIncrementalTreeStore";
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static final Logger LOG = LoggerFactory.getLogger(MergeIncrementalTreeStore.class);
@@ -74,7 +75,16 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
         File mergedDir = new File(mergedFile.getAbsolutePath() + ".files");
         LOG.info("Merging to {}", mergedDir.getAbsolutePath());
         mergeMetadataFiles();
-        mergeIndexStore(baseDir, mergedDir);
+        File topup = new File(incrementalFile.getParent(), TOPUP_FILE);
+        if (topup.exists()) {
+            File merge1Dir = new File(mergedFile.getAbsolutePath() + ".files1");
+            LOG.info("Merging diff to {}", merge1Dir.getAbsolutePath());
+            mergeIndexStore(baseDir, incrementalFile, algorithm, merge1Dir);
+            LOG.info("Merging topup to {}", mergedDir.getAbsolutePath());
+            mergeIndexStore(merge1Dir, topup, algorithm, mergedDir);
+        } else {
+            mergeIndexStore(baseDir, incrementalFile, algorithm, mergedDir);
+        }
         LOG.info("Packing to {}", mergedFile.getAbsolutePath());
         FilePacker.pack(mergedDir, TreeSession.getFileNameRegex(), mergedFile, true);
         LOG.info("Completed");
@@ -92,7 +102,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
      * as we are not getting consistent data from checkpoint diff
      * and we need to handle cases differently.
      */
-    private void mergeIndexStore(File baseDir, File mergedDir) throws IOException {
+    private static void mergeIndexStore(File baseDir, File incrementalFile, Compression algorithm, File mergedDir) throws IOException {
         TreeStore baseStore = new TreeStore("base", baseDir, new NodeStateEntryReader(null), 10);
         TreeStore mergedStore = new TreeStore("merged", mergedDir, new NodeStateEntryReader(null), 10);
         mergedStore.getSession().init();
@@ -107,7 +117,12 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                 StoreEntry write;
                 if (base == null) {
                     // base EOF: we expect ADD
-                    if (increment.operation != IncrementalStoreOperand.ADD) {
+                    switch (increment.operation) {
+                    case ADD:
+                    case UPSERT:
+                        // ok
+                        break;
+                    default:
                         LOG.warn(
                                 "Expected ADD but got {} for incremental path {} value {}. "
                                         + "Merging will proceed, but this is unexpected.",
@@ -151,8 +166,10 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                                     increment.operation, increment.path, increment.value);
                             break;
                         case MODIFY:
+                        case UPSERT:
                             break;
                         case DELETE:
+                        case REMOVE:
                             write = null;
                         }
                     }
@@ -173,36 +190,36 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
         mergedStore.close();
     }
 
-        static class StoreEntry {
-            final String path;
-            final String value;
-            final IncrementalStoreOperand operation;
+    static class StoreEntry {
+        final String path;
+        final String value;
+        final IncrementalStoreOperand operation;
 
-            StoreEntry(String path, String value, IncrementalStoreOperand operation) {
-                this.path = path;
-                this.value = value;
-                this.operation = operation;
-            }
+        StoreEntry(String path, String value, IncrementalStoreOperand operation) {
+            this.path = path;
+            this.value = value;
+            this.operation = operation;
+        }
 
-            static StoreEntry readFromTreeStore(Iterator<Map.Entry<String, String>> it) {
-                while (it.hasNext()) {
-                    Map.Entry<String, String> e = it.next();
-                    if (!e.getValue().isEmpty()) {
-                        return new StoreEntry(e.getKey(), e.getValue(), null);
-                    }
+        static StoreEntry readFromTreeStore(Iterator<Map.Entry<String, String>> it) {
+            while (it.hasNext()) {
+                Map.Entry<String, String> e = it.next();
+                if (!e.getValue().isEmpty()) {
+                    return new StoreEntry(e.getKey(), e.getValue(), null);
                 }
+            }
+            return null;
+        }
+
+        static StoreEntry readFromReader(BufferedReader reader) throws IOException {
+            String line = reader.readLine();
+            if (line == null) {
                 return null;
             }
-
-            static StoreEntry readFromReader(BufferedReader reader) throws IOException {
-                String line = reader.readLine();
-                if (line == null) {
-                    return null;
-                }
-                String[] parts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(line);
-                return new StoreEntry(parts[0], parts[1], OPERATION_MAP.get(parts[3]));
-            }
+            String[] parts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(line);
+            return new StoreEntry(parts[0], parts[1], OPERATION_MAP.get(parts[3]));
         }
+    }
 
 
     private IndexStoreMetadata getIndexStoreMetadataForMergedFile() throws IOException {

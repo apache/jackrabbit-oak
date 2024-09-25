@@ -19,9 +19,17 @@
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
 public enum IncrementalStoreOperand {
+    // entries are order alphabetically
+    // add a new node
     ADD("A"),
+    // delete an existing node
+    DELETE("D"),
+    // modify an existing node
     MODIFY("M"),
-    DELETE("D");
+    // remove a node that may or may have already been removed
+    REMOVE("R"),
+    // add or update a new or existing node
+    UPSERT("U");
     private final String operand;
 
     IncrementalStoreOperand(String operand) {

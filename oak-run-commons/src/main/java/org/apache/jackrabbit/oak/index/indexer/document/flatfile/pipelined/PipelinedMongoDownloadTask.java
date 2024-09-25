@@ -377,7 +377,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
                 try {
                     downloadStartWatch.start();
-                    if (retryOnConnectionErrors && minModified == 0) {
+                    if (retryOnConnectionErrors) {
                         downloadWithRetryOnConnectionErrors();
                     } else {
                         downloadWithNaturalOrdering();
@@ -410,7 +410,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
-
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
@@ -441,6 +440,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
+        mongoFilter = addMinModifiedToMongoFilter(mongoFilter);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository");
         } else {
@@ -570,6 +570,28 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             downloadTask.download(mongoFilter);
         }
+    }
+
+    /**
+     * If minModified is set, add this condition to the MongoDB filter.
+     * If minModified is not set, the old filter is returned.
+     * This method accepts null, and may return null.
+     *
+     * @param mongoFilter the previous filter (may be null)
+     * @return the combined filter (may be null)
+     */
+    private Bson addMinModifiedToMongoFilter(Bson mongoFilter) {
+        if (minModified == 0) {
+            // the is no minModified condition: return the unchanged filter
+            return mongoFilter;
+        }
+        Bson minModifiedFilter = getModifiedFieldFilter();
+        if (mongoFilter == null) {
+            // there is no previous filter: return the minModified filter
+            return minModifiedFilter;
+        }
+        // combine both filters
+        return Filters.and(mongoFilter, minModifiedFilter);
     }
 
     private Future<?> submitDownloadTask(ExecutorCompletionService<Void> executor, DownloadTask downloadTask, Bson mongoFilter, String name) {
