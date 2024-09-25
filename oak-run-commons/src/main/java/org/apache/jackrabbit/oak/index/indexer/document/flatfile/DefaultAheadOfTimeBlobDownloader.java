@@ -108,7 +108,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
     private final File ffsPath;
     private final Compression algorithm;
     private final GarbageCollectableBlobStore blobStore;
-    private final @NotNull List<NodeStateIndexer> indexers;
+    private final List<NodeStateIndexer> indexers;
 
     // Statistics
     private final LongAdder totalBytesDownloaded = new LongAdder();
@@ -132,7 +132,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
      * @param algorithm             Compression algorithm of the flat file store.
      * @param blobStore             The blob store. This should be the same blob store used by the indexer and its cache should be
      *                              large enough to hold <code>maxPrefetchWindowMB</code> of data.
-     * @param indexers              The indexer, needed to check if a given path should be indexed.
+     * @param indexers              The indexeres for which AOT blob download is enabled.
      * @param nDownloadThreads      Number of download threads.
      * @param maxPrefetchWindowMB   Size of the prefetch window, that is, how much data the downlaoder will retrieve ahead of the indexer.
      */
