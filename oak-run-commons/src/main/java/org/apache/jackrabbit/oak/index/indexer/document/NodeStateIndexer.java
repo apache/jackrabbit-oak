@@ -26,9 +26,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Set;
 
-public interface NodeStateIndexer extends Closeable{
+public interface NodeStateIndexer extends Closeable {
 
-    default void onIndexingStarting() {}
+    default void onIndexingStarting() {
+    }
 
     default String getIndexName() {
         return "";
