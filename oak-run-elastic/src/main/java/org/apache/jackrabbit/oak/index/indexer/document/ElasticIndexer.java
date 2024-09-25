@@ -127,6 +127,11 @@ public class ElasticIndexer implements NodeStateIndexer {
     }
 
     @Override
+    public String getIndexName() {
+        return definition.getIndexName();
+    }
+
+    @Override
     public void close() throws IOException {
         LOG.info("Statistics: {}", indexerStatisticsTracker.formatStats());
         binaryTextExtractor.logStats();

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -84,6 +85,13 @@ public class CompositeIndexer implements NodeStateIndexer {
             result.addAll(indexer.getRelativeIndexedNodeNames());
         }
         return result;
+    }
+
+    @Override
+    public String getIndexName() {
+        // This is susceptible to infinite recursion if a composite indexer contains itself, directly or indirectly.
+        // The same is true for several other methods in this class.
+        return indexers.stream().map(NodeStateIndexer::getIndexName).collect(Collectors.joining(",", "CompositeIndexer[", "]"));
     }
 
     @Override

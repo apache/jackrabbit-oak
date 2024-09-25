@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -43,13 +43,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Collectors;
 
 /**
  * Scans a FlatFileStore for non-inlined blobs in nodes matching a given pattern and downloads them from the blob store.
@@ -105,7 +108,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
     private final File ffsPath;
     private final Compression algorithm;
     private final GarbageCollectableBlobStore blobStore;
-    private final CompositeIndexer indexer;
+    private final @NotNull List<NodeStateIndexer> indexers;
 
     // Statistics
     private final LongAdder totalBytesDownloaded = new LongAdder();
@@ -121,7 +124,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
     private ArrayList<Future<?>> downloadFutures;
     private final int nDownloadThreads;
     private final AheadOfTimeBlobDownloaderThrottler throttler;
-    private volatile long indexerLastKnownPosition;
+    private volatile long indexerLastKnownPosition = -1;
 
     /**
      * @param binaryBlobsPathSuffix Suffix of nodes that are to be considered for AOT download. Any node that does not match this suffix is ignored.
@@ -129,14 +132,14 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
      * @param algorithm             Compression algorithm of the flat file store.
      * @param blobStore             The blob store. This should be the same blob store used by the indexer and its cache should be
      *                              large enough to hold <code>maxPrefetchWindowMB</code> of data.
-     * @param indexer               The indexer, needed to check if a given path should be indexed.
+     * @param indexers              The indexer, needed to check if a given path should be indexed.
      * @param nDownloadThreads      Number of download threads.
      * @param maxPrefetchWindowMB   Size of the prefetch window, that is, how much data the downlaoder will retrieve ahead of the indexer.
      */
     public DefaultAheadOfTimeBlobDownloader(@NotNull String binaryBlobsPathSuffix,
                                             @NotNull File ffsPath, @NotNull Compression algorithm,
                                             @NotNull GarbageCollectableBlobStore blobStore,
-                                            @NotNull CompositeIndexer indexer,
+                                            @NotNull List<NodeStateIndexer> indexers,
                                             int nDownloadThreads, int maxPrefetchWindowSize, int maxPrefetchWindowMB) {
         if (nDownloadThreads < 1) {
             throw new IllegalArgumentException("nDownloadThreads must be greater than 0. Was: " + nDownloadThreads);
@@ -148,10 +151,11 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
         this.ffsPath = ffsPath;
         this.algorithm = algorithm;
         this.blobStore = blobStore;
-        this.indexer = indexer;
+        this.indexers = indexers;
         this.nDownloadThreads = nDownloadThreads;
         this.throttler = new AheadOfTimeBlobDownloaderThrottler(maxPrefetchWindowSize, maxPrefetchWindowMB * FileUtils.ONE_MB);
-        LOG.info("Created AheadOfTimeBlobDownloader. downloadThreads: {}, prefetchMB: {}", nDownloadThreads, maxPrefetchWindowMB);
+        LOG.info("Created AheadOfTimeBlobDownloader. downloadThreads: {}, prefetchMB: {}, enabledIndexes: {}",
+                nDownloadThreads, maxPrefetchWindowMB, indexers.stream().map(NodeStateIndexer::getIndexName).collect(Collectors.toList()));
     }
 
     public void start() {
@@ -165,6 +169,13 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
         }
         scanTask = new ScanTask(queue);
         scanFuture = executor.submit(scanTask);
+    }
+
+    public void join() throws ExecutionException, InterruptedException {
+        scanFuture.get();
+        for (Future<?> downloadFuture : downloadFutures) {
+            downloadFuture.get();
+        }
     }
 
     public void updateIndexed(long positionIndexed) {
@@ -237,7 +248,7 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                         String entryPath = ffsLine.substring(0, pipeIndex);
                         if (!isCandidatePath(entryPath)) {
                             doesNotMatchPattern++;
-                        } else if (!indexer.shouldInclude(entryPath)) {
+                        } else if (indexers.stream().noneMatch(indexer -> indexer.shouldInclude(entryPath))) {
                             notIncludedInIndex++;
                         } else if (isBehindIndexer(linesScanned)) {
                             LOG.debug("Skipping blob at position {} because it was already indexed", linesScanned);
@@ -392,5 +403,23 @@ public class DefaultAheadOfTimeBlobDownloader implements AheadOfTimeBlobDownload
                     blobsDownloaded, bytesDownloaded, IOUtils.humanReadableByteCountBin(bytesDownloaded),
                     FormattingUtils.formatNanosToSeconds(timeDownloadingNanos));
         }
+    }
+
+
+    public long getBlobsEnqueuedForDownload() {
+        return blobsEnqueuedForDownload;
+    }
+
+    public long getTotalBlobsDownloaded() {
+        return totalBlobsDownloaded.sum();
+    }
+
+
+    public long getLinesScanned() {
+        return scanTask.linesScanned;
+    }
+
+    public long getNotIncludedInIndex() {
+        return scanTask.notIncludedInIndex;
     }
 }
