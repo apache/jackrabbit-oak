@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.security.user.CacheConstants.REP_EXPIRATION;
+import static org.apache.jackrabbit.oak.security.user.MembershipCacheConstants.REP_EXPIRATION;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -53,7 +53,7 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         CacheConflictHandler handler = new CacheConflictHandler();
         assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
         PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-        merged.setName(CacheConstants.REP_EXPIRATION);
+        merged.setName(MembershipCacheConstants.REP_EXPIRATION);
         merged.setValue(2000L);
         verify(parent).setProperty(merged.getPropertyState());
 
@@ -79,7 +79,7 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         CacheConflictHandler handler = new CacheConflictHandler();
         assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
         PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-        merged.setName(CacheConstants.REP_EXPIRATION);
+        merged.setName(MembershipCacheConstants.REP_EXPIRATION);
         merged.setValue(2000L);
         verify(parent).setProperty(merged.getPropertyState());
 

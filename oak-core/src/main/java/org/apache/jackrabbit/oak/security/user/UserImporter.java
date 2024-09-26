@@ -552,7 +552,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     private static boolean isCacheNode(@NotNull Tree tree) {
-        return tree.exists() && CacheConstants.REP_CACHE.equals(tree.getName()) && CacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && MembershipCacheConstants.REP_CACHE.equals(tree.getName()) && MembershipCacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**

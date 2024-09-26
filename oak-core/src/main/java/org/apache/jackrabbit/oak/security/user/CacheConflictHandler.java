@@ -55,10 +55,10 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
 
     private Resolution resolveRepExpirationConflict(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
                                          PropertyState base) {
-        if (CacheConstants.REP_EXPIRATION.equals(ours.getName()) && CacheConstants.REP_EXPIRATION.equals(theirs.getName())){
+        if (MembershipCacheConstants.REP_EXPIRATION.equals(ours.getName()) && MembershipCacheConstants.REP_EXPIRATION.equals(theirs.getName())){
 
             PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-            merged.setName(CacheConstants.REP_EXPIRATION);
+            merged.setName(MembershipCacheConstants.REP_EXPIRATION);
 
             //if base is bigger than ours and theirs, then use base. This should never happens
             if (base != null &&
@@ -77,7 +77,7 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
                 merged.setValue(theirs.getValue(Type.LONG));
             }
             parent.setProperty(merged.getPropertyState());
-            LOG.debug("Resolved conflict for property {} our value: {}, their value {}, merged value: {}", CacheConstants.REP_EXPIRATION, ours.getValue(Type.LONG), theirs.getValue(Type.LONG), merged.getValue(0));
+            LOG.debug("Resolved conflict for property {} our value: {}, their value {}, merged value: {}", MembershipCacheConstants.REP_EXPIRATION, ours.getValue(Type.LONG), theirs.getValue(Type.LONG), merged.getValue(0));
             return Resolution.MERGED;
         }
         return Resolution.IGNORED;
@@ -85,6 +85,7 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
     }
 
     @Override
+    @NotNull
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
                                             @NotNull PropertyState base) {
 

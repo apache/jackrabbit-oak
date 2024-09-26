@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.apache.jackrabbit.oak.security.user.CacheConstants.REP_GROUP_PRINCIPAL_NAMES;
-import static org.apache.jackrabbit.oak.security.user.UserPrincipalProvider.EXPIRATION_NO_CACHE;
-import static org.apache.jackrabbit.oak.security.user.UserPrincipalProvider.NO_STALE_CACHE;
-import static org.apache.jackrabbit.oak.security.user.UserPrincipalProvider.PARAM_CACHE_EXPIRATION;
-import static org.apache.jackrabbit.oak.security.user.UserPrincipalProvider.PARAM_CACHE_MAX_STALE;
+import static org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheConfiguration.EXPIRATION_NO_CACHE;
+import static org.apache.jackrabbit.oak.security.user.MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -48,17 +45,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Extension of {@code PrincipalMembershipReader} that caches the membership of a given user principal. 
- * The cache behavior has been extracted from {@code UserPrincipalProvider} and improved to address concurrency issues.
- * It will read group principals from the cache if it already exists and is not yet expired. If the cache needs to be
- * written or updated it will verify that no other thread is concurrently writing the cache. If writing the cache is
- * not possible, it will either return a stale cache (which possibly outdated membership information) or read from the 
- * membership provider without writing the cache. The handling of stale cache is determined by the new configuration 
- * option {@link UserConfigurationImpl.Configuration#cacheMaxStale()} which defaults to {@link UserPrincipalProvider#NO_STALE_CACHE}.
+ * Extension of {@code PrincipalMembershipReader} that caches the membership of a given user principal. The cache
+ * behavior has been extracted from {@code UserPrincipalProvider} and improved to address concurrency issues. It will
+ * read group principals from the cache if it already exists and is not yet expired. If the cache needs to be written or
+ * updated it will verify that no other thread is concurrently writing the cache. If writing the cache is not possible,
+ * it will either return a stale cache (which possibly outdated membership information) or read from the membership
+ * provider without writing the cache. The handling of stale cache is determined by the new configuration option
+ * {@link UserConfigurationImpl.Configuration#cacheMaxStale()} which defaults to
+ * {@link CacheConfiguration#NO_STALE_CACHE}.
  *
  * @see <a href="https://issues.apache.org/jira/browse/OAK-10451">OAK-10451</a>
  */
-class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
+public class CachedPrincipalMembershipReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(CachedPrincipalMembershipReader.class);
 
@@ -71,30 +69,27 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
 
     private static final Map<UserConfiguration, Map<String, Long>> CACHE_UPDATES = new ConcurrentHashMap<>();
 
-    private final GroupPrincipalFactory groupPrincipalFactory;
+    private final Function<String, Principal> principalFactory;
     private final UserConfiguration config;
 
     private final Root root;
 
     private final long expiration;
     private final long maxStale;
-    private final Function<Tree, Set<Principal>> cacheLoader;
+    private final String propertyName;
 
-    CachedPrincipalMembershipReader(@NotNull GroupPrincipalFactory groupPrincipalFactory,
-                                    @NotNull UserConfiguration config,
-                                    @NotNull Root root,
-                                    @NotNull Function<Tree, Set<Principal>> cacheLoader) {
-        this.groupPrincipalFactory = groupPrincipalFactory;
-        this.config = config;
+    CachedPrincipalMembershipReader(@NotNull CacheConfiguration cacheConfiguration,
+            @NotNull Root root,
+            @NotNull Function<String, Principal> principalFactory) {
+        this.expiration = cacheConfiguration.getExpiration();
+        this.maxStale = cacheConfiguration.getMaxStale();
+        this.propertyName = cacheConfiguration.getPropertyName();
+        this.config = cacheConfiguration.getUserConfiguration();
         this.root = root;
-        this.expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
-        this.maxStale = config.getParameters().getConfigValue(PARAM_CACHE_MAX_STALE, NO_STALE_CACHE);
-
-        this.cacheLoader = cacheLoader;
+        this.principalFactory = principalFactory;
     }
 
-    @Override
-    public Set<Principal> readMembership(@NotNull Tree authorizableTree) {
+    public Set<Principal> readMembership(@NotNull Tree authorizableTree, Function<Tree, Set<Principal>> cacheLoader) {
         // membership cache only implemented on user
         if (UserUtil.isType(authorizableTree, AuthorizableType.USER)) {
             return readGroupsFromCache(authorizableTree, cacheLoader);
@@ -107,10 +102,11 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
             @NotNull Function<Tree, Set<Principal>> loader) {
         Set<Principal> groups = Collections.emptySet();
         String authorizablePath = authorizableTree.getPath();
-        Tree principalCache = authorizableTree.getChild(CacheConstants.REP_CACHE);
+        Tree principalCache = authorizableTree.getChild(MembershipCacheConstants.REP_CACHE);
         long expirationTime = readExpirationTime(principalCache);
         long now = System.currentTimeMillis();
-        if (isValidCache(expirationTime, now)) {
+        if (isValidCache(expirationTime, now) && principalCache.exists() &&
+                !Strings.isNullOrEmpty(TreeUtil.getString(principalCache, propertyName))) {
             LOG.debug("Reading membership from cache for '{}'", authorizablePath);
             return serveGroupsFromCache(principalCache);
         }
@@ -139,12 +135,14 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
                 if (canServeStaleCache(expirationTime, now)) {
                     // the cache cannot be updated by the current thread but a stale cache can be returned and reading
                     // membership again can be avoided
-                    LOG.debug("Another thread is updating the cache, returning a stale cache for '{}'.", authorizablePath);
+                    LOG.debug("Another thread is updating the cache, returning a stale cache for '{}'.",
+                            authorizablePath);
                     groups = serveGroupsFromCache(principalCache);
                 } else {
                     // another thread is updating the cache and this thread is not allowed to serve a stale cache,
                     // therefore read membership from membership-provider but do not cache the result.
-                    LOG.debug("Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.");
+                    LOG.debug(
+                            "Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.");
                     groups = loader.apply(authorizableTree);
                 }
             }
@@ -164,10 +162,10 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
         if (!principalCache.exists()) {
             return EXPIRATION_NO_CACHE;
         }
-        return TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+        return TreeUtil.getLong(principalCache, MembershipCacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
     }
 
-    private static boolean isValidCache(long expirationTime, long now)  {
+    private static boolean isValidCache(long expirationTime, long now) {
         return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
     }
 
@@ -181,8 +179,7 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
      * @param principalCache The tree holding the cached group principal names.
      */
     private Set<Principal> serveGroupsFromCache(@NotNull Tree principalCache) {
-        // TODO Change the property to read from the cache
-        String str = TreeUtil.getString(principalCache, REP_GROUP_PRINCIPAL_NAMES);
+        String str = TreeUtil.getString(principalCache, this.propertyName);
         if (Strings.isNullOrEmpty(str)) {
             return Collections.emptySet();
         }
@@ -190,25 +187,25 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
         Set<Principal> groups = new HashSet<>();
         for (String s : Text.explode(str, ',')) {
             final String name = Text.unescape(s);
-            groups.add(groupPrincipalFactory.create(name));
+            groups.add(principalFactory.apply(name));
         }
         return groups;
     }
 
     /**
-     * Cache the group principal names for the given authorizable in the subtree of the user-node in a dedicated,
-     * system maintained rep:cache child node.
+     * Cache the group principal names for the given authorizable in the subtree of the user-node in a dedicated, system
+     * maintained rep:cache child node.
      *
      * @param authorizableTree The tree associated with the user.
-     * @param groupPrincipals The set of group principals to cache.
-     * @throws AccessDeniedException
-     * @throws CommitFailedException
+     * @param groupPrincipals  The set of group principals to cache.
+     * @throws AccessDeniedException If the current session does not have the necessary permission to write the cache.
+     * @throws CommitFailedException If the cache could not be written to the repository.
      */
     private void writeGroupsToCache(@NotNull Tree authorizableTree,
-                             @NotNull Set<Principal> groupPrincipals) throws AccessDeniedException, CommitFailedException {
+            @NotNull Set<Principal> groupPrincipals) throws AccessDeniedException, CommitFailedException {
         try {
             root.refresh();
-            Tree cache = authorizableTree.getChild(CacheConstants.REP_CACHE);
+            Tree cache = authorizableTree.getChild(MembershipCacheConstants.REP_CACHE);
             String authorizablePath = authorizableTree.getPath();
             if (!cache.exists()) {
                 if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
@@ -216,30 +213,30 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
                     return;
                 } else {
                     LOG.debug("Attempting to create new membership cache at {}", authorizablePath);
-                    cache = TreeUtil.addChild(authorizableTree, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+                    cache = TreeUtil.addChild(authorizableTree,
+                            MembershipCacheConstants.REP_CACHE,
+                            MembershipCacheConstants.NT_REP_CACHE);
                 }
             }
-
-            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
+            cache.setProperty(MembershipCacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
             String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
-            // TODO Change the property where to save the cache
-            cache.setProperty(REP_GROUP_PRINCIPAL_NAMES, value);
+            cache.setProperty(this.propertyName, value);
 
             root.commit(CacheValidatorProvider.asCommitAttributes());
-            LOG.debug("Cached membership at {}", authorizablePath);
+            LOG.debug("Cached membership property '{}' at {}", propertyName, authorizablePath);
         } finally {
             root.refresh();
         }
     }
 
     /**
-     * Given that every Oak repository instance can be expected to have one {@code UserConfiguration} tied to the 
-     * {@code SecurityProvider}, synchronize cache updates for each repository separately. Note however, that {@code CACHE_UPDATES}
-     * is intended to contain just one single entry for most usages of Apache Jackrabbit Oak.
-     *
-     * The cache updates map keeps track of the last 100 user path for which the cache is 
-     * being updated to prevent concurrent updates by multiple threads. The map entries are being removed upon completion
-     * of the cache update (even if persisting the changes fails).
+     * Given that every Oak repository instance can be expected to have one {@code UserConfiguration} tied to the
+     * {@code SecurityProvider}, synchronize cache updates for each repository separately. Note however, that
+     * {@code CACHE_UPDATES} is intended to contain just one single entry for most usages of Apache Jackrabbit Oak.
+     * <p>
+     * The cache updates map keeps track of the last 100 user path for which the cache is being updated to prevent
+     * concurrent updates by multiple threads. The map entries are being removed upon completion of the cache update
+     * (even if persisting the changes fails).
      */
     private @NotNull Map<String, Long> getCacheUpdateMap() {
         return CACHE_UPDATES.computeIfAbsent(config, cfg -> new LinkedHashMap<>() {
@@ -248,5 +245,65 @@ class CachedPrincipalMembershipReader implements PrincipalMembershipReader {
                 return size() > MAX_CACHE_TRACKING_ENTRIES;
             }
         });
+    }
+
+    static class CacheConfiguration {
+
+        static final String PARAM_CACHE_EXPIRATION = UserPrincipalProvider.PARAM_CACHE_EXPIRATION;
+        static final String PARAM_CACHE_MAX_STALE = UserPrincipalProvider.PARAM_CACHE_MAX_STALE;
+        public static final long EXPIRATION_NO_CACHE = 0;
+        public static final long NO_STALE_CACHE = 0;
+
+        private final UserConfiguration userConfig;
+        private final long expiration;
+        private final long maxStale;
+        private final String propertyName;
+
+        private CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale, @NotNull String propertyName) {
+            this.userConfig = userConfig;
+            this.expiration = expiration;
+            this.maxStale = maxStale;
+            this.propertyName = propertyName;
+        }
+
+        static CacheConfiguration fromUserConfiguration(UserConfiguration config) {
+            return new CacheConfiguration(
+                    config,
+                    config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE),
+                    config.getParameters().getConfigValue(PARAM_CACHE_MAX_STALE, NO_STALE_CACHE),
+                    REP_GROUP_PRINCIPAL_NAMES);
+        }
+
+        // TODO Do not like this but need to think a better constructor, builder pattern looks overkill
+        static CacheConfiguration fromUserConfiguration(UserConfiguration config, @NotNull String propertyName) {
+            if (Strings.isNullOrEmpty(propertyName)) {
+                throw new IllegalArgumentException("Invalid property name: " + propertyName);
+            }
+            return new CacheConfiguration(
+                    config,
+                    config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE),
+                    config.getParameters().getConfigValue(PARAM_CACHE_MAX_STALE, NO_STALE_CACHE),
+                    propertyName);
+        }
+
+        public boolean isCacheEnabled() {
+            return expiration > EXPIRATION_NO_CACHE;
+        }
+
+        private long getExpiration() {
+            return expiration;
+        }
+
+        private long getMaxStale() {
+            return maxStale;
+        }
+
+        private String getPropertyName() {
+            return propertyName;
+        }
+
+        private UserConfiguration getUserConfiguration() {
+            return userConfig;
+        }
     }
 }

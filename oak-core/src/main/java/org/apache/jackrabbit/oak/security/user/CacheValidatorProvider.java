@@ -42,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * user is only maintained by the {@link org.apache.jackrabbit.oak.security.user.UserPrincipalProvider}
  * associated with a internal system session.
  */
-class CacheValidatorProvider extends ValidatorProvider implements CacheConstants {
+class CacheValidatorProvider extends ValidatorProvider implements MembershipCacheConstants {
 
     private final boolean isSystem;
     private final TreeProvider treeProvider;

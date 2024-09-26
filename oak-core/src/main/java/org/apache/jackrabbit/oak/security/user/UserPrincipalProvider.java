@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
-import org.apache.jackrabbit.oak.security.user.PrincipalMembershipReader.GroupPrincipalFactory;
+import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheConfiguration;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -65,15 +66,13 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
     static final String PARAM_CACHE_MAX_STALE = "cacheMaxStale";
-    static final long EXPIRATION_NO_CACHE = 0;
-    static final long NO_STALE_CACHE = 0;
 
     private final Root root;
     private final UserConfiguration config;
     private final NamePathMapper namePathMapper;
 
     private final UserProvider userProvider;
-    private final PrincipalMembershipReader principalMembershipReader;
+    private final Function<Tree, Set<Principal>> principalMembershipReader;
 
     UserPrincipalProvider(@NotNull Root root,
                           @NotNull UserConfiguration userConfiguration,
@@ -84,18 +83,16 @@ class UserPrincipalProvider implements PrincipalProvider {
         this.userProvider = new UserProvider(root, config.getParameters());
 
         MembershipProvider membershipProvider = new MembershipProvider(root, config.getParameters());
-        long expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
-        boolean cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
-        GroupPrincipalFactory groupPrincipalFactory = createGroupPrincipalFactory();
-        PrincipalMembershipReaderImpl repositoryReader = new PrincipalMembershipReaderImpl(membershipProvider, groupPrincipalFactory);
+        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(config);
+        boolean cacheEnabled = (cacheConfiguration.isCacheEnabled() && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
         if (cacheEnabled) {
-            principalMembershipReader = new CachedPrincipalMembershipReader(
-                    groupPrincipalFactory,
-                    config,
+            CachedPrincipalMembershipReader cachedPrincipalMembershipReader = new CachedPrincipalMembershipReader(
+                    cacheConfiguration,
                     root,
-                    repositoryReader::readMembership);
+                    createPrincipalFactory());
+            principalMembershipReader = (tree) -> cachedPrincipalMembershipReader.readMembership(tree, readMembershipFunction(membershipProvider));
         } else {
-            principalMembershipReader = repositoryReader;
+            principalMembershipReader = readMembershipFunction(membershipProvider);
         }
     }
 
@@ -190,7 +187,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             Iterator<Principal> principals = Iterators.filter(
                     Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
-                    x -> x != null);
+                    Objects::nonNull);
 
             // everyone is injected only in complete set, not on pages
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
@@ -208,18 +205,8 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     //------------------------------------------------------------< private >---
 
-    private @NotNull GroupPrincipalFactory createGroupPrincipalFactory() {
-        return new GroupPrincipalFactory() {
-            @Override
-            public @Nullable Principal create(@NotNull Tree authorizable) {
-                return createGroupPrincipal(authorizable);
-            }
-
-            @Override
-            public @NotNull Principal create(@NotNull String principalName) {
-                return new CachedGroupPrincipal(principalName, namePathMapper, root, config);
-            }
-        };
+    private @NotNull Function<String, Principal> createPrincipalFactory() {
+        return (principalName) -> new CachedGroupPrincipal(principalName, namePathMapper, root, config);
     }
 
     @Nullable
@@ -279,7 +266,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
         Set<Principal> groupPrincipals = new HashSet<>();
-        groupPrincipals.addAll(principalMembershipReader.readMembership(authorizableTree));
+        groupPrincipals.addAll(principalMembershipReader.apply(authorizableTree));
 
         // add the dynamic everyone principal group which is not included in
         // the 'getMembership' call.
@@ -302,6 +289,23 @@ class UserPrincipalProvider implements PrincipalProvider {
         } else {
             return QueryUtil.escapeForQuery(nameHint) + "*";
         }
+    }
+
+    private Function<Tree, Set<Principal>> readMembershipFunction(final MembershipProvider membershipProvider) {
+        return authorizableTree -> {
+            Set<Principal> groupPrincipals = new HashSet<>();
+            Iterator<Tree> groupTrees = membershipProvider.getMembership(authorizableTree, true);
+            while (groupTrees.hasNext()) {
+                Tree groupTree = groupTrees.next();
+                if (UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
+                    Principal gr = createGroupPrincipal(groupTree);
+                    if (gr != null) {
+                        groupPrincipals.add(gr);
+                    }
+                }
+            }
+            return groupPrincipals;
+        };
     }
 
     //--------------------------------------------------------------------------
