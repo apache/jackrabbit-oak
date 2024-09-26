@@ -30,6 +30,10 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Many methods in this class call themselves recursively, and are susceptible to infinite recursion if a composite
+ * indexer contains itself, directly or indirectly. In this case, the methods will throw a StackOverflowException.
+ */
 public class CompositeIndexer implements NodeStateIndexer {
 
     private final List<NodeStateIndexer> indexers;
@@ -89,8 +93,6 @@ public class CompositeIndexer implements NodeStateIndexer {
 
     @Override
     public String getIndexName() {
-        // This is susceptible to infinite recursion if a composite indexer contains itself, directly or indirectly.
-        // The same is true for several other methods in this class.
         return indexers.stream().map(NodeStateIndexer::getIndexName).collect(Collectors.joining(",", "CompositeIndexer[", "]"));
     }
 
