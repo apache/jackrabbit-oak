@@ -31,12 +31,12 @@ public final class IndexerStatisticsTracker {
     // Timestamp of when indexing started.
     private long startIndexingNanos = 0;
     // Time spent indexing entries. Should be almost the same as totalMakeDocumentTimeNanos+totalWriteTimeNanos
-    private final AtomicLong totalIndexingTimeNanos = new AtomicLong();
+    private AtomicLong totalIndexingTimeNanos = new AtomicLong();
     // Time generating the Lucene document.
-    private final AtomicLong totalMakeDocumentTimeNanos = new AtomicLong();
+    private AtomicLong totalMakeDocumentTimeNanos = new AtomicLong();
     // Time writing the Lucene document to disk.
-    private final AtomicLong totalWriteTimeNanos = new AtomicLong();
-    private final AtomicLong nodesIndexed = new AtomicLong();
+    private AtomicLong totalWriteTimeNanos = new AtomicLong();
+    private AtomicLong nodesIndexed = new AtomicLong();
 
     public IndexerStatisticsTracker(Logger logger) {
         this.logger = logger;
@@ -50,10 +50,10 @@ public final class IndexerStatisticsTracker {
      * Mark that an entry completed indexing. If indexing the entry was slow, then a
      * message is logged.
      *
-     * @param entryPath the path
+     * @param path the path
      * @param startEntryNanos timestamp of when the current entry started being
      *                        indexed
-     * @param endEntryMakeDocumentNanos timestamp of when the current entry finished
+     * @oaran endEntryMakeDocumentNanos timestamp of when the current entry finished
      *        the makeDocument phase.
      */
     public void onEntryEnd(String entryPath, long startEntryNanos, long endEntryMakeDocumentNanos) {
