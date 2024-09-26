@@ -54,3 +54,19 @@ When adding database drivers using the test profiles, such as `-Prdb-derby`, siz
 Example:
 
 `mvn clean install -PintegrationTesting -Prdb-derby -Dnsfixtures=DOCUMENT_RDB "-Drdb.jdbc-url=jdbc:derby:./target/derby-test;create=true" -Dmax.jar.size=200000000`
+
+Note that Derby supports a local filesytem-based persistence, and thus does not require a standalone database server.
+
+### Running a database in a Docker container
+
+Even if a database is not installed locally, it still can be used using Docker.
+
+Here's an example how to configure PostgreSQL using Docker (assuming Docker is already installed):
+
+`docker run -p 8080:5432 --name oak-postgres -e POSTGRES_PASSWORD=geheim -e POSTGRES_DB=oak -d postgres:13-alpine`
+
+This pulls the docker image "postgres:13-alpine", specifies a system password and a database to be created, and maps the default PostgreSQL port (5432) to the local port 8080.
+
+To run tests, the following parameters would be used:
+
+`mvn clean install -PintegrationTesting -Prdb-postgres -Dnsfixtures=DOCUMENT_RDB -Drdb.jdbc-url=jdbc:postgresql://localhost:8080/oak -Drdb.jdbc-user=postgres -Drdb.jdbc-passwd=geheim -Dmax.jar.size=200000000`
