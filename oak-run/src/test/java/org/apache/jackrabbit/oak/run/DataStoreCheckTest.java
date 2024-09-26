@@ -32,6 +32,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
@@ -151,7 +153,7 @@ public class DataStoreCheckTest {
         /* Create nodes with blobs stored in DS*/
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
-        blobsAdded = Sets.newHashSet();
+        blobsAdded = new HashSet<>();
         blobsAddedWithNodes = Maps.newHashMap();
 
         for (int i = 0; i < numBlobs; i++) {
@@ -210,8 +212,8 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)));
-        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
     @Test
@@ -233,9 +235,9 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId)), dsOption, blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
-            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -265,8 +267,8 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
-        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
     @Test
@@ -297,10 +299,10 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption,
+            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)), dsOption,
                 blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
-            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -442,14 +444,13 @@ public class DataStoreCheckTest {
     }
 
     private static Set<String> encodedIds(Set<String> ids, String dsOption) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(),
-                input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
     }
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(),
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(),
                 input -> Joiner.on(",").join(
-                    DataStoreCheckCommand.encodeId(input, "--"+dsOption),
-                    blobsAddedWithNodes.get(input))));
+                        DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                        blobsAddedWithNodes.get(input))));
     }
 }

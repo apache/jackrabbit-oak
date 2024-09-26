@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * histogram are correct but if the histogram overflowed, it may be missing some entries.
  */
 public class BoundedHistogram {
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BoundedHistogram.class);
     private final ConcurrentHashMap<String, LongAdder> histogram = new ConcurrentHashMap<>();
     private volatile boolean overflowed = false;
     private final String histogramName;

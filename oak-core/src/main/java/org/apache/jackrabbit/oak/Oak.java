@@ -584,6 +584,10 @@ public class Oak {
             LOG.info("Registered Prefetch feature: " + QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES);
             closer.register(prefetchFeature);
             queryEngineSettings.setPrefetchFeature(prefetchFeature);
+            Feature improvedIsNullCostFeature = newFeature(QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST, whiteboard);
+            LOG.info("Registered improved cost feature: " + QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST);
+            closer.register(improvedIsNullCostFeature);
+            queryEngineSettings.setImprovedIsNullCostFeature(improvedIsNullCostFeature);
         }
 
         return this;
@@ -977,6 +981,10 @@ public class Oak {
 
         public void setPrefetchFeature(@Nullable Feature prefetch) {
             settings.setPrefetchFeature(prefetch);
+        }
+
+        public void setImprovedIsNullCostFeature(@Nullable Feature feature) {
+            settings.setImprovedIsNullCostFeature(feature);
         }
 
         @Override

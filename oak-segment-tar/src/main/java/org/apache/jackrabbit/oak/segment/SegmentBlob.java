@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
@@ -26,6 +25,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -279,7 +279,7 @@ public class SegmentBlob extends Record implements Blob {
         if (recordIds == null) {
             return emptySet();
         } else {
-            Set<SegmentId> ids = newHashSet();
+            Set<SegmentId> ids = new HashSet<>();
             for (RecordId id : recordIds) {
                 ids.add(id.getSegmentId());
             }

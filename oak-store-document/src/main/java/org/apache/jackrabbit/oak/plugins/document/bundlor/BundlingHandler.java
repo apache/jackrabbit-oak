@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -199,8 +199,8 @@ public class BundlingHandler {
         static final BundlingContext NULL = new BundlingContext(Path.ROOT, Matcher.NON_MATCHING);
         final Path bundlingPath;
         final Matcher matcher;
-        final Set<PropertyState> metaProps = Sets.newHashSet();
-        final Set<String> removedProps = Sets.newHashSet();
+        final Set<PropertyState> metaProps = new HashSet<>();
+        final Set<String> removedProps = new HashSet<>();
 
         public BundlingContext(Path bundlingPath, Matcher matcher) {
             this.bundlingPath = bundlingPath;

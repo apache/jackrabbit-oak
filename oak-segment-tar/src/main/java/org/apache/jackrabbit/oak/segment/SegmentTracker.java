@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.security.SecureRandom;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,7 +89,7 @@ public class SegmentTracker implements SegmentIdProvider {
      * @return referenced segment identifiers
      */
     public synchronized Set<SegmentId> getReferencedSegmentIds() {
-        Set<SegmentId> ids = newHashSet();
+        Set<SegmentId> ids = new HashSet<>();
         for (SegmentIdTable table : tables) {
             table.collectReferencedIds(ids);
         }

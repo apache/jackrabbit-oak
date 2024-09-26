@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
@@ -29,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @Component(service={MountedNodeStoreChecker.class})
 public class NamespacePrefixNodestoreChecker implements MountedNodeStoreChecker<NamespacePrefixNodestoreChecker.Context> {
@@ -82,12 +83,10 @@ public class NamespacePrefixNodestoreChecker implements MountedNodeStoreChecker<
     
     static class Context {
 
-        private final Set<String> validPrefixes = Sets.newHashSet();
+        private final Set<String> validPrefixes = new HashSet<>();
         
         public Context(String[] prefixes) {
-            for (String prefix : prefixes ) {
-                validPrefixes.add(prefix);
-            }
+            Collections.addAll(validPrefixes, prefixes);
         }
     }
 

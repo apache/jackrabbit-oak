@@ -127,10 +127,10 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
         Set<Principal> principals = Collections.singleton(() -> SYSTEM_USER_NAME_1);
         assertIsSystem(principals, false);
 
-        principals = ImmutableSet.of(new PrincipalImpl(SYSTEM_USER_NAME_2), new PrincipalImpl(SYSTEM_USER_NAME_1));
+        principals = Set.of(new PrincipalImpl(SYSTEM_USER_NAME_2), new PrincipalImpl(SYSTEM_USER_NAME_1));
         assertIsSystem(principals, false);
 
-        principals = ImmutableSet.of(EveryonePrincipal.getInstance(), new GroupPrincipal() {
+        principals = Set.of(EveryonePrincipal.getInstance(), new GroupPrincipal() {
             @Override
             public boolean isMember(@NotNull Principal member) {
                 return false;
@@ -160,10 +160,10 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
         Set<Principal> principals = Collections.singleton((SystemUserPrincipal) () -> SYSTEM_USER_NAME_1);
         assertIsSystem(principals, configContainsSystemUser(SYSTEM_USER_NAME_1));
 
-        principals = ImmutableSet.of(EveryonePrincipal.getInstance(), (SystemUserPrincipal) () -> SYSTEM_USER_NAME_2);
+        principals = Set.of(EveryonePrincipal.getInstance(), (SystemUserPrincipal) () -> SYSTEM_USER_NAME_2);
         assertIsSystem(principals, configContainsSystemUser(SYSTEM_USER_NAME_2));
 
-        principals = ImmutableSet.of((SystemUserPrincipal) () -> SYSTEM_USER_NAME_2, (SystemUserPrincipal) () -> SYSTEM_USER_NAME_1);
+        principals = Set.of((SystemUserPrincipal) () -> SYSTEM_USER_NAME_2, (SystemUserPrincipal) () -> SYSTEM_USER_NAME_1);
         assertIsSystem(principals, configContainsSystemUser(SYSTEM_USER_NAME_2, SYSTEM_USER_NAME_1));
     }
     

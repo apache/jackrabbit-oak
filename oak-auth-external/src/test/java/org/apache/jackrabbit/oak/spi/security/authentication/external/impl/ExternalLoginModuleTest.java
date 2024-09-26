@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -70,6 +69,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_ATTRIBUTES;
@@ -238,7 +238,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         ExternalIdentityProvider idp = mock(ExternalIdentityProvider.class, withSettings().extraInterfaces(CredentialsSupport.class));
         when(idp.getName()).thenReturn(DEFAULT_IDP_NAME);
         when(((CredentialsSupport) idp).getUserId(any(Credentials.class))).thenReturn(null);
-        when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(ImmutableSet.of(GuestCredentials.class));
+        when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(Set.of(GuestCredentials.class));
 
         when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
         when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
@@ -337,7 +337,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         when(idp.getName()).thenReturn(DEFAULT_IDP_NAME);
         when(idp.authenticate(creds)).thenReturn(new TestIdentityProvider.TestUser(ID_TEST_USER, DEFAULT_IDP_NAME));
         when(((CredentialsSupport) idp).getUserId(any(Credentials.class))).thenReturn(ID_TEST_USER);
-        when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(ImmutableSet.of(ImpersonationCredentials.class));
+        when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(Set.of(ImpersonationCredentials.class));
         Map attr = ImmutableMap.of("attr","value");
         when(((CredentialsSupport) idp).getAttributes(creds)).thenReturn(attr);
         when(((CredentialsSupport) idp).getAttributes(sc)).thenReturn(Collections.emptyMap());

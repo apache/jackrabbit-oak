@@ -59,7 +59,7 @@ public class FlatFileStoreIteratorTest {
 
     @Test
     public void simpleTraversal() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/d", "/e", "/e/e"));
 
@@ -99,7 +99,7 @@ public class FlatFileStoreIteratorTest {
 
     @Test
     public void invalidOrderAccess() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/d", "/e"));
 
@@ -129,7 +129,7 @@ public class FlatFileStoreIteratorTest {
     // OAK-7284
     @Test
     public void comodificationException() {
-        Set<String> preferred = ImmutableSet.of("j:c");
+        Set<String> preferred = Set.of("j:c");
 
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/j:c", "/a/j:c/j:c", "/a/b"));
 
@@ -154,7 +154,7 @@ public class FlatFileStoreIteratorTest {
     @Test
     public void getChildNodeLimitedByNonPreferred() {
         // have more than 1 preferred names
-        Set<String> preferred = ImmutableSet.of("j:c", "md");
+        Set<String> preferred = Set.of("j:c", "md");
 
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/b", "/a/c"));
 
@@ -180,7 +180,7 @@ public class FlatFileStoreIteratorTest {
                 new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a").withMemUsage(20).build(),
                 new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a/b").withMemUsage(30).build()
         );
-        FlatFileStoreIterator fitr = newInMemoryFlatFileStore(nseList.iterator(), ImmutableSet.of(), 100);
+        FlatFileStoreIterator fitr = newInMemoryFlatFileStore(nseList.iterator(), Set.of(), 100);
 
         NodeStateEntry entry = fitr.next();
         NodeState entryNS = entry.getNodeState();
@@ -205,7 +205,7 @@ public class FlatFileStoreIteratorTest {
                 // 100 MB limit
                 int mb = 100;
                 List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
-                FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), ImmutableSet.of(), mb);
+                FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), Set.of(), mb);
                 NodeState rootNS = fitr.next().getNodeState();
                 NodeState aNS = rootNS.getChildNode("a");//default is 100MB, this should work
                 try {
@@ -221,7 +221,7 @@ public class FlatFileStoreIteratorTest {
                 System.setProperty(BUFFER_MEM_LIMIT_CONFIG_NAME, "1");
 
                 List<NodeStateEntry> list = Lists.newArrayList(root, e1MB, e1Byte);
-                FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), ImmutableSet.of(), mb);
+                FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), Set.of(), mb);
                 NodeState rootNS = fitr.next().getNodeState();
                 NodeState aNS = rootNS.getChildNode("a");//configured limit is 10 bytes, this should work
                 try {
@@ -237,7 +237,7 @@ public class FlatFileStoreIteratorTest {
                 int mb = -1;
 
                 List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
-                FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), ImmutableSet.of(), mb);
+                FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), Set.of(), mb);
                 NodeState rootNS = fitr.next().getNodeState();
                 NodeState aNS = rootNS.getChildNode("a");
                 aNS.getChildNode("b");//configure negative value - mem usage limit should be unbounded (long_max)

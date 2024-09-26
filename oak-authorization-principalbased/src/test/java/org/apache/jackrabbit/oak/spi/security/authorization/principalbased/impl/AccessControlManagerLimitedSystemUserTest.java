@@ -60,9 +60,9 @@ public class AccessControlManagerLimitedSystemUserTest extends AccessControlMana
     }
 
     Root createTestRoot() throws Exception {
-        Set<Principal> principals = ImmutableSet.of(testPrincipal);
+        Set<Principal> principals = Set.of(testPrincipal);
         AuthInfo authInfo = new AuthInfoImpl(UID, Collections.emptyMap(), principals);
-        Subject subject = new Subject(true, principals, ImmutableSet.of(authInfo), ImmutableSet.of());
+        Subject subject = new Subject(true, principals, Set.of(authInfo), Set.of());
         return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<Root>) () -> getContentRepository().login(null, null).getLatestRoot(), null);
     }
 

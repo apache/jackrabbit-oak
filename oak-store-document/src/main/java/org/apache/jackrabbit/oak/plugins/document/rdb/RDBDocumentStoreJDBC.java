@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
@@ -48,6 +47,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -430,7 +430,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static <T extends Document> void assertNoDuplicatedIds(List<T> documents) {
-        if (newHashSet(transform(documents, input -> input.getId())).size() < documents.size()) {
+        if (CollectionUtils.toSet(transform(documents, Document::getId)).size() < documents.size()) {
             throw new IllegalArgumentException("There are duplicated ids in the document list");
         }
     }
@@ -732,7 +732,7 @@ public class RDBDocumentStoreJDBC {
         PreparedStatement stmt = connection.prepareStatement(query.toString());
 
         int si = 1;
-        if (minId != null) {
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             setIdInStatement(tmd, stmt, si++, minId);
         }
         if (maxId != null) {
@@ -982,11 +982,17 @@ public class RDBDocumentStoreJDBC {
         SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
     }
 
+    // some DBs do not accept null character as string
+    private static boolean shouldSkipGreaterthanClauseForId(String id) {
+        return id != null && !"\u0000".equals(id);
+    }
+
     private static String buildWhereClause(String minId, String maxId, List<String> excludeKeyPatterns, List<QueryCondition> conditions) {
         StringBuilder result = new StringBuilder();
 
         String whereSep = "";
-        if (minId != null) {
+
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             result.append("ID > ?");
             whereSep = " and ";
         }

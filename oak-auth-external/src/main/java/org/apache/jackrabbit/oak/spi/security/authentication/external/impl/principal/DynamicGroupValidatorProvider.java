@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -111,8 +111,8 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
             if (isDynamicGroup && isMemberProperty(before)) {
-                Set<String> refsBefore = Sets.newHashSet(before.getValue(Type.STRINGS));
-                Set<String> refsAfter = Sets.newHashSet(after.getValue(Type.STRINGS));
+                Set<String> refsBefore = CollectionUtils.toSet(before.getValue(Type.STRINGS));
+                Set<String> refsAfter = CollectionUtils.toSet(after.getValue(Type.STRINGS));
                 refsAfter.removeAll(refsBefore);
                 if (!refsAfter.isEmpty()) {
                     throw commitFailedException(getParentBefore());

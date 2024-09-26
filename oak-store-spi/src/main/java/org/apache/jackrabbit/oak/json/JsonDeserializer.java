@@ -85,7 +85,11 @@ public class JsonDeserializer {
     }
 
     public NodeState deserialize(String json) {
-        JsopReader reader = new JsopTokenizer(json);
+        return deserialize(json, 0);
+    }
+
+    public NodeState deserialize(String line, int pos) {
+        JsopReader reader = new JsopTokenizer(line, pos);
         reader.read('{');
         NodeState state = deserialize(reader);
         reader.read(JsopReader.END);

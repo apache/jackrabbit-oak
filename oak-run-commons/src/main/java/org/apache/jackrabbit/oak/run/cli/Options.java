@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,7 +37,7 @@ import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 public class Options {
-    private final Set<OptionsBeanFactory> beanFactories = Sets.newHashSet();
+    private final Set<OptionsBeanFactory> beanFactories = new HashSet<>();
     private final EnumSet<OptionBeans> oakRunOptions;
     private final Map<Class<? extends OptionsBean>, OptionsBean> optionBeans = new HashMap<>();
     private OptionSet optionSet;

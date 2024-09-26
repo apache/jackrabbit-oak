@@ -35,11 +35,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -245,7 +245,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     /** test purpose only! */
     public Set<String> listCheckpoints() {
-        return Sets.newHashSet(checkpoints());
+        return CollectionUtils.toSet(checkpoints());
     }
 
     //------------------------------------------------------------< private >---

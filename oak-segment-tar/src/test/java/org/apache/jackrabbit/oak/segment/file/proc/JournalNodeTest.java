@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -55,12 +55,12 @@ public class JournalNodeTest {
 
     @Test
     public void shouldExposeAllCommitHandles() {
-        Set<String> names = Sets.newHashSet("h1", "h2", "h3");
+        Set<String> names = Set.of("h1", "h2", "h3");
 
         Backend backend = mock(Backend.class);
         when(backend.getCommitHandles()).thenReturn(names);
 
-        assertEquals(names, Sets.newHashSet(new JournalNode(backend).getChildNodeNames()));
+        assertEquals(names, CollectionUtils.toSet(new JournalNode(backend).getChildNodeNames()));
     }
 
 }

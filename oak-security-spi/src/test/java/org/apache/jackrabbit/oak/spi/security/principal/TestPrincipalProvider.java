@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -107,9 +108,9 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         if (principals.equals(TestPrincipals.asMap())) {
             return TestPrincipals.membership(principal.getName());
         } else if (principals.values().contains(principal)) {
-            return ImmutableSet.of(EveryonePrincipal.getInstance());
+            return Set.of(EveryonePrincipal.getInstance());
         } else {
-            return ImmutableSet.of();
+            return Set.of();
         }
     }
 
@@ -120,13 +121,14 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         if (pName != null) {
             Principal p = principals.get(pName);
             if (p != null) {
-                Set<Principal> s = Sets.newHashSet(p);
+                Set<Principal> s = new HashSet<>();
+                s.add(p);
                 s.addAll(getMembershipPrincipals(p));
                 return s;
             }
         }
 
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     @NotNull
@@ -210,15 +212,15 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
         private static Set<Principal> membership(@NotNull String name) {
             if ("a".equals(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance(), gr2, gr3);
+                return Set.of(EveryonePrincipal.getInstance(), gr2, gr3);
             } else if ("ac".equals(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance(), gr3);
+                return Set.of(EveryonePrincipal.getInstance(), gr3);
             } else if (gr2.getName().equals(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance(), gr3);
+                return Set.of(EveryonePrincipal.getInstance(), gr3);
             } else if (principals.containsKey(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance());
+                return Set.of(EveryonePrincipal.getInstance());
             } else {
-                return ImmutableSet.of();
+                return Set.of();
             }
         }
     }

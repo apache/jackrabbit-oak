@@ -130,7 +130,7 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
         permissionProvider.refresh();
 
         Set<String> privNames = permissionProvider.getPrivileges(null);
-        assertTrue(Iterables.elementsEqual(ImmutableSet.of(JCR_WORKSPACE_MANAGEMENT), privNames));
+        assertTrue(Iterables.elementsEqual(Set.of(JCR_WORKSPACE_MANAGEMENT), privNames));
     }
 
     @Test

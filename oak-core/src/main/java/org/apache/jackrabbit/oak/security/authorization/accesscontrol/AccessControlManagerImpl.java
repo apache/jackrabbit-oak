@@ -41,7 +41,6 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -135,7 +134,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (policy != null) {
             policies.add(policy);
         }
-        if (readPaths.contains(oakPath)) {
+        if (Objects.nonNull(oakPath) && readPaths.contains(oakPath)) {
             policies.add(ReadPolicy.INSTANCE);
         }
         return policies.toArray(new AccessControlPolicy[0]);
@@ -247,7 +246,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 // remove rep:nodePath restriction before removing the entry from
                 // the node-based policy (see above for adding entries without
                 // this special restriction).
-                Set<Restriction> rstr = Sets.newHashSet(ace.getRestrictions());
+                Set<Restriction> rstr = new HashSet<>(ace.getRestrictions());
                 rstr.removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
                 acl.removeAccessControlEntry(new Entry(ace.getPrincipal(), ace.getPrivilegeBits(), ace.isAllow(), rstr, getNamePathMapper()));
                 setNodeBasedAcl(path, tree, acl);
@@ -599,7 +598,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Result aceResult = searchAces(principals, r);
         Set<AccessControlPolicy> effective = Sets.newTreeSet(new PolicyComparator());
 
-        Set<String> processed = Sets.newHashSet();
+        Set<String> processed = new HashSet<>();
         for (ResultRow row : aceResult.getRows()) {
             Tree aceTree = row.getTree(null);
             String acePath = aceTree.getPath();
@@ -668,7 +667,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 return false;
             }
 
-            if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(p), configParams)) {
+            if (PermissionUtil.isAdminOrSystem(Set.of(p), configParams)) {
                 log.warn("Attempt to create an ACE for an administrative principal which always has full access: {}", getPath());
                 switch (importBehavior) {
                     case ImportBehavior.IGNORE:

@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.Set;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -41,7 +43,7 @@ public class UserImporterImpersonationBestEffortTest extends UserImporterImperso
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableSet.of("impersonator1", "impersonator2"), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(Set.of("impersonator1", "impersonator2"), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -51,6 +53,6 @@ public class UserImporterImpersonationBestEffortTest extends UserImporterImperso
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableSet.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(Set.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
     }
 }

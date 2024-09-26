@@ -24,7 +24,7 @@ import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.Node;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -86,8 +85,8 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
     @Test
     public void pathIncludeWithPathRestrictionsWarn() throws Exception {
 
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
+        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         //Do not provide type information
         root.commit();
 
@@ -110,8 +109,8 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
 
     @Test
     public void pathExcludeWithPathRestrictionsWarn() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
+        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         //Do not provide type information
         root.commit();
 
@@ -138,9 +137,9 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
 
         final String regex = "o.*";
         final String indexName = "test1";
-        Tree idx = createIndex(indexName, of("propa", "propb"));
+        Tree idx = createIndex(indexName, Set.of("propa", "propb"));
         idx.setProperty(PROP_QUERY_FILTER_REGEX, regex);
-        idx.setProperty("tags", of("testtag"), Type.STRINGS);
+        idx.setProperty("tags", Set.of("testtag"), Type.STRINGS);
 
         root.commit();
 

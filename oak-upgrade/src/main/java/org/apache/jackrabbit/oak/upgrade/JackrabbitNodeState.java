@@ -20,10 +20,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
@@ -49,7 +47,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -304,7 +304,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     @NotNull
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
-        List<MemoryChildNodeEntry> entries = newArrayListWithCapacity(nodes.size());
+        List<MemoryChildNodeEntry> entries = new ArrayList<>(nodes.size());
         for (Map.Entry<String, NodeId> entry : nodes.entrySet()) {
             String name = entry.getKey();
             final NodeState child = createChildNodeState(entry.getValue(), name);
@@ -442,7 +442,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                 && frozenUuid.getType() == STRING
                 && isFrozenNode.test(this)) {
             String frozenPrimary = NT_BASE;
-            Set<String> frozenMixins = newHashSet();
+            Set<String> frozenMixins = new HashSet<>();
 
             PropertyState property = properties.get(JCR_FROZENPRIMARYTYPE);
             if (property != null && property.getType() == NAME) {
@@ -514,73 +514,73 @@ class JackrabbitNodeState extends AbstractNodeState {
             throws RepositoryException, IOException {
         switch (type) {
         case PropertyType.BINARY:
-            List<Blob> binaries = newArrayListWithCapacity(values.length);
+            List<Blob> binaries = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 binaries.add(createBlob(value));
             }
             return PropertyStates.createProperty(name, binaries, Type.BINARIES);
         case PropertyType.BOOLEAN:
-            List<Boolean> booleans = newArrayListWithCapacity(values.length);
+            List<Boolean> booleans = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 booleans.add(value.getBoolean());
             }
             return PropertyStates.createProperty(name, booleans, Type.BOOLEANS);
         case PropertyType.DATE:
-            List<String> dates = newArrayListWithCapacity(values.length);
+            List<String> dates = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 dates.add(value.getString());
             }
             return PropertyStates.createProperty(name, dates, Type.DATES);
         case PropertyType.DECIMAL:
-            List<BigDecimal> decimals = newArrayListWithCapacity(values.length);
+            List<BigDecimal> decimals = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 decimals.add(value.getDecimal());
             }
             return PropertyStates.createProperty(name, decimals, Type.DECIMALS);
         case PropertyType.DOUBLE:
-            List<Double> doubles = newArrayListWithCapacity(values.length);
+            List<Double> doubles = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 doubles.add(value.getDouble());
             }
             return PropertyStates.createProperty(name, doubles, Type.DOUBLES);
         case PropertyType.LONG:
-            List<Long> longs = newArrayListWithCapacity(values.length);
+            List<Long> longs = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 longs.add(value.getLong());
             }
             return PropertyStates.createProperty(name, longs, Type.LONGS);
         case PropertyType.NAME:
-            List<String> names = newArrayListWithCapacity(values.length);
+            List<String> names = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 names.add(createName(value.getName()));
             }
             return PropertyStates.createProperty(name, names, Type.NAMES);
         case PropertyType.PATH:
-            List<String> paths = newArrayListWithCapacity(values.length);
+            List<String> paths = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 paths.add(createPath(value.getPath()));
             }
             return PropertyStates.createProperty(name, paths, Type.PATHS);
         case PropertyType.REFERENCE:
-            List<String> references = newArrayListWithCapacity(values.length);
+            List<String> references = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 references.add(value.getNodeId().toString());
             }
             return PropertyStates.createProperty(name, references, Type.REFERENCES);
         case PropertyType.STRING:
-            List<String> strings = newArrayListWithCapacity(values.length);
+            List<String> strings = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 strings.add(value.getString());
             }
             return PropertyStates.createProperty(name, strings, Type.STRINGS);
         case PropertyType.URI:
-            List<String> uris = newArrayListWithCapacity(values.length);
+            List<String> uris = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 uris.add(value.getURI().toString());
             }
             return PropertyStates.createProperty(name, uris, Type.URIS);
         case PropertyType.WEAKREFERENCE:
-            List<String> weakreferences = newArrayListWithCapacity(values.length);
+            List<String> weakreferences = new ArrayList<>(values.length);
             for (InternalValue value : values) {
                 weakreferences.add(value.getNodeId().toString());
             }

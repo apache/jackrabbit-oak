@@ -48,7 +48,6 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -130,19 +129,19 @@ public class NodeDocumentTest {
 
         branchCommits = Collections.singleton(r1.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
-        assertEquals(newHashSet(c1), conflicts);
+        assertEquals(Set.of(c1), conflicts);
 
         branchCommits = Collections.singleton(r2.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
-        assertEquals(newHashSet(c2), conflicts);
+        assertEquals(Set.of(c2), conflicts);
 
         branchCommits = Lists.newArrayList(r1.asBranchRevision(), r2.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
-        assertEquals(newHashSet(c1, c2), conflicts);
+        assertEquals(Set.of(c1, c2), conflicts);
 
         branchCommits = Lists.newArrayList(r2.asBranchRevision(), r1.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
-        assertEquals(newHashSet(c1, c2), conflicts);
+        assertEquals(Set.of(c1, c2), conflicts);
     }
 
     @Test
@@ -484,7 +483,7 @@ public class NodeDocumentTest {
     @Test
     public void getNewestRevisionTooExpensive() throws Exception {
         final int NUM_CHANGES = 200;
-        final Set<String> prevDocCalls = newHashSet();
+        final Set<String> prevDocCalls = new HashSet<>();
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -552,7 +551,7 @@ public class NodeDocumentTest {
         Revision created = headCreated.getRevision(ns1.getClusterId());
 
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
-        Set<Revision> collisions = newHashSet();
+        Set<Revision> collisions = new HashSet<>();
         Revision newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
                 ns1.newRevision(), null, collisions);
         assertEquals(created, newest);
@@ -637,7 +636,7 @@ public class NodeDocumentTest {
         builder.child("test");
         merge(ns, builder);
 
-        Set<Revision> collisions = newHashSet();
+        Set<Revision> collisions = new HashSet<>();
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         RevisionVector branchBase = ns.getHeadRevision().asBranchRevision(ns.getClusterId());
         try {
@@ -799,7 +798,7 @@ public class NodeDocumentTest {
     @Test
     public void isConflicting() throws Exception {
         final int numChanges = 200;
-        final Set<String> prevDocCalls = newHashSet();
+        final Set<String> prevDocCalls = new HashSet<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -829,7 +828,7 @@ public class NodeDocumentTest {
     // OAK-4358
     @Test
     public void tooManyReadsOnGetNewestRevision() throws Exception {
-        final Set<String> prevDocCalls = newHashSet();
+        final Set<String> prevDocCalls = new HashSet<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -909,7 +908,7 @@ public class NodeDocumentTest {
     @Test
     public void tooManyReadsOnGetNodeAtRevision() throws Exception {
         final int numChanges = 200;
-        final Set<String> prevDocCalls = newHashSet();
+        final Set<String> prevDocCalls = new HashSet<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -944,7 +943,7 @@ public class NodeDocumentTest {
     @Test
     public void tooManyReadsOnGetVisibleChanges() throws Exception {
         final int numChanges = 500;
-        final Set<String> prevDocCalls = newHashSet();
+        final Set<String> prevDocCalls = new HashSet<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1215,7 +1214,7 @@ public class NodeDocumentTest {
 
     @Test
     public void noPreviousDocAccessAfterSweep() throws Exception {
-        final Set<String> findCalls = newHashSet();
+        final Set<String> findCalls = new HashSet<>();
         DocumentStore ds = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,

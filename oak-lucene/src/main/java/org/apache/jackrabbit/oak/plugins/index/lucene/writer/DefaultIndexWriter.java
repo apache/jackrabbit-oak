@@ -169,7 +169,14 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 if (localRefWriter == null) {
                     final long start = PERF_LOGGER.start();
                     directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
-                    IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
+                    boolean serialScheduler = directoryFactory.remoteDirectory();
+                    if (writerConfig.getThreadCount() > 1) {
+                        // for multi-threaded indexing (using oak-run), use the serial scheduler,
+                        // to avoid concurrency issues with the concurrent merge policy
+                        log.info("Using the serial scheduler for parallel indexing");
+                        serialScheduler = true;
+                    }
+                    IndexWriterConfig config = getIndexWriterConfig(definition, serialScheduler, writerConfig);
                     config.setMergePolicy(definition.getMergePolicy());
                     writer = localRefWriter = new IndexWriter(directory, config);
                     genAtStart = getLatestGeneration(directory);

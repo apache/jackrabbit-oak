@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -61,7 +61,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
 
     @Test
     public void noErrorIfQueryDefinitionsNotIndexed() throws Exception{
-        Set<String> paths = Sets.newHashSet(indexPathService.getIndexPaths());
+        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
     }
 
@@ -76,7 +76,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
     @Test
     public void nodeTypeIndexed() throws Exception{
         enableIndexDefinitionIndex();
-        Set<String> paths = Sets.newHashSet(indexPathService.getIndexPaths());
+        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
         assertThat(paths, hasItem("/oak:index/nodetype"));
         assertThat(paths, hasItem("/oak:index/reference"));
@@ -91,7 +91,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         fooIndex.setProperty("type", "disabled");
         root.commit();
 
-        Set<String> paths = Sets.newHashSet(indexPathService.getIndexPaths());
+        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/a/b/oak:index/fooIndex"));
     }
 

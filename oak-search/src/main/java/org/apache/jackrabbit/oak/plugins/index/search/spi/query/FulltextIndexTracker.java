@@ -44,8 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
@@ -150,7 +148,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
 
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, I>builder()
-                    .putAll(filterKeys(original, not(in(updates.keySet()))))
+                    .putAll(filterKeys(original, x -> !updates.keySet().contains(x)))
                     .putAll(filterValues(updates, x -> x != null))
                     .build();
 

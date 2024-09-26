@@ -25,9 +25,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -72,7 +72,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     @Test
     public void testInvalidRevisionFallbackOnValid() {
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/"))
+            .withFilterPaths(Set.of("/"))
         );
 
         assertCheckSucceeded(checkResult);
@@ -86,7 +86,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     @Test
     public void testPartialBrokenPathWithoutValidRevision() {
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/z"))
+            .withFilterPaths(Set.of("/z"))
         );
 
         assertCheckFailed(checkResult);
@@ -100,7 +100,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     @Test
     public void testPartialBrokenPathWithValidRevision() {
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/a"))
+            .withFilterPaths(Set.of("/a"))
             .withCheckpoints(new HashSet<>())
         );
 
@@ -114,7 +114,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     @Test
     public void testCorruptHeadWithValidCheckpoints() {
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/"))
+            .withFilterPaths(Set.of("/"))
         );
 
         assertCheckSucceeded(checkResult);
@@ -129,8 +129,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         corruptPathFromCheckpoint();
 
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/b"))
-            .withCheckpoints(ImmutableSet.of(checkpoints.iterator().next()))
+            .withFilterPaths(Set.of("/b"))
+            .withCheckpoints(Set.of(checkpoints.iterator().next()))
         );
 
         assertCheckFailed(checkResult);
@@ -157,7 +157,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         int checkResult = check(b -> b
             .withPath(segmentStoreFolder)
             .withJournal(largeJournalFile)
-            .withFilterPaths(ImmutableSet.of("/"))
+            .withFilterPaths(Set.of("/"))
         );
 
         assertCheckFailed(checkResult);
@@ -167,7 +167,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     @Test
     public void testFailFast_withInvalidHead() {
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/"))
+            .withFilterPaths(Set.of("/"))
             .withFailFast(true)
         );
 
@@ -178,8 +178,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     @Test
     public void testFailFast_withInvalidCheckpoints() {
         int checkResult = check(b -> b
-            .withFilterPaths(ImmutableSet.of("/b"))
-            .withCheckpoints(ImmutableSet.of("invalid-checkpoint-id"))
+            .withFilterPaths(Set.of("/b"))
+            .withCheckpoints(Set.of("invalid-checkpoint-id"))
             .withFailFast(true)
         );
 
@@ -234,7 +234,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     private ConsistencyCheckResult checkConsistency(MockReadOnlyFileStore store, File journalFile, boolean failFast) throws IOException {
         return new ConsistencyChecker().checkConsistency(
             store, new JournalReader(new LocalJournalFile(journalFile)),
-            true, checkpoints, ImmutableSet.of("/b"), true, Integer.MAX_VALUE,
+            true, checkpoints, Set.of("/b"), true, Integer.MAX_VALUE,
             failFast);
     }
 

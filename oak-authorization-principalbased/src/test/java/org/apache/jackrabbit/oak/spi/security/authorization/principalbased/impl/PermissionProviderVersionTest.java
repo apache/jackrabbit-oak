@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.security.Principal;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 import static javax.jcr.Session.ACTION_READ;
@@ -273,8 +273,8 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetPrivileges() throws Exception {
         assertTrue(permissionProvider.getPrivileges(getVersionTree(contentPath, true)).isEmpty());
-        assertEquals(Sets.newHashSet(JCR_READ), permissionProvider.getPrivileges(getVersionTree(grandchildPath, false)));
-        assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(getVersionTree(TEST_OAK_PATH, true)));
+        assertEquals(Set.of(JCR_READ), permissionProvider.getPrivileges(getVersionTree(grandchildPath, false)));
+        assertEquals(Set.of(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(getVersionTree(TEST_OAK_PATH, true)));
     }
 
     @Test
@@ -292,7 +292,7 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
 
         // permissions not affected (as long as no restrictions involved) due to the fact that permissions are not
         // stored with the versionable node.
-        assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(versionTree));
+        assertEquals(Set.of(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(versionTree));
     }
 
     @Test

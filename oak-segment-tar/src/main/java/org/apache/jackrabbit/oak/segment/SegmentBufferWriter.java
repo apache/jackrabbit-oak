@@ -24,7 +24,6 @@ import static java.lang.System.identityHashCode;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
@@ -40,6 +39,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.HexDump;
@@ -100,9 +100,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     @NotNull
     private final SegmentIdProvider idProvider;
 
-    @NotNull
-    private final SegmentReader reader;
-
     /**
      * Id of this writer.
      */
@@ -141,11 +138,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private boolean dirty;
 
     public SegmentBufferWriter(@NotNull SegmentIdProvider idProvider,
-                               @NotNull SegmentReader reader,
                                @Nullable String wid,
                                @NotNull GCGeneration gcGeneration) {
         this.idProvider = requireNonNull(idProvider);
-        this.reader = requireNonNull(reader);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
@@ -214,7 +209,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             "{\"wid\":\"" + wid + '"' +
             ",\"sno\":" + idProvider.getSegmentIdCount() +
             ",\"t\":" + currentTimeMillis() + "}";
-        segment = new Segment(idProvider.newDataSegmentId(), reader, buffer, recordNumbers, segmentReferences, metaInfo);
+        segment = new Segment(idProvider.newDataSegmentId(), buffer, recordNumbers, segmentReferences, metaInfo);
 
         statistics = new Statistics();
         statistics.id = segment.getSegmentId();
@@ -414,7 +409,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         if (segmentSize > buffer.length) {
 
             // Collect the newly referenced segment ids
-            Set<SegmentId> segmentIds = newHashSet();
+            Set<SegmentId> segmentIds = new HashSet<>();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
                 if (!segmentReferences.contains(segmentId)) {

@@ -119,8 +119,6 @@ import com.mongodb.client.result.UpdateResult;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
@@ -530,7 +528,7 @@ public class MongoDocumentStore implements DocumentStore {
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modStamps);
-            for (String id : filter(ids, not(in(modStamps.keySet())))) {
+            for (String id : filter(ids, x -> !modStamps.keySet().contains(x))) {
                 nodesCache.invalidate(id);
                 invalidated++;
             }
@@ -1492,7 +1490,7 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (collection == Collection.NODES) {
                 List<NodeDocument> docsToCache = new ArrayList<NodeDocument>();
-                for (UpdateOp op : filterKeys(bulkOperations, in(bulkResult.upserts)).values()) {
+                for (UpdateOp op : filterKeys(bulkOperations, x -> bulkResult.upserts.contains(x)).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
                     docsToCache.add(doc);

@@ -44,7 +44,7 @@ public class QueryEngineSettingsServiceTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private final Set<String> sysPropNames = ImmutableSet.of(
+    private final Set<String> sysPropNames = Set.of(
             QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY,
             QueryEngineSettings.OAK_QUERY_LIMIT_READS,
             QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL,

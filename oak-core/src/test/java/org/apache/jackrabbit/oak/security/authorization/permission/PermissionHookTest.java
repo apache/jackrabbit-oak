@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -64,6 +64,7 @@ import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -191,7 +192,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
     @NotNull
     private static Set<String> getAccessControlledPaths(@NotNull Tree principalTree) {
-        Set<String> s = Sets.newHashSet();
+        Set<String> s = new HashSet<>();
         for (Tree tree : principalTree.getChildren()) {
             String path = getAccessControlledPath(tree);
             if (path != null) {
@@ -552,7 +553,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
                 assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
                 assertNumPermissionsProperty(3, testRoot);
 
-                Set<String> accessControlledPaths = Sets.newHashSet(testPath, aa.getPath(), bb.getPath());
+                Set<String> accessControlledPaths = Set.of(testPath, aa.getPath(), bb.getPath());
                 assertEquals(accessControlledPaths, getAccessControlledPaths(testRoot));
             } finally {
                 root.getTree(aaPath).remove();
@@ -588,7 +589,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
             assertTrue(testRoot.hasChild(bbPath.hashCode() + ""));
 
-            assertEquals(Sets.newHashSet(testPath, bb.getPath()), getAccessControlledPaths(testRoot));
+            assertEquals(Set.of(testPath, bb.getPath()), getAccessControlledPaths(testRoot));
             assertNumPermissionsProperty(2, testRoot);
         }
     }
@@ -616,7 +617,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
             assertTrue(testRoot.hasChild(aaPath.hashCode() + ""));
 
-            assertEquals(Sets.newHashSet(testPath, aa.getPath()), getAccessControlledPaths(testRoot));
+            assertEquals(Set.of(testPath, aa.getPath()), getAccessControlledPaths(testRoot));
             assertNumPermissionsProperty(2, testRoot);
         }
     }
@@ -646,7 +647,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertFalse(testRoot.hasChild(aaPath.hashCode() + ""));
             assertFalse(testRoot.hasChild(bbPath.hashCode() + ""));
 
-            assertEquals(Sets.newHashSet(testPath), getAccessControlledPaths(testRoot));
+            assertEquals(Set.of(testPath), getAccessControlledPaths(testRoot));
             assertNumPermissionsProperty(1, testRoot);
         }
     }
@@ -673,7 +674,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             addACE(cc.getPath(), testPrincipal, JCR_READ);
             root.commit();
 
-            Set<String> paths = Sets.newHashSet(aPath, bPath, cPath);
+            Set<String> paths = CollectionUtils.toSet(aPath, bPath, cPath);
             paths.add(testPath);
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
@@ -726,7 +727,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             addACE(cc.getPath(), testPrincipal, JCR_READ);
             root.commit();
 
-            Set<String> paths = Sets.newHashSet(aPath, bPath, cPath);
+            Set<String> paths = CollectionUtils.toSet(aPath, bPath, cPath);
             paths.add(testPath);
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
@@ -797,7 +798,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         assertEquals(2, principalPermissionStore.getChildrenCount(10));
         Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
 
-        assertEquals(ImmutableSet.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
+        assertEquals(Set.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
     }
 
     @Test

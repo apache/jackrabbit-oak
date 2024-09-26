@@ -75,7 +75,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         root.commit();
 
         // remember all IDs for cleanup
-        ids.addAll(ImmutableSet.of("base", "testGroup", "dynamicTestGroup", "dynamicTestUser"));
+        ids.addAll(Set.of("base", "testGroup", "dynamicTestGroup", "dynamicTestUser"));
     }
 
     @Override
@@ -100,7 +100,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Collections.emptyIterator());
 
         // no dynamic members in result
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
+        Set<String> expectedMemberIds = Set.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
         assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
         
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
@@ -114,7 +114,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         when(dmp.getMembers(nonDynamicGroup, false)).thenReturn(Collections.emptyIterator());
 
         // dynamic members get resolved this time
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup", "dynamicTestUser");
+        Set<String> expectedMemberIds = Set.of(getTestUser().getID(), "testGroup", "dynamicTestGroup", "dynamicTestUser");
         assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
 
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
@@ -126,7 +126,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.getMembers(any(Group.class), anyBoolean())).thenThrow(new RepositoryException());
 
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
+        Set<String> expectedMemberIds = Set.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
         assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
 
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));

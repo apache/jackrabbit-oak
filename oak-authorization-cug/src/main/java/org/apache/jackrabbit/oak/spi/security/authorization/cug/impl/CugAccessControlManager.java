@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -148,7 +148,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             CugPolicy cug = getCugPolicy(oakPath);
             if (cug == null) {
                 cug = new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), cugExclude);
-                return new AccessControlPolicyIteratorAdapter(ImmutableSet.of(cug));
+                return new AccessControlPolicyIteratorAdapter(Set.of(cug));
             } else {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
             }
@@ -167,7 +167,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
                 // remove the rep:CugMixin if it has been explicitly added upon setPolicy
-                Set<String> mixins = Sets.newHashSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
+                Set<String> mixins = CollectionUtils.toSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
                 } else {

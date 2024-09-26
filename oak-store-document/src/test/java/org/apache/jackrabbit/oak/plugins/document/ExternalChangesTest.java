@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
@@ -147,7 +147,7 @@ public class ExternalChangesTest {
         final int NUM_NODES = DocumentMK.UPDATE_LIMIT / 2;
         final int NUM_PROPS = 10;
 
-        Set<String> propNames = Sets.newHashSet();
+        Set<String> propNames = new HashSet<>();
         NodeBuilder b1 = ns1.getRoot().builder();
         for (int i = 0; i < NUM_NODES; i++) {
             NodeBuilder c = b1.child("n" + i);
@@ -285,7 +285,7 @@ public class ExternalChangesTest {
     }
 
     private static class CumulativeTestProperty implements JournalProperty {
-        final Set<String> values = Sets.newHashSet();
+        final Set<String> values = new HashSet<>();
     }
 
     private static class TestJournalBuilder implements JournalPropertyBuilder<TestProperty>{

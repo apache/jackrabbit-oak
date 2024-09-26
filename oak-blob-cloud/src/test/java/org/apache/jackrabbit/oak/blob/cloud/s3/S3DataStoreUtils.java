@@ -50,8 +50,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
-
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
  */
@@ -102,7 +100,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
     public static Properties getS3Config() {
         String config = System.getProperty(SYS_PROP_NAME);
         if (Strings.isNullOrEmpty(config)) {
-            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+            File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }

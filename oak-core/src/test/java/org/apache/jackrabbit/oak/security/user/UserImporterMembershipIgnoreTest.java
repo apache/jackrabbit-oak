@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -135,7 +136,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableSet.of(unknownContentId, knownMemberContentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(unknownContentId, knownMemberContentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -150,7 +151,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableSet.of(contentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(contentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
     }
 
     @Test

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
@@ -100,6 +99,7 @@ import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.observation.filter.FilterFactory;
@@ -2468,6 +2468,6 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private void assertMatches(Iterable<String> actuals, String... expected) {
-        assertEquals(newHashSet(expected), newHashSet(actuals));
+        assertEquals(CollectionUtils.toSet(expected), CollectionUtils.toSet(actuals));
     }
 }

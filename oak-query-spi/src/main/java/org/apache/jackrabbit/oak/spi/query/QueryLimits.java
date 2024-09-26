@@ -29,6 +29,16 @@ public interface QueryLimits {
 
     boolean getFullTextComparisonWithoutIndex();
 
+    /**
+     * See OAK-10532. This method is used for backward compatibility
+     * (bug compatibility) only.
+     *
+     * @return true, except when backward compatibility for OAK-10532 is enabled
+     */
+    default boolean getImprovedIsNullCost() {
+        return true;
+    }
+
     boolean getFailTraversal();
 
     default String getStrictPathRestriction() {
@@ -43,4 +53,5 @@ public interface QueryLimits {
     default @NotNull String[] getIgnoredClassNamesInCallTrace() {
         return new String[] {};
     }
+
 }

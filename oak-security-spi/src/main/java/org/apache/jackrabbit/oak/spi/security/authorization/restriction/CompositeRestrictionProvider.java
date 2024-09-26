@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -63,7 +63,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
-        Set<RestrictionDefinition> defs = Sets.newHashSet();
+        Set<RestrictionDefinition> defs = new HashSet<>();
         for (RestrictionProvider rp : providers) {
             defs.addAll(rp.getSupportedRestrictions(oakPath));
         }
@@ -85,7 +85,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     @NotNull
     @Override
     public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
-        Set<Restriction> restrictions = Sets.newHashSet();
+        Set<Restriction> restrictions = new HashSet<>();
         for (RestrictionProvider rp : providers) {
             restrictions.addAll(rp.readRestrictions(oakPath, aceTree));
         }

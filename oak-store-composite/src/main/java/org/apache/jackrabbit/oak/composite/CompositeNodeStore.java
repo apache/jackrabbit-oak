@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -51,13 +50,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
+
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 
@@ -270,7 +270,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             }
             nodeStates.put(nodeStore, nodeState);
         }
-        if (any(nodeStates.values(), x -> x == null)) {
+        if (nodeStates.values().contains(null)) {
             LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return null;
         }
@@ -320,7 +320,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     }
 
     private static boolean checkpointExists(NodeStore nodeStore, String checkpoint) {
-        return Iterables.any(nodeStore.checkpoints(), Predicates.equalTo(checkpoint));
+        return CollectionUtils.toStream(nodeStore.checkpoints()).anyMatch(x -> Objects.equals(x, checkpoint));
     }
 
     private String checkpointDebugInfo() {

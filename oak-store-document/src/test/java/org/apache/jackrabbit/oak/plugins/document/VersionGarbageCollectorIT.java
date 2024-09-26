@@ -42,12 +42,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 import static java.util.List.of;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
@@ -103,7 +103,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Atomics;
 import com.mongodb.ReadPreference;
 
@@ -547,35 +546,35 @@ public class VersionGarbageCollectorIT {
         String longName = "p".repeat(PATH_LONG + 1);
         createEmptyProps("/a/b/" + longName + "/x", "/b/c/" + longName + "/x",
                 "/c/d/" + longName + "/x");
-        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b/c", "/c"));
+        setGCIncludeExcludes(Set.of(), Set.of("/b/c", "/c"));
         doTestDeletedPropsGC(1, 1);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_oneInclude() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet("/a"), Sets.newHashSet());
+        setGCIncludeExcludes(Set.of("/a"), Set.of());
         doTestDeletedPropsGC(1, 1);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_twoIncludes() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet("/a", "/c"), Sets.newHashSet());
+        setGCIncludeExcludes(Set.of("/a", "/c"), Set.of());
         doTestDeletedPropsGC(2, 2);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_inclAndExcl() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet("/a", "/c"), Sets.newHashSet("/c/d"));
+        setGCIncludeExcludes(Set.of("/a", "/c"), Set.of("/c/d"));
         doTestDeletedPropsGC(1, 1);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_excludes() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b", "/c"));
+        setGCIncludeExcludes(Set.of(), Set.of("/b", "/c"));
         doTestDeletedPropsGC(1, 1);
     }
 
@@ -1532,9 +1531,9 @@ public class VersionGarbageCollectorIT {
                     @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
                 Iterable<NodeDocument> modifiedDocs = super.getModifiedDocs(fromModified,
                         toModified, limit, fromId, includePaths, excludePaths);
-                List<NodeDocument> result = stream(modifiedDocs.spliterator(), false).collect(toList());
+                List<NodeDocument> result = StreamSupport.stream(modifiedDocs.spliterator(), false).collect(toList());
                 final Revision updateRev = newRevision(1);
-                store1.getDocumentStore().findAndUpdate(NODES, stream(modifiedDocs.spliterator(), false)
+                store1.getDocumentStore().findAndUpdate(NODES, StreamSupport.stream(modifiedDocs.spliterator(), false)
                         .map(doc -> {
                             UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
                             setModified(op, updateRev);
@@ -3301,7 +3300,7 @@ public class VersionGarbageCollectorIT {
         long maxAge = 1; //hrs
         long delta = TimeUnit.MINUTES.toMillis(10);
 
-        Set<String> names = Sets.newHashSet();
+        Set<String> names = new HashSet<>();
         NodeBuilder b1 = store1.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             String name = "test-" + i;
@@ -3326,7 +3325,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(1, stats.deletedLeafDocGCCount);
 
-        Set<String> children = Sets.newHashSet();
+        Set<String> children = new HashSet<>();
         for (ChildNodeEntry entry : store1.getRoot().getChildNodeEntries()) {
             children.add(entry.getName());
         }

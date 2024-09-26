@@ -23,11 +23,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -235,8 +234,8 @@ public class ClusterTest {
         TrackingDiff diff = new TrackingDiff();
         branchHead.compareAgainstBaseState(base, diff);
         assertEquals(1, diff.added.size());
-        assertEquals(Sets.newHashSet("/mk3"), diff.added);
-        assertEquals(new HashSet<String>(), diff.deleted);
+        assertEquals(Set.of("/mk3"), diff.added);
+        assertEquals(Set.of(), diff.deleted);
     }
 
     @Test

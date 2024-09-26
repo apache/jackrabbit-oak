@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -176,7 +176,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
+                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = null;
         this.nodeName = null;
         this.types = requireNonNull(types);
@@ -196,7 +196,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
+                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = requireNonNull(parent);
         this.nodeName = requireNonNull(name);
         this.types = parent.types;

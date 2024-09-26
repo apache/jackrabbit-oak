@@ -96,7 +96,7 @@ final class CugUtil implements CugConstants {
     }
 
     static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
-        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
+        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, Set.of());
         if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
                 for (String path : supportedPaths) {

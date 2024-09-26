@@ -33,7 +33,7 @@ public final class PreAuthLoginModule extends AbstractLoginModule {
     @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
-        return ImmutableSet.of(PreAuthCredentials.class);
+        return Set.of(PreAuthCredentials.class);
     }
 
     @Override

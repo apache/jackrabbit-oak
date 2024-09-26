@@ -26,7 +26,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import java.util.Set;
+
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
@@ -41,35 +42,35 @@ public class LuceneIndexLookupTest {
     @Test
     public void collectPathOnRootNode() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "l1", of(TYPENAME_STRING));
-        newLuceneIndexDefinition(index, "l2", of(TYPENAME_STRING));
+        newLuceneIndexDefinition(index, "l1", Set.of(TYPENAME_STRING));
+        newLuceneIndexDefinition(index, "l2", Set.of(TYPENAME_STRING));
 
         IndexLookup lookup = LuceneIndexLookupUtil.getLuceneIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
-        assertEquals(of("/oak:index/l1", "/oak:index/l2"),
+        assertEquals(Set.of("/oak:index/l1", "/oak:index/l2"),
             lookup.collectIndexNodePaths(f));
     }
 
     @Test
     public void collectPathOnSubNode() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "l1", of(TYPENAME_STRING));
+        newLuceneIndexDefinition(index, "l1", Set.of(TYPENAME_STRING));
 
         index = builder.child("a").child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "l2", of(TYPENAME_STRING));
+        newLuceneIndexDefinition(index, "l2", Set.of(TYPENAME_STRING));
 
         index = builder.child("a").child("b").child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "l3", of(TYPENAME_STRING));
+        newLuceneIndexDefinition(index, "l3", Set.of(TYPENAME_STRING));
 
         IndexLookup lookup = LuceneIndexLookupUtil.getLuceneIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
-        assertEquals(of("/oak:index/l1", "/a/oak:index/l2"),
+        assertEquals(Set.of("/oak:index/l1", "/a/oak:index/l2"),
             lookup.collectIndexNodePaths(f));
 
         f.restrictPath("/a/b", Filter.PathRestriction.EXACT);
-        assertEquals(of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
+        assertEquals(Set.of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
             lookup.collectIndexNodePaths(f));
     }
 }

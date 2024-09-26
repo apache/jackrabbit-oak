@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
@@ -30,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -489,7 +489,7 @@ public class TarReader implements Closeable {
         String name = archive.getName();
         log.debug("Cleaning up {}", name);
 
-        Set<UUID> cleaned = newHashSet();
+        Set<UUID> cleaned = new HashSet<>();
         int afterSize = 0;
         int beforeSize = 0;
         int afterCount = 0;
@@ -557,7 +557,7 @@ public class TarReader implements Closeable {
                 continue;
             }
 
-            Set<UUID> vertices = newHashSet();
+            Set<UUID> vertices = new HashSet<>();
 
             for (UUID vertex : e.getValue()) {
                 if (cleaned.contains(vertex)) {

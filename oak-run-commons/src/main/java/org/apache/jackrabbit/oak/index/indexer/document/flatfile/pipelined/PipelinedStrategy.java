@@ -346,9 +346,9 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
-        ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
-                new ThreadFactoryBuilder().setDaemon(true).build()
-        );
+        ThreadMonitor threadMonitor = new ThreadMonitor();
+        var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
+        ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
@@ -386,7 +386,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     mongoDocQueue,
                     pathFilters,
                     statisticsProvider,
-                    indexingReporter
+                    indexingReporter,
+                    threadFactory
             ));
 
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
@@ -432,13 +433,15 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 int tasksFinished = 0;
                 int transformTasksFinished = 0;
                 boolean monitorQueues = true;
+                threadMonitor.start();
                 while (tasksFinished < numberOfThreads) {
                     // Wait with a timeout to print statistics periodically
-                    Future<?> completedTask = ecs.poll(30, TimeUnit.SECONDS);
+                    Future<?> completedTask = ecs.poll(60, TimeUnit.SECONDS);
                     if (completedTask == null) {
                         // Timeout waiting for a task to complete
                         if (monitorQueues) {
                             try {
+                                threadMonitor.printStatistics();
                                 printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
                             } catch (Exception e) {
                                 LOG.warn("Error while logging queue sizes", e);
@@ -509,7 +512,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
                         .build());
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
-
+                // Unique heading to make it easier to find in the logs
+                threadMonitor.printStatistics("Final Thread/Memory report");
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (Throwable e) {
                 INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:FAIL] Metrics: {}, Error: {}",
