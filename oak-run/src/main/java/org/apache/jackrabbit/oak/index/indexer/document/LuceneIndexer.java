@@ -115,6 +115,11 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     }
 
     @Override
+    public String getIndexName() {
+        return definition.getIndexName();
+    }
+
+    @Override
     public void close() throws IOException {
         LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
         binaryTextExtractor.logStats();
