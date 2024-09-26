@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.jetbrains.annotations.NotNull;
@@ -63,44 +64,60 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
     }
 
     private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader(CompositeIndexer indexer, IndexHelper indexHelper) {
-        if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isEmpty()) {
+        if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isBlank()) {
             log.info("Ahead of time blob downloader is disabled, no binary node suffix provided");
             return AheadOfTimeBlobDownloader.NOOP;
-        } else if (!isEnabledForIndexes(blobPrefetchEnableForIndexes, indexHelper.getIndexPaths())) {
-            log.info("Ahead of time blob downloader is disabled, not enabled for indexes: {}", indexHelper.getIndexPaths());
-            return AheadOfTimeBlobDownloader.NOOP;
         } else {
-            return new DefaultAheadOfTimeBlobDownloader(
-                    blobPrefetchBinaryNodeSuffix,
-                    ffs.getStoreFile(),
-                    ffs.getAlgorithm(),
-                    indexHelper.getGCBlobStore(),
-                    indexer,
-                    nDownloadThreads,
-                    maxPrefetchWindowSize,
-                    maxPrefetchWindowMB);
+            List<String> enableIndexesPrefix = splitAndTrim(blobPrefetchEnableForIndexes);
+            List<NodeStateIndexer> enabledIndexers = filterEnabledIndexes(enableIndexesPrefix, indexer.getIndexers());
+            if (enabledIndexers.isEmpty()) {
+                log.info("Ahead of time blob downloader is disabled, not enabled for any indexes: {}", indexHelper.getIndexPaths());
+                return AheadOfTimeBlobDownloader.NOOP;
+            } else {
+                return new DefaultAheadOfTimeBlobDownloader(
+                        blobPrefetchBinaryNodeSuffix,
+                        ffs.getStoreFile(),
+                        ffs.getAlgorithm(),
+                        indexHelper.getGCBlobStore(),
+                        enabledIndexers,
+                        nDownloadThreads,
+                        maxPrefetchWindowSize,
+                        maxPrefetchWindowMB);
+            }
         }
     }
 
     /**
-     * Whether blob downloading is needed for the given indexes.
+     * Returns the indexes for which AOT blob downloading is enabled, that is,
+     * for which the index name starts with any of the prefixes in the enabledForIndexes list.
      *
-     * @param indexesEnabledPrefix the comma-separated list of prefixes of the index
-     *                             definitions that benefit from the download
-     * @param indexPaths           the index paths
+     * @param enabledIndexesPrefixes list of prefixes of the index definitions that benefit from the download
+     * @param indexers          the index paths
+     * @return the indexers for which AOT blob download is enabled, or empty list if it is not enabled for any
+     */
+    public static <T extends NodeStateIndexer> List<T> filterEnabledIndexes(List<String> enabledIndexesPrefixes, List<T> indexers) {
+        return indexers.stream()
+                .filter(indexer -> enabledIndexesPrefixes.stream().anyMatch(prefix -> indexer.getIndexName().startsWith(prefix)))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Whether blob downloading is needed for any the given indexes.
+     *
+     * @param enableIndexesPrefix list of prefixes of the index definitions that benefit from the download
+     * @param indexPaths       the index paths
      * @return true if any of the indexes start with any of the prefixes
      */
-    public static boolean isEnabledForIndexes(String indexesEnabledPrefix, List<String> indexPaths) {
-        List<String> enableForIndexes = splitAndTrim(indexesEnabledPrefix);
+    public static boolean isEnabledForAnyOfIndexes(List<String> enableIndexesPrefix, List<String> indexPaths) {
         for (String indexPath : indexPaths) {
-            if (enableForIndexes.stream().anyMatch(indexPath::startsWith)) {
+            if (enableIndexesPrefix.stream().anyMatch(indexPath::startsWith)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static List<String> splitAndTrim(String str) {
+    public static List<String> splitAndTrim(String str) {
         if (str == null || str.isBlank()) {
             return List.of();
         } else {
