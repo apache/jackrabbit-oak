@@ -425,12 +425,13 @@ public class RDBJDBCTools {
             }
         };
     }
-    
+
     private static DocumentStoreException.Type exceptionTypeFor(Exception cause) {
         return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT : DocumentStoreException.Type.GENERIC;
     }
-    
+
     public static DocumentStoreException asDocumentStoreException(@NotNull Exception cause, @NotNull String message) {
-        return new DocumentStoreException(message, cause, exceptionTypeFor(cause));
+        return new DocumentStoreException(message + (cause != null ? " (cause: " + cause.getMessage() + ")" : ""), cause,
+                exceptionTypeFor(cause));
     }
 }
