@@ -732,7 +732,7 @@ public class RDBDocumentStoreJDBC {
         PreparedStatement stmt = connection.prepareStatement(query.toString());
 
         int si = 1;
-        if (minId != null) {
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             setIdInStatement(tmd, stmt, si++, minId);
         }
         if (maxId != null) {
@@ -982,11 +982,17 @@ public class RDBDocumentStoreJDBC {
         SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
     }
 
+    // some DBs do not accept null character as string
+    private static boolean shouldSkipGreaterthanClauseForId(String id) {
+        return id != null && !"\u0000".equals(id);
+    }
+
     private static String buildWhereClause(String minId, String maxId, List<String> excludeKeyPatterns, List<QueryCondition> conditions) {
         StringBuilder result = new StringBuilder();
 
         String whereSep = "";
-        if (minId != null) {
+
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             result.append("ID > ?");
             whereSep = " and ";
         }
