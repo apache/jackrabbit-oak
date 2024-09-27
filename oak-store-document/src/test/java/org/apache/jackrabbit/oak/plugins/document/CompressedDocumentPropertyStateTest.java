@@ -238,6 +238,11 @@ public class CompressedDocumentPropertyStateTest {
             if (nodeStore != null) {
                 nodeStore.dispose();
             }
+            try {
+                fixture.dispose();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
     }
