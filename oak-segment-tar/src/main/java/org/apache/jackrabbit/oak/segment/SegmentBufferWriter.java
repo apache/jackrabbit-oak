@@ -38,12 +38,18 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+import org.apache.jackrabbit.oak.segment.data.PartialSegmentState;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,7 +71,9 @@ import org.slf4j.LoggerFactory;
  * The behaviour of this class is undefined should the pre-allocated buffer be
  * overrun be calling any of the write methods.
  * <p>
- * Instances of this class are <em>not thread safe</em>
+ * It is safe to call {@link #readPartialSegmentState(SegmentId)} concurrently with the write operations of a single
+ * writer (including several concurrent calls of this method). However, it is not safe to have concurrent writers,
+ * notably because the order in which {@code prepare} and {@code writeXYZ} methods are called matters.
  */
 public class SegmentBufferWriter implements WriteOperationHandler {
 
@@ -150,7 +158,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     @NotNull
     @Override
-    public RecordId execute(@NotNull GCGeneration gcGeneration,
+    public synchronized RecordId execute(@NotNull GCGeneration gcGeneration,
                             @NotNull WriteOperation writeOperation)
     throws IOException {
         checkState(gcGeneration.equals(this.gcGeneration));
@@ -159,7 +167,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     @Override
     @NotNull
-    public GCGeneration getGCGeneration() {
+    public synchronized GCGeneration getGCGeneration() {
         return gcGeneration;
     }
 
@@ -220,22 +228,22 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         dirty = false;
     }
 
-    public void writeByte(byte value) {
+    public synchronized void writeByte(byte value) {
         position = BinaryUtils.writeByte(buffer, position, value);
         dirty = true;
     }
 
-    public void writeShort(short value) {
+    public synchronized void writeShort(short value) {
         position = BinaryUtils.writeShort(buffer, position, value);
         dirty = true;
     }
 
-    public void writeInt(int value) {
+    public synchronized void writeInt(int value) {
         position = BinaryUtils.writeInt(buffer, position, value);
         dirty = true;
     }
 
-    public void writeLong(long value) {
+    public synchronized void writeLong(long value) {
         position = BinaryUtils.writeLong(buffer, position, value);
         dirty = true;
     }
@@ -245,7 +253,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      *
      * @param recordId  the record ID.
      */
-    public void writeRecordId(RecordId recordId) {
+    public synchronized void writeRecordId(RecordId recordId) {
         requireNonNull(recordId);
         checkState(segmentReferences.size() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");
@@ -278,7 +286,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         return info;
     }
 
-    public void writeBytes(byte[] data, int offset, int length) {
+    public synchronized void writeBytes(byte[] data, int offset, int length) {
         arraycopy(data, offset, buffer, position, length);
         position += length;
         dirty = true;
@@ -308,7 +316,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * enough space for a record. It can also be called explicitly.
      */
     @Override
-    public void flush(@NotNull SegmentStore store) throws IOException {
+    public synchronized void flush(@NotNull SegmentStore store) throws IOException {
         if (dirty) {
             int referencedSegmentIdCount = segmentReferences.size();
             BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET, referencedSegmentIdCount);
@@ -381,7 +389,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * @param store the {@code SegmentStore} instance to write full segments to
      * @return a new record id
      */
-    public RecordId prepare(RecordType type, int size, Collection<RecordId> ids, SegmentStore store) throws IOException {
+    public synchronized RecordId prepare(RecordType type, int size, Collection<RecordId> ids, SegmentStore store) throws IOException {
         checkArgument(size >= 0);
         requireNonNull(ids);
 
@@ -459,4 +467,65 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         return new RecordId(segment.getSegmentId(), recordNumber);
     }
 
+    @Override
+    public synchronized @Nullable PartialSegmentState readPartialSegmentState(@NotNull SegmentId sid) {
+        if (segment == null || !segment.getSegmentId().equals(sid)) {
+            return null;
+        }
+
+        byte version = SegmentVersion.asByte(LATEST_VERSION);
+        int generation = gcGeneration.getGeneration();
+        int fullGeneration = gcGeneration.getFullGeneration();
+        boolean isCompacted  = gcGeneration.isCompacted();
+
+        List<PartialSegmentState.SegmentReference> segmentReferencesList = StreamSupport.stream(segmentReferences.spliterator(), false)
+                .map(segmentId -> new PartialSegmentState.SegmentReference(segmentId.getMostSignificantBits(), segmentId.getLeastSignificantBits()))
+                .collect(Collectors.toUnmodifiableList());
+
+        List<PartialSegmentState.Record> records = getCurrentRecords();
+
+        return new PartialSegmentState(
+                version,
+                generation,
+                fullGeneration,
+                isCompacted,
+                segmentReferencesList,
+                records
+        );
+    }
+
+    /**
+     * Get the current records in the buffer, in descending order of their offset.
+     *
+     * <p>
+     * The contents of the record currently being written to can be incomplete. In this case,
+     * {@link PartialSegmentState.Record#contents()} will only contain the data that has been written so far.
+     */
+    private @NotNull List<PartialSegmentState.Record> getCurrentRecords() {
+        List<PartialSegmentState.Record> result = new ArrayList<>();
+
+        Entry previousEntry = null;
+        for (Entry entry : recordNumbers) {
+            int currentRecordStart = entry.getOffset();
+
+            // Record in recordNumbers are sorted in descending order of offset
+            assert previousEntry == null || previousEntry.getOffset() >= currentRecordStart;
+
+            int nextRecordStart = previousEntry == null ? MAX_SEGMENT_SIZE : previousEntry.getOffset();
+            boolean isPartiallyWrittenRecord = position >= currentRecordStart;
+            int currentRecordEnd = isPartiallyWrittenRecord ? position : nextRecordStart;
+            result.add(
+                    new PartialSegmentState.Record(
+                            entry.getRecordNumber(),
+                            entry.getType(),
+                            currentRecordStart,
+                            Arrays.copyOfRange(buffer, currentRecordStart, currentRecordEnd)
+                    )
+            );
+
+            previousEntry = entry;
+        }
+
+        return List.copyOf(result);
+    }
 }
