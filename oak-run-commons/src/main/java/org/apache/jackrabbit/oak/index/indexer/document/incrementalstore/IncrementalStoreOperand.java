@@ -26,7 +26,7 @@ public enum IncrementalStoreOperand {
     DELETE("D"),
     // modify an existing node
     MODIFY("M"),
-    // remove a node that may or may have already been removed
+    // remove a node that may (or may not) exist
     REMOVE("R"),
     // add or update a new or existing node
     UPSERT("U");
