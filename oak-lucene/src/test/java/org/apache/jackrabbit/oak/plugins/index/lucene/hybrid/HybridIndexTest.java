@@ -318,7 +318,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     @Test
     public void newNodeTypesFoundLater() throws Exception{
         String idxName = "hybridtest";
-        Tree idx = createIndex(root.getTree("/"), idxName, ImmutableSet.of("foo", "bar"));
+        Tree idx = createIndex(root.getTree("/"), idxName, Set.of("foo", "bar"));
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
         root.commit();
 

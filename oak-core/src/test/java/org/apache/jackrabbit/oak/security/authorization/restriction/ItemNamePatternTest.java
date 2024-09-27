@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ItemNamePatternTest extends AbstractSecurityTest {
 
-    private final Set<String> names = ImmutableSet.of("a", "b", "c");
+    private final Set<String> names = Set.of("a", "b", "c");
     private final ItemNamePattern pattern = new ItemNamePattern(names);
 
     private static Tree addTree(@NotNull Tree parent, @NotNull String relPath) throws AccessDeniedException {
@@ -113,7 +113,7 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new ItemNamePattern(ImmutableSet.of("a", "b")));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("a", "b", "c")));
+        assertNotEquals(pattern, new ItemNamePattern(Set.of("a", "b")));
+        assertNotEquals(pattern, new PrefixPattern(Set.of("a", "b", "c")));
     }
 }

@@ -43,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
@@ -59,6 +57,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -455,7 +454,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         assertEquals(
-                ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
+                Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
                 ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
         assertFalse(aceTree.hasChild(REP_RESTRICTIONS));
     }
@@ -504,7 +503,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         assertEquals(
-                ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
+                Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
                 ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));

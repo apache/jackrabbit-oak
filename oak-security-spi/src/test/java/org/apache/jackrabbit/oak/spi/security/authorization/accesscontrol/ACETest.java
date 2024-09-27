@@ -357,7 +357,7 @@ public class ACETest extends AbstractAccessControlTest {
         Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
         Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
 
-        Set<Restriction> expected = ImmutableSet.of(nameRestr, globRestr);
+        Set<Restriction> expected = Set.of(nameRestr, globRestr);
         ACE ace = createEntry(nameRestr, globRestr);
 
         assertEquals(expected, ace.getRestrictions());

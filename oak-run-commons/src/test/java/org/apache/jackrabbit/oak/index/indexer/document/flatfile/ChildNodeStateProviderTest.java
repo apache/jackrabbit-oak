@@ -47,7 +47,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void emptyCase() {
-        Set<String> preferred = ImmutableSet.of("u", "v", "x", "y", "z");
+        Set<String> preferred = Set.of("u", "v", "x", "y", "z");
         ChildNodeStateProvider p = new ChildNodeStateProvider(emptyList(), "/a", preferred);
         assertEquals(0, p.getChildNodeCount(1));
         assertEquals(0, Iterables.size(p.getChildNodeNames()));
@@ -58,7 +58,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void children() {
-        Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+        Set<String> preferred = Set.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f", "/g", "/h"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
@@ -77,7 +77,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void children2() {
-        Set<String> preferred = ImmutableSet.of("b");
+        Set<String> preferred = Set.of("b");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/b", "/a/b/c", "/a/b/c/d", "/e", "/e/f", "/g", "/h"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
@@ -101,7 +101,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void hasChildNode_InLimit() {
-        Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+        Set<String> preferred = Set.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
@@ -130,7 +130,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void allPreferredReadable() {
-        Set<String> preferred = ImmutableSet.of("x", "y");
+        Set<String> preferred = Set.of("x", "y");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/x", "/a/x/1", "/a/x/2", "/a/x/3",
                 "/a/y"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
@@ -141,7 +141,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void childCount() {
-        Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+        Set<String> preferred = Set.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
         assertEquals(1, p.getChildNodeCount(1));
@@ -150,7 +150,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void childNames() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
@@ -160,7 +160,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void childNames2() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/c", "/a/c/status","/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
@@ -171,7 +171,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void childEntries() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 

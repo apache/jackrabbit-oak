@@ -99,7 +99,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         assertFalse(groupAction.onMembersAddedContentIdCalled);
 
         assertTrue(groupAction.onMembersAddedCalled);
-        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
+        assertEquals(Set.of(user1.getID(), user2.getID()), groupAction.memberIds);
     }
 
     @Override

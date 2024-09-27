@@ -74,7 +74,7 @@ public interface ExternalIdentityConstants {
     /**
      * The set of served property names defined by this interface.
      */
-    Set<String> RESERVED_PROPERTY_NAMES = ImmutableSet.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
+    Set<String> RESERVED_PROPERTY_NAMES = Set.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
 
     /**
      * Configuration parameter to enable special protection of external IDs

@@ -146,7 +146,7 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             // EXERCISE : fix the test case such that the test principals have the specified privileges granted at "/"
 
             Privilege[] testPrivileges = new Privilege[] {customAbstractPriv, customAggrPriv};
-            Set<Principal> testPrincipals = ImmutableSet.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+            Set<Principal> testPrincipals = Set.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
             boolean hasPrivilege = getAccessControlManager(root).hasPrivileges("/", testPrincipals, testPrivileges);
 
             assertTrue(hasPrivilege);

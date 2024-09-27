@@ -455,7 +455,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
         //1 intermediate and 11 previous doc
         assertEquals(1 + 11, prevDocs.size());
-        assertTrue(Iterables.any(prevDocs, input -> input.getSplitDocType() == SplitDocType.INTERMEDIATE));
+        assertTrue(prevDocs.stream().anyMatch(input -> input.getSplitDocType() == SplitDocType.INTERMEDIATE));
 
         for (String s : revs) {
             Revision r = Revision.fromString(s);

@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -63,8 +64,8 @@ public class EmptyRestrictionProviderTest {
     @Test
     public void testWriteRestrictions() throws Exception {
         Restriction r = mock(Restriction.class);
-        RestrictionProvider.EMPTY.writeRestrictions(null, mock(Tree.class), ImmutableSet.of(r));
-        RestrictionProvider.EMPTY.writeRestrictions("/any/path", mock(Tree.class), ImmutableSet.of(r));
+        RestrictionProvider.EMPTY.writeRestrictions(null, mock(Tree.class), Set.of(r));
+        RestrictionProvider.EMPTY.writeRestrictions("/any/path", mock(Tree.class), Set.of(r));
         verifyNoInteractions(r);
     }
 
@@ -79,8 +80,8 @@ public class EmptyRestrictionProviderTest {
     @Test
     public void testGetPattern() {
         Restriction r = mock(Restriction.class);
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, ImmutableSet.of(r)));
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", ImmutableSet.of(r)));
+        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, Set.of(r)));
+        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", Set.of(r)));
     }
 
     @Test

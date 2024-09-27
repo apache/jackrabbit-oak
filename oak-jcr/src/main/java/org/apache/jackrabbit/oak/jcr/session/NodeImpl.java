@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
@@ -1477,7 +1478,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      * @return value list without {@code null} entries
      */
     private static List<Value> compact(Value[] values) {
-        List<Value> list = Lists.newArrayListWithCapacity(values.length);
+        List<Value> list = new ArrayList<>(values.length);
         for (Value value : values) {
             if (value != null) {
                 list.add(value);

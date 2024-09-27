@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.upgrade;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -37,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -851,7 +850,7 @@ public class RepositoryUpgrade {
 
         Name[] supertypes = def.getSupertypes();
         if (supertypes != null && supertypes.length > 0) {
-            List<String> names = newArrayListWithCapacity(supertypes.length);
+            List<String> names = new ArrayList<>(supertypes.length);
             for (Name supertype : supertypes) {
                 names.add(getOakName(supertype));
             }
@@ -887,7 +886,7 @@ public class RepositoryUpgrade {
         tmpl.setProtected(def.isProtected());
         tmpl.setSameNameSiblings(def.allowsSameNameSiblings());
 
-        List<String> names = newArrayListWithCapacity(def.getRequiredPrimaryTypes().length);
+        List<String> names = new ArrayList<>(def.getRequiredPrimaryTypes().length);
         for (Name type : def.getRequiredPrimaryTypes()) {
             names.add(getOakName(type));
         }
@@ -943,8 +942,8 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
+        final Set<String> excludes = union(copyOf(this.excludePaths), Set.of("/jcr:system/jcr:versionStorage"));
+        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 

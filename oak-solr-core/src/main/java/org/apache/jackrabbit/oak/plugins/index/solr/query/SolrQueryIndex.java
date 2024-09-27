@@ -535,7 +535,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
 
         Collection<String> indexPaths = new SolrIndexLookup(rootState).collectIndexNodePaths(filter);
-        List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
+        List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
 
         log.debug("looking for plans for paths : {}", indexPaths);
         for (String path : indexPaths) {

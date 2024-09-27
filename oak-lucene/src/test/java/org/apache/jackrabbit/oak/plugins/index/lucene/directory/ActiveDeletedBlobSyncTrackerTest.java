@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -50,7 +51,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 import static org.junit.Assert.assertEquals;
@@ -103,7 +103,7 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
     // OAK-6504
     @Test
     public void syncActiveDeletionWithBlobTracker() throws Exception {
-        createIndex("test1", of("propa"));
+        createIndex("test1", Set.of("propa"));
         root.getTree("/oak:index/counter").remove();
         root.commit();
         asyncIndexUpdate.run();

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -41,8 +42,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class CacheChangesTrackerTest {
 
@@ -123,7 +122,7 @@ public class CacheChangesTrackerTest {
     @Test
     public void testRegisterKeysTracker() {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker(ImmutableSet.of("1:/xyz", "1:/abc", "1:/aaa"));
+        CacheChangesTracker tracker = cache.registerTracker(Set.of("1:/xyz", "1:/abc", "1:/aaa"));
 
         assertFalse(tracker.mightBeenAffected("1:/xyz"));
         assertFalse(tracker.mightBeenAffected("1:/abc"));
@@ -151,7 +150,7 @@ public class CacheChangesTrackerTest {
         Path parent = Path.fromString("/parent");
         CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
 
-        cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
+        cache.putNonConflictingDocs(tracker, Set.of(createDoc("2:/parent/local")));
         assertFalse(tracker.mightBeenAffected("2:/parent/local"));
 
         cache.put(createDoc("2:/parent/external"));

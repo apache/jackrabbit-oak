@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import java.util.Set;
 
 /**
  * Test the Property2 index mechanism.
@@ -70,7 +70,7 @@ public class LuceneIndexDisabledTest {
     public void disabled() throws Exception {
         NodeBuilder index = newLucenePropertyIndexDefinition(
                 rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "foo", ImmutableSet.of("foo"), null);
+                "foo", Set.of("foo"), null);
         index.setProperty(IndexConstants.USE_IF_EXISTS, "/");
         commit();
         for (int i = 0; i < MANY; i++) {

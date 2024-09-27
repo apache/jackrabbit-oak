@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.junit.Assert.fail;
+
 public class CollectionUtilsTest {
 
     final List<String> data = Arrays.asList("one", "two", "three", null);
@@ -98,7 +100,7 @@ public class CollectionUtilsTest {
         Assert.assertFalse(testit.hasNext());
         try {
             testit = iterable.iterator();
-            Assert.fail("should only work once");
+            fail("should only work once");
         } catch (IllegalStateException expected) {
             // that's what we want
         }
@@ -111,5 +113,23 @@ public class CollectionUtilsTest {
         Stream<String> stream = CollectionUtils.toStream(iterator);
         List<String> result = stream.collect(Collectors.toList());
         Assert.assertEquals(input.toString(), result.toString());
+    }
+
+    @Test
+    public void ensureCapacity() {
+        int capacity = CollectionUtils.ensureCapacity(8);
+        Assert.assertEquals(11, capacity);
+    }
+
+    @Test
+    public void ensureCapacityWithMaxValue() {
+        int capacity = CollectionUtils.ensureCapacity(1073741825);
+        Assert.assertEquals(1073741824, capacity);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void ensureCapacityWithNegativeValue() {
+        int capacity = CollectionUtils.ensureCapacity(-8);
+        fail("Should throw IllegalArgumentException");
     }
 }

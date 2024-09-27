@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
@@ -39,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -120,7 +121,7 @@ public class LuceneIndexEditorProviderTest {
 
     private NodeState createIndexDefinition(String idxName) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
-                idxName, ImmutableSet.of("foo"), "async");
+                idxName, Set.of("foo"), "async");
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
         LuceneIndexEditorContext.configureUniqueId(idx);
         LuceneIndexDefinition.updateDefinition(idx);

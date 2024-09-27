@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -406,7 +407,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         @Override
         public IndexInput openInput(IOContext context) throws IOException {
-            if (checkIfLocalValid() && !IndexCopier.REMOTE_ONLY.contains(name)) {
+            if (checkIfLocalValid() && Objects.nonNull(name) && !IndexCopier.REMOTE_ONLY.contains(name)) {
                 indexCopier.readFromLocal(false);
                 return local.openInput(name, context);
             }
@@ -441,7 +442,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                      log.warn("COWRemoteFileReference::file ({}) differs in length. local: {}; remote: {}, init-remote-length",
                              name, localFileLength, remoteFileLength);
                  }
-            } else if (!IndexCopier.REMOTE_ONLY.contains(name)) {
+            } else if (Objects.nonNull(name) && !IndexCopier.REMOTE_ONLY.contains(name)) {
                 log.warn("COWRemoteFileReference::local file ({}) doesn't exist", name);
             }
 

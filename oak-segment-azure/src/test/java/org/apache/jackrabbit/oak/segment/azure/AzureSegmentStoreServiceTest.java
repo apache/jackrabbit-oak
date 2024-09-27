@@ -26,7 +26,11 @@ import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.osgi.util.converter.Converters;
 
 import java.io.ByteArrayInputStream;
@@ -53,7 +57,7 @@ public class AzureSegmentStoreServiceTest {
 
     private static BlobSasPermission READ_ONLY;
     private static BlobSasPermission READ_WRITE;
-    private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
+    private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private BlobContainerClient container;
 
@@ -238,8 +242,8 @@ public class AzureSegmentStoreServiceTest {
     private static Instant yesterday() {
         return Instant.now().minus(Duration.ofDays(1));
     }
-
-    private static ImmutableSet<String> concat(ImmutableSet<String> blobs, String element) {
+    
+    private static Set<String> concat(Set<String> blobs, String element) {
         return ImmutableSet.<String>builder().addAll(blobs).add(element).build();
     }
 

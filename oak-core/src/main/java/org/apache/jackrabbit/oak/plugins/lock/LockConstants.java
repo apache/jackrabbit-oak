@@ -26,7 +26,7 @@ import org.apache.jackrabbit.JcrConstants;
  */
 public interface LockConstants extends JcrConstants {
 
-    Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(
+    Set<String> LOCK_PROPERTY_NAMES = Set.of(
             JCR_LOCKISDEEP,
             JCR_LOCKOWNER);
 }

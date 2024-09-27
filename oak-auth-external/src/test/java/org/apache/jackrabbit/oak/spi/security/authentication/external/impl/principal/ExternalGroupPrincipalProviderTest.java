@@ -131,7 +131,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         if (hasDynamicGroups()) {
             return Collections.emptySet();
         } else {
-            return ImmutableSet.of(new PrincipalImpl(principalName));
+            return Set.of(new PrincipalImpl(principalName));
         }
     }
 
@@ -537,7 +537,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testFindPrincipalsFiltersDuplicates() throws Exception {
         ExternalGroup gr = idp.getGroup("a");
-        ExternalUser otherUser = new TestUser("anotherUser", ImmutableSet.of(gr.getExternalId()));
+        ExternalUser otherUser = new TestUser("anotherUser", Set.of(gr.getExternalId()));
         sync(otherUser);
 
         Set<Principal> expected = new HashSet<>();

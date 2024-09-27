@@ -350,7 +350,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                 }
                 return groupRefs;
             } else {
-                return ImmutableSet.of();
+                return Set.of();
             }
         }
     }
@@ -434,7 +434,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
-            return ImmutableSet.of();
+            return Set.of();
         }
     }
 }

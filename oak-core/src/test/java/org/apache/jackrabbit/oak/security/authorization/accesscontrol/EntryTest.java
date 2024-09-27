@@ -250,11 +250,11 @@ public class EntryTest extends AbstractAccessControlTest {
         Restriction nameRestr = createRestriction(nameValues);
 
         // single restriction
-        restrictionNames = createEntry(ImmutableSet.of(globRestr)).getRestrictionNames();
+        restrictionNames = createEntry(Set.of(globRestr)).getRestrictionNames();
         assertEquals(1, restrictionNames.length);
 
         // 2 restrictions
-        restrictionNames = createEntry(ImmutableSet.of(globRestr, nameRestr)).getRestrictionNames();
+        restrictionNames = createEntry(Set.of(globRestr, nameRestr)).getRestrictionNames();
         assertEquals(2, restrictionNames.length);
     }
 
@@ -269,7 +269,7 @@ public class EntryTest extends AbstractAccessControlTest {
     public void testGetNonExistingRestriction() throws Exception {
         // single valued restriction
         Restriction globRestr = createRestriction(globValue);
-        ACE ace = createEntry(ImmutableSet.of(globRestr));
+        ACE ace = createEntry(Set.of(globRestr));
         assertNull(ace.getRestriction(AccessControlConstants.REP_NT_NAMES));
     }
 
@@ -277,7 +277,7 @@ public class EntryTest extends AbstractAccessControlTest {
     public void testGetRestrictionForSingleValued() throws Exception {
         // single valued restriction
         Restriction globRestr = createRestriction(globValue);
-        ACE ace = createEntry(ImmutableSet.of(globRestr));
+        ACE ace = createEntry(Set.of(globRestr));
         Value val = ace.getRestriction(AccessControlConstants.REP_GLOB);
         assertNotNull(val);
         assertEquals(globValue, val);
@@ -290,7 +290,7 @@ public class EntryTest extends AbstractAccessControlTest {
     public void testGetRestrictionForMultiValued() throws Exception {
         // multivalued restriction
         Restriction nameRestr = createRestriction(nameValues);
-        ACE ace = createEntry(ImmutableSet.of(nameRestr));
+        ACE ace = createEntry(Set.of(nameRestr));
 
         ace.getRestriction(AccessControlConstants.REP_NT_NAMES);
     }
@@ -303,7 +303,7 @@ public class EntryTest extends AbstractAccessControlTest {
         // single value restriction stored in multi-value property
         Restriction singleNameRestr = createRestriction(new Value[] {nameValue});
 
-        ACE ace = createEntry(ImmutableSet.of(singleNameRestr));
+        ACE ace = createEntry(Set.of(singleNameRestr));
         Value val = ace.getRestriction(AccessControlConstants.REP_NT_NAMES);
         assertEquals(nameValue, val);
     }
@@ -324,7 +324,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetNonExistingRestrictions() throws Exception {
         Restriction nameRestr = createRestriction(nameValues);
-        ACE ace = createEntry(ImmutableSet.of(nameRestr));
+        ACE ace = createEntry(Set.of(nameRestr));
         assertNull(ace.getRestrictions(AccessControlConstants.REP_GLOB));
     }
 
@@ -335,7 +335,7 @@ public class EntryTest extends AbstractAccessControlTest {
     public void testGetRestrictionsForSingleValue() throws Exception {
         // single valued restriction
         Restriction globRestr = createRestriction(globValue);
-        ACE ace = createEntry(ImmutableSet.of(globRestr));
+        ACE ace = createEntry(Set.of(globRestr));
         Value[] vs = ace.getRestrictions(AccessControlConstants.REP_GLOB);
         assertNotNull(vs);
         assertArrayEquals(new Value[]{globValue}, vs);
@@ -348,7 +348,7 @@ public class EntryTest extends AbstractAccessControlTest {
     public void testGetRestrictionsForMultiValued() throws Exception {
         // multivalued restriction
         Restriction nameRestr = createRestriction(nameValues);
-        ACE ace = createEntry(ImmutableSet.of(nameRestr));
+        ACE ace = createEntry(Set.of(nameRestr));
         Value[] vs = ace.getRestrictions(AccessControlConstants.REP_NT_NAMES);
         assertNotNull(vs);
         assertEquals(2, vs.length);
@@ -362,7 +362,7 @@ public class EntryTest extends AbstractAccessControlTest {
     public void testGetRestrictionsForMultiValued2() throws Exception {
         // single value restriction stored in multi-value property
         Restriction singleNameRestr = createRestriction(new Value[]{nameValue});
-        ACE ace = createEntry(ImmutableSet.of(singleNameRestr));
+        ACE ace = createEntry(Set.of(singleNameRestr));
         Value[] vs = ace.getRestrictions(AccessControlConstants.REP_NT_NAMES);
         assertNotNull(vs);
         assertEquals(1, vs.length);
@@ -374,7 +374,7 @@ public class EntryTest extends AbstractAccessControlTest {
         Restriction nameRestr = createRestriction(nameValues);
         Restriction globRestr = createRestriction(globValue);
 
-        Set<Restriction> expected = ImmutableSet.of(nameRestr, globRestr);
+        Set<Restriction> expected = Set.of(nameRestr, globRestr);
         ACE ace = createEntry(expected);
 
         assertEquals(expected, ace.getRestrictions());
@@ -382,7 +382,7 @@ public class EntryTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetRestrictionsNone() throws Exception {
-        ACE ace = createEntry(ImmutableSet.of());
+        ACE ace = createEntry(Set.of());
 
         assertTrue(ace.getRestrictions().isEmpty());
     }

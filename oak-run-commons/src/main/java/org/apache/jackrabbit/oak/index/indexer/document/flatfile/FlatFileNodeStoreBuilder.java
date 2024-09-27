@@ -271,13 +271,14 @@ public class FlatFileNodeStoreBuilder {
                 AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES, "");
         Prefetcher prefetcher = new Prefetcher(prefetchTreeStore, indexingTreeStore);
         String blobSuffix = "";
-        if (AheadOfTimeBlobDownloadingFlatFileStore.isEnabledForIndexes(
-                blobPrefetchEnableForIndexes, indexHelper.getIndexPaths())) {
+        List<String> enabledIndexesPrefix = AheadOfTimeBlobDownloadingFlatFileStore.splitAndTrim(blobPrefetchEnableForIndexes);
+        if (AheadOfTimeBlobDownloadingFlatFileStore.isEnabledForAnyOfIndexes(
+                enabledIndexesPrefix, indexHelper.getIndexPaths())) {
             blobSuffix = ConfigHelper.getSystemPropertyAsString(
                     AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
         }
         prefetcher.setBlobSuffix(blobSuffix);
-        prefetcher.startPrefetch();
+        indexingTreeStore.setPrefetcher(prefetcher);
         return indexingTreeStore;
     }
 

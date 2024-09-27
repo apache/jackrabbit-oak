@@ -49,7 +49,7 @@ public class TestCredentialsSupport implements CredentialsSupport {
     @NotNull
     @Override
     public Set<Class> getCredentialClasses() {
-        return ImmutableSet.of(Creds.class);
+        return Set.of(Creds.class);
     }
 
     @Nullable

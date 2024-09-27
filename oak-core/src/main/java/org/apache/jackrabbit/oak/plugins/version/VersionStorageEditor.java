@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -24,6 +25,8 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -156,9 +159,10 @@ class VersionStorageEditor extends DefaultEditor {
 
     //-------------------------< internal >-------------------------------------
 
-    private static boolean isVersionStorageNode(NodeState state) {
+    @VisibleForTesting
+    static boolean isVersionStorageNode(NodeState state) {
         String ntName = state.getName(JCR_PRIMARYTYPE);
-        return VERSION_STORE_NT_NAMES.contains(ntName)
+        return (Objects.nonNull(ntName) && VERSION_STORE_NT_NAMES.contains(ntName))
                 || VERSION_NODE_TYPE_NAMES.contains(ntName);
     }
 

@@ -51,8 +51,8 @@ public class DefaultSyncConfigTest {
         assertSame(authorizableConfig, authorizableConfig.setAutoMembership());
         assertTrue(authorizableConfig.getAutoMembership().isEmpty());
 
-        assertEquals(ImmutableSet.of("gr1", "gr2"), authorizableConfig.setAutoMembership("gr1", "gr2").getAutoMembership());
-        assertEquals(ImmutableSet.of("gr"), authorizableConfig.setAutoMembership("", " gr ", null, "").getAutoMembership());
+        assertEquals(Set.of("gr1", "gr2"), authorizableConfig.setAutoMembership("gr1", "gr2").getAutoMembership());
+        assertEquals(Set.of("gr"), authorizableConfig.setAutoMembership("", " gr ", null, "").getAutoMembership());
 
         Map<String, String> mapping = authorizableConfig.getPropertyMapping();
         assertNotNull(mapping);
@@ -139,8 +139,8 @@ public class DefaultSyncConfigTest {
 
     @Test
     public void testAutoMembership() {
-        Set<String> globalGroupIds = ImmutableSet.of("gr1", "gr2");
-        Set<String> configGroupIds = ImmutableSet.of("gr3", "gr4");
+        Set<String> globalGroupIds = Set.of("gr1", "gr2");
+        Set<String> configGroupIds = Set.of("gr3", "gr4");
         
         Group gr = mock(Group.class);
         User user = mock(User.class);

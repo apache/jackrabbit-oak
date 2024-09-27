@@ -63,9 +63,9 @@ import java.util.Set;
  */
 public class FilteringNodeState extends AbstractDecoratedNodeState {
 
-    public static final Set<String> ALL = ImmutableSet.of("/");
+    public static final Set<String> ALL = Set.of("/");
 
-    public static final Set<String> NONE = ImmutableSet.of();
+    public static final Set<String> NONE = Set.of();
 
     private final String path;
 

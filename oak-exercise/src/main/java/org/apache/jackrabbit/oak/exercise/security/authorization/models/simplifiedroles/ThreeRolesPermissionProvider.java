@@ -161,7 +161,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
             }
         }
 
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     @Override

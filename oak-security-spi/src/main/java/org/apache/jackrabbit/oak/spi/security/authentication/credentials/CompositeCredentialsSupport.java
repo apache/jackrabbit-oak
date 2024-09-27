@@ -54,7 +54,7 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     public Set<Class> getCredentialClasses() {
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         if (all.isEmpty()) {
-            return ImmutableSet.of();
+            return Set.of();
         } else if (all.size() == 1) {
             return all.iterator().next().getCredentialClasses();
         } else {

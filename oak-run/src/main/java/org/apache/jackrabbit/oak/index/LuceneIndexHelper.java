@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
@@ -81,7 +82,7 @@ public class LuceneIndexHelper implements Closeable {
         log.info("Setting RAMBufferSize for LuceneIndexWriter (configurable via " +
                 "system property '{}') to {} MB", PROP_BUFFER_SIZE, buffSize);
 
-        return new LuceneIndexWriterConfig(buffSize);
+        return new LuceneIndexWriterConfig(buffSize, IndexerConfiguration.indexThreadPoolSize());
     }
 
     public void setDirectoryFactory(DirectoryFactory directoryFactory) {

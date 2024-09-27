@@ -17,16 +17,19 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.Arrays.fill;
+
 import java.util.Collections;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * A table to translate record numbers to offsets.
  */
-interface RecordNumbers extends Iterable<Entry> {
+public interface RecordNumbers extends Iterable<Entry> {
 
     /**
      * An always empty {@code RecordNumber} table.
@@ -43,6 +46,33 @@ interface RecordNumbers extends Iterable<Entry> {
             return Collections.emptyIterator();
         }
     };
+
+    /**
+     * Read the serialized table mapping record numbers to offsets.
+     *
+     * @return An instance of {@link RecordNumbers}
+     */
+    static @NotNull RecordNumbers fromSegmentData(@NotNull SegmentData data) {
+        int recordNumberCount = data.getRecordReferencesCount();
+
+        if (recordNumberCount == 0) {
+            return EMPTY_RECORD_NUMBERS;
+        }
+
+        int maxIndex = data.getRecordReferenceNumber(recordNumberCount - 1);
+
+        byte[] types = new byte[maxIndex + 1];
+        int[] offsets = new int[maxIndex + 1];
+        fill(offsets, -1);
+
+        for (int i = 0; i < recordNumberCount; i++) {
+            int recordNumber = data.getRecordReferenceNumber(i);
+            types[recordNumber] = data.getRecordReferenceType(i);
+            offsets[recordNumber] = data.getRecordReferenceOffset(i);
+        }
+
+        return new ImmutableRecordNumbers(offsets, types);
+    }
 
     /**
      * Translate a record number to an offset.

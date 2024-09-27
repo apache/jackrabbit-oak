@@ -133,7 +133,7 @@ class ReferenceIndex implements QueryIndex {
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
-                    + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
+                    + uuid + ")", indexRoot, Set.of(uuid)));
         }
         Iterable<String> paths = Iterables.concat(iterables);
 

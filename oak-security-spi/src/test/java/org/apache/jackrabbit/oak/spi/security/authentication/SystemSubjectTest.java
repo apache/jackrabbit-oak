@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -27,7 +28,7 @@ public class SystemSubjectTest {
 
     @Test
     public void testPrincipals() {
-        assertEquals(ImmutableSet.of(SystemPrincipal.INSTANCE), SystemSubject.INSTANCE.getPrincipals());
+        assertEquals(Set.of(SystemPrincipal.INSTANCE), SystemSubject.INSTANCE.getPrincipals());
     }
 
     @Test

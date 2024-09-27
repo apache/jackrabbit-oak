@@ -166,7 +166,7 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     ContentSession getTestSession(@NotNull Principal... principals) throws Exception {
-        Subject subject = new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(), ImmutableSet.of());
+        Subject subject = new Subject(true, ImmutableSet.copyOf(principals), Set.of(), Set.of());
         return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null);
     }
 }
