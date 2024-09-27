@@ -120,12 +120,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     @NotNull
     public Segment readSegment(final SegmentId id) {
         try {
-            return segmentCache.getSegment(id, new Callable<Segment>() {
-                @Override
-                public Segment call() throws Exception {
-                    return readSegmentUncached(tarFiles, id);
-                }
-            });
+            return segmentCache.getSegment(id, () -> getSegmentLoader().loadSegment(tarFiles, id, tracker, getWriter()));
         } catch (ExecutionException | UncheckedExecutionException e) {
             throw asSegmentNotFoundException(e, id);
         }
