@@ -68,25 +68,29 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
 
     @Override
     public void doMerge() throws IOException {
-        LOG.info("Merging {} and {}", baseFile.getAbsolutePath(), incrementalFile.getAbsolutePath());
         File baseDir = new File(baseFile.getAbsolutePath() + ".files");
-        LOG.info("Unpacking to {}", baseDir.getAbsolutePath());
+        LOG.info("Unpacking {} to {}", baseFile.getAbsolutePath(), baseDir.getAbsolutePath());
         FilePacker.unpack(baseFile, baseDir, true);
-        File mergedDir = new File(mergedFile.getAbsolutePath() + ".files");
-        LOG.info("Merging to {}", mergedDir.getAbsolutePath());
-        mergeMetadataFiles();
         File topup = new File(incrementalFile.getParent(), TOPUP_FILE);
         if (topup.exists()) {
-            File merge1Dir = new File(mergedFile.getAbsolutePath() + ".files1");
-            LOG.info("Merging diff to {}", merge1Dir.getAbsolutePath());
-            mergeIndexStore(baseDir, incrementalFile, algorithm, merge1Dir);
-            LOG.info("Merging topup to {}", mergedDir.getAbsolutePath());
-            mergeIndexStore(merge1Dir, topup, algorithm, mergedDir);
+            LOG.info("Merging diff {}", incrementalFile.getAbsolutePath());
+            updateIndexStore(baseDir, incrementalFile, algorithm);
+            LOG.info("Merging topup {}", topup.getAbsolutePath());
+            updateIndexStore(baseDir, topup, algorithm);
+            LOG.info("Packing to {}", mergedFile.getAbsolutePath());
+            FilePacker.pack(baseDir, TreeSession.getFileNameRegex(), mergedFile, true);
         } else {
+            File mergedDir = new File(mergedFile.getAbsolutePath() + ".files");
+            LOG.info("Merging {} and {} to {}",
+                    baseDir.getAbsolutePath(),
+                    incrementalFile.getAbsolutePath(),
+                    mergedDir.getAbsolutePath());
             mergeIndexStore(baseDir, incrementalFile, algorithm, mergedDir);
+            LOG.info("Packing to {}", mergedFile.getAbsolutePath());
+            FilePacker.pack(mergedDir, TreeSession.getFileNameRegex(), mergedFile, true);
         }
-        LOG.info("Packing to {}", mergedFile.getAbsolutePath());
-        FilePacker.pack(mergedDir, TreeSession.getFileNameRegex(), mergedFile, true);
+        LOG.info("Merging metadata");
+        mergeMetadataFiles();
         LOG.info("Completed");
     }
 
@@ -95,13 +99,62 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
         return MERGE_BASE_AND_INCREMENTAL_TREE_STORE;
     }
 
-    /**
-     * Merges multiple index store files.
-     *
-     * This method is a little verbose, but I think this is fine
-     * as we are not getting consistent data from checkpoint diff
-     * and we need to handle cases differently.
-     */
+    private static void updateIndexStore(File treeStoreDir, File incrementalFile, Compression algorithm) throws IOException {
+        TreeStore treeStore = new TreeStore("treeStore", treeStoreDir, new NodeStateEntryReader(null), 10);
+        long added = 0, modified = 0, upserted = 0, deleted = 0, removed = 0;
+        try (BufferedReader incrementalReader = IndexStoreUtils.createReader(incrementalFile, algorithm)) {
+            while (true) {
+                StoreEntry line = StoreEntry.readFromReader(incrementalReader);
+                if (line == null) {
+                    break;
+                }
+                String old = treeStore.getSession().get(line.path);
+                switch (line.operation) {
+                case ADD:
+                    added++;
+                    if (old != null) {
+                        LOG.warn(
+                                "ADD: node {} already exists with {}; updating with {}",
+                                line.path, old, line.value);
+                    }
+                    treeStore.putNode(line.path, line.value);
+                    break;
+                case MODIFY:
+                    modified++;
+                    if (old == null) {
+                        LOG.warn(
+                                "MODIFY: node {} doesn't exist yet; updating with {}",
+                                line.path, line.value);
+                    }
+                    treeStore.putNode(line.path, line.value);
+                    break;
+                case UPSERT:
+                    upserted++;
+                    // upsert = insert or update
+                    treeStore.putNode(line.path, line.value);
+                    break;
+                case DELETE:
+                    deleted++;
+                    if (old == null) {
+                        LOG.warn(
+                                "DELETE: node {} doesn't exist",
+                                line.path);
+                    }
+                    treeStore.removeNode(line.path);
+                    break;
+                case REMOVE:
+                    removed++;
+                    // ignore if already removed
+                    treeStore.removeNode(line.path);
+                    break;
+                }
+            }
+        }
+        LOG.info("Merging completed; added {}, modified {}, upserted {}, deleted {}, removed {}",
+                added, modified, upserted, deleted, removed);
+        treeStore.close();
+    }
+
     private static void mergeIndexStore(File baseDir, File incrementalFile, Compression algorithm, File mergedDir) throws IOException {
         TreeStore baseStore = new TreeStore("base", baseDir, new NodeStateEntryReader(null), 10);
         TreeStore mergedStore = new TreeStore("merged", mergedDir, new NodeStateEntryReader(null), 10);
