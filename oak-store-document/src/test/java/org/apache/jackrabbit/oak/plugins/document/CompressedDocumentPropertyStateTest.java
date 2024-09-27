@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class CompressedDocumentPropertyStateTest {
+public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTest {
 
     private static final String STRING_HUGEVALUE = RandomStringUtils.random(10050, "dummytest");
     private static final int DEFAULT_COMPRESSION_THRESHOLD = 1024;
@@ -68,6 +68,10 @@ public class CompressedDocumentPropertyStateTest {
     };
 
     private DocumentNodeStore ns;
+
+    public CompressedDocumentPropertyStateTest(DocumentStoreFixture dsf) {
+        super(dsf);
+    }
 
     @Before
     public void before() throws Exception {
@@ -253,6 +257,7 @@ public class CompressedDocumentPropertyStateTest {
 
         PropertyState p = nodeStore.getRoot().getChildNode("test").getProperty("p");
         assertEquals(Objects.requireNonNull(p).getValue(Type.STRING), test);
+        removeMe.add("1:/test");
     }
 
 

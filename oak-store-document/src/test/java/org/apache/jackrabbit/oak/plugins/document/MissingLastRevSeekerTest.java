@@ -33,8 +33,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Objects;
-
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.RecoveryHandler.NOOP;
@@ -251,7 +249,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         }
         dns.runBackgroundOperations();
         //seeker should return only non split documents
-        int docs = Iterables.size(seeker.getCandidates(Objects.requireNonNull(dns.getRoot().getLastRevision().getRevision(dns.getClusterId())).getTimestamp()));
+        int docs = Iterables.size(seeker.getCandidates(0));
         assertEquals(2, docs);
         markDocumentsForCleanup();
         dns.dispose();
