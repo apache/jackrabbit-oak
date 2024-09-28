@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -181,45 +183,50 @@ public class CompressedDocumentPropertyStateTest {
     }
 
     @Test
-    public void testBrokenSurrogateWithoutCompressionForMongo() throws CommitFailedException {
+    public void testBrokenSurrogateWithoutCompressionForMongo() throws Exception {
         getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, false);
     }
 
     @Test
-    public void testBrokenSurrogateWithoutCompressionForRDB() throws CommitFailedException {
+    public void testBrokenSurrogateWithoutCompressionForRDB() throws Exception {
         getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, false);
     }
 
     @Test
-    public void testBrokenSurrogateWithoutCompressionForInMemory() throws CommitFailedException {
+    public void testBrokenSurrogateWithoutCompressionForInMemory() throws Exception {
         getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, false);
     }
 
     @Test
-    public void testBrokenSurrogateWithCompressionForMongo() throws CommitFailedException {
+    public void testBrokenSurrogateWithCompressionForMongo() throws Exception {
         CompressedDocumentPropertyState.setCompressionThreshold(1);
         getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, true);
     }
 
     @Test
-    public void testBrokenSurrogateWithCompressionForRDB() throws CommitFailedException {
+    public void testBrokenSurrogateWithCompressionForRDB() throws Exception {
         CompressedDocumentPropertyState.setCompressionThreshold(1);
         getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, true);
     }
 
     @Test
-    public void testBrokenSurrogateWithCompressionForInMemory() throws CommitFailedException {
+    public void testBrokenSurrogateWithCompressionForInMemory() throws Exception {
         CompressedDocumentPropertyState.setCompressionThreshold(1);
         getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, true);
     }
 
-    private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws CommitFailedException {
+    private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws Exception {
         assumeTrue(fixture.isAvailable());
         String test = "brokensurrogate:dfsa\ud800";
         DocumentStore store = null;
         DocumentNodeStore nodeStore = null;
+        final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
 
         try {
+            if (fixture instanceof DocumentStoreFixture.RDBFixture) {
+                ((DocumentStoreFixture.RDBFixture) fixture).setRDBOptions(
+                        new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+            }
             store = fixture.createDocumentStore();
 
             if (store instanceof MongoDocumentStore) {
@@ -238,6 +245,7 @@ public class CompressedDocumentPropertyStateTest {
             if (nodeStore != null) {
                 nodeStore.dispose();
             }
+            fixture.dispose();
         }
 
     }
