@@ -130,7 +130,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -139,6 +141,9 @@ import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
+
+    @Rule
+    public TestName name = new TestName();
 
     private static final Logger LOG = LoggerFactory.getLogger(VersionGarbageCollectorIT.class);
 
@@ -198,11 +203,15 @@ public class VersionGarbageCollectorIT {
 
     private DocumentNodeStore store1, store2;
 
+    private List<DocumentStore> documentStoresToBeDisposedAfter = new ArrayList<>();
+
     private VersionGarbageCollector gc;
 
     private ExecutorService execService;
 
     private FullGCMode originalFullGcMode;
+
+    private long startTime = System.currentTimeMillis();
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
     public static java.util.Collection<Object[]> params() throws IOException {
@@ -250,7 +259,7 @@ public class VersionGarbageCollectorIT {
 
         originalFullGcMode = VersionGarbageCollector.getFullGcMode();
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
-        LOG.info("setUp: DONE. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
+        LOG.info("setUp: DONE. fullGcMode = {}, test = {}", fullGcMode, name.getMethodName());
     }
 
     @After
@@ -268,15 +277,32 @@ public class VersionGarbageCollectorIT {
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
         fixture.dispose();
-        LOG.info("tearDown: DONE. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
+        for (DocumentStore ds : documentStoresToBeDisposedAfter) {
+            try {
+                LOG.info("Try to dispose {} used in test {}", ds, name.getMethodName());
+                ds.dispose();
+                LOG.info("Disposed {} used in test {}", ds, name.getMethodName());
+            } catch (Throwable e) {
+                LOG.error("Failed to dispose" + ds, e);
+            }
+        }
+
+        LOG.info("tearDown: DONE. fullGcMode = {}, test = {}, elapsed = {}ms", fullGcMode, name.getMethodName(),
+                System.currentTimeMillis() - startTime);
     }
 
-    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
+    private final String internalRdbTablePrefix = "VGCIT" + Long.toHexString(startTime);
+
+    private String getRdbTablePrefix() {
+        // log which test case used which table prefix in case some leak
+        LOG.info("RDB table prefix for {} is {}", name.getMethodName(), internalRdbTablePrefix);
+        return internalRdbTablePrefix;
+    }
 
     private void createPrimaryStore() {
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+                    new RDBOptions().tablePrefix(getRdbTablePrefix()).dropTablesOnClose(true));
         }
         ds1 = fixture.createDocumentStore();
         documentMKBuilder = new DocumentMK.Builder().clock(clock).setClusterId(1)
@@ -296,10 +322,12 @@ public class VersionGarbageCollectorIT {
                 leaseCheckNode, withFailingDS);
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
+                    // dropping the tables not needed here because done for the primary store
+                    new RDBOptions().tablePrefix(getRdbTablePrefix()).dropTablesOnClose(false));
         }
         ds2 = fixture.createDocumentStore();
         if (withFailingDS) {
+            documentStoresToBeDisposedAfter.add(ds2);
             FailingDocumentStore failingDs = new FailingDocumentStore(ds2);
             failingDs.noDispose();
             ds2 = failingDs;
@@ -943,7 +971,10 @@ public class VersionGarbageCollectorIT {
         if (store1 != null) {
             store1.dispose();
         }
-        final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
+
+        DocumentStore hiddenStore = fixture.createDocumentStore();
+        documentStoresToBeDisposedAfter.add(hiddenStore);
+        final FailingDocumentStore fds = new FailingDocumentStore(hiddenStore, 42) {
             @Override
             public void dispose() {}
         };
