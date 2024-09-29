@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -287,8 +288,9 @@ public class VersionGarbageCollectorIT {
             }
         }
 
-        LOG.info("tearDown: DONE. fullGcMode = {}, test = {}, elapsed = {}ms", fullGcMode, name.getMethodName(),
-                System.currentTimeMillis() - startTime);
+        long elapsed = System.currentTimeMillis() - startTime;
+        LOG.info("tearDown: DONE. fullGcMode = {}, test = {}, elapsed = {}ms ({})", fullGcMode, name.getMethodName(), elapsed,
+                Duration.ofMillis(elapsed));
     }
 
     private final String internalRdbTablePrefix = "VGCIT" + Long.toHexString(startTime);
