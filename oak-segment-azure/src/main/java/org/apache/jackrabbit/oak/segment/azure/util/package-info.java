@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 @Internal(since = "1.0.0")
-@Version("4.0.0")
-package org.apache.jackrabbit.oak.segment.azure;
+@Version("2.0.0")
+package org.apache.jackrabbit.oak.segment.azure.util;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;
