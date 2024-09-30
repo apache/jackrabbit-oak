@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheConfiguration;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitorImpl;

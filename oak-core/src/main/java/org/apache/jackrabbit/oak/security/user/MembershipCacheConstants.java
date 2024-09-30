@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.security.user;
  * the set of {@link java.security.Principal}s as present on the
  * {@link javax.security.auth.Subject} in the commit phase of the authentication.
  */
-interface MembershipCacheConstants {
+public interface MembershipCacheConstants {
 
     String NT_REP_CACHE = "rep:Cache";
     String REP_CACHE = "rep:cache";

@@ -28,7 +28,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheConfiguration;
+import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheLoader;
+import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CachePrincipalFactory;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -64,15 +65,12 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     private static final Logger log = LoggerFactory.getLogger(UserPrincipalProvider.class);
 
-    static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
-    static final String PARAM_CACHE_MAX_STALE = "cacheMaxStale";
-
     private final Root root;
     private final UserConfiguration config;
     private final NamePathMapper namePathMapper;
 
     private final UserProvider userProvider;
-    private final Function<Tree, Set<Principal>> principalMembershipReader;
+    private final CacheLoader principalMembershipReader;
 
     UserPrincipalProvider(@NotNull Root root,
                           @NotNull UserConfiguration userConfiguration,
@@ -90,9 +88,9 @@ class UserPrincipalProvider implements PrincipalProvider {
                     cacheConfiguration,
                     root,
                     createPrincipalFactory());
-            principalMembershipReader = (tree) -> cachedPrincipalMembershipReader.readMembership(tree, readMembershipFunction(membershipProvider));
+            principalMembershipReader = (tree) -> cachedPrincipalMembershipReader.readMembership(tree, readMembershipFromProvider(membershipProvider));
         } else {
-            principalMembershipReader = readMembershipFunction(membershipProvider);
+            principalMembershipReader = readMembershipFromProvider(membershipProvider);
         }
     }
 
@@ -205,7 +203,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     //------------------------------------------------------------< private >---
 
-    private @NotNull Function<String, Principal> createPrincipalFactory() {
+    private @NotNull CachePrincipalFactory createPrincipalFactory() {
         return (principalName) -> new CachedGroupPrincipal(principalName, namePathMapper, root, config);
     }
 
@@ -266,7 +264,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
         Set<Principal> groupPrincipals = new HashSet<>();
-        groupPrincipals.addAll(principalMembershipReader.apply(authorizableTree));
+        groupPrincipals.addAll(principalMembershipReader.load(authorizableTree));
 
         // add the dynamic everyone principal group which is not included in
         // the 'getMembership' call.
@@ -291,7 +289,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    private Function<Tree, Set<Principal>> readMembershipFunction(final MembershipProvider membershipProvider) {
+    private CacheLoader readMembershipFromProvider(final MembershipProvider membershipProvider) {
         return authorizableTree -> {
             Set<Principal> groupPrincipals = new HashSet<>();
             Iterator<Tree> groupTrees = membershipProvider.getMembership(authorizableTree, true);
