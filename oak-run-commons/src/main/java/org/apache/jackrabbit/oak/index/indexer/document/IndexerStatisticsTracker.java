@@ -31,12 +31,12 @@ public final class IndexerStatisticsTracker {
     // Timestamp of when indexing started.
     private long startIndexingNanos = 0;
     // Time spent indexing entries. Should be almost the same as totalMakeDocumentTimeNanos+totalWriteTimeNanos
-    private AtomicLong totalIndexingTimeNanos = new AtomicLong();
+    private final AtomicLong totalIndexingTimeNanos = new AtomicLong();
     // Time generating the Lucene document.
-    private AtomicLong totalMakeDocumentTimeNanos = new AtomicLong();
+    private final AtomicLong totalMakeDocumentTimeNanos = new AtomicLong();
     // Time writing the Lucene document to disk.
-    private AtomicLong totalWriteTimeNanos = new AtomicLong();
-    private AtomicLong nodesIndexed = new AtomicLong();
+    private final AtomicLong totalWriteTimeNanos = new AtomicLong();
+    private final AtomicLong nodesIndexed = new AtomicLong();
 
     public IndexerStatisticsTracker(Logger logger) {
         this.logger = logger;
@@ -50,10 +50,10 @@ public final class IndexerStatisticsTracker {
      * Mark that an entry completed indexing. If indexing the entry was slow, then a
      * message is logged.
      *
-     * @param path the path
+     * @param entryPath the path
      * @param startEntryNanos timestamp of when the current entry started being
      *                        indexed
-     * @oaran endEntryMakeDocumentNanos timestamp of when the current entry finished
+     * @param endEntryMakeDocumentNanos timestamp of when the current entry finished
      *        the makeDocument phase.
      */
     public void onEntryEnd(String entryPath, long startEntryNanos, long endEntryMakeDocumentNanos) {
@@ -63,7 +63,7 @@ public final class IndexerStatisticsTracker {
         long entryMakeDocumentTimeNanos = endEntryMakeDocumentNanos - startEntryNanos;
         long entryWriteTimeNanos = endEntryWriteNanos - endEntryMakeDocumentNanos;
         totalIndexingTimeNanos.addAndGet(entryIndexingTimeNanos);
-        totalMakeDocumentTimeNanos.addAndGet(entryWriteTimeNanos);
+        totalMakeDocumentTimeNanos.addAndGet(entryMakeDocumentTimeNanos);
         totalWriteTimeNanos.addAndGet(entryWriteTimeNanos);
         if (entryIndexingTimeNanos >= (long) SLOW_DOCUMENT_LOG_THRESHOLD * 1_000_000) {
             logger.info("Slow document: {}. Times: total={}ms, makeDocument={}ms, writeToIndex={}ms",

@@ -131,17 +131,18 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
                 cacheGroups(authorizableTree, groups);
             } else {
                 // another thread is already updating the cache, which leaves two options
-                // 1. serve a stale cache if allowed
+                // 1. serve a stale cache if allowed and if the cache values exist
                 // 2. read membership from membership-provider without caching the result
-                if (canServeStaleCache(expirationTime, now)) {
+                if (canServeStaleCache(expirationTime, now) && hasCacheValues(principalCache)) {
                     // the cache cannot be updated by the current thread but a stale cache can be returned and reading
                     // membership again can be avoided
                     LOG.debug("Another thread is updating the cache, returning a stale cache for '{}'.", authorizablePath);
                     serveGroupsFromCache(principalCache, groups);
                 } else {
-                    // another thread is updating the cache and this thread is not allowed to serve a stale cache,
-                    // therefore read membership from membership-provider but do not cache the result.
-                    LOG.debug("Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.");
+                    // another thread is updating the cache and this thread is not allowed to serve a stale cache
+                    // because there's no cache or it's not allowed to serve stale cache
+                    // therefore read membership from membership-provider.
+                    LOG.debug("This thread is not allowed to serve a stale cache; reading from provider without caching.");
                     loader.accept(authorizableTree, groups);
                 }
             }
@@ -169,6 +170,11 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
 
     private boolean canServeStaleCache(long expirationTime, long now) {
         return now - expirationTime < maxStale;
+    }
+
+    private boolean hasCacheValues(@NotNull Tree principalCache) {
+        return principalCache.exists() &&
+                !Strings.isNullOrEmpty(TreeUtil.getString(principalCache, REP_GROUP_PRINCIPAL_NAMES));
     }
 
     /**

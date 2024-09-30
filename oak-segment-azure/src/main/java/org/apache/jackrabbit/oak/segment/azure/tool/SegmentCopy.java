@@ -287,7 +287,9 @@ public class SegmentCopy {
 
         if (flat && destType == SegmentStoreType.TAR) {
             try {
-                srcPersistence = newSegmentNodeStorePersistence(srcType, source, azureStorageCredentialManager);
+                if (srcPersistence == null) {
+                    srcPersistence = newSegmentNodeStorePersistence(srcType, source, azureStorageCredentialManager);
+                }
 
                 SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false, false,
                         new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
