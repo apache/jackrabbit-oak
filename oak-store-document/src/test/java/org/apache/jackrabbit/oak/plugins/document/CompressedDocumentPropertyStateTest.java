@@ -215,19 +215,17 @@ public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTe
     private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         String testNodeName1 = "cdpst1";
-        String testNodeName2 = "cdpst2";
 
         if (compressionEnabled) {
             CompressedDocumentPropertyState.setCompressionThreshold(1);
         }
-        builder.child(testNodeName2).setProperty("p", test, Type.STRING);
+        builder.child(testNodeName1).setProperty("p", test, Type.STRING);
         TestUtils.merge(nodeStore, builder);
 
-        PropertyState p = nodeStore.getRoot().getChildNode(testNodeName2).getProperty("p");
+        PropertyState p = nodeStore.getRoot().getChildNode(testNodeName1).getProperty("p");
         assertEquals(Objects.requireNonNull(p).getValue(Type.STRING), test);
         removeMe.add("0:/");
         removeMe.add("1:/" + testNodeName1);
-        removeMe.add("1:/" + testNodeName2);
     }
 
 
