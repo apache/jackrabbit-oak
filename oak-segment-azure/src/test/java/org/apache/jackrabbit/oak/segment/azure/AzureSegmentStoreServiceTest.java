@@ -43,7 +43,10 @@ import java.util.stream.StreamSupport;
 
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
 
 public class AzureSegmentStoreServiceTest {

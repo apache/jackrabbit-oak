@@ -33,7 +33,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -142,8 +146,7 @@ public class AzureJournalFile implements JournalFile {
                     }
                     reader = new ReverseFileReader(blobContainerClient, blob);
                     if (firstLineReturned) {
-                        while ("".equals(reader.readLine()))
-                            ; // the first line was already returned, let's fast-forward it
+                        while ("".equals(reader.readLine())); // the first line was already returned, let's fast-forward it
                     }
                 } catch (BlobStorageException e) {
                     throw new IOException(e);

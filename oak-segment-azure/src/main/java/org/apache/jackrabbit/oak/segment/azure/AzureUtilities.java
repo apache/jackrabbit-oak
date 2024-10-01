@@ -80,6 +80,16 @@ public final class AzureUtilities {
         }
     }
 
+    public static void deleteAllEntries(BlobContainerClient blobContainerClient, ListBlobsOptions listBlobsOptions) {
+        getBlobs(blobContainerClient, listBlobsOptions).forEach(b -> {
+            try {
+                blobContainerClient.getBlobClient(b.getName()).deleteIfExists();
+            } catch (BlobStorageException e) {
+                log.error("Can't delete blob {}", b.getName(), e);
+            }
+        });
+    }
+
     private static class ByteBufferOutputStream extends OutputStream {
 
         @NotNull
