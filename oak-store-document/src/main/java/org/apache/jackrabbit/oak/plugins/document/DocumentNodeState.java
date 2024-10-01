@@ -23,11 +23,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -253,7 +255,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         //Filter out the meta properties related to bundling from
         //generic listing of props
         if (bundlingContext.isBundled()){
-            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS::test);
+            return () -> properties.values().stream().filter(BundlorUtils.NOT_BUNDLOR_PROPS).iterator();
         }
         return properties.values();
     }
@@ -501,7 +503,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return new TreeTraverser<DocumentNodeState>(){
             @Override
             public Iterable<DocumentNodeState> children(DocumentNodeState root) {
-                return Iterables.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
+                return () -> CollectionUtils.toStream(root.getBundledChildren()).map(ce -> (DocumentNodeState) ce.getNodeState())
+                        .iterator();
             }
         }.preOrderTraversal(this)
          .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
@@ -571,20 +574,22 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @NotNull
     private Iterable<ChildNodeEntry> getChildNodeEntries(@NotNull String name,
                                                          int limit) {
-        Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
-        return Iterables.transform(children, input -> {
-                return new AbstractChildNodeEntry() {
-                    @Override
-                    public String getName() {
-                        return input.getPath().getName();
-                    }
+        Iterable<DocumentNodeState> children = store.getChildNodes(this, name, limit);
+        Function<DocumentNodeState, ChildNodeEntry> transformer = input -> {
+            return new AbstractChildNodeEntry() {
+                @Override
+                public String getName() {
+                    return input.getPath().getName();
+                }
 
-                    @Override
-                    public NodeState getNodeState() {
-                        return input;
-                    }
-                };
-            });
+                @Override
+                public NodeState getNodeState() {
+                    return input;
+                }
+            };
+        };
+
+        return () -> CollectionUtils.toStream(children).map(transformer).iterator();
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){

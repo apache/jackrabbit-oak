@@ -24,6 +24,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -44,6 +45,7 @@ import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -98,7 +100,8 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), ResultRow::getPath)));
+        assertTrue(Iterables.elementsEqual(expected,
+                CollectionUtils.toStream(result.getRows()).map(ResultRow::getPath).collect(Collectors.toList())));
     }
 
     @Test
@@ -125,7 +128,8 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(Iterables.elementsEqual(expected,
+                CollectionUtils.toStream(result.getRows()).map(row -> row.getPath()).collect(Collectors.toList())));
     }
 
     @Test

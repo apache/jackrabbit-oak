@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -68,7 +70,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         } else {
             activeIndexes.addAll(allIndexes);
         }
-        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), indexPath -> {
+        return CollectionUtils.toStream(indexPathService.getIndexPaths()).map(indexPath -> {
             try {
                 IndexInfo info = getInfo(indexPath);
                 if (info != null) {
@@ -79,7 +81,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
                 log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
                 return null;
             }
-        }), x -> x != null);
+        }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override

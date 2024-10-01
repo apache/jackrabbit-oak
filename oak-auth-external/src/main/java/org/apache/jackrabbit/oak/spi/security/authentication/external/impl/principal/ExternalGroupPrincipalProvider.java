@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -213,7 +213,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         // search for external group principals that have not been synchronzied into the repository
         Result result = findPrincipals(Objects.toString(nameHint, ""), false);
         if (result != null) {
-            return Iterators.filter(new GroupPrincipalIterator(nameHint, result), Objects::nonNull);
+            return CollectionUtils.toStream(new GroupPrincipalIterator(nameHint, result)).filter(Objects::nonNull).iterator();
         } else {
             return Collections.emptyIterator();
         }
@@ -305,7 +305,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             }
 
             Set<Value> valueSet = ImmutableSet.copyOf(vs);
-            Iterator<Group> declared = Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
+            Iterator<Group> declared = valueSet.stream().map(value -> {
                 try {
                     String groupPrincipalName = value.getString();
                     Authorizable gr = userManager.getAuthorizable(new PrincipalImpl(groupPrincipalName));
@@ -313,7 +313,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 } catch (RepositoryException e) {
                     return null;
                 }
-            }), Objects::nonNull);
+            }).filter(Objects::nonNull).iterator();
             if (includeInherited) {
                 // retrieve groups inherited from dynamic groups through cross-IDP membership
                 return new InheritedMembershipIterator(declared);
@@ -640,7 +640,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             if (!propValues.hasNext()) {
                 if (rows.hasNext()) {
                     ResultRow row = rows.next();
-                    propValues = Iterators.filter(row.getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Objects::nonNull);
+                    propValues = CollectionUtils.toStream(row.getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS))
+                            .filter(Objects::nonNull).iterator();
                     idpName = getIdpName(row);
                 } else {
                     propValues = Collections.emptyIterator();

@@ -53,7 +53,6 @@ import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -111,6 +110,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
@@ -3467,15 +3467,14 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
-                return filter(super.getPossiblyDeletedDocs(fromModified, toModified),
-                        input -> {
-                                try {
-                                    docs.put(input);
-                                } catch (InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                return true;
-                            });
+                return () -> CollectionUtils.toStream(super.getPossiblyDeletedDocs(fromModified, toModified)).filter(input -> {
+                    try {
+                        docs.put(input);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return true;
+                }).iterator();
             }
         };
 
@@ -3700,12 +3699,12 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport nonReportingGcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, long toModified) {
-                return filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
-                        input -> {
-                                docCounter.incrementAndGet();
-                                // don't report any doc to be GC'able
-                                return false;
-                            });
+                return () -> CollectionUtils.toStream(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified))
+                        .filter(input -> {
+                            docCounter.incrementAndGet();
+                            // don't report any doc to be GC'able
+                            return false;
+                        }).iterator();
             }
         };
         final VersionGarbageCollector gc = new VersionGarbageCollector(store1, nonReportingGcSupport, false, false, false);

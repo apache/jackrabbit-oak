@@ -57,8 +57,6 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 
 import static java.lang.System.currentTimeMillis;
@@ -208,8 +206,8 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     public Iterable<String> checkpoints() {
         final NodeStore globalNodeStore = ctx.getGlobalStore().getNodeStore();
-        return filter(globalNodeStore.checkpoints(),
-                checkpoint -> isCompositeCheckpoint(checkpoint));
+        return () -> CollectionUtils.toStream(globalNodeStore.checkpoints()).filter(checkpoint -> isCompositeCheckpoint(checkpoint))
+                .iterator();
     }
 
     private boolean isCompositeCheckpoint(String checkpoint) {

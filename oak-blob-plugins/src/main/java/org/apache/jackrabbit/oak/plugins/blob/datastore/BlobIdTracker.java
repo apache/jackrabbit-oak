@@ -30,6 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -45,8 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
 import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
@@ -264,10 +263,10 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Stopwatch watch = Stopwatch.createStarted();
             LOG.trace("Retrieving all blob id files available form the DataStore");
             // Download all the blob reference records from the data store
-            Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
+            List<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(transform(refRecords, input -> {
+            List<File> refFiles = refRecords.stream().map(input -> {
                     InputStream inputStream = null;
                     try {
                         inputStream = input.getStream();
@@ -278,7 +277,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                         closeQuietly(inputStream);
                     }
                     return null;
-                }));
+                }).collect(Collectors.toList());
             LOG.info("Retrieved all blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Merge all the downloaded files in to the local store

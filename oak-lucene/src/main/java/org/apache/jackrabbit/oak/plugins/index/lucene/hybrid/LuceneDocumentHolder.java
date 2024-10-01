@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -115,7 +116,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
-        return Iterables.transform(docs.entries(), input -> {
+        return docs.entries().stream().map(input -> {
                 return new LuceneDocInfo() {
                     @Override
                     public String getIndexPath() {
@@ -127,6 +128,6 @@ public class LuceneDocumentHolder implements JournalProperty {
                         return input.getValue();
                     }
                 };
-            });
+            }).collect(Collectors.toList());
     }
 }

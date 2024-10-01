@@ -68,6 +68,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.junit.Assert.assertEquals;
@@ -796,7 +797,8 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
         assertEquals(2, principalPermissionStore.getChildrenCount(10));
-        Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
+        Set<String> paths = CollectionUtils.toStream(principalPermissionStore.getChildren())
+                .map(tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING)).collect(Collectors.toSet());
 
         assertEquals(Set.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
     }

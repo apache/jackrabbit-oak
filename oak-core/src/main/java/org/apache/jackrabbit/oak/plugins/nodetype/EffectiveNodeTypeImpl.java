@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -37,6 +38,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.jetbrains.annotations.NotNull;
@@ -175,25 +177,25 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getAutoCreateNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isAutoCreated());
+        return () -> CollectionUtils.toStream(getNodeDefinitions()).filter(NodeDefinition::isAutoCreated).iterator();
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getAutoCreatePropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isAutoCreated());
+        return () -> CollectionUtils.toStream(getPropertyDefinitions()).filter(PropertyDefinition::isAutoCreated).iterator();
     }
 
     @NotNull
     @Override
     public Iterable<NodeDefinition> getMandatoryNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isMandatory());
+        return () -> CollectionUtils.toStream(getNodeDefinitions()).filter(NodeDefinition::isMandatory).iterator();
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getMandatoryPropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isMandatory());
+        return () -> CollectionUtils.toStream(getPropertyDefinitions()).filter(PropertyDefinition::isMandatory).iterator();
     }
 
     /**
@@ -205,8 +207,8 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
-        return Iterables.concat(Iterables.transform(nodeTypes.values(),
-                input -> input.getDeclaredNamedNodeDefinitions(oakName)));
+        return Iterables.concat(nodeTypes.values().stream().map(input -> input.getDeclaredNamedNodeDefinitions(oakName))
+                .collect(Collectors.toList()));
     }
 
     /**

@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -46,7 +46,9 @@ import org.junit.runners.Parameterized;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class RecursiveDeleteTest {
@@ -152,7 +154,7 @@ public class RecursiveDeleteTest {
         TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
             @Override
             public Iterable<NodeState> children(NodeState root) {
-                return Iterables.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+                return () -> CollectionUtils.toStream(root.getChildNodeEntries()).map(ChildNodeEntry::getNodeState).iterator();
             }
         };
         return t.preOrderTraversal(state).size();

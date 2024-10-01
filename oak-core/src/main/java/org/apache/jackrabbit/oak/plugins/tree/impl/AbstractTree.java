@@ -20,9 +20,6 @@ package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
@@ -33,11 +30,14 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -255,7 +255,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public long getPropertyCount() {
-        return size(getProperties());
+        return CollectionUtils.toStream(getProperties()).count();
     }
 
     @Override
@@ -276,7 +276,8 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        return filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
+        return CollectionUtils.toIterable(CollectionUtils.toStream(getNodeBuilder().getProperties())
+                .filter(propertyState -> !isHidden(propertyState.getName())).iterator());
     }
 
     @Override
@@ -310,11 +311,9 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<Tree> getChildren() {
-        Iterable<Tree> children = transform(getChildNames(),
-                name ->  {
-                    AbstractTree child = createChild(name);
-                    return child.exists() ? child : null;
-                });
-        return filter(children, x -> x != null);
+        return CollectionUtils.toStream(getChildNames()).map(name -> {
+            AbstractTree child = createChild(name);
+            return child.exists() ? child : null;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 }

@@ -20,9 +20,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
@@ -36,7 +38,6 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -297,23 +298,23 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
+        return pItemImporters.stream().map(importer -> {
                 if (importer instanceof ProtectedPropertyImporter) {
                     return (ProtectedPropertyImporter) importer;
                 } else {
                     return null;
                 }
-            }), x -> x != null);
+            }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
+        return pItemImporters.stream().map(importer -> {
                 if (importer instanceof ProtectedNodeImporter) {
                     return (ProtectedNodeImporter) importer;
                 } else {
                     return null;
                 }
-            }), x -> x != null);
+            }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     //-----------------------------------------------------------< Importer >---

@@ -44,6 +44,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PARAM_READ_PATHS;
@@ -103,13 +104,17 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     @Test
     public void testGetCommitHooks() {
         List<Class> expected = ImmutableList.of(VersionablePathHook.class, PermissionHook.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()), commitHook -> commitHook.getClass())));
+        assertTrue(Iterables.elementsEqual(expected, authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName())
+                .stream().map(commitHook -> commitHook.getClass()).collect(Collectors.toList())));
     }
 
     @Test
     public void testGetValidators() {
-        List<Class> expected = ImmutableList.of(PermissionStoreValidatorProvider.class, PermissionValidatorProvider.class, AccessControlValidatorProvider.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
+        List<Class> expected = ImmutableList.of(PermissionStoreValidatorProvider.class, PermissionValidatorProvider.class,
+                AccessControlValidatorProvider.class);
+        assertTrue(Iterables.elementsEqual(expected,
+                authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()).stream()
+                        .map(commitHook -> commitHook.getClass()).collect(Collectors.toList())));
     }
 
     @Test

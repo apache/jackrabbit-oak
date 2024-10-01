@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -105,7 +104,8 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp)::test);
+        return () -> CollectionUtils.toStream(getSplitDocuments())
+                .filter(getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp)).iterator();
     }
 
     private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
@@ -161,7 +161,10 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
         final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
 
-        return CloseableIterable.wrap(Iterables.concat(Iterables.filter(fit1, cp1::test), Iterables.filter(fit2, cp2::test)),
+        final Iterable<NodeDocument> iterable1 = () -> CollectionUtils.toStream(fit1).filter(cp1).iterator(); 
+        final Iterable<NodeDocument> iterable2 = () -> CollectionUtils.toStream(fit2).filter(cp2).iterator(); 
+
+        return CloseableIterable.wrap(Iterables.concat(iterable1, iterable2),
                 new Closeable() {
                     @Override
             public void close() throws IOException {

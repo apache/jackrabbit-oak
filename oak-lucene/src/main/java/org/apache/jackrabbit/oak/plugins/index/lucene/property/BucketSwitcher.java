@@ -20,10 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_ASYNC_INDEXED_TO_TIME_AT_SWITCH;
@@ -97,9 +98,9 @@ class BucketSwitcher {
     public Iterable<String> getOldBuckets() {
         String head = builder.getString(PROP_HEAD_BUCKET);
         String previous = builder.getString(PROP_PREVIOUS_BUCKET);
-        return Iterables.filter(builder.getChildNodeNames(),
-                name -> !Objects.equals(name, head) && !Objects.equals(name, previous)
-        );
+        return CollectionUtils.toStream(builder.getChildNodeNames())
+                .filter(name -> !Objects.equals(name, head) && !Objects.equals(name, previous)).collect(Collectors.toList());
+
     }
 
     private boolean asyncIndexedToTimeSameAsPrevious(long lastIndexedTo) {

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -136,7 +135,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @NotNull
     private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {
         Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-        return Iterators.filter(Iterators.transform(iter, input -> {
+        return CollectionUtils.toStream(iter).map(input -> {
             try {
                 if (input != null) {
                     return input.getID();
@@ -145,7 +144,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
                 // failed to retrieve ID
             }
             return null;
-        }), Objects::nonNull);
+        }).filter(Objects::nonNull).iterator();
     }
 
     @Override

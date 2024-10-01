@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.authentication.external;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -46,6 +44,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component(service = ExternalIdentityProvider.class, immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = CustomExternalIdentityProvider.Configuration.class)
@@ -153,8 +152,8 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     if (groupIds == null || groupIds.isEmpty()) {
                         return Set.of();
                     } else {
-                        return Iterables.transform(groupIds,
-                                input -> new ExternalIdentityRef(input, getName()));
+                        return groupIds.stream().map(input -> new ExternalIdentityRef(input, getName()))
+                                .collect(Collectors.toUnmodifiableSet());
                     }
                 }
 

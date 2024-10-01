@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -98,7 +99,6 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.lang.Thread.currentThread;
 
 /**
@@ -1098,9 +1098,8 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = Lists.newArrayList(
-                    filter(prevObjectListing.getObjectSummaries(),
-                            input -> !input.getKey().startsWith(META_KEY_PREFIX)));
+                List<S3ObjectSummary> listing = prevObjectListing.getObjectSummaries().stream()
+                        .filter(input -> !input.getKey().startsWith(META_KEY_PREFIX)).collect(Collectors.toList());
 
                 // After filtering no elements
                 if (listing.isEmpty()) {

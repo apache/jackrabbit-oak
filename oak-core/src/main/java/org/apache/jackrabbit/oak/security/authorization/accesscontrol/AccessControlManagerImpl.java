@@ -845,7 +845,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         private PrincipalPredicate(@Nullable String accessControlledPath, @NotNull Set<Principal> principals, @NotNull Collection<String> oakPaths) {
             this.accessControlledPath = accessControlledPath;
-            principalNames = Iterables.transform(principals, Principal::getName);
+            principalNames = () -> principals.stream().map(Principal::getName).iterator();
             this.oakPaths = oakPaths;
         }
 

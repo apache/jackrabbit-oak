@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -234,7 +235,8 @@ public class DynamicSyncContext extends DefaultSyncContext {
      */
     private void collectSyncEntries(@NotNull Iterable<ExternalIdentityRef> declaredGroupRefs, long depth, @NotNull Map<ExternalIdentityRef, SyncEntry> map) throws ExternalIdentityException, RepositoryException {
         boolean shortcut = shortcut(depth);
-        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupRefs, this::isSameIDP)) {
+        Iterable<ExternalIdentityRef> filtered = () -> CollectionUtils.toStream(declaredGroupRefs).filter(this::isSameIDP).iterator();
+        for (ExternalIdentityRef ref : filtered) {
             String principalName = null;
             Authorizable a = null;
             ExternalGroup externalGroup = null;

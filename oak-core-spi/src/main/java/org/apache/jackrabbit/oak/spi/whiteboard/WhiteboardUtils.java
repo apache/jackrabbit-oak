@@ -21,6 +21,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -29,9 +30,7 @@ import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
@@ -162,7 +161,7 @@ public class WhiteboardUtils {
             if (predicate == null) {
                 return tracker.getServices();
             } else {
-                return ImmutableList.copyOf(Iterables.filter(tracker.getServices(), (input) -> predicate.test(input)));
+                return Collections.unmodifiableList(tracker.getServices().stream().filter(predicate).collect(Collectors.toList()));
             }
         } finally {
             tracker.stop();

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -34,6 +35,8 @@ import org.jetbrains.annotations.NotNull;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
+import java.util.Iterator;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -151,10 +154,11 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.filter(delegate.getProperties(), NOT_META_PROPS::test);
+        return () -> (Iterator<PropertyState>) CollectionUtils.toStream(delegate.getProperties()).filter(NOT_META_PROPS).iterator();
     }
 
     @Override
@@ -171,8 +175,9 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(delegate.getChildNodeEntries(),
-                input -> new MemoryChildNodeEntry(input.getName(), decorate(input.getName(), input.getNodeState())));
+        Function<ChildNodeEntry, ChildNodeEntry> transform = input -> new MemoryChildNodeEntry(input.getName(),
+                decorate(input.getName(), input.getNodeState()));
+        return () -> CollectionUtils.toStream(delegate.getChildNodeEntries()).map(transform).iterator();
     }
 
     @NotNull

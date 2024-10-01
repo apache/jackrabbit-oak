@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -24,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -77,7 +77,8 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
 
         // a) force the cache to be created
         pp = new UserPrincipalProvider(systemRoot, getUserConfiguration(), namePathMapper);
-        Iterable<? extends Principal> principals = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate()::test);
+        Iterable<? extends Principal> principals = CollectionUtils
+                .toIterable(pp.getPrincipals(userId).stream().filter(new GroupPredicate()).iterator());
         for (Principal p : principals) {
             String className = p.getClass().getName();
             assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
@@ -122,7 +123,8 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
 
         // b) retrieve principals again (this time from the cache)
         // -> verify that they are a different implementation
-        Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate()::test);
+        Iterable<? extends Principal> principalsAgain = CollectionUtils
+                .toIterable(pp.getPrincipals(userId).stream().filter(new GroupPredicate()).iterator());
         for (Principal p : principalsAgain) {
             String className = p.getClass().getName();
             assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
@@ -151,7 +153,8 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
         // b) retrieve principals again (this time from the cache)
         //    principal for 'testGroup' is no longer backed by an user mgt group
         //    verify that this doesn't lead to runtime exceptions
-        Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate()::test);
+        Iterable<? extends Principal> principalsAgain = CollectionUtils
+                .toIterable(pp.getPrincipals(userId).stream().filter(new GroupPredicate()).iterator());
         for (Principal p : principalsAgain) {
             String className = p.getClass().getName();
             assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
@@ -185,7 +188,8 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
         // b) retrieve principals again (this time from the cache)
         //    principal for 'testGroup' is no longer backed by an user mgt group
         //    verify that this doesn't lead to runtime exceptions
-        Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate()::test);
+        Iterable<? extends Principal> principalsAgain = CollectionUtils
+                .toIterable(pp.getPrincipals(userId).stream().filter(new GroupPredicate()).iterator());
         for (Principal p : principalsAgain) {
             String className = p.getClass().getName();
             assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
@@ -214,7 +218,8 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
         // b) retrieve principals again (this time from the cache)
         //    principal for 'testGroup' is no longer backed by an user mgt group
         //    verify that this doesn't lead to runtime exceptions
-        Iterable<? extends Principal> principalsAgain = Iterables.filter(provider.getPrincipals(userId), new GroupPredicate()::test);
+        Iterable<? extends Principal> principalsAgain = CollectionUtils
+                .toIterable(provider.getPrincipals(userId).stream().filter(new GroupPredicate()).iterator());
         for (Principal p : principalsAgain) {
             String className = p.getClass().getName();
             assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);

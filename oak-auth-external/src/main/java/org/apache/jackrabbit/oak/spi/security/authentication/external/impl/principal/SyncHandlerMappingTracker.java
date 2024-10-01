@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_IDP_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
@@ -77,14 +77,13 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
     }
 
     Iterable<String> getIdpNames(@NotNull final String syncHandlerName) {
-        return Iterables.filter(Iterables.transform(referenceMap.values(), mapping -> {
+        return () -> referenceMap.values().stream().map(mapping -> {
             if (syncHandlerName.equals(mapping.syncHandlerName)) {
                 return mapping.idpName;
             } else {
                 // different synchandler name
                 return null;
-            }
-        }), x -> x != null);
+            }}).filter(Objects::nonNull).iterator();
     }
 
     private static final class Mapping {

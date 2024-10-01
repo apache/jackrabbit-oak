@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
@@ -48,10 +49,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
@@ -213,7 +213,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      */
     private boolean waitForRunningIndexCycles() {
         Map<IndexStatsMBean, Long> origIndexLaneToExecutinoCountMap = Maps.asMap(
-                new HashSet<>(StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
+                new HashSet<>(CollectionUtils.toStream(asyncIndexInfoService.getAsyncLanes())
                         .map(lane -> asyncIndexInfoService.getInfo(lane).getStatsMBean())
                         .filter(bean -> {
                             String beanStatus;
@@ -234,7 +234,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
 
         if (!origIndexLaneToExecutinoCountMap.isEmpty()) {
             LOG.info("Found running index lanes ({}). Sleep a bit before continuing.",
-                    transform(origIndexLaneToExecutinoCountMap.keySet(), IndexStatsMBean::getName));
+                    origIndexLaneToExecutinoCountMap.keySet().stream().map(IndexStatsMBean::getName).collect(Collectors.toList()));
             try {
                 clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(1));
             } catch (InterruptedException e) {

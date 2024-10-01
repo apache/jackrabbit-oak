@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -42,6 +41,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
@@ -70,10 +70,10 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
         assertFalse(paths.isEmpty());
 
-        readablePaths = Iterators.cycle(Iterables.transform(paths, f -> getNamePathMapper().getJcrPath(f)));
+        readablePaths = Iterators.cycle(paths.stream().map(f -> getNamePathMapper().getJcrPath(f)).collect(Collectors.toList()));
         Set<String> childPaths = new HashSet<>();
         for (String path : paths) {
-            Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(), tree -> getNamePathMapper().getJcrPath(tree.getPath())));
+            CollectionUtils.toStream(root.getTree(path).getChildren()).map(tree -> getNamePathMapper().getJcrPath(tree.getPath())).forEach(childPaths::add);
         }
         readableChildPaths = Iterators.cycle(childPaths);
     }
