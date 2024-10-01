@@ -185,65 +185,31 @@ public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTe
     }
 
     @Test
-    public void testBrokenSurrogateWithoutCompressionForMongo() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, false);
+    public void testBrokenSurrogateWithoutCompression() throws CommitFailedException {
+        getBrokenSurrogateAndInitializeDifferentStores(false);
     }
 
     @Test
-    public void testBrokenSurrogateWithoutCompressionForRDB() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithoutCompressionForInMemory() throws CommitFailedException {
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, false);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForMongo() throws CommitFailedException {
+    public void testBrokenSurrogateWithCompression() throws CommitFailedException {
         CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MONGO, true);
+        getBrokenSurrogateAndInitializeDifferentStores(true);
     }
 
-    @Test
-    public void testBrokenSurrogateWithCompressionForRDB() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.RDB_H2, true);
-    }
-
-    @Test
-    public void testBrokenSurrogateWithCompressionForInMemory() throws CommitFailedException {
-        CompressedDocumentPropertyState.setCompressionThreshold(1);
-        getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture.MEMORY, true);
-    }
-
-    private void getBrokenSurrogateAndInitializeDifferentStores(DocumentStoreFixture fixture, boolean compressionEnabled) throws CommitFailedException {
-        assumeTrue(fixture.isAvailable());
+    private void getBrokenSurrogateAndInitializeDifferentStores(boolean compressionEnabled) throws CommitFailedException {
+        assumeTrue(dsf.isAvailable());
         String test = "brokensurrogate:dfsa\ud800";
-        DocumentStore store = null;
-        DocumentNodeStore nodeStore = null;
+        DocumentNodeStore nodeStore;
 
-        try {
-            store = fixture.createDocumentStore();
-
-            if (store instanceof MongoDocumentStore) {
-                // Enforce primary read preference, otherwise tests may fail on a
-                // replica set with a read preference configured to secondary.
-                // Revision GC usually runs with a modified range way in the past,
-                // which means changes made it to the secondary, but not in this
-                // test using a virtual clock
-                MongoTestUtils.setReadPreference(store, ReadPreference.primary());
-            }
-            nodeStore = new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
-
-            createPropAndCheckValue(nodeStore, test, compressionEnabled);
-
-        } finally {
-            if (nodeStore != null) {
-                nodeStore.dispose();
-            }
+        if (ds instanceof MongoDocumentStore) {
+            // Enforce primary read preference, otherwise tests may fail on a
+            // replica set with a read preference configured to secondary.
+            // Revision GC usually runs with a modified range way in the past,
+            // which means changes made it to the secondary, but not in this
+            // test using a virtual clock
+            MongoTestUtils.setReadPreference(ds, ReadPreference.primary());
         }
-
+        nodeStore = new DocumentMK.Builder().setDocumentStore(ds).getNodeStore();
+        createPropAndCheckValue(nodeStore, test, compressionEnabled);
     }
 
     private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
