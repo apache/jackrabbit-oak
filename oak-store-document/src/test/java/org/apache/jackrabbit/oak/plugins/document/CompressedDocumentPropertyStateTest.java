@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -216,22 +217,19 @@ public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTe
 
     private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
-        String testNodeName1 = "cdpst1";
-        String testNodeName2 = "cdpst2";
+        String testNodeName1 = "cdpst";
 
         if (compressionEnabled) {
             CompressedDocumentPropertyState.setCompressionThreshold(1);
         }
-        builder.child(testNodeName2).setProperty("p", test, Type.STRING);
+        builder.child(testNodeName1).setProperty("p", test, Type.STRING);
         TestUtils.merge(nodeStore, builder);
 
-        PropertyState p = nodeStore.getRoot().getChildNode(testNodeName2).getProperty("p");
+        PropertyState p = nodeStore.getRoot().getChildNode(testNodeName1).getProperty("p");
         assertEquals(Objects.requireNonNull(p).getValue(Type.STRING), test);
 
-        // TODO: is there a utility to map these to DS node names?
-        removeMe.add("0:/");
-        removeMe.add("1:/" + testNodeName1);
-        removeMe.add("1:/" + testNodeName2);
+        removeMe.add(Utils.getIdFromPath("/"));
+        removeMe.add(Utils.getIdFromPath("/" + testNodeName1));
     }
 
     @Test
