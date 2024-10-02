@@ -55,7 +55,7 @@ public class AzureSegmentArchiveWriterTest {
     public static final int MAX_ATTEMPTS = 3;
 
     @Rule
-    public MockServerRule mockServerRule = new MockServerRule(this, 1080);
+    public MockServerRule mockServerRule = new MockServerRule(this, 1090);
 
     @SuppressWarnings("unused")
     private MockServerClient mockServerClient;
@@ -65,7 +65,7 @@ public class AzureSegmentArchiveWriterTest {
 
     @Before
     public void setUp() throws Exception {
-        mockServerClient = new MockServerClient("localhost", 1080);
+        mockServerClient = new MockServerClient("localhost", mockServerRule.getPort());
         System.setProperty("azure.segment.archive.writer.retries.intervalMs", "100");
         System.setProperty("azure.segment.archive.writer.retries.max", Integer.toString(MAX_ATTEMPTS));
 
@@ -233,7 +233,7 @@ public class AzureSegmentArchiveWriterTest {
     }
 
     public BlobContainerClient getCloudStorageAccount(String containerName, RequestRetryOptions retryOptions) {
-        String blobEndpoint = "BlobEndpoint=http://localhost:1080/devstoreaccount1";
+        String blobEndpoint = "BlobEndpoint=http://localhost:" + mockServerRule.getPort() + "/devstoreaccount1";
         String accountName = "AccountName=" + ACCOUNT_NAME;
         String accountKey = "AccountKey=" + ACCOUNT_KEY;
 
