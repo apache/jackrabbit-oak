@@ -19,6 +19,10 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -39,6 +43,8 @@ import org.mockserver.model.HttpRequest;
 import java.io.IOException;
 import java.util.UUID;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule.ACCOUNT_KEY;
+import static org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule.ACCOUNT_NAME;
 import static org.junit.Assert.assertThrows;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -49,7 +55,7 @@ public class AzureSegmentArchiveWriterTest {
     public static final int MAX_ATTEMPTS = 3;
 
     @Rule
-    public MockServerRule mockServerRule = new MockServerRule(this);
+    public MockServerRule mockServerRule = new MockServerRule(this, 1080);
 
     @SuppressWarnings("unused")
     private MockServerClient mockServerClient;
@@ -57,26 +63,20 @@ public class AzureSegmentArchiveWriterTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private BlobContainerClient readBlobContainerClient;
-    private BlobContainerClient writeBlobContainerClient;
-
     @Before
     public void setUp() throws Exception {
+        mockServerClient = new MockServerClient("localhost", 1080);
         System.setProperty("azure.segment.archive.writer.retries.intervalMs", "100");
         System.setProperty("azure.segment.archive.writer.retries.max", Integer.toString(MAX_ATTEMPTS));
 
         // Disable Azure SDK own retry mechanism used by AzureSegmentArchiveWriter
-        System.setProperty("segment.azure.retry.attempts", "1");
+        System.setProperty("segment.azure.retry.backoff", "1");
         System.setProperty("segment.timeout.execution", "1");
-
-        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
-        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
     }
 
     @Test
     public void retryWhenFailureOnWriteBinaryReferences_eventuallySucceed() throws Exception {
-        SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
+        expectWriteRequests();
 
         HttpRequest writeBinaryReferencesRequest = getWriteBinaryReferencesRequest();
         // fail twice
@@ -88,6 +88,9 @@ public class AzureSegmentArchiveWriterTest {
                 .when(writeBinaryReferencesRequest, Times.once())
                 .respond(response().withStatusCode(201));
 
+        SegmentArchiveWriter writer = createSegmentArchiveWriter();
+        writeAndFlushSegment(writer);
+
         writer.writeBinaryReferences(new byte[10]);
 
         mockServerClient.verify(writeBinaryReferencesRequest, exactly(MAX_ATTEMPTS));
@@ -95,8 +98,7 @@ public class AzureSegmentArchiveWriterTest {
 
     @Test
     public void retryWhenFailureOnWriteGraph_eventuallySucceed() throws Exception {
-        SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
+        expectWriteRequests();
 
         HttpRequest writeGraphRequest = getWriteGraphRequest();
         // fail twice
@@ -108,6 +110,9 @@ public class AzureSegmentArchiveWriterTest {
                 .when(writeGraphRequest, Times.once())
                 .respond(response().withStatusCode(201));
 
+        SegmentArchiveWriter writer = createSegmentArchiveWriter();
+        writeAndFlushSegment(writer);
+
         writer.writeGraph(new byte[10]);
 
         mockServerClient.verify(writeGraphRequest, exactly(MAX_ATTEMPTS));
@@ -115,8 +120,7 @@ public class AzureSegmentArchiveWriterTest {
 
     @Test
     public void retryWhenFailureOnClose_eventuallySucceed() throws Exception {
-        SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
+        expectWriteRequests();
 
         HttpRequest closeArchiveRequest = getCloseArchiveRequest();
         // fail twice
@@ -128,6 +132,9 @@ public class AzureSegmentArchiveWriterTest {
                 .when(closeArchiveRequest, Times.once())
                 .respond(response().withStatusCode(201));
 
+        SegmentArchiveWriter writer = createSegmentArchiveWriter();
+        writeAndFlushSegment(writer);
+
         writer.close();
 
         mockServerClient.verify(closeArchiveRequest, exactly(MAX_ATTEMPTS));
@@ -135,8 +142,7 @@ public class AzureSegmentArchiveWriterTest {
 
     @Test
     public void retryWhenFailureOnClose_failAfterLastRetryAttempt() throws Exception {
-        SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
+        expectWriteRequests();
 
         HttpRequest closeArchiveRequest = getCloseArchiveRequest();
         // always fail
@@ -144,6 +150,8 @@ public class AzureSegmentArchiveWriterTest {
                 .when(closeArchiveRequest, Times.unlimited())
                 .respond(response().withStatusCode(500));
 
+        SegmentArchiveWriter writer = createSegmentArchiveWriter();
+        writeAndFlushSegment(writer);
 
         assertThrows(IOException.class, writer::close);
 
@@ -152,7 +160,6 @@ public class AzureSegmentArchiveWriterTest {
 
 
     private void writeAndFlushSegment(SegmentArchiveWriter writer) throws IOException {
-        expectWriteRequests();
         UUID u = UUID.randomUUID();
         writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
         writer.flush();
@@ -170,6 +177,12 @@ public class AzureSegmentArchiveWriterTest {
 
     @NotNull
     private SegmentArchiveWriter createSegmentArchiveWriter() throws  IOException {
+        createContainerMock();
+        BlobContainerClient readBlobContainerClient = getCloudStorageAccount("oak-test",  AzureRequestOptions.getRetryOptionsDefault());
+        BlobContainerClient writeBlobContainerClient = getCloudStorageAccount("oak-test", AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations());
+        writeBlobContainerClient.deleteIfExists();
+        writeBlobContainerClient.createIfNotExists();
+
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
         AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, "oak");/**/
@@ -182,7 +195,7 @@ public class AzureSegmentArchiveWriterTest {
     private static HttpRequest getCloseArchiveRequest() {
         return request()
                 .withMethod("PUT")
-                .withPath(BASE_PATH + "/oak/data00000a.tar/closed");
+                .withPath(BASE_PATH + "/oak%2Fdata00000a.tar%2Fclosed");
     }
 
     private static HttpRequest getWriteBinaryReferencesRequest() {
@@ -194,21 +207,46 @@ public class AzureSegmentArchiveWriterTest {
     private static HttpRequest getWriteGraphRequest() {
         return request()
                 .withMethod("PUT")
-                .withPath(BASE_PATH + "/oak/data00000a.tar/data00000a.tar.gph");
+                .withPath(BASE_PATH + "/oak%2Fdata00000a.tar%2Fdata00000a.tar.gph");
     }
 
     private static HttpRequest getUploadSegmentMetadataRequest() {
         return request()
                 .withMethod("PUT")
-                .withPath(BASE_PATH + "/oak/data00000a.tar/.*")
+                .withPath(BASE_PATH + "/oak%2Fdata00000a.tar%2F.*")
                 .withQueryStringParameter("comp", "metadata");
     }
 
     private static HttpRequest getUploadSegmentDataRequest() {
         return request()
                 .withMethod("PUT")
-                .withPath(BASE_PATH + "/oak/data00000a.tar/.*")
+                .withPath(BASE_PATH + "/oak%2Fdata00000a.tar%2F.*")
                 .withBody(new BinaryBody(new byte[10]));
+    }
+
+    private void createContainerMock() {
+        mockServerClient
+                .when(request()
+                        .withMethod("PUT")
+                        .withPath(BASE_PATH))
+                .respond(response().withStatusCode(201).withBody("Container created successfully"));
+    }
+
+    public BlobContainerClient getCloudStorageAccount(String containerName, RequestRetryOptions retryOptions) {
+        String blobEndpoint = "BlobEndpoint=http://localhost:1080/devstoreaccount1";
+        String accountName = "AccountName=" + ACCOUNT_NAME;
+        String accountKey = "AccountKey=" + ACCOUNT_KEY;
+
+        AzureHttpRequestLoggingTestingPolicy azureHttpRequestLoggingTestingPolicy = new AzureHttpRequestLoggingTestingPolicy();
+
+        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
+                .endpoint(azurite.getBlobEndpoint())
+                .addPolicy(azureHttpRequestLoggingTestingPolicy)
+                .connectionString(("DefaultEndpointsProtocol=http;" + accountName + ";" + accountKey + ";" + blobEndpoint))
+                .retryOptions(retryOptions)
+                .buildClient();
+
+        return blobServiceClient.getBlobContainerClient(containerName);
     }
 
 }

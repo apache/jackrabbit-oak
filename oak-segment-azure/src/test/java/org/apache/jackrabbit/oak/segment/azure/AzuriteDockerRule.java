@@ -122,7 +122,7 @@ public class AzuriteDockerRule extends ExternalResource {
         BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
                 .endpoint(getBlobEndpoint())
                 .addPolicy(azureHttpRequestLoggingTestingPolicy)
-                .connectionString(("DefaultEndpointsProtocol=http;" + ";" + accountName + ";" + accountKey + ";" + blobEndpoint))
+                .connectionString(("DefaultEndpointsProtocol=http;" + accountName + ";" + accountKey + ";" + blobEndpoint))
                 .retryOptions(retryOptions)
                 .buildClient();
 

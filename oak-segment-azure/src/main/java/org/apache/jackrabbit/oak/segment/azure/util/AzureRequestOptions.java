@@ -49,7 +49,7 @@ public class AzureRequestOptions {
     }
 
     public static RequestRetryOptions getRetryOptionsDefault(String secondaryHost) {
-        int retryAttempts = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
+        int retryAttempts = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS);
         int timeoutExecution = Integer.getInteger(TIMEOUT_EXECUTION_PROP, DEFAULT_TIMEOUT_EXECUTION);
         int timeoutInterval = Integer.getInteger(TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
         long timeoutIntervalToMs = timeoutInterval * 1_000L;
@@ -68,7 +68,7 @@ public class AzureRequestOptions {
      * @return
      */
     public static RequestRetryOptions getRetryOperationsOptimiseForWriteOperations() {
-        int retryAttempts = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
+        int retryAttempts = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS);
         Integer writeTimeoutExecution = Integer.getInteger(WRITE_TIMEOUT_EXECUTION_PROP, DEFAULT_TIMEOUT_EXECUTION);
         Integer writeTimeoutInterval = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
         long writeTimeoutIntervalToMs = writeTimeoutInterval * 1_000L;
