@@ -40,11 +40,11 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -68,24 +68,13 @@ public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTe
         }
     };
 
-    private DocumentNodeStore ns;
-
     public CompressedDocumentPropertyStateTest(DocumentStoreFixture dsf) {
         super(dsf);
     }
 
-    @Before
-    public void before() {
-        ns = builderProvider.newBuilder().setBlobStore(bs).getNodeStore();
-    }
-
     @After
     public void tearDown() {
-        try {
-            ns.dispose();
-        } finally {
-            CompressedDocumentPropertyState.setCompressionThreshold(DISABLED_COMPRESSION);
-        }
+        CompressedDocumentPropertyState.setCompressionThreshold(DISABLED_COMPRESSION);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -198,7 +187,7 @@ public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTe
     private void getBrokenSurrogateAndInitializeDifferentStores(boolean compressionEnabled) throws CommitFailedException {
         assumeTrue(dsf.isAvailable());
         String test = "brokensurrogate:dfsa\ud800";
-        DocumentNodeStore nodeStore;
+        DocumentNodeStore store;
 
         if (ds instanceof MongoDocumentStore) {
             // Enforce primary read preference, otherwise tests may fail on a
@@ -208,24 +197,25 @@ public class CompressedDocumentPropertyStateTest extends AbstractDocumentStoreTe
             // test using a virtual clock
             MongoTestUtils.setReadPreference(ds, ReadPreference.primary());
         }
-        nodeStore = new DocumentMK.Builder().setDocumentStore(ds).getNodeStore();
-        createPropAndCheckValue(nodeStore, test, compressionEnabled);
+        store = builderProvider.newBuilder().setDocumentStore(ds).getNodeStore();
+        removeMeClusterNodes.add("" + store.getClusterId());
+        createPropAndCheckValue(store, test, compressionEnabled);
     }
 
     private void createPropAndCheckValue(DocumentNodeStore nodeStore, String test, boolean compressionEnabled) throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
-        String testNodeName1 = "cdpst1";
+        final String testNodeName = "cdpst";
 
         if (compressionEnabled) {
             CompressedDocumentPropertyState.setCompressionThreshold(1);
         }
-        builder.child(testNodeName1).setProperty("p", test, Type.STRING);
+        builder.child(testNodeName).setProperty("p", test, Type.STRING);
         TestUtils.merge(nodeStore, builder);
 
-        PropertyState p = nodeStore.getRoot().getChildNode(testNodeName1).getProperty("p");
+        PropertyState p = nodeStore.getRoot().getChildNode(testNodeName).getProperty("p");
         assertEquals(Objects.requireNonNull(p).getValue(Type.STRING), test);
-        removeMe.add("0:/");
-        removeMe.add("1:/" + testNodeName1);
+        removeMe.add(Utils.getIdFromPath("/"));
+        removeMe.add(Utils.getIdFromPath("/" + testNodeName));
     }
 
 

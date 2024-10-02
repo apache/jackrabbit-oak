@@ -38,10 +38,10 @@ public abstract class AbstractDocumentStoreTest {
     protected DocumentStore ds;
     protected DocumentStoreFixture dsf;
     protected DataSource rdbDataSource;
-    protected List<String> removeMe = new ArrayList<>();
-    protected List<String> removeMeSettings = new ArrayList<>();
-    protected List<String> removeMeJournal = new ArrayList<>();
-    protected List<String> removeMeClusterNodes = new ArrayList<>();
+    protected List<String> removeMe = new ArrayList<String>();
+    protected List<String> removeMeSettings = new ArrayList<String>();
+    protected List<String> removeMeJournal = new ArrayList<String>();
+    protected List<String> removeMeClusterNodes = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
@@ -59,7 +59,7 @@ public abstract class AbstractDocumentStoreTest {
     }
 
     @Before
-    public void startUp() {
+    public void startUp() throws Exception {
         logNodesPresent(true);
     }
 
@@ -82,7 +82,7 @@ public abstract class AbstractDocumentStoreTest {
         Collection<Object[]> result = new ArrayList<>();
         Collection<String> names = new ArrayList<>();
 
-        DocumentStoreFixture[] candidates = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
                 DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG,
                 DocumentStoreFixture.RDB_DB2, DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
                 DocumentStoreFixture.RDB_MSSQL };
