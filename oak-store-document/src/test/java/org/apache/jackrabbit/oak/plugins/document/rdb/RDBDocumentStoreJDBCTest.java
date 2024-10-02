@@ -34,6 +34,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -54,6 +55,8 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -70,6 +73,19 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     private RDBDocumentStoreJDBC jdbc;
     private RDBDocumentStoreDB dbInfo;
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreJDBCTest.class);
+
+    private long startTime = System.currentTimeMillis();
+
+    @Before
+    public void setUp() throws Exception {
+        LOG.info("Start: {}", name.getMethodName());
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        long elapsed = System.currentTimeMillis() - startTime;
+        LOG.info("Done: {}, elapsed = {}ms ({})", name.getMethodName(), elapsed, Duration.ofMillis(elapsed));
+    }
 
     @Rule
     public TestName name= new TestName();
