@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -39,6 +41,10 @@ import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.bson.RawBsonDocument;
+import org.bson.codecs.Codec;
+import org.bson.codecs.configuration.CodecRegistries;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -328,6 +334,15 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         }
     }
 
+    private Codec<NodeDocument> createNodeDocumentCodec() {
+        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(docStore, Collection.NODES);
+        CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
+                CodecRegistries.fromProviders(nodeDocumentCodecProvider),
+                MongoClientSettings.getDefaultCodecRegistry()
+        );
+        return nodeDocumentCodecRegistry.get(NodeDocument.class);
+    }
+
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1; // dump, transform, sort threads
@@ -340,12 +355,13 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // to detect this failure.
         @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
+        Codec<NodeDocument> nodeDocumentCodec = createNodeDocumentCodec();
         File resultDir = getStoreDir();
         TreeStore treeStore = new TreeStore("dump", resultDir, null, 1);
         treeStore.getSession().init();
         try {
             // download -> transform thread.
-            ArrayBlockingQueue<NodeDocument[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
+            ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
 
             // transform <-> sort and save threads
             // Queue with empty buffers, used by the transform task
@@ -368,6 +384,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
+                    MongoDocumentFilter.NOOP_INSTANCE,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
@@ -383,6 +400,8 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                 Future<PipelinedTransformTask.Result> future = ecs.submit(new PipelinedTransformTask(
                         docStore,
                         documentNodeStore,
+                        nodeDocumentCodec,
+                        MongoDocumentFilter.NOOP_INSTANCE,
                         rootRevision,
                         this.getPathPredicate(),
                         entryWriter,

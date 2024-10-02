@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * Implements a filter to decide if a given Mongo document should be processed or ignored based on its path. The filter has
@@ -41,8 +42,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * The intent of this filter is to be applied as close as possible to the download/decoding of the documents from Mongo,
  * in order to filter unnecessary documents early and avoid spending resources processing them.
  */
-public class NodeDocumentFilter {
-    private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentFilter.class);
+public class MongoDocumentFilter {
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentFilter.class);
+
+    public static MongoDocumentFilter NOOP_INSTANCE = new MongoDocumentFilter("", List.of());
 
     private final String filteredPath;
     private final List<String> suffixesToSkip;
@@ -54,7 +57,7 @@ public class NodeDocumentFilter {
     private final AtomicLong longPathSkipped = new AtomicLong(0);
     private final ConcurrentHashMap<String, MutableLong> filteredSuffixesCounts = new ConcurrentHashMap<>();
 
-    public NodeDocumentFilter(String filteredPath, List<String> suffixesToSkip) {
+    public MongoDocumentFilter(String filteredPath, List<String> suffixesToSkip) {
         this.filteredPath = filteredPath;
         this.suffixesToSkip = suffixesToSkip;
         this.filteringDisabled = filteredPath.isBlank() || suffixesToSkip.isEmpty();
@@ -114,7 +117,11 @@ public class NodeDocumentFilter {
         return longPathSkipped.get();
     }
 
-    public ConcurrentHashMap<String, MutableLong> getFilteredSuffixesCounts() {
-        return filteredSuffixesCounts;
+    public String formatTopK(int k) {
+        return filteredSuffixesCounts.entrySet().stream()
+                .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
+                .limit(k)
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(", ", "{", "}"));
     }
 }
