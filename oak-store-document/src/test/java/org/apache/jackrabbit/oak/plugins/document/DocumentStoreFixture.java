@@ -238,7 +238,7 @@ public abstract class DocumentStoreFixture {
 
     public static class MongoFixture extends DocumentStoreFixture {
 
-        private static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
+        public static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
 
         protected List<MongoConnection> connections = Lists.newArrayList();
 
