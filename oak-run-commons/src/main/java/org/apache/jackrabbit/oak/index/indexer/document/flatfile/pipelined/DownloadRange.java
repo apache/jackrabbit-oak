@@ -27,22 +27,15 @@ import java.util.ArrayList;
 public final class DownloadRange {
     private final long lastModifiedFrom;
     private final long lastModifiedToInclusive;
-    private final String startAfterDocumentID;
-    private final boolean traversingInAscendingOrder;
 
-    public DownloadRange(long lastModifiedFrom, long lastModifiedToInclusive, String startAfterDocumentID, boolean traversingInAscendingOrder) {
-        this.traversingInAscendingOrder = traversingInAscendingOrder;
+    public DownloadRange(long lastModifiedFrom, long lastModifiedToInclusive) {
         if (!(lastModifiedFrom <= lastModifiedToInclusive)) {
             throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedToInclusive + ")");
         }
         this.lastModifiedFrom = lastModifiedFrom;
         this.lastModifiedToInclusive = lastModifiedToInclusive;
-        this.startAfterDocumentID = startAfterDocumentID;
     }
 
-    public String getStartAfterDocumentID() {
-        return startAfterDocumentID;
-    }
 
     public long getLastModifiedFrom() {
         return lastModifiedFrom;
@@ -60,13 +53,6 @@ public final class DownloadRange {
             filters.add(Filters.gte(NodeDocument.MODIFIED_IN_SECS, lastModifiedFrom));
             filters.add(Filters.lte(NodeDocument.MODIFIED_IN_SECS, lastModifiedToInclusive));
         }
-        if (startAfterDocumentID != null) {
-            if (traversingInAscendingOrder) {
-                filters.add(Filters.gt(NodeDocument.ID, startAfterDocumentID));
-            } else {
-                filters.add(Filters.lt(NodeDocument.ID, startAfterDocumentID));
-            }
-        }
         // If there is only one filter, do not wrap it in an $and
         return filters.size() == 1 ? filters.get(0) : Filters.and(filters);
     }
@@ -76,7 +62,6 @@ public final class DownloadRange {
         return "DownloadRange{" +
                 "lastModifiedFrom=" + lastModifiedFrom +
                 ", lastModifiedToInclusive=" + lastModifiedToInclusive +
-                ", startAfterDocumentID='" + startAfterDocumentID + '\'' +
                 '}';
     }
 }
