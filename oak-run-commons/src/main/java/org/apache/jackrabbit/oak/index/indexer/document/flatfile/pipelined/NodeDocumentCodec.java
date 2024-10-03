@@ -49,6 +49,7 @@ import java.util.TreeMap;
  *   with doing an additional traverse of the object structure to compute the size).</li>
  * </ul>
  * <p>
+ * This class must be thread-safe, Mongo uses a single coded implementation across multiple threads.
  */
 public class NodeDocumentCodec implements Codec<NodeDocument> {
     // The estimated size is stored in the NodeDocument itself
@@ -57,11 +58,13 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     private final MongoDocumentStore store;
     private final Collection<NodeDocument> collection;
     private final BsonTypeCodecMap bsonTypeCodecMap;
+    private final MongoDocumentFilter nodeDocumentFilter;
 
-    public NodeDocumentCodec(MongoDocumentStore store, Collection<NodeDocument> collection, CodecRegistry defaultRegistry) {
+    public NodeDocumentCodec(MongoDocumentStore store, Collection<NodeDocument> collection, MongoDocumentFilter documentFilter, CodecRegistry defaultRegistry) {
         this.store = store;
         this.collection = collection;
         this.bsonTypeCodecMap = new BsonTypeCodecMap(new BsonTypeClassMap(), defaultRegistry);
+        this.nodeDocumentFilter = documentFilter;
     }
 
     @Override
@@ -71,6 +74,19 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
             Object value = readValue(reader, fieldName, decoderContext);
+            // Once we read the _id or the _path, apply the filter
+            if (!nodeDocumentFilter.isFilteringDisabled()
+                    && (fieldName.equals(NodeDocument.ID) || fieldName.equals(NodeDocument.PATH))
+                    && (value instanceof String)) {
+                // value should always be non-null and of type String, but we do not want the filter to ever break the
+                // downloader as filtering is best-effort and just a performance optimization. So we check anyway that
+                // value is what we expect it to be, and if not, just skip trying to filter.
+                if (nodeDocumentFilter.shouldSkip(fieldName, (String) value)) {
+                    // The Mongo driver requires us to return a document. To indicate that the document should be skipped,
+                    // we return this NULL document. The caller should check for this and skip the document.
+                    return NodeDocument.NULL;
+                }
+            }
             nodeDocument.put(fieldName, value);
         }
         reader.readEndDocument();

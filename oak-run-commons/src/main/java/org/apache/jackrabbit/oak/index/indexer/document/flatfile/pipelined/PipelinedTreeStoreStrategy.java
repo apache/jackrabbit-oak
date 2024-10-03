@@ -43,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.RawBsonDocument;
 import org.bson.codecs.Codec;
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -334,15 +332,6 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         }
     }
 
-    private Codec<NodeDocument> createNodeDocumentCodec() {
-        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(docStore, Collection.NODES);
-        CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
-                CodecRegistries.fromProviders(nodeDocumentCodecProvider),
-                MongoClientSettings.getDefaultCodecRegistry()
-        );
-        return nodeDocumentCodecRegistry.get(NodeDocument.class);
-    }
-
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1; // dump, transform, sort threads
@@ -355,7 +344,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // to detect this failure.
         @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
-        Codec<NodeDocument> nodeDocumentCodec = createNodeDocumentCodec();
+        Codec<NodeDocument> nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, new MongoDocumentFilter("", List.of()), MongoClientSettings.getDefaultCodecRegistry());
         File resultDir = getStoreDir();
         TreeStore treeStore = new TreeStore("dump", resultDir, null, 1);
         treeStore.getSession().init();
@@ -384,7 +373,6 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
-                    MongoDocumentFilter.NOOP_INSTANCE,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
@@ -401,7 +389,6 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                         docStore,
                         documentNodeStore,
                         nodeDocumentCodec,
-                        MongoDocumentFilter.NOOP_INSTANCE,
                         rootRevision,
                         this.getPathPredicate(),
                         entryWriter,

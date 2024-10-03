@@ -42,8 +42,6 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.RawBsonDocument;
 import org.bson.codecs.Codec;
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -353,14 +351,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         }
     }
 
-    private Codec<NodeDocument> createNodeDocumentCodec() {
-        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(docStore, Collection.NODES);
-        CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
-                CodecRegistries.fromProviders(nodeDocumentCodecProvider),
-                MongoClientSettings.getDefaultCodecRegistry()
-        );
-        return nodeDocumentCodecRegistry.get(NodeDocument.class);
-    }
 
     @Override
     public File createSortedStoreFile() throws IOException {
@@ -369,7 +359,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         MongoDocumentFilter documentFilter = new MongoDocumentFilter(filteredPath, suffixesToSkip);
-        Codec<NodeDocument> nodeDocumentCodec = createNodeDocumentCodec();
+        Codec<NodeDocument> nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, documentFilter, MongoClientSettings.getDefaultCodecRegistry());
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
@@ -402,7 +392,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
-                    documentFilter,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
@@ -419,7 +408,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         docStore,
                         documentNodeStore,
                         nodeDocumentCodec,
-                        documentFilter,
                         rootRevision,
                         this.getPathPredicate(),
                         entryWriter,
@@ -470,6 +458,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             } catch (Exception e) {
                                 LOG.warn("Error while logging queue sizes", e);
                             }
+                            LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {} filteredRenditionsTotal (top 10): {}",
+                                    documentFilter.getSkippedFields(), documentFilter.getLongPathSkipped(), documentFilter.formatTopK(10));
                         }
                     } else {
                         try {

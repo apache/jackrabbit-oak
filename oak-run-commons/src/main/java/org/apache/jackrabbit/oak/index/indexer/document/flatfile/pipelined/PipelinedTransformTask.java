@@ -80,7 +80,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
     private final Codec<NodeDocument> nodeDocumentCodec;
-    private final MongoDocumentFilter mongoDocumentFilter;
     private final RevisionVector rootRevision;
     private final NodeStateEntryWriter entryWriter;
     private final Predicate<String> pathPredicate;
@@ -98,7 +97,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
                                   Codec<NodeDocument> nodeDocumentCodec,
-                                  MongoDocumentFilter mongoDocumentFilter,
                                   RevisionVector rootRevision,
                                   Predicate<String> pathPredicate,
                                   NodeStateEntryWriter entryWriter,
@@ -109,7 +107,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         this.mongoStore = mongoStore;
         this.documentNodeStore = documentNodeStore;
         this.nodeDocumentCodec = nodeDocumentCodec;
-        this.mongoDocumentFilter = mongoDocumentFilter;
         this.rootRevision = rootRevision;
         this.pathPredicate = pathPredicate;
         this.entryWriter = entryWriter;
@@ -137,7 +134,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
             ArrayList<DocumentNodeState> nodeStateEntries = new ArrayList<>();
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
-            final boolean filteringEnabled = !mongoDocumentFilter.isFilteringDisabled();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
                 RawBsonDocument[] rawBsonDocumentBatch = mongoDocQueue.take();
@@ -178,15 +174,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
-                        if (filteringEnabled) {
-                            Object pathField = nodeDoc.get(NodeDocument.PATH);
-                            if (pathField instanceof String) {
-                                if (mongoDocumentFilter.shouldSkip(NodeDocument.PATH, (String) pathField)) {
-                                    continue;
-                                }
-                            }
+                        if (nodeDoc == NodeDocument.NULL) {
+                            continue;
                         }
-
                         nodeDoc.put(NodeDocumentCodec.SIZE_FIELD, sizeEstimate);
                         //TODO Review the cache update approach where tracker has to track *all* docs
                         // TODO: should we cache splitDocuments? Maybe this can be moved to after the check for split document

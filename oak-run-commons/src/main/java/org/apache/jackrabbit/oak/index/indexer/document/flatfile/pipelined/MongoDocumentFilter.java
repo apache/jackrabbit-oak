@@ -45,8 +45,6 @@ import java.util.stream.Collectors;
 public class MongoDocumentFilter {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentFilter.class);
 
-    public static MongoDocumentFilter NOOP_INSTANCE = new MongoDocumentFilter("", List.of());
-
     private final String filteredPath;
     private final List<String> suffixesToSkip;
 
@@ -62,7 +60,7 @@ public class MongoDocumentFilter {
         this.suffixesToSkip = suffixesToSkip;
         this.filteringDisabled = filteredPath.isBlank() || suffixesToSkip.isEmpty();
         if (filteringDisabled) {
-            LOG.info("Node document filtering disabled.");
+            LOG.info("Mongo document filtering disabled.");
         }
     }
 
@@ -90,12 +88,9 @@ public class MongoDocumentFilter {
                 if (idOrPathValue.endsWith(suffix)) {
                     // This node document should be skipped.
                     filteredSuffixesCounts.computeIfAbsent(suffix, k -> new MutableLong(0)).increment();
-                    long skippedSoFar = skippedFields.incrementAndGet();
+                    skippedFields.incrementAndGet();
                     if (fieldName.equals(NodeDocument.PATH)) {
                         longPathSkipped.incrementAndGet();
-                    }
-                    if (skippedSoFar % 200_000 == 0) {
-                        LOG.info("skippedSoFar: {}. Long path: {}, Doc: {}={}", skippedSoFar, longPathSkipped.get(), fieldName, idOrPathValue);
                     }
                     return true;
                 }
