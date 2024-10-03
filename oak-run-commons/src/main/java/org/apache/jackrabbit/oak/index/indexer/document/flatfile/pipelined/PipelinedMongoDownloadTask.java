@@ -214,7 +214,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final BlockingQueue<RawBsonDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
     private final ThreadFactory threadFactory;
-    private final MongoDocumentFilter mongoDocumentFilter;
     private final StatisticsProvider statisticsProvider;
     private final IndexingReporter reporter;
 
@@ -235,19 +234,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
                                       MongoDocumentStore docStore,
-                                      MongoDocumentFilter mongoDocumentFilter,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
                                       BlockingQueue<RawBsonDocument[]> queue,
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider,
                                       IndexingReporter reporter) {
-        this(mongoClientURI, docStore, mongoDocumentFilter, maxBatchSizeBytes, maxBatchNumberOfDocuments, queue, pathFilters, statisticsProvider, reporter, new ThreadFactoryBuilder().setDaemon(true).build());
+        this(mongoClientURI, docStore, maxBatchSizeBytes, maxBatchNumberOfDocuments, queue, pathFilters, statisticsProvider, reporter, new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
     public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
                                       MongoDocumentStore docStore,
-                                      MongoDocumentFilter mongoDocumentFilter,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
                                       BlockingQueue<RawBsonDocument[]> queue,
@@ -257,7 +254,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       ThreadFactory threadFactory) {
         this.mongoClientURI = mongoClientURI;
         this.docStore = docStore;
-        this.mongoDocumentFilter = mongoDocumentFilter;
         this.statisticsProvider = statisticsProvider;
         this.reporter = reporter;
         this.maxBatchSizeBytes = maxBatchSizeBytes;
@@ -813,7 +809,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // resume the download in case of connection failure
                         String id = null;
                         long modified = -1;
-                        boolean skipDocument = false;
                         try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
                             bsonReader.readStartDocument();
                             while (bsonReader.readBsonType() != BsonType.END_OF_DOCUMENT) {
@@ -821,11 +816,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                 switch (fieldName) {
                                     case NodeDocument.ID:
                                         id = bsonReader.readString();
-                                        // This will not filter long-path documents. The extra code complexity is not worth it.
-                                        // We filter them in the transform stage, when the document is fully parsed.
-                                        if (mongoDocumentFilter.shouldSkip(fieldName, id)) {
-                                            skipDocument = true;
-                                        }
                                         break;
                                     case NodeDocument.MODIFIED_IN_SECS:
                                         modified = bsonReader.readInt64();
@@ -853,9 +843,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             reportProgress(id);
                         }
                         TRAVERSAL_LOG.trace(id);
-                        if (skipDocument) {
-                            continue;
-                        }
 
                         batch[nextIndex] = new RawBsonDocumentWrapper(rawBsonDocument, modified, id);
                         nextIndex++;
