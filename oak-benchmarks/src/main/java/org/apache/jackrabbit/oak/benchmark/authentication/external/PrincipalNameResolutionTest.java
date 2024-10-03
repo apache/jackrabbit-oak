@@ -33,7 +33,7 @@ public class PrincipalNameResolutionTest extends AbstractExternalTest {
     private SynchronizationMBean bean;
 
     public PrincipalNameResolutionTest(int numberOfUsers, int membershipSize, long expTime, int roundtripDelay) {
-        super(numberOfUsers, membershipSize, expTime, true, ImmutableList.<String>of(), roundtripDelay);
+        super(numberOfUsers, membershipSize, expTime, true, ImmutableList.<String>of(), roundtripDelay, 0L);
     }
 
     @Override

@@ -103,6 +103,7 @@ public class BenchmarkOptions {
     private final OptionSpec<String> elasticApiKeyId;
     private final OptionSpec<String> elasticApiKeySecret;
     private final OptionSpec<Boolean> throttlingEnabled;
+    private final OptionSpec<Long> cacheExpiration;
 
     public OptionSpec<String> getElasticApiKeyId() {
         return elasticApiKeyId;
@@ -374,6 +375,10 @@ public class BenchmarkOptions {
         return throttlingEnabled;
     }
 
+    public OptionSpec<Long> getCacheExpiration() {
+        return cacheExpiration;
+    }
+
 
     public BenchmarkOptions(OptionParser parser) {
         base = parser.accepts("base", "Base directory")
@@ -523,6 +528,11 @@ public class BenchmarkOptions {
                 .accepts("secure", "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+
+        cacheExpiration = parser
+                .accepts("cacheExpiration", "Expiration time for the cache in milliseconds")
+                .withOptionalArg().ofType(Long.class)
+                .defaultsTo(0L);
 
         verbose = parser.accepts("verbose", "Enable verbose output");
         nonOption = parser.nonOptions();
