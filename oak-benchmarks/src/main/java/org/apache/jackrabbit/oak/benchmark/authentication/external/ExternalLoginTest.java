@@ -61,18 +61,21 @@ public class ExternalLoginTest extends AbstractExternalTest {
     private final Reporter reporter;
     StatisticsProvider statisticsProvider;
     private final List<String> auto;
+    private final long cacheExpiration;
 
     private Set<String> uniques;
     private AtomicLong err;
 
     public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
-            @NotNull List<String> autoMembership, boolean report, @NotNull StatisticsProvider statsProvider) {
-        super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
+            @NotNull List<String> autoMembership, boolean report, @NotNull StatisticsProvider statsProvider,
+            long cacheExpiration) {
+        super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership, 0, cacheExpiration);
         this.numberOfUsers = numberOfUsers;
         this.numberOfGroups = numberOfGroups;
         this.reporter = new Reporter(report);
         this.statisticsProvider = statsProvider;
         this.auto = autoMembership;
+        this.cacheExpiration = cacheExpiration;
     }
 
     @Override

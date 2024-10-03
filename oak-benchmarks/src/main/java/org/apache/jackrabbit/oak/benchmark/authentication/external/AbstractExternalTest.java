@@ -97,9 +97,10 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     protected final long seed = Long.getLong("seed", System.currentTimeMillis());
     private final Random random = new Random(seed);
     private final ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
+    private final long cacheExpiration;
 
     private ContentRepository contentRepository;
-    private final SecurityProvider securityProvider = newTestSecurityProvider(externalPrincipalConfiguration);
+    private final SecurityProvider securityProvider;
 
     final DefaultSyncConfig syncConfig = new DefaultSyncConfig();
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
@@ -113,13 +114,13 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
                                    long expTime, boolean dynamicMembership,
                                    @NotNull List<String> autoMembership) {
-        this(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership, 0);
+        this(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership, 0, 0);
     }
 
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
                                    long expTime, boolean dynamicMembership,
                                    @NotNull List<String> autoMembership,
-                                   int roundtripDelay) {
+                                   int roundtripDelay, long cacheExpiration) {
 
         idp = (roundtripDelay < 0) ? new PrincipalResolvingProvider(numberOfUsers, numberOfGroups) : new TestIdentityProvider(numberOfUsers, numberOfGroups);
         delay = roundtripDelay;
@@ -130,12 +131,18 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
         syncConfig.group()
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
+        securityProvider = newTestSecurityProvider(externalPrincipalConfiguration);
+        this.cacheExpiration = cacheExpiration;
         expandSyncConfig();
     }
 
     protected abstract Configuration createConfiguration();
     
     protected ConfigurationParameters getSecurityConfiguration() {
+        if (cacheExpiration > 0) {
+            return ConfigurationParameters.of(
+                    UserConfiguration.NAME, ConfigurationParameters.of("cacheExpiration", cacheExpiration));
+        }
         return ConfigurationParameters.EMPTY;
     }
     
@@ -224,7 +231,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                         // register the userconfiguration in order to have the dynamicmembership provider registered in 
                         // the activate method
                         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
-                        context.registerInjectActivateService(uc);
+                        context.registerInjectActivateService(uc, ImmutableMap.of("cacheExpiration", cacheExpiration));
 
                         // register the ExternalPrincipal configuration in order to have it's
                         // activate method invoked.
@@ -252,8 +259,8 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         }
     }
 
-    private SecurityProvider newTestSecurityProvider(
-            ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+    private SecurityProvider newTestSecurityProvider(ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+
         SecurityProvider delegate = SecurityProviderBuilder.newBuilder().with(getSecurityConfiguration()).build();
     
         PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
