@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
-
 import javax.sql.DataSource;
-
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -32,12 +35,6 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
 
 public abstract class DocumentStoreFixture {
 
@@ -236,6 +233,9 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
+        
+        public static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
+        
         protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override

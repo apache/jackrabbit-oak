@@ -53,29 +53,31 @@ public class MongoUtils {
         if (mongoUrl == null || mongoUrl.isEmpty()) {
             mongoUrl = "mongodb://" + HOST + ":" + PORT + "/" + DB + "?" + OPTIONS;
         }
-        // check if we can connect
-        MongoConnection c = getConnectionByURL(mongoUrl);
-        if (c != null) {
-            c.close();
-            return mongoUrl;
-        }
-        // fallback to docker based MongoDB if available
-        MongoDockerRule dockerRule = new MongoDockerRule();
-        if (MongoDockerRule.isDockerAvailable()) {
-            AtomicReference<String> host = new AtomicReference<>();
-            AtomicInteger port = new AtomicInteger();
-            try {
-                dockerRule.apply(new Statement() {
-                    @Override
-                    public void evaluate() {
-                        host.set(dockerRule.getHost());
-                        port.set(dockerRule.getPort());
-                    }
-                }, Description.EMPTY)
-                        .evaluate();
-                mongoUrl = "mongodb://" + host + ":" + port.get() + "/" + DB + "?" + OPTIONS;
-            } catch (Throwable t) {
-                LOG.warn("Unable to get MongoDB port from Docker", t);
+        if (!DocumentStoreFixture.MongoFixture.SKIP_MONGO) {
+            // check if we can connect
+            MongoConnection c = getConnectionByURL(mongoUrl);
+            if (c != null) {
+                c.close();
+                return mongoUrl;
+            }
+            // fallback to docker based MongoDB if available
+            MongoDockerRule dockerRule = new MongoDockerRule();
+            if (MongoDockerRule.isDockerAvailable()) {
+                AtomicReference<String> host = new AtomicReference<>();
+                AtomicInteger port = new AtomicInteger();
+                try {
+                    dockerRule.apply(new Statement() {
+                        @Override
+                        public void evaluate() {
+                            host.set(dockerRule.getHost());
+                            port.set(dockerRule.getPort());
+                        }
+                    }, Description.EMPTY)
+                            .evaluate();
+                    mongoUrl = "mongodb://" + host + ":" + port.get() + "/" + DB + "?" + OPTIONS;
+                } catch (Throwable t) {
+                    LOG.warn("Unable to get MongoDB port from Docker", t);
+                }
             }
         }
         return mongoUrl;
