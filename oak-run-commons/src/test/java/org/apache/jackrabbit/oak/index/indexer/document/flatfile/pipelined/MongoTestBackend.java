@@ -18,12 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import java.io.Closeable;
-import java.io.IOException;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+
+import java.io.Closeable;
+import java.io.IOException;
 
 class MongoTestBackend implements Closeable {
     final ConnectionString mongoClientURI;

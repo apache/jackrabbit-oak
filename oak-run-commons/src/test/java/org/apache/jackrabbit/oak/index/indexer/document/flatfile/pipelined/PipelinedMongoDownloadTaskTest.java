@@ -18,15 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoDownloaderRegexUtils.LONG_PATH_ID_PATTERN;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -36,8 +29,17 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.client.model.Filters;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoDownloaderRegexUtils.LONG_PATH_ID_PATTERN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class PipelinedMongoDownloadTaskTest {
 
