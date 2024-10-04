@@ -59,7 +59,7 @@ class JournalDiffLoader implements DiffCache.Loader {
         this.node = requireNonNull(node);
         this.ns = requireNonNull(ns);
         checkArgument(base.getPath().equals(node.getPath()),
-                "nodes must have matching paths: {} != {}",
+                "nodes must have matching paths: %s != %s",
                 base.getPath(), node.getPath());
     }
 
