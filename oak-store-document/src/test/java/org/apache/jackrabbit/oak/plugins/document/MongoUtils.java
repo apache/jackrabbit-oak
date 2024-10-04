@@ -192,7 +192,7 @@ public class MongoUtils {
      * @return the connection or null
      */
     private static MongoConnection getConnectionByURL(String url) {
-        if (exceptions.get(url) != null) {
+        if (DocumentStoreFixture.MongoFixture.SKIP_MONGO || exceptions.get(url) != null) {
             return null;
         }
         MongoConnection mongoConnection;

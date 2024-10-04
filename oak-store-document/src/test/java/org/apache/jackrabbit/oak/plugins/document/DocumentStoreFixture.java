@@ -237,9 +237,9 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
-        
+
         public static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
-        
+
         protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
@@ -261,7 +261,7 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            return MongoUtils.isAvailable();
+            return !SKIP_MONGO && MongoUtils.isAvailable();
         }
 
         @Override
