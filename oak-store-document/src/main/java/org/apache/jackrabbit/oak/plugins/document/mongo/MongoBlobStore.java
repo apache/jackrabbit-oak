@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static com.mongodb.ReadPreference.primary;
-import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
-import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+
+import com.mongodb.ReadPreference;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -36,16 +36,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
-import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.result.UpdateResult;
+
+import static com.mongodb.ReadPreference.primary;
+import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 /**
  * Implementation of blob store for the MongoDB extending from

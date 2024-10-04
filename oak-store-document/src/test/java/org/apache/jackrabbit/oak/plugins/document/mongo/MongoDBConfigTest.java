@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.COLLECTION_COMPRESSION_TYPE;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.STORAGE_CONFIG;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.STORAGE_ENGINE;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.getCollectionStorageOptions;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import java.util.Collections;
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClientSettings;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.CollectionCompressor;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 import org.junit.Test;
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClientSettings;
 
+import java.util.Collections;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.COLLECTION_COMPRESSION_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.STORAGE_CONFIG;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.STORAGE_ENGINE;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.getCollectionStorageOptions;
 
 public class MongoDBConfigTest {
 

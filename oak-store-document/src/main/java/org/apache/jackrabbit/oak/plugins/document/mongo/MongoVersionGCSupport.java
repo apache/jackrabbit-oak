@@ -42,6 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifie
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 import static org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable.wrap;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -68,6 +69,7 @@ import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;

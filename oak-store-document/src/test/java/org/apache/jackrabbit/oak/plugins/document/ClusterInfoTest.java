@@ -22,12 +22,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
 import java.util.List;
+
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
+
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 

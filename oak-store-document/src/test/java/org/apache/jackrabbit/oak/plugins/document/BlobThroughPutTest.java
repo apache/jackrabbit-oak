@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.junit.Assert.assertNotNull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -28,10 +26,9 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
-import org.junit.Ignore;
-import org.junit.Test;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.WriteConcern;
@@ -40,6 +37,12 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+
+import org.junit.Ignore;
+import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.junit.Assert.assertNotNull;
 
 public class BlobThroughPutTest {
     private static final int NO_OF_NODES = 100;

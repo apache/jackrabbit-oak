@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
-import org.jetbrains.annotations.NotNull;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientSettings.Builder;
@@ -37,6 +36,10 @@ import com.mongodb.connection.ClusterType;
 import com.mongodb.connection.ConnectionPoolSettings;
 import com.mongodb.connection.ServerSettings;
 import com.mongodb.connection.SocketSettings;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
@@ -54,7 +57,8 @@ public class MongoConnection {
     private final MongoClient mongo;
 
     /**
-     * Constructs a new connection using the specified MongoDB connection string. See also http://docs.mongodb.org/manual/reference/connection-string/
+     * Constructs a new connection using the specified MongoDB connection string.
+     * See also http://docs.mongodb.org/manual/reference/connection-string/
      *
      * @param uri the MongoDB URI
      * @throws MongoException if there are failures
@@ -64,7 +68,8 @@ public class MongoConnection {
     }
 
     /**
-     * Constructs a new connection using the specified MongoDB connection String. The default client options are taken from the provided builder.
+     * Constructs a new connection using the specified MongoDB connection
+     * String. The default client options are taken from the provided builder.
      *
      * @param uri the connection URI.
      * @param builder the client option defaults.
@@ -123,7 +128,8 @@ public class MongoConnection {
     }
 
     /**
-     * Returns the {@link MongoDatabase} as passed in the URI of the constructor.
+     * Returns the {@link MongoDatabase} as passed in the URI of the
+     * constructor.
      *
      * @return the {@link MongoDatabase}.
      */
@@ -154,7 +160,7 @@ public class MongoConnection {
         mongo.close();
     }
 
-    // --------------------------------------< Utility Methods >
+    //--------------------------------------< Utility Methods >
 
     /**
      * Constructs a builder with default options set. These can be overridden later
@@ -193,9 +199,9 @@ public class MongoConnection {
 
     /**
      * Returns {@code true} if the given {@code uri} has a write concern set.
-     * 
      * @param uri the URI to check.
-     * @return {@code true} if the URI has a write concern set, {@code false} otherwise.
+     * @return {@code true} if the URI has a write concern set, {@code false}
+     *      otherwise.
      */
     public static boolean hasMongoDbDefaultWriteConcern(@NotNull String uri) {
         ConnectionString connectionString = new ConnectionString(requireNonNull(uri));

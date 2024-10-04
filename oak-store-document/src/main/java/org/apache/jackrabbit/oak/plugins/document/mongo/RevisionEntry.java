@@ -16,16 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.bson.BSONObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A light-weight implementation of a MongoDB DBObject for a single revision

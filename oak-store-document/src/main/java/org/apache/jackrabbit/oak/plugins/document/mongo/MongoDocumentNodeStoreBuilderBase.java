@@ -1,19 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work
- * for additional information regarding copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License. You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConnection.newMongoDBConnection;
 import java.util.concurrent.TimeUnit;
+
+import com.mongodb.client.MongoClient;
+
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -21,10 +27,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.jetbrains.annotations.NotNull;
-import com.mongodb.client.MongoClient;
+
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConnection.newMongoDBConnection;
 
 /**
- * A base builder implementation for a {@link DocumentNodeStore} backed by MongoDB.
+ * A base builder implementation for a {@link DocumentNodeStore} backed by
+ * MongoDB.
  */
 public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentNodeStoreBuilderBase<T>>
         extends DocumentNodeStoreBuilder<T> {
@@ -41,18 +50,22 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private MongoClient mongoClient;
 
     /**
-     * Uses the given information to connect to to MongoDB as backend storage for the DocumentNodeStore. The write concern is either taken from the
-     * URI or determined automatically based on the MongoDB setup. When running on a replica set without explicit write concern in the URI, the write
-     * concern will be {@code MAJORITY}, otherwise {@code ACKNOWLEDGED}.
+     * Uses the given information to connect to to MongoDB as backend
+     * storage for the DocumentNodeStore. The write concern is either
+     * taken from the URI or determined automatically based on the MongoDB
+     * setup. When running on a replica set without explicit write concern
+     * in the URI, the write concern will be {@code MAJORITY}, otherwise
+     * {@code ACKNOWLEDGED}.
      *
      * @param uri a MongoDB URI.
-     * @param name the name of the database to connect to. This overrides any database name given in the {@code uri}.
+     * @param name the name of the database to connect to. This overrides
+     *             any database name given in the {@code uri}.
      * @param blobCacheSizeMB the blob cache size in MB.
      * @return this
      */
     public T setMongoDB(@NotNull String uri,
-            @NotNull String name,
-            int blobCacheSizeMB) {
+                        @NotNull String name,
+                        int blobCacheSizeMB) {
         this.uri = uri;
         this.name = name;
         setMongoDB(createMongoDBClient(0), blobCacheSizeMB);
@@ -68,8 +81,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @return this
      */
     public T setMongoDB(@NotNull MongoClient client,
-            @NotNull String dbName,
-            int blobCacheSizeMB) {
+                        @NotNull String dbName,
+                        int blobCacheSizeMB) {
         return setMongoDB(new MongoDBConnection(client, client.getDatabase(dbName),
                 new MongoStatus(client, dbName), mongoClock), blobCacheSizeMB);
     }
@@ -82,12 +95,13 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @return this
      */
     public T setMongoDB(@NotNull MongoClient client,
-            @NotNull String dbName) {
+                        @NotNull String dbName) {
         return setMongoDB(client, dbName, 16);
     }
 
     /**
-     * Enables or disables the socket keep-alive option for MongoDB. The default is enabled.
+     * Enables or disables the socket keep-alive option for MongoDB. The default
+     * is enabled.
      *
      * @param enable whether to enable or disable it.
      * @return this
@@ -105,7 +119,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * Disables the use of a client session available with MongoDB 3.6 and newer. By default the MongoDocumentStore will use a client session if
+     * Disables the use of a client session available with MongoDB 3.6 and
+     * newer. By default the MongoDocumentStore will use a client session if
      * available. That is, when connected to MongoDB 3.6 and newer.
      *
      * @param b whether to disable the use of a client session.
@@ -136,13 +151,14 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * @return the lease socket timeout in milliseconds. If none is set, then zero is returned.
+     * @return the lease socket timeout in milliseconds. If none is set, then
+     *      zero is returned.
      */
     int getLeaseSocketTimeout() {
         return leaseSocketTimeout;
     }
 
-    public T setMaxReplicationLag(long duration, TimeUnit unit) {
+    public T setMaxReplicationLag(long duration, TimeUnit unit){
         maxReplicationLagMillis = unit.toMillis(duration);
         return thisBuilder();
     }
@@ -183,14 +199,15 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
 
-    public String getCollectionCompressionType() {
+    public String getCollectionCompressionType(){
         return collectionCompressionType;
     }
 
     /**
      * Returns the status of the Mongo server configured in the {@link #setMongoDB(String, String, int)} method.
      *
-     * @return the status or null if the {@link #setMongoDB(String, String, int)} method hasn't been called.
+     * @return the status or null if the {@link #setMongoDB(String, String, int)} method hasn't
+     * been called.
      */
     MongoStatus getMongoStatus() {
         return mongoStatus;
@@ -221,7 +238,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     private T setMongoDB(@NotNull MongoDBConnection mongoDBConnection,
-            int blobCacheSizeMB) {
+                         int blobCacheSizeMB) {
         mongoDBConnection.checkReadWriteConcern();
         this.mongoClient = mongoDBConnection.getClient();
         this.mongoStatus = mongoDBConnection.getStatus();
@@ -230,8 +247,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
 
         if (this.blobStoreSupplier == null) {
             this.blobStoreSupplier = memoize(
-                    () -> new MongoBlobStore(mongoDBConnection.getDatabase(), blobCacheSizeMB * 1024 * 1024L,
-                            MongoDocumentNodeStoreBuilderBase.this));
+                    () -> new MongoBlobStore(mongoDBConnection.getDatabase(), blobCacheSizeMB * 1024 * 1024L, MongoDocumentNodeStoreBuilderBase.this));
         }
 
         return thisBuilder();

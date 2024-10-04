@@ -16,21 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import org.apache.commons.io.FilenameUtils;
+
 import org.apache.jackrabbit.guava.common.collect.Maps;
+
+import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
@@ -44,6 +38,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 public class DocumentNodeStoreServiceTest {
 
