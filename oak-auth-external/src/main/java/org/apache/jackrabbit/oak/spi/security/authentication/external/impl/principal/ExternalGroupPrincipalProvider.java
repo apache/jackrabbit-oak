@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.util.function.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -40,14 +41,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.security.user.CacheConfiguration;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -116,7 +116,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     private final AutoMembershipPrincipals autoMembershipPrincipals;
     private final AutoMembershipPrincipals groupAutoMembershipPrincipals;
 
-    private CacheConfiguration cacheConfiguration ;
+    private Function<String, CachedMembershipReader> cacheReaderFactory = (name) -> null;
 
     ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserManager userManager,
                                    @NotNull NamePathMapper namePathMapper,
@@ -146,7 +146,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
 
-        cacheConfiguration = CacheConfiguration.fromUserConfiguration(userConfiguration, CACHE_PRINCIPAL_NAMES);
+        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root,
+                (principalName) -> createExternalGroupPrincipal(principalName, idpName),
+                CACHE_PRINCIPAL_NAMES);
     }
 
     // Tests only
@@ -170,7 +172,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 Collections.singletonMap(idpName, syncConfig.group().getAutoMembership().toArray(new String[0])),
                 Collections.singletonMap(idpName, syncConfig.group().getAutoMembershipConfig()));
 
-        cacheConfiguration = CacheConfiguration.fromUserConfiguration(userConfiguration, CACHE_PRINCIPAL_NAMES);
+        cacheReaderFactory = (String name) -> userConfiguration.getCachedMembershipReader(root,
+                (principalName) -> createExternalGroupPrincipal(principalName, name),
+                CACHE_PRINCIPAL_NAMES);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
@@ -408,11 +412,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
-                if (cacheConfiguration != null && cacheConfiguration.isCacheEnabled()) {
-                    CachedPrincipalMembershipReader membershipReader = new CachedPrincipalMembershipReader(
-                            cacheConfiguration,
-                            root,
-                            (principalName) -> createExternalGroupPrincipal(principalName, idpName));
+                CachedMembershipReader membershipReader = cacheReaderFactory.apply(idpName);
+                if (membershipReader != null) {
                     return membershipReader.readMembership(tree, (userTree)-> readPrincipals(authorizable, ps, idpName));
                 } else {
                     return readPrincipals(authorizable, ps, idpName);

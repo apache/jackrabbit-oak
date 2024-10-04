@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_EXPIRATION;
-import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_MAX_STALE;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.PARAM_CACHE_EXPIRATION;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.PARAM_CACHE_MAX_STALE;
 import static org.junit.Assert.*;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -46,7 +46,7 @@ public class CacheConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testParseUserConfiguration() {
-        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(getUserConfiguration());
+        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(getUserConfiguration(), UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
 
         assertNotNull(cacheConfiguration);
         assertTrue(cacheConfiguration.isCacheEnabled());
@@ -83,7 +83,7 @@ public class CacheConfigurationTest extends AbstractSecurityTest {
                         PARAM_CACHE_MAX_STALE, 0
                 )
         ));
-        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(getUserConfiguration());
+        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(getUserConfiguration(), UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
 
         assertNotNull(cacheConfiguration);
         assertFalse(cacheConfiguration.isCacheEnabled());

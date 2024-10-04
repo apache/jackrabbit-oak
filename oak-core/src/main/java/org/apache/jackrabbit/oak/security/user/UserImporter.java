@@ -43,8 +43,10 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
@@ -552,7 +554,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     private static boolean isCacheNode(@NotNull Tree tree) {
-        return tree.exists() && MembershipCacheConstants.REP_CACHE.equals(tree.getName()) && MembershipCacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && CacheConstants.REP_CACHE.equals(tree.getName()) && CacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**

@@ -46,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
@@ -311,7 +313,18 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
     }
-    
+
+    @Override
+    public CachedMembershipReader getCachedMembershipReader(@NotNull Root root,
+            @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName) {
+        CacheConfiguration cacheConfig = CacheConfiguration.fromUserConfiguration(this, propName);
+        if (cacheConfig.isCacheEnabled()) {
+            return new CachedPrincipalMembershipReader(cacheConfig, root, cachePrincipalFactory);
+        } else {
+            return null;
+        }
+    }
+
     @NotNull
     private BlobAccessProvider getBlobAccessProvider() {
         BlobAccessProvider provider = blobAccessProvider;

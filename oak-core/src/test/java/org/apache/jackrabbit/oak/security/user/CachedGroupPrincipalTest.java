@@ -41,7 +41,7 @@ import java.util.Enumeration;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_EXPIRATION;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.PARAM_CACHE_EXPIRATION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

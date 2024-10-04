@@ -28,8 +28,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheLoader;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CachePrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheLoader;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -63,6 +64,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  */
 class UserPrincipalProvider implements PrincipalProvider {
 
+    static final String REP_GROUP_PRINCIPAL_NAMES = "rep:groupPrincipalNames";
     private static final Logger log = LoggerFactory.getLogger(UserPrincipalProvider.class);
 
     private final Root root;
@@ -81,10 +83,10 @@ class UserPrincipalProvider implements PrincipalProvider {
         this.userProvider = new UserProvider(root, config.getParameters());
 
         MembershipProvider membershipProvider = new MembershipProvider(root, config.getParameters());
-        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(config);
+        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(config, REP_GROUP_PRINCIPAL_NAMES);
         boolean cacheEnabled = (cacheConfiguration.isCacheEnabled() && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
         if (cacheEnabled) {
-            CachedPrincipalMembershipReader cachedPrincipalMembershipReader = new CachedPrincipalMembershipReader(
+            CachedMembershipReader cachedPrincipalMembershipReader = new CachedPrincipalMembershipReader(
                     cacheConfiguration,
                     root,
                     createPrincipalFactory());

@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * The cache configuration is based on the UserConfiguration parameters and the property name for
  * which the cache is configured.
  */
-public class CacheConfiguration {
+final class CacheConfiguration {
 
     public static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
     public static final String PARAM_CACHE_MAX_STALE = "cacheMaxStale";
@@ -42,16 +43,6 @@ public class CacheConfiguration {
         this.expiration = expiration;
         this.maxStale = maxStale;
         this.propertyName = propertyName;
-    }
-
-    /**
-     * Create a cache configuration based on the user configuration using default REP_GROUP_PRINCIPAL_NAMES
-     * as property name.
-     * @param config UserConfiguration to create the cache configuration from
-     * @return CacheConfiguration based on the user configuration
-     */
-    public static CacheConfiguration fromUserConfiguration(@NotNull UserConfiguration config) {
-        return fromUserConfiguration(config, MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES);
     }
 
     /**

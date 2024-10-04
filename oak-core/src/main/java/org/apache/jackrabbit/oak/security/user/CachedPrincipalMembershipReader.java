@@ -35,9 +35,13 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheLoader;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -51,12 +55,12 @@ import org.slf4j.LoggerFactory;
  * updated it will verify that no other thread is concurrently writing the cache. If writing the cache is not possible,
  * it will either return a stale cache (which possibly outdated membership information) or read from the membership
  * provider without writing the cache. The handling of stale cache is determined by the new configuration option
- * {@link UserConfigurationImpl.Configuration#cacheMaxStale()} which defaults to
+ * {@code UserConfigurationImpl.Configuration#cacheMaxStale()} which defaults to
  * {@link CacheConfiguration#NO_STALE_CACHE}.
  *
  * @see <a href="https://issues.apache.org/jira/browse/OAK-10451">OAK-10451</a>
  */
-public class CachedPrincipalMembershipReader {
+class CachedPrincipalMembershipReader implements CachedMembershipReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(CachedPrincipalMembershipReader.class);
 
@@ -78,7 +82,7 @@ public class CachedPrincipalMembershipReader {
     private final long maxStale;
     private final String propertyName;
 
-    public CachedPrincipalMembershipReader(@NotNull CacheConfiguration cacheConfiguration, @NotNull Root root,
+    CachedPrincipalMembershipReader(@NotNull CacheConfiguration cacheConfiguration, @NotNull Root root,
             @NotNull CachePrincipalFactory principalFactory) {
         this.expiration = cacheConfiguration.getExpiration();
         this.maxStale = cacheConfiguration.getMaxStale();
@@ -88,6 +92,7 @@ public class CachedPrincipalMembershipReader {
         this.principalFactory = principalFactory;
     }
 
+    @Override
     public Set<Principal> readMembership(@NotNull Tree authorizableTree, CacheLoader cacheLoader) {
         // membership cache only implemented on user
         if (UserUtil.isType(authorizableTree, AuthorizableType.USER)) {
@@ -100,7 +105,7 @@ public class CachedPrincipalMembershipReader {
     private Set<Principal> readGroupsFromCache(@NotNull Tree authorizableTree, CacheLoader loader) {
         Set<Principal> groups = Collections.emptySet();
         String authorizablePath = authorizableTree.getPath();
-        Tree principalCache = authorizableTree.getChild(MembershipCacheConstants.REP_CACHE);
+        Tree principalCache = authorizableTree.getChild(CacheConstants.REP_CACHE);
         long expirationTime = readExpirationTime(principalCache);
         long now = System.currentTimeMillis();
         if (isValidCache(expirationTime, now) && hasCacheValues(principalCache)) {
@@ -159,7 +164,7 @@ public class CachedPrincipalMembershipReader {
         if (!principalCache.exists()) {
             return EXPIRATION_NO_CACHE;
         }
-        return TreeUtil.getLong(principalCache, MembershipCacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+        return TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
     }
 
     private static boolean isValidCache(long expirationTime, long now) {
@@ -203,7 +208,7 @@ public class CachedPrincipalMembershipReader {
             @NotNull Set<Principal> groupPrincipals) throws AccessDeniedException, CommitFailedException {
         try {
             root.refresh();
-            Tree cache = authorizableTree.getChild(MembershipCacheConstants.REP_CACHE);
+            Tree cache = authorizableTree.getChild(CacheConstants.REP_CACHE);
             String authorizablePath = authorizableTree.getPath();
             if (!cache.exists()) {
                 if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
@@ -212,11 +217,11 @@ public class CachedPrincipalMembershipReader {
                 } else {
                     LOG.debug("Attempting to create new membership cache at {}", authorizablePath);
                     cache = TreeUtil.addChild(authorizableTree,
-                            MembershipCacheConstants.REP_CACHE,
-                            MembershipCacheConstants.NT_REP_CACHE);
+                            CacheConstants.REP_CACHE,
+                            CacheConstants.NT_REP_CACHE);
                 }
             }
-            cache.setProperty(MembershipCacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
+            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
             String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(this.propertyName, value);
 
@@ -245,13 +250,13 @@ public class CachedPrincipalMembershipReader {
         });
     }
 
-    public static final class CommitMarker {
+    static final class CommitMarker {
 
         private static final String KEY = CommitMarker.class.getName();
 
         private static final CommitMarker INSTANCE = new CommitMarker();
 
-        public static boolean isValidCommitInfo(@NotNull CommitInfo commitInfo) {
+        static boolean isValidCommitInfo(@NotNull CommitInfo commitInfo) {
             return CommitMarker.INSTANCE == commitInfo.getInfo().get(CommitMarker.KEY);
         }
 
@@ -260,23 +265,5 @@ public class CachedPrincipalMembershipReader {
         static Map<String, Object> asCommitAttributes() {
             return Collections.singletonMap(CommitMarker.KEY, CommitMarker.INSTANCE);
         }
-    }
-
-    /**
-     * Responsible for providing the set of principals for a given user. The implementation is expected to read the
-     * group membership from the repository and return the set of group principals.
-     */
-    @FunctionalInterface
-    public interface CacheLoader {
-        Set<Principal> load(Tree authorizableTree);
-    }
-
-    /**
-     * Factory for creating {@code Principal} instances based on the principal name. The factory is used to create the
-     * principal based on the cached principal name.
-     */
-    @FunctionalInterface
-    public interface CachePrincipalFactory {
-        Principal create(String principalName);
     }
 }

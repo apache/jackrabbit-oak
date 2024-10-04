@@ -24,10 +24,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.security.user.MembershipCacheConstants.REP_EXPIRATION;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.REP_EXPIRATION;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -54,7 +55,7 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         CacheConflictHandler handler = new CacheConflictHandler();
         assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
         PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-        merged.setName(MembershipCacheConstants.REP_EXPIRATION);
+        merged.setName(CacheConstants.REP_EXPIRATION);
         merged.setValue(2000L);
         verify(parent).setProperty(merged.getPropertyState());
 
@@ -122,7 +123,7 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         CacheConflictHandler handler = new CacheConflictHandler();
         assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
         PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-        merged.setName(MembershipCacheConstants.REP_EXPIRATION);
+        merged.setName(CacheConstants.REP_EXPIRATION);
         merged.setValue(2000L);
         verify(parent).setProperty(merged.getPropertyState());
 
@@ -160,23 +161,6 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
         CacheConflictHandler handler = new CacheConflictHandler();
         assertEquals(CacheConflictHandler.Resolution.IGNORED, handler.changeChangedProperty(parent, ours, theirs, base));
 
-    }
-
-    @Test
-    public void testNullBase() {
-        NodeBuilder parent = mock(NodeBuilder.class);
-
-        PropertyState ours = mock(PropertyState.class);
-        when(ours.getName()).thenReturn(REP_EXPIRATION);
-        PropertyState theirs = mock(PropertyState.class);
-        when(theirs.getName()).thenReturn(REP_EXPIRATION);
-        when(ours.getValue(Type.LONG)).thenReturn(2000L);
-        when(theirs.getValue(Type.LONG)).thenReturn(1000L);
-
-        PropertyState base = null;
-
-        CacheConflictHandler handler = new CacheConflictHandler();
-        assertEquals(Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
     }
 
     @Test

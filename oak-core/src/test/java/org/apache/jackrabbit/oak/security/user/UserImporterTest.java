@@ -35,9 +35,11 @@ import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
@@ -445,7 +447,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         init();
 
         Tree userTree = createUserTree();
-        Tree cacheTree = TreeUtil.addChild(userTree, MembershipCacheConstants.REP_CACHE, NT_OAK_UNSTRUCTURED);
+        Tree cacheTree = TreeUtil.addChild(userTree, CacheConstants.REP_CACHE, NT_OAK_UNSTRUCTURED);
 
         importer.propertiesCompleted(cacheTree);
         assertTrue(cacheTree.exists());
@@ -454,12 +456,12 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     @Test
     public void testPropertiesCompletedClearsCache() throws Exception {
         Tree userTree = createUserTree();
-        Tree cacheTree = userTree.addChild(MembershipCacheConstants.REP_CACHE);
-        cacheTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, MembershipCacheConstants.NT_REP_CACHE);
+        Tree cacheTree = userTree.addChild(CacheConstants.REP_CACHE);
+        cacheTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, CacheConstants.NT_REP_CACHE);
 
         importer.propertiesCompleted(cacheTree);
         assertFalse(cacheTree.exists());
-        assertFalse(userTree.hasChild(MembershipCacheConstants.REP_CACHE));
+        assertFalse(userTree.hasChild(CacheConstants.REP_CACHE));
     }
 
     @Test

@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_EXPIRATION;
-import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_MAX_STALE;
-import static org.apache.jackrabbit.oak.security.user.MembershipCacheConstants.REP_CACHE;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.REP_CACHE;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalGroupPrincipalProvider.CACHE_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertEquals;
@@ -55,10 +53,10 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,8 +107,8 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
         return ConfigurationParameters.of(
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(
-                        PARAM_CACHE_EXPIRATION, 10000,
-                        PARAM_CACHE_MAX_STALE, 10000
+                        CacheConstants.PARAM_CACHE_EXPIRATION, 10000,
+                        CacheConstants.PARAM_CACHE_MAX_STALE, 10000
                 )
         );
     }

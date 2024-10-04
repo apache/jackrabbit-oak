@@ -37,7 +37,10 @@ import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.security.user.CacheConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -92,7 +95,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(
                 UserConfiguration.NAME,
-                ConfigurationParameters.of(CacheConfiguration.PARAM_CACHE_EXPIRATION, 3600 * 1000)
+                ConfigurationParameters.of(CacheConstants.PARAM_CACHE_EXPIRATION, 3600 * 1000)
         );
     }
 
@@ -123,7 +126,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     }
 
     private Tree getCacheTree(Root root, String authorizablePath) {
-        return root.getTree(authorizablePath + '/' + MembershipCacheConstants.REP_CACHE);
+        return root.getTree(authorizablePath + '/' + CacheConstants.REP_CACHE);
     }
 
     private static void assertPrincipals(Set<? extends Principal> principals, Principal... expectedPrincipals) {
@@ -144,11 +147,11 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         Tree principalCache = getCacheTree(root);
         assertTrue(principalCache.exists());
-        assertEquals(MembershipCacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
+        assertEquals(CacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
 
-        assertNotNull(principalCache.getProperty(MembershipCacheConstants.REP_EXPIRATION));
+        assertNotNull(principalCache.getProperty(CacheConstants.REP_EXPIRATION));
 
-        PropertyState ps = principalCache.getProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES);
+        PropertyState ps = principalCache.getProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
         assertNotNull(ps);
 
         String val = ps.getValue(Type.STRING);
@@ -166,11 +169,11 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         Tree principalCache = getCacheTree(root);
         assertTrue(principalCache.exists());
-        assertEquals(MembershipCacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
+        assertEquals(CacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
 
-        assertNotNull(principalCache.getProperty(MembershipCacheConstants.REP_EXPIRATION));
+        assertNotNull(principalCache.getProperty(CacheConstants.REP_EXPIRATION));
 
-        PropertyState ps = principalCache.getProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES);
+        PropertyState ps = principalCache.getProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
         assertNotNull(ps);
 
         String val = ps.getValue(Type.STRING);
@@ -188,11 +191,11 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         Tree principalCache = getCacheTree(root);
         assertTrue(principalCache.exists());
-        assertEquals(MembershipCacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
+        assertEquals(CacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
 
-        assertNotNull(principalCache.getProperty(MembershipCacheConstants.REP_EXPIRATION));
+        assertNotNull(principalCache.getProperty(CacheConstants.REP_EXPIRATION));
 
-        PropertyState ps = principalCache.getProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES);
+        PropertyState ps = principalCache.getProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
         assertNotNull(ps);
 
         String val = ps.getValue(Type.STRING);
@@ -309,14 +312,14 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     public void testCacheUpdate() throws Exception {
         //Reduce cache expiration time to 2ms to ensure cache is updated
         changeUserConfiguration(ConfigurationParameters.of(
-                CacheConfiguration.PARAM_CACHE_EXPIRATION, 2
+                CacheConstants.PARAM_CACHE_EXPIRATION, 2
         ));
         PrincipalProvider pp = createPrincipalProvider(systemRoot);
 
         // set of principals that read from user + membership-provider -> cache being filled
         Set<? extends Principal> principals = pp.getPrincipals(userId);
         assertTrue(getCacheTree(systemRoot).exists());
-        long expiration = TreeUtil.getLong(getCacheTree(systemRoot), MembershipCacheConstants.REP_EXPIRATION, 0);
+        long expiration = TreeUtil.getLong(getCacheTree(systemRoot), CacheConstants.REP_EXPIRATION, 0);
 
         // change the group membership of the test user
         UserManager uMgr = getUserConfiguration().getUserManager(systemRoot, namePathMapper);
@@ -334,8 +337,8 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         // verify that the cache has really been updated
         Tree cache = getCacheTree(systemRoot);
-        assertNotSame(expiration, TreeUtil.getLong(cache, MembershipCacheConstants.REP_EXPIRATION, 0));
-        assertEquals("", TreeUtil.getString(cache, MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES));
+        assertNotSame(expiration, TreeUtil.getLong(cache, CacheConstants.REP_EXPIRATION, 0));
+        assertEquals("", TreeUtil.getString(cache, UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES));
 
         // check that an cached empty membership set doesn't break the retrieval (OAK-8306)
         principalsAgain = pp.getPrincipals(userId);
@@ -351,7 +354,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         root.refresh();
         Tree userTree = root.getTree(getTestUser().getPath());
 
-        assertFalse(userTree.hasChild(MembershipCacheConstants.REP_CACHE));
+        assertFalse(userTree.hasChild(CacheConstants.REP_CACHE));
     }
 
     @Test
@@ -377,14 +380,14 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         long[] noCache = new long[] {0, -1, Long.MIN_VALUE};
         for (long exp : noCache) {
 
-            changeUserConfiguration(ConfigurationParameters.of(CacheConfiguration.PARAM_CACHE_EXPIRATION, exp));
+            changeUserConfiguration(ConfigurationParameters.of(CacheConstants.PARAM_CACHE_EXPIRATION, exp));
 
             PrincipalProvider pp = createPrincipalProvider(systemRoot);
             pp.getPrincipals(userId);
 
             root.refresh();
             Tree userTree = root.getTree(getTestUser().getPath());
-            assertFalse(userTree.hasChild(MembershipCacheConstants.REP_CACHE));
+            assertFalse(userTree.hasChild(CacheConstants.REP_CACHE));
         }
     }
 
@@ -394,17 +397,17 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         Root systemRoot = getSystemSession().getLatestRoot();
         for (long exp : maxCache) {
-            changeUserConfiguration(ConfigurationParameters.of(CacheConfiguration.PARAM_CACHE_EXPIRATION, exp));
+            changeUserConfiguration(ConfigurationParameters.of(CacheConstants.PARAM_CACHE_EXPIRATION, exp));
 
             PrincipalProvider pp = createPrincipalProvider(systemRoot);
             pp.getPrincipals(userId);
 
             Tree userTree = systemRoot.getTree(getTestUser().getPath());
 
-            Tree cache = userTree.getChild(MembershipCacheConstants.REP_CACHE);
+            Tree cache = userTree.getChild(CacheConstants.REP_CACHE);
             assertTrue(cache.exists());
 
-            PropertyState propertyState = cache.getProperty(MembershipCacheConstants.REP_EXPIRATION);
+            PropertyState propertyState = cache.getProperty(CacheConstants.REP_EXPIRATION);
             assertNotNull(propertyState);
             assertEquals(Long.MAX_VALUE, propertyState.getValue(Type.LONG).longValue());
 
@@ -421,8 +424,8 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         root.refresh();
 
         List<PropertyState> props = new ArrayList<>();
-        props.add(PropertyStates.createProperty(MembershipCacheConstants.REP_EXPIRATION, 25));
-        props.add(PropertyStates.createProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
+        props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
+        props.add(PropertyStates.createProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
         props.add(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED));
         props.add(PropertyStates.createProperty("residualProp", "anyvalue"));
 
@@ -457,7 +460,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
     @Test
     public void testConcurrentLoginWithCacheRemoval() throws Exception {
-        changeUserConfiguration(ConfigurationParameters.of(CacheConfiguration.PARAM_CACHE_EXPIRATION, 1));
+        changeUserConfiguration(ConfigurationParameters.of(CacheConstants.PARAM_CACHE_EXPIRATION, 1));
 
         final List<Exception> exceptions = new ArrayList<>();
         List<Thread> threads = new ArrayList<>();

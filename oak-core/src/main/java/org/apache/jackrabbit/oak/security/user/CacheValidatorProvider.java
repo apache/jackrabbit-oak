@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CommitMarker;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -41,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
  * user is only maintained by the {@link org.apache.jackrabbit.oak.security.user.UserPrincipalProvider}
  * associated with a internal system session.
  */
-class CacheValidatorProvider extends ValidatorProvider implements MembershipCacheConstants {
+class CacheValidatorProvider extends ValidatorProvider implements CacheConstants {
 
     private final boolean isSystem;
     private final TreeProvider treeProvider;

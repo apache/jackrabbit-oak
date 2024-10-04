@@ -30,12 +30,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -86,19 +88,19 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
     }
 
     private Tree getCache(@NotNull Authorizable authorizable) throws Exception {
-        // Creating CachedPrincipalMembershipReader as this is the only class allowed to write in rep:cache
+        // Creating CachedMembershipReader as this is the only class allowed to write in rep:cache
         try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null))) {
             Root r = cs.getLatestRoot();
             Tree n = r.getTree(authorizable.getPath());
-            CachedPrincipalMembershipReader reader = new CachedPrincipalMembershipReader(
-                    CacheConfiguration.fromUserConfiguration(getUserConfiguration()),
+            CachedMembershipReader reader = new CachedPrincipalMembershipReader(
+                    CacheConfiguration.fromUserConfiguration(getUserConfiguration(), UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES),
                     r,
                     PrincipalImpl::new);
             reader.readMembership(n, tree -> Collections.singleton(new PrincipalImpl(tree.getName())));
         }
 
         root.refresh();
-        return root.getTree(authorizable.getPath()).getChild(MembershipCacheConstants.REP_CACHE);
+        return root.getTree(authorizable.getPath()).getChild(CacheConstants.REP_CACHE);
     }
 
     @Test
@@ -106,7 +108,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         for (Authorizable a : authorizables) {
             try {
                 Tree node = getAuthorizableTree(a);
-                TreeUtil.addChild(node, MembershipCacheConstants.REP_CACHE, JcrConstants.NT_UNSTRUCTURED);
+                TreeUtil.addChild(node, CacheConstants.REP_CACHE, JcrConstants.NT_UNSTRUCTURED);
                 root.commit();
                 fail("Creating rep:cache node below a user or group must fail.");
             } catch (CommitFailedException e) {
@@ -121,8 +123,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         for (Authorizable a : authorizables) {
             try {
                 Tree node = getAuthorizableTree(a);
-                Tree cache = TreeUtil.addChild(node, "childNode", MembershipCacheConstants.NT_REP_CACHE);
-                cache.setProperty(MembershipCacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+                Tree cache = TreeUtil.addChild(node, "childNode", CacheConstants.NT_REP_CACHE);
+                cache.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
                 root.commit();
                 fail("Creating node with nt rep:Cache below a user or group must fail.");
             } catch (CommitFailedException e) {
@@ -140,8 +142,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
                 Tree cache = TreeUtil.addChild(node, "childNode", JcrConstants.NT_UNSTRUCTURED);
                 root.commit();
 
-                cache.setProperty(JCR_PRIMARYTYPE, MembershipCacheConstants.NT_REP_CACHE, Type.NAME);
-                cache.setProperty(MembershipCacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+                cache.setProperty(JCR_PRIMARYTYPE, CacheConstants.NT_REP_CACHE, Type.NAME);
+                cache.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
                 root.commit();
                 fail("Changing primary type of residual node below an user/group to rep:Cache must fail.");
             } catch (CommitFailedException e) {
@@ -156,8 +158,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         for (Authorizable a : authorizables) {
             try {
                 Tree node = getAuthorizableTree(a);
-                Tree cache = TreeUtil.addChild(node, MembershipCacheConstants.REP_CACHE, MembershipCacheConstants.NT_REP_CACHE);
-                cache.setProperty(MembershipCacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+                Tree cache = TreeUtil.addChild(node, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+                cache.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
                 root.commit();
                 fail("Creating rep:cache node below a user or group must fail.");
             } catch (CommitFailedException e) {
@@ -172,8 +174,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         try {
             Tree node = getAuthorizableTree(getTestUser());
             Tree child = TreeUtil.addChild(node, "profile", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-            TreeUtil.addChild(child, MembershipCacheConstants.REP_CACHE, MembershipCacheConstants.NT_REP_CACHE).setProperty(
-                    MembershipCacheConstants.REP_EXPIRATION, 23L, Type.LONG);
+            TreeUtil.addChild(child, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE).setProperty(
+                    CacheConstants.REP_EXPIRATION, 23L, Type.LONG);
             root.commit();
             fail("Creating rep:cache node below a user or group must fail.");
         } catch (CommitFailedException e) {
@@ -189,8 +191,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         root.commit();
 
         try {
-            TreeUtil.addChild(child, MembershipCacheConstants.REP_CACHE, MembershipCacheConstants.NT_REP_CACHE).setProperty(
-                    MembershipCacheConstants.REP_EXPIRATION, 23L, Type.LONG);
+            TreeUtil.addChild(child, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE).setProperty(
+                    CacheConstants.REP_EXPIRATION, 23L, Type.LONG);
             root.commit();
             fail("Creating rep:cache node below a user or group must fail.");
         } catch (CommitFailedException e) {
@@ -202,8 +204,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
     @Test
     public void testModifyCache() throws Exception {
         List<PropertyState> props = new ArrayList<>();
-        props.add(PropertyStates.createProperty(MembershipCacheConstants.REP_EXPIRATION, 25));
-        props.add(PropertyStates.createProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
+        props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
+        props.add(PropertyStates.createProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
         props.add(PropertyStates.createProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME));
         props.add(PropertyStates.createProperty("residualProp", "anyvalue"));
 
@@ -227,8 +229,8 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
     public void testNestedCache() throws Exception {
         Tree cache = getCache(getTestUser());
         try {
-            Tree c = TreeUtil.getOrAddChild(cache, MembershipCacheConstants.REP_CACHE, MembershipCacheConstants.NT_REP_CACHE);
-            c.setProperty(MembershipCacheConstants.REP_EXPIRATION, 223L, Type.LONG);
+            Tree c = TreeUtil.getOrAddChild(cache, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+            c.setProperty(CacheConstants.REP_EXPIRATION, 223L, Type.LONG);
             root.commit();
 
             fail("Creating nested cache must fail.");
@@ -243,15 +245,15 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         Tree cache = getCache(getTestUser());
         cache.remove();
         root.commit();
-        assertFalse(getAuthorizableTree(getTestUser()).hasChild(MembershipCacheConstants.REP_CACHE));
+        assertFalse(getAuthorizableTree(getTestUser()).hasChild(CacheConstants.REP_CACHE));
     }
 
     @Test
     public void testCreateCacheOutsideOfAuthorizable() throws Exception {
         Tree n = root.getTree(PathUtils.ROOT_PATH);
         try {
-            Tree child = TreeUtil.addChild(n, MembershipCacheConstants.REP_CACHE, MembershipCacheConstants.NT_REP_CACHE);
-            child.setProperty(MembershipCacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+            Tree child = TreeUtil.addChild(n, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+            child.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
             root.commit();
             fail("Using rep:cache/rep:Cache outside a user or group must fail.");
         } catch (CommitFailedException e) {
@@ -259,7 +261,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
             assertEquals(34, e.getCode());
         } finally {
             root.refresh();
-            Tree c = n.getChild(MembershipCacheConstants.REP_CACHE);
+            Tree c = n.getChild(CacheConstants.REP_CACHE);
             if (c.exists()) {
                 c.remove();
                 root.commit();
@@ -275,7 +277,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
 
         try {
             Tree child = getAuthorizableTree(getTestUser()).getChild("child");
-            child.setProperty(JCR_PRIMARYTYPE, MembershipCacheConstants.NT_REP_CACHE, Type.NAME);
+            child.setProperty(JCR_PRIMARYTYPE, CacheConstants.NT_REP_CACHE, Type.NAME);
             root.commit();
         } catch (CommitFailedException e) {
             assertTrue(e.isConstraintViolation());
@@ -319,7 +321,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
     public void testPropertyChangedToCache() throws Exception {
         try {
             Tree cache = getCache(getTestUser());
-            PropertyState prop = PropertyStates.createProperty("aProperty", MembershipCacheConstants.NT_REP_CACHE, Type.STRING);
+            PropertyState prop = PropertyStates.createProperty("aProperty", CacheConstants.NT_REP_CACHE, Type.STRING);
 
             Validator validator = createCacheValidator(cache);
             validator.propertyChanged(PropertyStates.createProperty("aProperty", NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.STRING), prop);
@@ -334,7 +336,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
     public void testChangePropertyNotInCache() throws Exception {
         try {
             Tree cache = root.getTree("/random/path");
-            PropertyState prop = PropertyStates.createProperty("aProperty", MembershipCacheConstants.NT_REP_CACHE, Type.STRING);
+            PropertyState prop = PropertyStates.createProperty("aProperty", CacheConstants.NT_REP_CACHE, Type.STRING);
 
             Validator validator = createCacheValidator(cache);
             validator.propertyChanged(PropertyStates.createProperty("aProperty", NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.STRING), prop);

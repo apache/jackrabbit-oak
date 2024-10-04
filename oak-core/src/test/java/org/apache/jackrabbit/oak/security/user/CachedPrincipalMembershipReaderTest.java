@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.security.user;
 import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.NO_STALE_CACHE;
 import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_EXPIRATION;
 import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.PARAM_CACHE_MAX_STALE;
-import static org.apache.jackrabbit.oak.security.user.MembershipCacheConstants.REP_CACHE;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.REP_CACHE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -61,8 +61,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CacheLoader;
-import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CachePrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheLoader;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
 import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CommitMarker;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -70,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -151,11 +153,11 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         }
     }
 
-    @NotNull CachedPrincipalMembershipReader createCacheMembershipReader(@NotNull Root root) {
+    @NotNull CachedMembershipReader createCacheMembershipReader(@NotNull Root root) {
         return createCacheMembershipReader(root, getUserConfiguration());
     }
 
-    @NotNull CachedPrincipalMembershipReader createCacheMembershipReader(@NotNull Root root,
+    @NotNull CachedMembershipReader createCacheMembershipReader(@NotNull Root root,
             @NotNull UserConfiguration userConfiguration) {
 
         return new CachedPrincipalMembershipReader(
@@ -181,10 +183,10 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
     }
 
     private static CacheConfiguration getCacheConfiguration(@NotNull UserConfiguration userConfiguration) {
-        return CacheConfiguration.fromUserConfiguration(userConfiguration);
+        return CacheConfiguration.fromUserConfiguration(userConfiguration, UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
     }
 
-    CachedPrincipalMembershipReader createMockedPrincipalMembershipReader(CachePrincipalFactory groupPrincipalFactory,
+    CachedMembershipReader createMockedPrincipalMembershipReader(CachePrincipalFactory groupPrincipalFactory,
             UserConfiguration userConfiguration, Root root) {
         CacheConfiguration cacheConfiguration = getCacheConfiguration(userConfiguration);
         return new CachedPrincipalMembershipReader(cacheConfiguration, root, groupPrincipalFactory);
@@ -210,7 +212,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
 
     @Test
     public void testWritingCacheFailsWithException() throws Exception {
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(root);
+        CachedMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(root);
 
         Set<Principal> groupPrincipals = new HashSet<>();
         groupPrincipals.addAll(cachedGroupMembershipReader.readMembership(root.getTree(userPath), cacheLoader));
@@ -230,7 +232,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
      */
     @Test
     public void testReadMembershipForNonUser() throws Exception {
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = spy(createCacheMembershipReader(root));
+        CachedMembershipReader cachedGroupMembershipReader = spy(createCacheMembershipReader(root));
 
         Set<Principal> groupPrincipals = new HashSet<>();
         Tree groupTree = getTree(groupId2, root);
@@ -250,7 +252,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
     @Test
     public void testReadMembershipWithCache() throws Exception {
         Root systemRoot = spy(getSystemRoot());
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot);
+        CachedMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot);
 
         Set<Principal> groupPrincipal = new HashSet<>();
         groupPrincipal.addAll(cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), cacheLoader));
@@ -287,7 +289,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         Thread[] getMembershipThreads = new Thread[NUM_THREADS];
         for (int i = 0; i < getMembershipThreads.length; i++) {
             getMembershipThreads[i] = new Thread(() -> {
-                CachedPrincipalMembershipReader membershipReader = createMockedPrincipalMembershipReader(mockedGroupPrincipalFactory, getUserConfiguration(), mockedRoot);
+                CachedMembershipReader membershipReader = createMockedPrincipalMembershipReader(mockedGroupPrincipalFactory, getUserConfiguration(), mockedRoot);
                 Set<Principal> groupPrincipals = new HashSet<>(membershipReader.readMembership(mockedUser, (tree) -> Set.of(principal)));
                 assertEquals(groupPrincipals.size(), 1);
             });
@@ -330,15 +332,15 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
 
         PropertyState propertyStateExpiration = mock(PropertyState.class);
         when(propertyStateExpiration.getValue(Type.LONG)).thenReturn(System.currentTimeMillis());
-        when(mockedPrincipalCache.getProperty(MembershipCacheConstants.REP_EXPIRATION)).thenReturn(
+        when(mockedPrincipalCache.getProperty(CacheConstants.REP_EXPIRATION)).thenReturn(
                 propertyStateExpiration);
 
         PropertyState propertyStatePrincipalNames = mock(PropertyState.class);
         when(propertyStatePrincipalNames.getValue(Type.STRING)).thenReturn("groupPrincipal");
         if (!emptyCache) {
             // Set the property to indicate that the cache is valid
-            when(mockedPrincipalCache.hasProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(true);
-            when(mockedPrincipalCache.getProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(
+            when(mockedPrincipalCache.hasProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(true);
+            when(mockedPrincipalCache.getProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES)).thenReturn(
                 propertyStatePrincipalNames);}
 
         when(mockedUser.getChild(REP_CACHE)).thenReturn(mockedPrincipalCache);
@@ -364,7 +366,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
             UserConfiguration uc = new UserConfigurationImpl(getSecurityProvider());
             userConfigurations.add(uc);
 
-            CachedPrincipalMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot, uc);
+            CachedMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot, uc);
             cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), cacheLoader);
         }
 
@@ -382,7 +384,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         Map<UserConfiguration, Map<String, Long>> cacheUpdates = null;
         try {
             Root systemRoot = getSystemRoot();
-            CachedPrincipalMembershipReader membershipReader = createCacheMembershipReader(systemRoot, uc);
+            CachedMembershipReader membershipReader = createCacheMembershipReader(systemRoot, uc);
             membershipReader.readMembership(systemRoot.getTree(userPath), cacheLoader);
 
             Field f = CachedPrincipalMembershipReader.class.getDeclaredField("CACHE_UPDATES");
@@ -398,7 +400,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
                 m.computeIfAbsent("/user/path/" + i, key -> System.currentTimeMillis());
             }
 
-            int maxCacheTrackingEntries = 100; // constant in CachedPrincipalMembershipReader
+            int maxCacheTrackingEntries = 100; // constant in CachedMembershipReader
             assertEquals(maxCacheTrackingEntries, m.size());
 
         } finally {
@@ -411,13 +413,13 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
     @Test
     public void testMultipleCacheProviderWithDifferentProperties() throws Exception {
         Root systemRoot = getSystemRoot();
-        CachedPrincipalMembershipReader defaultCacheReader = createCacheMembershipReader(systemRoot);
+        CachedMembershipReader defaultCacheReader = createCacheMembershipReader(systemRoot);
 
         //Create cache configuration but targeting different property name
         String newCachePropertyName = "anotherCache";
         CacheConfiguration anotherCacheConfiguration = CacheConfiguration.fromUserConfiguration(getUserConfiguration(),
                 newCachePropertyName);
-        CachedPrincipalMembershipReader anotherCacheReader = new CachedPrincipalMembershipReader(anotherCacheConfiguration,
+        CachedMembershipReader anotherCacheReader = new CachedPrincipalMembershipReader(anotherCacheConfiguration,
                 systemRoot, name -> getPrincipalByName(systemRoot, name));
 
         Set<Principal> groupPrincipal = new HashSet<>();
@@ -436,9 +438,9 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
 
         assertTrue(systemRoot.getTree(userPath).hasChild(REP_CACHE));
         Tree cacheNode = systemRoot.getTree(userPath).getChild(REP_CACHE);
-        assertTrue(cacheNode.hasProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES));
+        assertTrue(cacheNode.hasProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES));
         assertTrue(cacheNode.hasProperty(newCachePropertyName));
-        assertEquals(cacheNode.getProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES).getValue(Type.STRINGS),
+        assertEquals(cacheNode.getProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES).getValue(Type.STRINGS),
                 cacheNode.getProperty(newCachePropertyName).getValue(Type.STRINGS));
 
     }
@@ -446,19 +448,19 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
     @Test
     public void testMissingExpirationProperty() throws Exception {
         Root systemRoot = getSystemRoot();
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot);
+        CachedMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot);
 
         //Fill cache node with principals for user
         Set<Principal> groupPrincipal = new HashSet<>(cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), cacheLoader));
         assertTrue(systemRoot.getTree(userPath).hasChild(REP_CACHE));
         Tree cacheNode = systemRoot.getTree(userPath).getChild(REP_CACHE);
-        assertTrue(cacheNode.hasProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES));
-        assertTrue(cacheNode.hasProperty(MembershipCacheConstants.REP_EXPIRATION));
+        assertTrue(cacheNode.hasProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES));
+        assertTrue(cacheNode.hasProperty(CacheConstants.REP_EXPIRATION));
 
         //Remove expiration property
-        cacheNode.removeProperty(MembershipCacheConstants.REP_EXPIRATION);
+        cacheNode.removeProperty(CacheConstants.REP_EXPIRATION);
         systemRoot.commit(CommitMarker.asCommitAttributes());
-        assertFalse(cacheNode.hasProperty(MembershipCacheConstants.REP_EXPIRATION));
+        assertFalse(cacheNode.hasProperty(CacheConstants.REP_EXPIRATION));
 
         //Read cache again
         Set<Principal> newGroupPrincipal = new HashSet<>(cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), cacheLoader));
@@ -466,8 +468,8 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         //Asserts that the cache was updated, the expiration property was added and the group principals are the same
         assertEquals(groupPrincipal, newGroupPrincipal);
         Tree updatedCacheNode = systemRoot.getTree(userPath).getChild(REP_CACHE);
-        assertTrue(updatedCacheNode.hasProperty(MembershipCacheConstants.REP_GROUP_PRINCIPAL_NAMES));
-        assertTrue(updatedCacheNode.hasProperty(MembershipCacheConstants.REP_EXPIRATION));
+        assertTrue(updatedCacheNode.hasProperty(UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES));
+        assertTrue(updatedCacheNode.hasProperty(CacheConstants.REP_EXPIRATION));
     }
 
     @Test
@@ -483,7 +485,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
                 )
         ));
 
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot);
+        CachedMembershipReader cachedGroupMembershipReader = createCacheMembershipReader(systemRoot);
 
         Set<Principal> groupPrincipal = new HashSet<>();
         groupPrincipal.addAll(cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), cacheLoader));
@@ -514,7 +516,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         Thread[] getMembershipThreads = new Thread[NUM_THREADS];
         for (int i = 0; i < getMembershipThreads.length; i++) {
             getMembershipThreads[i] = new Thread(() -> {
-                CachedPrincipalMembershipReader membershipReader = createMockedPrincipalMembershipReader(
+                CachedMembershipReader membershipReader = createMockedPrincipalMembershipReader(
                         mockedGroupPrincipalFactory,
                         getUserConfiguration(),
                         mockedRoot);
