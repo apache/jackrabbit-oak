@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
@@ -112,9 +113,12 @@ public class MongoDockerRule extends ExternalResource {
     }
 
     private static boolean checkImageAvailability() throws TimeoutException {
-        RemoteDockerImage remoteDockerImage = new RemoteDockerImage(DOCKER_IMAGE_NAME);
-        remoteDockerImage.get(1, TimeUnit.MINUTES);
-        return true;
+        RemoteDockerImage remoteDockerImage = null;
+        if (!DocumentStoreFixture.MongoFixture.SKIP_MONGO) {
+            remoteDockerImage = new RemoteDockerImage(DOCKER_IMAGE_NAME);
+            remoteDockerImage.get(1, TimeUnit.MINUTES);
+        }
+        return remoteDockerImage != null;
     }
 
     private static boolean checkDockerAvailability() {
