@@ -19,8 +19,20 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoDatabase;
+import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -51,22 +63,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoDatabase;
 
 /**
  * This class is where the strategy being selected for building FlatFileStore.
@@ -112,7 +110,7 @@ public class FlatFileNodeStoreBuilder {
     private String checkpoint;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
-    private MongoClientURI mongoClientURI;
+    private ConnectionString mongoClientURI;
     private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
@@ -191,7 +189,7 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withMongoClientURI(MongoClientURI mongoClientURI) {
+    public FlatFileNodeStoreBuilder withMongoClientURI(ConnectionString mongoClientURI) {
         this.mongoClientURI = mongoClientURI;
         return this;
     }

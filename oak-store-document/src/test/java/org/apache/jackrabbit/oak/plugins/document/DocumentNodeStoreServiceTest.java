@@ -16,18 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import com.mongodb.MongoClient;
-
 import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -40,15 +44,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.mock;
 
 public class DocumentNodeStoreServiceTest {
 
@@ -151,18 +146,6 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void keepAlive() throws Exception {
-        Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
-        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
-        MockOsgi.activate(service, context.bundleContext());
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
-    }
-
-    @Test
     public void continuousRGCDefault() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
@@ -217,8 +200,6 @@ public class DocumentNodeStoreServiceTest {
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
         assertNotNull(mds);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test
@@ -233,11 +214,6 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
 
         MockOsgi.activate(service, context.bundleContext());
-
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test

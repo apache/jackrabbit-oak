@@ -22,15 +22,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
 import java.util.List;
-
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
-
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 
@@ -89,11 +86,11 @@ public class ClusterInfoTest {
         assertEquals(WriteConcern.MAJORITY, mem.getWriteConcern());
 
         op = new UpdateOp(list.get(0).getId(), false);
-        op.set("readWriteMode", "read:nearest, write:fsynced");
+        op.set("readWriteMode", "read:nearest, write:w2");
         mem.findAndUpdate(Collection.CLUSTER_NODES, op);
         ns1.renewClusterIdLease();
         assertEquals(ReadPreference.nearest(), mem.getReadPreference());
-        assertEquals(WriteConcern.FSYNCED, mem.getWriteConcern());
+        assertEquals(WriteConcern.W2, mem.getWriteConcern());
 
         ns1.dispose();
         ns2.dispose();

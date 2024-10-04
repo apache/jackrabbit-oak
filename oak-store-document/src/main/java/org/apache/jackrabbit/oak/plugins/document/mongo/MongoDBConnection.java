@@ -1,41 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work
+ * for additional information regarding copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
-import com.mongodb.ReadConcernLevel;
-import com.mongodb.client.ClientSession;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
+import com.mongodb.BasicDBObject;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings.Builder;
+import com.mongodb.ReadConcernLevel;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 /**
- * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and
- * {@code MongoStatus}.
+ * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and {@code MongoStatus}.
  */
 final class MongoDBConnection {
 
@@ -48,9 +42,9 @@ final class MongoDBConnection {
     private final MongoSessionFactory sessionFactory;
 
     MongoDBConnection(@NotNull MongoClient client,
-                      @NotNull MongoDatabase database,
-                      @NotNull MongoStatus status,
-                      @NotNull MongoClock clock) {
+            @NotNull MongoDatabase database,
+            @NotNull MongoStatus status,
+            @NotNull MongoClock clock) {
         this.client = requireNonNull(client);
         this.db = requireNonNull(database);
         this.status = requireNonNull(status);
@@ -59,22 +53,30 @@ final class MongoDBConnection {
     }
 
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
-                                                  @NotNull String name,
-                                                  @NotNull MongoClock clock,
-                                                  int socketTimeout,
-                                                  boolean socketKeepAlive) {
+            @NotNull String name,
+            @NotNull MongoClock clock,
+            int socketTimeout,
+            boolean socketKeepAlive) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
-        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addServerMonitorListener(serverMonitorListener);
-        options.socketKeepAlive(socketKeepAlive);
-        if (socketTimeout > 0) {
-            options.socketTimeout(socketTimeout);
-        }
-        MongoClient client = new MongoClient(new MongoClientURI(uri, options));
+
+        ConnectionString connectionString = new ConnectionString(uri);
+        Builder options = MongoConnection.getDefaultBuilder();
+        options.applyConnectionString(connectionString);
+        options.applyToServerSettings(builder -> builder.addServerMonitorListener(serverMonitorListener));
+        options.applyToSocketSettings(builder -> {
+            // It's not possible anymore setting keepalive, it was deprecated since at least 3.6.0 version
+            // builder.keepAlive(socketKeepAlive);
+            if (socketTimeout > 0) {
+                builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
+            }
+        });
+
+        MongoClient client = MongoClients.create(options.build());
+
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
-        if (!MongoConnection.hasWriteConcern(uri)) {
+        if (MongoConnection.hasMongoDbDefaultWriteConcern(uri)) {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
         }
         if (status.isMajorityReadConcernSupported()
@@ -120,8 +122,7 @@ final class MongoDBConnection {
     }
 
     /**
-     * Checks read and write concern on the {@code MongoDatabase} and logs warn
-     * messages when they differ from the recommended values.
+     * Checks read and write concern on the {@code MongoDatabase} and logs warn messages when they differ from the recommended values.
      */
     void checkReadWriteConcern() {
         if (!MongoConnection.isSufficientWriteConcern(client, db.getWriteConcern())) {

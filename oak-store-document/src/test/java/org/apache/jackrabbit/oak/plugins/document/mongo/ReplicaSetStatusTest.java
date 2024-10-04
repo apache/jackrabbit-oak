@@ -16,24 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import com.mongodb.ServerAddress;
-import com.mongodb.connection.ClusterId;
-import com.mongodb.connection.ConnectionDescription;
-import com.mongodb.connection.ServerId;
-import com.mongodb.event.ServerHeartbeatSucceededEvent;
-
 import org.bson.BsonArray;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
+import com.mongodb.ServerAddress;
+import com.mongodb.connection.ClusterId;
+import com.mongodb.connection.ConnectionDescription;
+import com.mongodb.connection.ServerId;
+import com.mongodb.event.ServerHeartbeatSucceededEvent;
 
 public class ReplicaSetStatusTest {
 
@@ -104,6 +101,6 @@ public class ReplicaSetStatusTest {
         reply.put("hosts", new BsonArray(hostValues));
         BsonDocument lastWrite = new BsonDocument("lastWriteDate", new BsonDateTime(lastWriteDate));
         reply.put("lastWrite", lastWrite);
-        return new ServerHeartbeatSucceededEvent(description.getConnectionId(), reply, 0);
+        return new ServerHeartbeatSucceededEvent(description.getConnectionId(), reply, 0, false);
     }
 }

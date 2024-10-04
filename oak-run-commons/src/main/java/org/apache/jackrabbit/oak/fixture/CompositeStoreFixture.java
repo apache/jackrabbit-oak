@@ -17,6 +17,13 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
 import org.apache.jackrabbit.oak.composite.InitialContentMigrator;
@@ -37,17 +44,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.mongodb.MongoClientURI;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import com.mongodb.ConnectionString;
 
 abstract class CompositeStoreFixture extends OakFixture {
 
@@ -109,7 +106,7 @@ abstract class CompositeStoreFixture extends OakFixture {
                                                boolean throttlingEnabled) {
         return new CompositeStoreFixture(name) {
 
-            private String database = new MongoClientURI(uri).getDatabase();
+            private String database = new ConnectionString(uri).getDatabase();
             private DocumentNodeStore ns;
 
             @Override

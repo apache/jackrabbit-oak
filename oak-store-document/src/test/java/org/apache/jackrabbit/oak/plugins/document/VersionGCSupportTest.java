@@ -18,27 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.StreamSupport;
-
-import com.mongodb.ReadPreference;
-
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Comparator.comparing;
 import static java.util.List.of;
@@ -59,6 +38,24 @@ import static org.apache.jackrabbit.oak.stats.Clock.SIMPLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.StreamSupport;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import com.mongodb.ReadPreference;
 
 @RunWith(Parameterized.class)
 public class VersionGCSupportTest {

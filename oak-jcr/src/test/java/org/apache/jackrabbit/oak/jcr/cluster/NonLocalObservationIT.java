@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.jcr.cluster;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
-
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -33,7 +31,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
@@ -47,8 +44,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.mongodb.client.MongoClient;
 
-import com.mongodb.MongoClient;
 
 /**
  * Test for external events from another cluster node.
@@ -108,7 +105,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
                 nodeStores.remove(nodeStore);
                 if (nodeStores.size() == 0) {
                     try (MongoClient c = createClient()) {
-                        c.dropDatabase(dbName);
+                        c.getDatabase(dbName).drop();
                     } catch (Exception e) {
                         log.error("dispose: Can't close Mongo", e);
                     }

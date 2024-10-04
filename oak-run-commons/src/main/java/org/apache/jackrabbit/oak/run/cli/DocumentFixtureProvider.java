@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.run.cli;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 import java.io.IOException;
-
 import javax.sql.DataSource;
-
-import com.mongodb.client.MongoDatabase;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
@@ -37,12 +38,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoDatabase;
 
 class DocumentFixtureProvider {
     static DocumentNodeStore configureDocumentMk(Options options,
@@ -101,14 +98,14 @@ class DocumentFixtureProvider {
 
         DocumentNodeStore dns;
         if (commonOpts.isMongo()) {
-            MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
+            ConnectionString uri = new ConnectionString(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
                 System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
+                        + uri);
                 System.exit(1);
             }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
-            wb.register(MongoClientURI.class, uri, emptyMap());
+            MongoConnection mongo = new MongoConnection(uri.getConnectionString());
+            wb.register(ConnectionString.class, uri, emptyMap());
             wb.register(MongoConnection.class, mongo, emptyMap());
             wb.register(MongoDatabase.class, mongo.getDatabase(), emptyMap());
             closer.register(mongo::close);
