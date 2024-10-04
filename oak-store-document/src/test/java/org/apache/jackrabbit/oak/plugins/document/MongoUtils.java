@@ -72,8 +72,7 @@ public class MongoUtils {
                             host.set(dockerRule.getHost());
                             port.set(dockerRule.getPort());
                         }
-                    }, Description.EMPTY)
-                            .evaluate();
+                    }, Description.EMPTY).evaluate();
                     mongoUrl = "mongodb://" + host + ":" + port.get() + "/" + DB + "?" + OPTIONS;
                 } catch (Throwable t) {
                     LOG.warn("Unable to get MongoDB port from Docker", t);
