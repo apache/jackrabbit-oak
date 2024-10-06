@@ -21,7 +21,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -35,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -81,6 +81,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -1017,7 +1018,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // distinguish between a combination of removeMixin and addMixin
                 // and Node#remove plus subsequent addNode when it comes to
                 // autocreated properties like jcr:create, jcr:uuid and so forth.
-                Set<String> mixins = newLinkedHashSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
+                Set<String> mixins = CollectionUtils.toLinkedSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
                 if (!mixins.isEmpty() && mixins.remove(getOakName(mixinName))) {
                     PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins, NAMES);
                     sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
@@ -1616,7 +1617,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      */
     @Override
     public void setMixins(String[] mixinNames) throws RepositoryException {
-        final Set<String> oakTypeNames = newLinkedHashSet();
+        final Set<String> oakTypeNames = new LinkedHashSet<>();
         for (String mixinName : mixinNames) {
             oakTypeNames.add(getOakName(requireNonNull(mixinName)));
         }

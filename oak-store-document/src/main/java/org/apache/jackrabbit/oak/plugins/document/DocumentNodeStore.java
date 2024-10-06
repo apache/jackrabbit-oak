@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
@@ -1748,7 +1748,7 @@ public final class DocumentNodeStore
                 } else if (added.isEmpty()) {
                     // incomplete list, but we only removed nodes
                     // use linked hash set to retain order
-                    Set<String> afterChildren = Sets.newLinkedHashSet(children.children);
+                    Set<String> afterChildren = new LinkedHashSet<>(children.children);
                     for (Path p : removed) {
                         afterChildren.remove(p.getName());
                     }
