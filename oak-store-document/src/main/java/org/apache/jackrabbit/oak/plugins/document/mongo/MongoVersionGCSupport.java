@@ -79,6 +79,7 @@ import com.mongodb.Block;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 
 /**
  * Mongo specific version of VersionGCSupport which uses mongo queries
@@ -258,7 +259,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                         and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
-        final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+        final Bson sort = Sorts.ascending(MODIFIED_IN_SECS, ID);
 
         logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
 
@@ -344,7 +345,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
         LOG.debug("getOldestDeletedOnceTimestamp() <- start");
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
-        Bson sort = Filters.eq(MODIFIED_IN_SECS, 1);
+        Bson sort = Sorts.ascending(MODIFIED_IN_SECS);
         List<Long> result = new ArrayList<>(1);
         getNodeCollection().find(query).sort(sort).limit(1).forEach(
                 new Block<BasicDBObject>() {
@@ -373,7 +374,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
-        final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+        final Bson sort = Sorts.ascending(MODIFIED_IN_SECS, ID);
 
         // we need to add query condition to ignore `previous` documents which doesn't have this field
         final Bson query = exists(MODIFIED_IN_SECS);
