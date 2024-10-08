@@ -28,8 +28,8 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <shaded.guava.version>33.3.0-jre</shaded.guava.version>
-    <exported.guava.version>33.3.0</exported.guava.version>
+    <shaded.guava.version>33.3.1-jre</shaded.guava.version>
+    <exported.guava.version>33.3.1</exported.guava.version>
     <pref>org.apache.jackrabbit.guava</pref>
   </properties>
 
