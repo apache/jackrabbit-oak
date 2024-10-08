@@ -30,7 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -2224,13 +2224,7 @@ public class RDBDocumentStore implements DocumentStore {
             }).get();
 
     public static byte[] asBytes(@NotNull String data) {
-        byte[] bytes;
-        try {
-            bytes = data.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            LOG.error("UTF-8 not supported??", ex);
-            throw asDocumentStoreException(ex, "UTF-8 not supported??");
-        }
+        byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
 
         if (NOGZIP) {
             return bytes;
