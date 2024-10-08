@@ -412,7 +412,7 @@ public class RDBJDBCTools {
                             stmt.setBytes(startIndex++, UTF8Encoder.encodeAsByteArray(value));
                         } else {
                             if (!UTF8Encoder.canEncode(value)) {
-                                throw new IOException("can not encode as UTF-8");
+                                throw new IOException("can not encode as valid UTF-8");
                             }
                             stmt.setString(startIndex++, value);
                         }
