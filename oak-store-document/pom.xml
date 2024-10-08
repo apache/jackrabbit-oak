@@ -43,8 +43,8 @@
         <configuration>
           <instructions>
             <Import-Package>
-              com.mongodb*;version="[3.8, 4)";resolution:=optional,
-              org.bson*;version="[3.8, 4)";resolution:=optional,
+              com.mongodb*;version="[5.0, 5.2)";resolution:=optional,
+              org.bson*;version="[5.0, 5.2)";resolution:=optional,
               *
             </Import-Package>
             <Export-Package>
