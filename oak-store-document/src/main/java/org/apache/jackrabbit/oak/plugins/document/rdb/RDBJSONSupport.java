@@ -86,7 +86,11 @@ public class RDBJSONSupport {
             case JsopReader.NUMBER:
                 String t = json.getToken();
                 Long parsed = LongUtils.tryParse(t);
-                return parsed != null ? parsed : Double.parseDouble(t);
+                if (parsed != null) {
+                    return parsed;
+                } else {
+                    return Double.parseDouble(t);
+                }
             case JsopReader.STRING:
                 return json.getToken();
             case '{':
