@@ -16,21 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.mongodb.ServerAddress;
+import com.mongodb.connection.ClusterId;
+import com.mongodb.connection.ConnectionDescription;
+import com.mongodb.connection.ServerId;
+import com.mongodb.event.ServerHeartbeatSucceededEvent;
+
 import org.bson.BsonArray;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.junit.Test;
-import com.mongodb.ServerAddress;
-import com.mongodb.connection.ClusterId;
-import com.mongodb.connection.ConnectionDescription;
-import com.mongodb.connection.ServerId;
-import com.mongodb.event.ServerHeartbeatSucceededEvent;
+
+import static org.junit.Assert.assertEquals;
 
 public class ReplicaSetStatusTest {
 
