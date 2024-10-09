@@ -665,6 +665,7 @@ public class RDBDocumentStoreJDBC {
             internalClose();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void finalize() throws Throwable {
             try {
