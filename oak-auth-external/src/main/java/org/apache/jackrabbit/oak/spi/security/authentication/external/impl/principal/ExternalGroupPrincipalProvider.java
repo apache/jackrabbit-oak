@@ -102,7 +102,7 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
 class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdentityConstants, DynamicMembershipProvider {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalGroupPrincipalProvider.class);
-    static final String CACHE_PRINCIPAL_NAMES = "externalPrincipalNames";
+    static final String CACHE_PRINCIPAL_NAMES = "rep:externalCachedPrincipalNames";
 
     private static final String BINDING_PRINCIPAL_NAMES = "principalNames";
 

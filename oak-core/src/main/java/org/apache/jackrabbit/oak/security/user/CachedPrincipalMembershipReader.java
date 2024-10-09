@@ -149,6 +149,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
                 }
             }
         } catch (AccessDeniedException | CommitFailedException e) {
+            // Failed to write cache but groups should have been loaded successfully
             LOG.debug("Failed to cache membership: {}", e.getMessage());
         } finally {
             // remove current entry from the cache updates map verifying that the current thread is the owner
