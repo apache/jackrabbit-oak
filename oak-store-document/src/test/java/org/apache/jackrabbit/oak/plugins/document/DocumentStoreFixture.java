@@ -48,7 +48,7 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture MONGO = new MongoFixture();
 
     public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
-            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
+            "jdbc:db2://localhost:50000/oak"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
             "rdb-db2-jdbc-passwd", "geheim"));
     public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", System.getProperty(
             "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-ds-test;create=true"),
