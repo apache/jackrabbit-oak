@@ -25,9 +25,9 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.Closeable;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -47,7 +47,6 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -483,11 +482,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
         boolean binaryId = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).isIdBinary();
         if (binaryId) {
-            try {
-                stmt.setBytes(idx, id.getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException ex) {
-                throw new DocumentStoreException(ex);
-            }
+            stmt.setBytes(idx, id.getBytes(StandardCharsets.UTF_8));
         } else {
             stmt.setString(idx, id);
         }
@@ -496,11 +491,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     private String getIdFromRS(ResultSet rs, int idx) throws SQLException {
         boolean binaryId = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).isIdBinary();
         if (binaryId) {
-            try {
-                return new String(rs.getBytes(idx), "UTF-8");
-            } catch (UnsupportedEncodingException ex) {
-                throw new DocumentStoreException(ex);
-            }
+            return new String(rs.getBytes(idx), StandardCharsets.UTF_8);
         } else {
             return rs.getString(idx);
         }

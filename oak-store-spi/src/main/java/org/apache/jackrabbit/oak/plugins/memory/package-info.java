@@ -18,11 +18,11 @@
  */
 
 /**
- * Utilities for Java collections and streams.
+ * <em>Internal</em> utilities and implementation of a memory-based store.
  */
-@Internal(since = "1.0.0")
-@Version("1.1.0")
-package org.apache.jackrabbit.oak.commons.collections;
+@Internal(since = "0.0.0")
+@Version("0.0.0")
+package org.apache.jackrabbit.oak.plugins.memory;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;
 

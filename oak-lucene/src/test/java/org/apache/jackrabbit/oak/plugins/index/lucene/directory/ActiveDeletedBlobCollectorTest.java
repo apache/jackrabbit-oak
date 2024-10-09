@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -504,9 +505,9 @@ public class ActiveDeletedBlobCollectorTest {
     }
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
-        Set<String> deletedChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
-        Set<String> failWithDSEForChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
-        Set<String> failWithExceptionForChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
+        Set<String> deletedChunkIds = new LinkedHashSet<>();
+        Set<String> failWithDSEForChunkIds = new LinkedHashSet<>();
+        Set<String> failWithExceptionForChunkIds = new LinkedHashSet<>();
         Runnable callback = null;
         volatile boolean markerChunkDeleted = false;
 

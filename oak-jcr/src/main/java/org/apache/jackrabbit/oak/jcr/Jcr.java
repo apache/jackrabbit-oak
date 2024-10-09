@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler.createJcrConflictHandler;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -70,13 +70,13 @@ public class Jcr {
 
     private final Oak oak;
 
-    private final Set<RepositoryInitializer> repositoryInitializers = newLinkedHashSet();
-    private final Set<QueryIndexProvider> queryIndexProviders = newLinkedHashSet();
-    private final Set<CommitHook> commitHooks = newLinkedHashSet();
-    private final Set<IndexEditorProvider> indexEditorProviders = newLinkedHashSet();
-    private final Set<EditorProvider> editorProviders = newLinkedHashSet();
-    private final Set<Editor> editors = newLinkedHashSet();
-    private final Set<Observer> observers = newLinkedHashSet();
+    private final Set<RepositoryInitializer> repositoryInitializers = new LinkedHashSet<>();
+    private final Set<QueryIndexProvider> queryIndexProviders = new LinkedHashSet<>();
+    private final Set<CommitHook> commitHooks = new LinkedHashSet<>();
+    private final Set<IndexEditorProvider> indexEditorProviders = new LinkedHashSet<>();
+    private final Set<EditorProvider> editorProviders = new LinkedHashSet<>();
+    private final Set<Editor> editors = new LinkedHashSet<>();
+    private final Set<Observer> observers = new LinkedHashSet<>();
 
     private final CompositeConflictHandler conflictHandler = createJcrConflictHandler();
     private SecurityProvider securityProvider;

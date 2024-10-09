@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appe
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -344,10 +345,10 @@ public class RDBDocumentSerializer {
             if (bdata.length >= 2 && bdata[0] == GZIPSIG[0] && bdata[1] == GZIPSIG[1]) {
                 // GZIP
                 try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bdata), 65536)) {
-                    return IOUtils.toString(gis, "UTF-8");
+                    return IOUtils.toString(gis, StandardCharsets.UTF_8);
                 }
             } else {
-                return IOUtils.toString(bdata, "UTF-8");
+                return new String(bdata, StandardCharsets.UTF_8);
             }
         } catch (IOException ex) {
             LOG.debug("Unexpected exception while processing blob data", ex);

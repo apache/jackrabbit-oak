@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.query.ast;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.util.ArrayList;
@@ -37,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An AND condition.
@@ -64,7 +61,7 @@ public class AndImpl extends ConstraintImpl {
     public ConstraintImpl simplify() {
         // Use LinkedHashSet to eliminate duplicate constraints while keeping
         // the ordering for test cases (and clients?) that depend on it
-        LinkedHashSet<ConstraintImpl> simplified = newLinkedHashSet();
+        LinkedHashSet<ConstraintImpl> simplified = new LinkedHashSet<>();
         boolean changed = false; // keep track of changes in simplification
 
         for (ConstraintImpl constraint : constraints) {
@@ -287,8 +284,8 @@ public class AndImpl extends ConstraintImpl {
         // use linked hash sets where needed, so that the order of queries
         // within the UNION is always the same (independent of the JVM
         // implementation)
-        Set<ConstraintImpl> union = Sets.newLinkedHashSet();
-        Set<ConstraintImpl> result = Sets.newLinkedHashSet();
+        Set<ConstraintImpl> union = new LinkedHashSet<>();
+        Set<ConstraintImpl> result = new LinkedHashSet<>();
         Set<ConstraintImpl> nonUnion = new HashSet<>();
         
         for (ConstraintImpl c : constraints) {
@@ -314,7 +311,7 @@ public class AndImpl extends ConstraintImpl {
             // example: WHERE (a OR b) AND (c OR d).
             // This can be translated into a AND c, a AND d, b AND c, b AND d.
             if (QueryEngineSettings.SQL2_OPTIMIZATION_2) {
-                Set<ConstraintImpl> set = Sets.newLinkedHashSet();
+                Set<ConstraintImpl> set = new LinkedHashSet<>();
                 addToUnionList(set);
                 if (set.size() == 1) {
                     // not a union: same condition as before

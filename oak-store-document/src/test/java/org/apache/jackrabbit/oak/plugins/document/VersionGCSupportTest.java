@@ -270,10 +270,23 @@ public class VersionGCSupportTest {
     public void findModifiedDocsWhenModifiedIsDifferent() {
         long secs = 42;
         long offset = SECONDS.toMillis(secs);
-        List<UpdateOp> updateOps = new ArrayList<>(5_000);
+        int dsTimeRes = 5;
+        long offsetForOthers = offset + SECONDS.toMillis(1 + dsTimeRes);
+
+        List<UpdateOp> updateOps = new ArrayList<>();
+        List<String> idsOfOldestDocs = new ArrayList<>();
+
         for (int i = 0; i < 5_000; i++) {
-            Revision r = new Revision(offset + (i * 5), 0, 1);
+            Revision r = new Revision(offsetForOthers + (i * 5), 0, 1);
             String id = getIdFromPath("/x" + i);
+
+            // make sure the oldest doc is "in between" with respect to IDS
+            if (i >= 2000 && i < 2500) {
+                r = new Revision(offset, 0, 1);
+                id = getIdFromPath("/y" + i);
+                idsOfOldestDocs.add(id);
+            }
+
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             setModified(op, r);
@@ -282,14 +295,17 @@ public class VersionGCSupportTest {
         // create 5_000 nodes
         store.create(NODES, updateOps);
 
+        idsOfOldestDocs.sort(null);
+        String minimalIdOfOldestDocs = idsOfOldestDocs.get(0);
+
         NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE).orElse(NULL);
         String oldestModifiedDocId = oldestModifiedDoc.getId();
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
-        assertEquals(40L, oldestModifiedDocTs);
-        assertEquals("1:/x0", oldestModifiedDocId);
+        assertEquals("unexpected modified ts (" + fixture + ")", 40L, oldestModifiedDocTs);
+        assertEquals("unexpected oldest id (" + fixture + ")", minimalIdOfOldestDocs, oldestModifiedDocId);
         oldestModifiedDocId = MIN_ID_VALUE;
 
-        for(int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = StreamSupport.stream(modifiedDocs.spliterator(), false).count();
