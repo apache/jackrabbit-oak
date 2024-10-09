@@ -62,7 +62,9 @@ public class VersionGCInitTest {
 
         vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
-        assertEquals(0L, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+
+        // fullGC values shouldn't have been updated without fullGC enabled
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
     }
 
@@ -124,9 +126,6 @@ public class VersionGCInitTest {
         vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
         // fullGC values shouldn't have been updated in dryRun mode
-        System.out.println(stats.oldestModifiedDocId);
-        System.out.println(stats.oldestModifiedDocTimeStamp);
-        System.out.println(vgc);
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
 

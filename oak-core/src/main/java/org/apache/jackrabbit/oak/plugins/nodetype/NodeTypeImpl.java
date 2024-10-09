@@ -49,9 +49,11 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -64,11 +66,9 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefWriter;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -81,7 +81,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,7 +187,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         Map<Integer, PropertyDefinition> definitions = newTreeMap();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE)) {
+        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_PROPERTY_DEFINITIONS);
@@ -202,7 +201,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         Map<Integer, NodeDefinition> definitions = newTreeMap();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE)) {
+        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_NODE_DEFINITIONS);
@@ -259,7 +258,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
                 for (String supername : supertypes.getValue(Type.NAMES)) {
                     Set<String> subtypes = inheritance.get(supername);
                     if (subtypes == null) {
-                        subtypes = Sets.newHashSet();
+                        subtypes = new HashSet<>();
                         inheritance.put(supername, subtypes);
                     }
                     subtypes.add(oakName);
@@ -713,7 +712,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         }
 
         @Override
-        public boolean apply(Tree tree) {
+        public boolean test(Tree tree) {
             return primaryTypeName.equals(TreeUtil.getPrimaryTypeName(tree));
         }
     }

@@ -21,17 +21,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.IOUtils;
@@ -107,10 +107,10 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         when(mockBlob.getContentIdentity()).thenReturn(testNodeId);
 
         nodeStore = initNodeStore(Optional.of(mockBlob),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
-            Optional.<List<Blob>>absent());
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
+            Optional.<List<Blob>>empty());
 
         // create executor
         taskLatch = new CountDownLatch(1);
@@ -304,10 +304,10 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
     @Test
     public void multiplePropertiesAndBinarySynced() throws Exception {
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
-            Optional.<Blob>absent(),
+            Optional.<Blob>empty(),
             Optional.of("abc"),
             Optional.of(123),
-            Optional.<List<Blob>>absent());
+            Optional.<List<Blob>>empty());
 
         assertSyncedTrue(stats, dataStore, new FileInputStream(testFile));
     }
@@ -319,9 +319,9 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         when(mockBlob2.getContentIdentity()).thenReturn(id2);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
             Optional.of(mockBlob2),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
-            Optional.<List<Blob>>absent());
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
+            Optional.<List<Blob>>empty());
 
         assertSyncedTrue(stats, dataStore, new FileInputStream(testFile),
             getStream("testContents2"));
@@ -334,9 +334,9 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         when(mockBlob2.getContentIdentity()).thenReturn(id2);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
             Optional.of(mockBlob2),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
-            Optional.<List<Blob>>absent());
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
+            Optional.<List<Blob>>empty());
 
         assertSyncedFalse(stats, dataStore, new FileInputStream(testFile));
     }
@@ -344,10 +344,10 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
     @Test
     public void binaryPropSingle() throws Exception {
         List<Blob> blobPropList = Lists.newArrayList(mockBlob);
-        NodeStore nodeStore = initNodeStore(Optional.<Blob>absent(),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
+        NodeStore nodeStore = initNodeStore(Optional.<Blob>empty(),
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
             Optional.of(blobPropList));
 
         assertSyncedTrue(stats, dataStore, new FileInputStream(testFile));
@@ -359,10 +359,10 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         final String id2 = getIdForInputStream(getStream("testContents2"));
         when(mockBlob2.getContentIdentity()).thenReturn(id2);
         List<Blob> blobPropList = Lists.newArrayList(mockBlob, mockBlob2);
-        NodeStore nodeStore = initNodeStore(Optional.<Blob>absent(),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
+        NodeStore nodeStore = initNodeStore(Optional.<Blob>empty(),
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
             Optional.of(blobPropList));
 
         assertSyncedTrue(stats, dataStore, new FileInputStream(testFile),
@@ -375,10 +375,10 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         final String id2 = getIdForInputStream(getStream("testContents2"));
         when(mockBlob2.getContentIdentity()).thenReturn(id2);
         List<Blob> blobPropList = Lists.newArrayList(mockBlob, mockBlob2);
-        NodeStore nodeStore = initNodeStore(Optional.<Blob>absent(),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
+        NodeStore nodeStore = initNodeStore(Optional.<Blob>empty(),
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
             Optional.of(blobPropList));
 
         assertSyncedFalse(stats, dataStore, new FileInputStream(testFile));
@@ -394,9 +394,9 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         when(mockBlob2.getContentIdentity()).thenReturn(id3);
         List<Blob> blobPropList = Lists.newArrayList(mockBlob2, mockBlob3);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
             Optional.of(blobPropList));
 
         assertSyncedFalse(stats, dataStore, new FileInputStream(testFile),
@@ -413,9 +413,9 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         when(mockBlob2.getContentIdentity()).thenReturn(id3);
         List<Blob> blobPropList = Lists.newArrayList(mockBlob2, mockBlob3);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
             Optional.of(blobPropList));
         assertSyncedFalse(stats, dataStore, getStream("testContents2"),
             getStream("testContents3"));
@@ -431,9 +431,9 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         when(mockBlob3.getContentIdentity()).thenReturn(id3);
         List<Blob> blobPropList = Lists.newArrayList(mockBlob2, mockBlob3);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
-            Optional.<Blob>absent(),
-            Optional.<String>absent(),
-            Optional.<Integer>absent(),
+            Optional.<Blob>empty(),
+            Optional.<String>empty(),
+            Optional.<Integer>empty(),
             Optional.of(blobPropList));
 
         assertSyncedFalse(stats, dataStore, new FileInputStream(testFile),
@@ -501,6 +501,6 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
     }
 
     private static InputStream getStream(String str) {
-        return new ByteArrayInputStream(str.getBytes(Charsets.UTF_8));
+        return new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
     }
 }

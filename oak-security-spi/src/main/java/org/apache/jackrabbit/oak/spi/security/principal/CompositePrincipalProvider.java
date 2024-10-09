@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.jetbrains.annotations.NotNull;
@@ -44,7 +44,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     private final List<PrincipalProvider> providers;
 
     public CompositePrincipalProvider(List<PrincipalProvider> providers) {
-        this.providers = checkNotNull(providers);
+        this.providers = requireNonNull(providers);
     }
 
     public static PrincipalProvider of(@NotNull List<PrincipalProvider> providers) {

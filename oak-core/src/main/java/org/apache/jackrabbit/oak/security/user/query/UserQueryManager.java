@@ -21,10 +21,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -110,7 +111,7 @@ public class UserQueryManager {
                 filter = new GroupPredicate(userManager, groupId, false);
 
             }
-            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), Iterators.filter(result, filter));
+            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), Iterators.filter(result, filter::test));
         }
     }
 
@@ -273,8 +274,9 @@ public class UserQueryManager {
                     statement, javax.jcr.query.Query.XPATH, limit, offset,
                     NO_BINDINGS, namePathMapper.getSessionLocalMappings());
             Iterable<? extends ResultRow> resultRows = query.getRows();
-            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames()));
-            return Iterators.filter(authorizables, new UniqueResultPredicate());
+            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(),
+                    new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames())::apply);
+            return Iterators.filter(authorizables, new UniqueResultPredicate()::test);
         } catch (ParseException e) {
             throw new RepositoryException("Invalid user query "+statement, e);
         }
@@ -324,7 +326,7 @@ public class UserQueryManager {
         private final Set<String> authorizableIds = new HashSet<>();
 
         @Override
-        public boolean apply(@Nullable Authorizable input) {
+        public boolean test(@Nullable Authorizable input) {
             String id = getID(input);
             return id != null && authorizableIds.add(id);
         }

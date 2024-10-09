@@ -24,7 +24,6 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Stream.concat;
-import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
@@ -34,12 +33,14 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifie
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -49,7 +50,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 public class VersionGCSupport {
@@ -75,7 +75,7 @@ public class VersionGCSupport {
      * @return matching documents.
      */
     public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
-        return stream(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1).spliterator(), false)
+        return StreamSupport.stream(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1).spliterator(), false)
                 .filter(input -> input.wasDeletedOnce() && modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
                 .collect(toList());
     }
@@ -98,12 +98,16 @@ public class VersionGCSupport {
      * @return matching documents.
      */
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId) {
+                                                  @NotNull final String fromId,
+                                                  @NotNull final Set<String> includePaths,
+                                                  @NotNull final Set<String> excludePaths) {
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
-        final Stream<NodeDocument> s1 = stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
+        final Stream<NodeDocument> s1 = StreamSupport.stream(getSelectedDocuments(store,
+                MODIFIED_IN_SECS, 1, fromId, includePaths, excludePaths).spliterator(), false)
                 .filter(input -> modifiedEqualsTo(input, fromModified));
 
-        final Stream<NodeDocument> s2 = stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1).spliterator(), false)
+        final Stream<NodeDocument> s2 = StreamSupport.stream(getSelectedDocuments(store,
+                MODIFIED_IN_SECS, 1, includePaths, excludePaths).spliterator(), false)
                 .filter(input -> modifiedGreaterThan(input, fromModified) && modifiedLessThan(input, toModified));
 
         return concat(s1, s2)
@@ -170,14 +174,10 @@ public class VersionGCSupport {
     protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
                                                      final RevisionVector sweepRevs,
                                                      final long oldestRevTimeStamp) {
-        return filter(getAllDocuments(store), new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument doc) {
-                return gcTypes.contains(doc.getSplitDocType())
+        return filter(getAllDocuments(store),
+                doc -> gcTypes.contains(doc.getSplitDocType())
                         && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
-                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
-            }
-        });
+                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs));
     }
 
     /**
@@ -222,7 +222,7 @@ public class VersionGCSupport {
         long now = clock.getTime();
         Iterable<NodeDocument> docs = null;
         try {
-            docs = getModifiedDocs(0, now, 1, MIN_ID_VALUE);
+            docs = getModifiedDocs(0, now, 1, MIN_ID_VALUE, Collections.emptySet(), Collections.emptySet());
             if (docs.iterator().hasNext()) {
                 final NodeDocument oldestModifiedDoc = docs.iterator().next();
                 LOG.info("Oldest modified document is {}", oldestModifiedDoc);
@@ -247,7 +247,7 @@ public class VersionGCSupport {
 
         Iterable<NodeDocument> docs = null;
         try {
-            docs = stream(getSelectedDocuments(store, null, 0, MIN_ID_VALUE).spliterator(), false)
+            docs = StreamSupport.stream(getSelectedDocuments(store, null, 0, MIN_ID_VALUE).spliterator(), false)
                     .filter(input -> idEquals(input, id)).limit(1).collect(toList());
             if (docs.iterator().hasNext()) {
                 final NodeDocument doc = docs.iterator().next();

@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
 import static java.util.Comparator.comparing;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -35,6 +35,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -50,10 +51,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -99,7 +98,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final Logger LOG = LoggerFactory.getLogger(MarkSweepGarbageCollector.class);
 
-    public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
+    public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 
     public static final int DEFAULT_BATCH_COUNT = 1024;
 
@@ -190,7 +189,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         this.blobStore = blobStore;
         this.checkConsistencyAfterGc = checkConsistencyAfterGc;
         this.sweepIfRefsPastRetention = sweepIfRefsPastRetention;
-        checkNotNull(blobStore, "BlobStore cannot be null");
+        requireNonNull(blobStore, "BlobStore cannot be null");
         this.marker = marker;
         this.batchCount = batchCount;
         this.maxLastModifiedInterval = maxLastModifiedInterval;
@@ -264,22 +263,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             List<DataRecord> refFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
             ImmutableListMultimap<String, DataRecord> references =
-                FluentIterable.from(refFiles).index(new Function<DataRecord, String>() {
-                    @Override public String apply(DataRecord input) {
-                        return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
-
-                    }
-                });
+                FluentIterable.from(refFiles).index(
+                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()));
 
             // Get all the markers available
             List<DataRecord> markerFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
-            Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles, new Function<DataRecord, String>() {
-                @Override
-                public String apply(DataRecord input) {
-                    return input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1);
-                }
-            });
+            Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles,
+                    input -> input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1));
 
             // Get all the repositories registered
             List<DataRecord> repoFiles =
@@ -519,10 +510,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long deletedSize = 0;
         int numDeletedSizeAvailable = 0;
         try {
-            removesWriter = Files.newWriter(fs.getGarbage(), Charsets.UTF_8);
+            removesWriter = Files.newWriter(fs.getGarbage(), StandardCharsets.UTF_8);
             ArrayDeque<String> removesQueue = new ArrayDeque<String>();
             iterator =
-                    FileUtils.lineIterator(fs.getGcCandidates(), Charsets.UTF_8.name());
+                    FileUtils.lineIterator(fs.getGcCandidates(), StandardCharsets.UTF_8.name());
 
             Iterator<List<String>> partitions = Iterators.partition(iterator, getBatchCount());
             while (partitions.hasNext()) {
@@ -627,7 +618,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param logPath whether to log path in the file or not
      */
     protected void iterateNodeTree(GarbageCollectorFileState fs, final boolean logPath) throws IOException {
-        final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
+        final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         try {
             marker.collectReferences(
@@ -645,16 +636,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                 final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                 Iterator<List<String>> partitions = Iterators.partition(idIter, getBatchCount());
                                 while (partitions.hasNext()) {
-                                    List<String> idBatch = Lists.transform(partitions.next(), new Function<String,
-                                        String>() {
-                                        @Nullable @Override
-                                        public String apply(@Nullable String id) {
+                                    List<String> idBatch = Lists.transform(partitions.next(), id -> {
                                             if (logPath) {
                                                 return delimJoiner.join(id, nodeId);
                                             }
                                             return id;
-                                        }
-                                    });
+                                        });
                                     if (debugMode) {
                                         LOG.trace("chunkIds : {}", idBatch);
                                     }
@@ -891,7 +878,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 List<DataRecord> repoFiles =
                     ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
                 LOG.info("Repositories registered {}", repoFiles);
-                
+
                 // Retrieve repos for which reference files have not been created
                 Set<String> unAvailRepos =
                         SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);

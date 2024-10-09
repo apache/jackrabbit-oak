@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -35,16 +34,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -147,7 +146,7 @@ public class CompositeChildrenCountTest {
 
     private static class CompositeNodeStoreBuilder {
 
-        private final Map<MountedNodeStore, NodeState> rootStates = newHashMap();
+        private final Map<MountedNodeStore, NodeState> rootStates = new HashMap<>();
 
         private final CompositionContext ctx;
 
@@ -224,13 +223,7 @@ public class CompositeChildrenCountTest {
                 Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
                 return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
-                return asCountingIterable(transform(asList(children), new Function<String, ChildNodeEntry>() {
-                    @Nullable
-                    @Override
-                    public ChildNodeEntry apply(@Nullable String input) {
-                        return new MemoryChildNodeEntry(input, EMPTY_NODE);
-                    }
-                }));
+                return asCountingIterable(transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
             }
         }
 
@@ -246,13 +239,9 @@ public class CompositeChildrenCountTest {
         }
 
         private <T> Iterable<T> asCountingIterable(Iterable<T> input) {
-            return Iterables.transform(input, new Function<T, T>() {
-                @Nullable
-                @Override
-                public T apply(@Nullable T input) {
+            return Iterables.transform(input, inp -> {
                     fetchedChildren++;
-                    return input;
-                }
+                    return inp;
             });
         }
     }

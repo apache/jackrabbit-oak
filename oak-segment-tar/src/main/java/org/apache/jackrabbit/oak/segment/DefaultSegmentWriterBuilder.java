@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool.PoolType;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
-import org.apache.jackrabbit.guava.common.base.Suppliers;
+import java.util.function.Supplier;
+
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -64,7 +64,7 @@ public final class DefaultSegmentWriterBuilder {
     private WriterCacheManager cacheManager = new WriterCacheManager.Default();
 
     private DefaultSegmentWriterBuilder(@NotNull String name) {
-        this.name = checkNotNull(name);
+        this.name = requireNonNull(name);
     }
 
     /**
@@ -89,7 +89,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull Supplier<GCGeneration> generation) {
-        this.generation = checkNotNull(generation);
+        this.generation = requireNonNull(generation);
         return this;
     }
 
@@ -99,7 +99,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull GCGeneration generation) {
-        this.generation = () -> checkNotNull(generation);
+        this.generation = () -> requireNonNull(generation);
         return this;
     }
 
@@ -133,7 +133,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder with(WriterCacheManager cacheManager) {
-        this.cacheManager = checkNotNull(cacheManager);
+        this.cacheManager = requireNonNull(cacheManager);
         return this;
     }
 
@@ -153,7 +153,7 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull FileStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
+                requireNonNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
@@ -171,7 +171,7 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull ReadOnlyFileStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
+                requireNonNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
@@ -206,7 +206,7 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull MemoryStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
+                requireNonNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
@@ -218,20 +218,20 @@ public final class DefaultSegmentWriterBuilder {
 
     @NotNull
     private WriteOperationHandler createWriter(@NotNull FileStore store, @Nullable PoolType poolType) {
-        return createWriter(store.getSegmentIdProvider(), store.getReader(), poolType);
+        return createWriter(store.getSegmentIdProvider(), poolType);
     }
 
     @NotNull
     private WriteOperationHandler createWriter(@NotNull MemoryStore store, @Nullable PoolType poolType) {
-        return createWriter(store.getSegmentIdProvider(), store.getReader(), poolType);
+        return createWriter(store.getSegmentIdProvider(), poolType);
     }
 
     @NotNull
-    private WriteOperationHandler createWriter(@NotNull SegmentIdProvider idProvider, @NotNull SegmentReader reader, @Nullable PoolType poolType) {
+    private WriteOperationHandler createWriter(@NotNull SegmentIdProvider idProvider, @Nullable PoolType poolType) {
         if (poolType == null) {
-            return new SegmentBufferWriter(idProvider, reader, name, generation.get());
+            return new SegmentBufferWriter(idProvider, name, generation.get());
         } else {
-            return SegmentBufferWriterPool.factory(idProvider, reader, name, generation).newPool(poolType);
+            return SegmentBufferWriterPool.factory(idProvider, name, generation).newPool(poolType);
         }
     }
 }

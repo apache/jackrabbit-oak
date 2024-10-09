@@ -34,7 +34,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the index metadata file content as present in index-details.txt
@@ -62,8 +62,8 @@ final class IndexMeta implements Comparable<IndexMeta> {
 
     public IndexMeta(File file) throws IOException {
         Properties p = loadFromFile(file);
-        this.indexPath = checkNotNull(p.getProperty("indexPath"));
-        this.creationTime = Long.valueOf(checkNotNull(p.getProperty("creationTime")));
+        this.indexPath = requireNonNull(p.getProperty("indexPath"));
+        this.creationTime = Long.valueOf(requireNonNull(p.getProperty("creationTime")));
         this.properties = new HashMap<>(Maps.fromProperties(p));
     }
 

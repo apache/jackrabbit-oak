@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
 
 public class DecimalPropertyState extends SinglePropertyState<BigDecimal> {
@@ -32,7 +32,7 @@ public class DecimalPropertyState extends SinglePropertyState<BigDecimal> {
 
     public DecimalPropertyState(@NotNull String name, @NotNull BigDecimal value) {
         super(name);
-        this.value = checkNotNull(value);
+        this.value = requireNonNull(value);
     }
 
     /**

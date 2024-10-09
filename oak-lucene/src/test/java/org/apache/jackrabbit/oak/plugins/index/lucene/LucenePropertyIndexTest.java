@@ -25,7 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,10 +42,8 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -105,7 +105,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
@@ -130,7 +129,15 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAgg
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.*;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
@@ -259,8 +266,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void indexSelection() throws Exception {
-        createIndex("test1", of("propa", "propb"));
-        createIndex("test2", of("propc"));
+        createIndex("test1", Set.of("propa", "propb"));
+        createIndex("test2", Set.of("propc"));
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("propa", "foo");
@@ -281,7 +288,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void indexSelectionVsNodeType() throws Exception {
-        Tree luceneIndex = createIndex("test1", of("propa"));
+        Tree luceneIndex = createIndex("test1", Set.of("propa"));
         // decrease cost of lucene property index
         luceneIndex.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 5L, Type.LONG);
 
@@ -311,7 +318,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void indexSelectionFulltextVsNodeType() throws Exception {
         Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
-        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES));
         nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         //Set the cost to highest to ensure that if Lucene index opts in then
         //it always wins. In actual case Lucene index should not participate
@@ -334,11 +341,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void declaringNodeTypeSameProp() throws Exception {
-        createIndex("test1", of("propa"));
+        createIndex("test1", Set.of("propa"));
 
-        Tree indexWithType = createIndex("test2", of("propa"));
+        Tree indexWithType = createIndex("test2", Set.of("propa"));
         indexWithType.setProperty(PropertyStates
-                .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
+                .createProperty(DECLARING_NODE_TYPES, Set.of("nt:unstructured"),
                         Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
@@ -368,9 +375,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void declaringNodeTypeSingleIndex() throws Exception {
-        Tree indexWithType = createIndex("test2", of("propa", "propb"));
+        Tree indexWithType = createIndex("test2", Set.of("propa", "propb"));
         indexWithType.setProperty(PropertyStates
-            .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
+            .createProperty(DECLARING_NODE_TYPES, Set.of("nt:unstructured"),
                 Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
@@ -396,17 +403,17 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propNoIdxQuery = "select [jcr:path] from [nt:base] where [propb] = 'baz'";
         assertThat(explain(propNoIdxQuery), containsString("no-index"));
-        assertQuery(propNoIdxQuery, ImmutableList.<String>of());
+        assertQuery(propNoIdxQuery, ImmutableList.of());
     }
 
     @Test
     public void usedAsNodeTypeIndex() throws Exception {
         Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
-        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:resource"), NAMES));
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, Set.of("nt:resource"), NAMES));
         nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
 
-        Tree indexWithType = createIndex("test2", of(JcrConstants.JCR_PRIMARYTYPE, "propb"));
-        indexWithType.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+        Tree indexWithType = createIndex("test2", Set.of(JcrConstants.JCR_PRIMARYTYPE, "propb"));
+        indexWithType.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES));
 
         Tree test = root.getTree("/").addChild("test");
         setNodeType(test, "nt:file");
@@ -426,11 +433,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void usedAsNodeTypeIndex2() throws Exception {
         //prevent the default nodeType index from indexing all types
         Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
-        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:resource"), NAMES));
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, Set.of("nt:resource"), NAMES));
         nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
 
-        Tree indexWithType = createIndex("test2", of("propb"));
-        indexWithType.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+        Tree indexWithType = createIndex("test2", Set.of("propb"));
+        indexWithType.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES));
         indexWithType.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
         TestUtil.useV2(indexWithType);
 
@@ -455,7 +462,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void nodeName() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree rules = idx.addChild(FulltextIndexConstants.INDEX_RULES);
         rules.setOrderableChildren(true);
         Tree rule = rules.addChild("nt:base");
@@ -516,7 +523,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void emptyIndex() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
@@ -530,7 +537,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void explainScoreTest() throws Exception {
-        Tree idx = createIndex("test1", of("propa"));
+        Tree idx = createIndex("test1", Set.of("propa"));
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
@@ -547,12 +554,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     //OAK-2568
     @Test
     public void multiValueAnd() throws Exception{
-        Tree idx = createIndex("test1", of("tags"));
+        Tree idx = createIndex("test1", Set.of("tags"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("tags", of("a", "b"), Type.STRINGS);
-        test.addChild("b").setProperty("tags", of("a","c"), Type.STRINGS);
+        test.addChild("a").setProperty("tags", Set.of("a", "b"), Type.STRINGS);
+        test.addChild("b").setProperty("tags", Set.of("a","c"), Type.STRINGS);
         root.commit();
 
         String q = "SELECT * FROM [nt:unstructured] as content WHERE ISDESCENDANTNODE('/content/dam/en/us')\n" +
@@ -579,12 +586,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void multiValuesLike() throws Exception{
-        Tree idx = createIndex("test1", of("references"));
+        Tree idx = createIndex("test1", Set.of("references"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("references", of("/some/content/AAA", "/some/content/BBB"), Type.STRINGS);
-        test.addChild("b").setProperty("references", of("/some/content/AAA", "/some/content/CCC"), Type.STRINGS);
+        test.addChild("a").setProperty("references", Set.of("/some/content/AAA", "/some/content/BBB"), Type.STRINGS);
+        test.addChild("b").setProperty("references", Set.of("/some/content/AAA", "/some/content/CCC"), Type.STRINGS);
         root.commit();
 
         String q = "SELECT * FROM [nt:unstructured] as content WHERE references LIKE '/some/content/efjoiefjowfgj/%'";
@@ -592,14 +599,38 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain, containsString("references:/some/content/efjoiefjowfgj/*"));
     }
 
+    //OAK-9481
     @Test
-    public void redundantNotNullCheck() throws Exception{
-        Tree idx = createIndex("test1", of("tags"));
+    public void likeQueryOnPropertiesWithExcludedPrefixes() throws Exception {
+        Tree idx = createIndex("test1", Set.of("references"));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("references");
+        propIdx.setProperty("valueExcludedPrefixes", Set.of("/a/b/c2"), STRINGS);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("tags", of("a","b"), Type.STRINGS);
-        test.addChild("b").setProperty("tags", of("a", "c"), Type.STRINGS);
+        test.addChild("a").setProperty("references", Set.of("/a/b/c1", "/a/b/c2", "/a/b/c10"), Type.STRINGS);
+        test.addChild("b").setProperty("references", Set.of("/a/b/c22","/a/b/d12"), Type.STRINGS);
+        root.commit();
+
+        // index test1 not picked up because property restriction matches value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/c%'"),
+                containsString("[nt:unstructured] as [content] /* nodeType"));
+        // index test1 gets picked up because property restriction does not match value excluded prefix.
+        assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/d%'"),
+                containsString("luceneQuery: references:/a/b/d*"));
+
+        assertQuery("SELECT [jcr:path] FROM [nt:base] as [content] WHERE [content].[references] LIKE '/a/b/c%'", SQL2, asList());
+        assertQuery("SELECT [jcr:path] FROM [nt:base] WHERE references LIKE '/a/b/d%'", asList("/test/b"));
+    }
+
+    @Test
+    public void redundantNotNullCheck() throws Exception{
+        Tree idx = createIndex("test1", Set.of("tags"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("tags", Set.of("a","b"), Type.STRINGS);
+        test.addChild("b").setProperty("tags", Set.of("a", "c"), Type.STRINGS);
         root.commit();
 
         String q = "SELECT * FROM [nt:unstructured] as content WHERE ISDESCENDANTNODE('/content/dam/en/us')\n" +
@@ -632,9 +663,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void rangeQueriesWithLong() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -660,8 +691,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void pathInclude() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
+        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         //Do not provide type information
         root.commit();
 
@@ -680,8 +711,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void pathIncludeSubrootIndex() throws Exception {
         Tree subTreeRoot = root.getTree("/").addChild("test");
-        Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
-        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/a"), Type.STRINGS));
+        Tree idx = createIndex(subTreeRoot, "test1", Set.of("propa"));
+        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/a"), Type.STRINGS));
         //Do not provide type information
         root.commit();
 
@@ -699,8 +730,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void pathQuerySubrootIndex() throws Exception {
         Tree subTreeRoot = root.getTree("/").addChild("test");
-        Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
-        idx.setProperty(createProperty(QUERY_PATHS, of("/test/a"), Type.STRINGS));
+        Tree idx = createIndex(subTreeRoot, "test1", Set.of("propa"));
+        idx.setProperty(createProperty(QUERY_PATHS, Set.of("/test/a"), Type.STRINGS));
         //Do not provide type information
         root.commit();
 
@@ -735,8 +766,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void pathExcludeSubrootIndex() throws Exception{
         Tree subTreeRoot = root.getTree("/").addChild("test");
-        Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
-        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/a"), Type.STRINGS));
+        Tree idx = createIndex(subTreeRoot, "test1", Set.of("propa"));
+        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/a"), Type.STRINGS));
         //Do not provide type information
         root.commit();
 
@@ -761,7 +792,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void determinePropTypeFromRestriction() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         //Do not provide type information
         root.commit();
 
@@ -789,9 +820,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void rangeQueriesWithDouble() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -812,7 +843,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void rangeQueriesWithString() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
@@ -838,9 +869,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void rangeQueriesWithDate() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -860,7 +891,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void nativeQueries() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         idx.addChild(PROP_NODE).addChild("propa");
         idx.setProperty(FulltextIndexConstants.FUNC_NAME, "foo");
         root.commit();
@@ -878,7 +909,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void testWithRelativeProperty() throws Exception{
         Tree parent = root.getTree("/");
-        Tree idx = createIndex(parent, "test1", of("b/propa", "propb"));
+        Tree idx = createIndex(parent, "test1", Set.of("b/propa", "propb"));
         root.commit();
 
         Tree test = parent.addChild("test2");
@@ -892,7 +923,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void indexDefinitionBelowRoot() throws Exception {
         Tree parent = root.getTree("/").addChild("test");
-        Tree idx = createIndex(parent, "test1", of("propa", "propb"));
+        Tree idx = createIndex(parent, "test1", Set.of("propa", "propb"));
         idx.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
@@ -907,7 +938,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void indexDefinitionBelowRoot2() throws Exception {
         Tree parent = root.getTree("/").addChild("test");
-        Tree idx = createIndex(parent, "test1", of("propa", "propb"));
+        Tree idx = createIndex(parent, "test1", Set.of("propa", "propb"));
         idx.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
@@ -923,7 +954,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void indexDefinitionBelowRoot3() throws Exception {
         Tree parent = root.getTree("/").addChild("test");
-        Tree idx = createIndex(parent, "test1", of("propa"));
+        Tree idx = createIndex(parent, "test1", Set.of("propa"));
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
@@ -938,7 +969,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void queryPathRescrictionWithoutEvaluatePathRestriction() throws Exception {
         Tree parent = root.getTree("/");
-        Tree idx = createIndex(parent, "test1", of());
+        Tree idx = createIndex(parent, "test1", Set.of());
         idx.addChild(PROP_NODE).addChild("propa");
 
         Tree test = parent.addChild("test");
@@ -946,7 +977,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("b").addChild("c").addChild("d").setProperty("propa", "a");
 
         parent = root.getTree("/").addChild("subRoot");
-        idx = createIndex(parent, "test1", of());
+        idx = createIndex(parent, "test1", Set.of());
         idx.addChild(PROP_NODE).addChild("propa");
 
         test = parent.addChild("test");
@@ -985,9 +1016,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithLong() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         assertSortedLong();
@@ -995,11 +1026,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithLong_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         assertSortedLong();
@@ -1008,9 +1039,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithLong_NotIndexed() throws Exception {
         Tree idx = createIndex("test1", Collections.<String>emptySet());
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         assertThat(explain("select [jcr:path] from [nt:base] order by [jcr:score], [foo]"), containsString("lucene:test1"));
@@ -1026,16 +1057,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithLong_NotIndexed_relativeProps() throws Exception {
         Tree idx = createIndex("test1", Collections.<String>emptySet());
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo/bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo/bar"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo").addChild("bar");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         assertThat(explain("select [jcr:path] from [nt:base] order by [foo/bar]"), containsString("lucene:test1"));
 
         Tree test = root.getTree("/").addChild("test");
         List<Long> values = createLongs(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.addChild("foo").setProperty("bar", values.get(i));
@@ -1056,7 +1087,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private List<Tuple> createDataForLongProp() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Long> values = createLongs(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.setProperty("foo", values.get(i));
@@ -1069,9 +1100,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithDouble() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
         assertSortedDouble();
@@ -1079,11 +1110,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithDouble_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
         assertSortedDouble();
@@ -1092,7 +1123,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     void assertSortedDouble() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Double> values = createDoubles(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.setProperty("foo", values.get(i));
@@ -1109,7 +1140,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithString() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
         idx.addChild(PROP_NODE).addChild("foo");
         root.commit();
 
@@ -1118,9 +1149,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithString_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         idx.addChild(PROP_NODE).addChild("foo");
         root.commit();
 
@@ -1129,15 +1160,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithStringIgnoredMulti_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         idx.addChild(PROP_NODE).addChild("foo");
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         List<String> values = createStrings(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n" + i);
             child.setProperty("foo", values.get(i));
@@ -1147,7 +1178,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //Add a wrong multi-valued property
         Tree child = test.addChild("a");
-        child.setProperty("foo", of("w", "z"), Type.STRINGS);
+        child.setProperty("foo", Set.of("w", "z"), Type.STRINGS);
         child.setProperty("bar", "baz");
         root.commit();
 
@@ -1161,7 +1192,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     void assertSortedString() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<String> values = createStrings(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.setProperty("foo", values.get(i));
@@ -1178,9 +1209,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithDate() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
         assertSortedDate();
@@ -1188,11 +1219,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithDate_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
         assertSortedDate();
@@ -1201,7 +1232,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     void assertSortedDate() throws ParseException, CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Calendar> values = createDates(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.setProperty("foo", values.get(i));
@@ -1219,16 +1250,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithDateStringMixed_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         List<Calendar> values = createDates(NUMBER_OF_NODES);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple> tuples = new ArrayList<>(values.size());
         for(int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.setProperty("bar", "baz");
@@ -1254,17 +1285,17 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithStringAndLong() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar", "baz"));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, ImmutableSet.of("foo", "baz"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("foo", "bar", "baz"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo", "baz"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("baz");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         int firstPropSize = 5;
         List<String> values = createStrings(firstPropSize);
         List<Long> longValues = createLongs(NUMBER_OF_NODES);
-        List<Tuple2> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<Tuple2> tuples = new ArrayList<>(values.size());
         Random r = new Random();
         for(int i = 0; i < values.size(); i++){
             String val = values.get(r.nextInt(firstPropSize));
@@ -1282,22 +1313,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void indexTimeFieldBoost() throws Exception {
         // Index Definition
-        Tree idx = createIndex("test1", of("propa", "propb", "propc"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb", "propc"));
         idx.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
 
         Tree propNode = idx.addChild(PROP_NODE);
 
         // property definition for index test1
         Tree propA = propNode.addChild("propa");
-        propA.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propA.setProperty(PROP_TYPE, PropertyType.TYPENAME_STRING);
         propA.setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
 
         Tree propB = propNode.addChild("propb");
-        propB.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propB.setProperty(PROP_TYPE, PropertyType.TYPENAME_STRING);
         propB.setProperty(FulltextIndexConstants.FIELD_BOOST, 1.0);
 
         Tree propC = propNode.addChild("propc");
-        propC.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propC.setProperty(PROP_TYPE, PropertyType.TYPENAME_STRING);
         propC.setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
         root.commit();
 
@@ -1319,7 +1350,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void boostTitleOverDescription() throws Exception{
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
 
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
 
         Tree title = props.addChild("title");
@@ -1368,7 +1399,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithJcrScore() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "n0", "n1", "n2"));
+        Tree idx = createIndex("test1", Set.of("propa", "n0", "n1", "n2"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -1392,7 +1423,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortFulltextQueriesWithJcrScore() throws Exception {
         // Index Definition
-        Tree idx = createIndex("test1", of("propa"));
+        Tree idx = createIndex("test1", Set.of("propa"));
         idx.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
         useV2(idx);
 
@@ -1416,7 +1447,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     // OAK-2434
     private void fulltextBooleanComplexOrQueries(boolean ver2) throws Exception {
         // Index Definition
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         idx.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
         if (ver2) {
             useV2(idx);
@@ -1734,7 +1765,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void relativePropertyAndCursor() throws Exception{
         // Index Definition
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         TestUtil.useV2(idx);
         idx.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
 
@@ -1742,7 +1773,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // property definition for index test1
         Tree propA = propNode.addChild("propa");
-        propA.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propA.setProperty(PROP_TYPE, PropertyType.TYPENAME_STRING);
         propA.setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
 
         root.commit();
@@ -1765,8 +1796,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void unionSortResultCount() throws Exception {
         // Index Definition
-        Tree idx = createIndex("test1", of("propa", "propb", "propc"));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("propc"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb", "propc"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("propc"), STRINGS));
         useV2(idx);
 
         // create test data
@@ -1806,8 +1837,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void unionSortQueries() throws Exception {
         // Index Definition
-        Tree idx = createIndex("test1", of("propa", "propb", "propc", "propd"));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("propd"), STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb", "propc", "propd"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("propd"), STRINGS));
         useV2(idx);
 
         // create test data
@@ -1851,16 +1882,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void aggregationAndExcludeProperty() throws Exception {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
 
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "original/jcr:content/type");
         prop1.setProperty(FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
-        prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
                 .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
@@ -1889,15 +1920,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void aggregateAndIncludeRelativePropertyByDefault() throws Exception{
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
 
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "original/jcr:content/type");
-        prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
                 .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
@@ -1925,11 +1956,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void indexingBasedOnMixin() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "mix:title");
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -1945,11 +1976,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void indexingBasedOnMixinWithInheritence() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "mix:mimeType");
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:mimeType");
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -1977,8 +2008,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop = props.addChild(TestUtil.unique("jcr:mimeType"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:mimeType");
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
-        prop.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_ANALYZED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -2017,8 +2048,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop = props.addChild(TestUtil.unique("text"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, "text");
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
-        prop.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_ANALYZED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -2037,15 +2068,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void indexingBasedOnMixinAndRelativeProps() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "mix:title");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         Tree prop2 = props.addChild(TestUtil.unique("prop"));
         prop2.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/type");
-        prop2.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop2.setProperty(PROP_PROPERTY_INDEX, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -2067,11 +2098,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void reindexWithCOWWithoutIndexPath() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "mix:title");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop1.setProperty(PROP_PROPERTY_INDEX, true);
         root.commit();
 
         // force CoR
@@ -2092,11 +2123,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void uniqueIdInitializedInIndexing() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop1.setProperty(PROP_PROPERTY_INDEX, true);
         root.commit();
 
         //Make some changes such incremental indexing happens
@@ -2126,11 +2157,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void fulltextQueryWithSpecialChars() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "tag");
-        prop1.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        prop1.setProperty(PROP_ANALYZED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -2158,11 +2189,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void fulltextQueryWithRelativeProperty() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/metadata/comment");
-        prop1.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        prop1.setProperty(PROP_ANALYZED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -2239,10 +2270,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void emptySuggestDictionary() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
-        prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop1.setProperty(PROP_PROPERTY_INDEX, true);
         prop1.setProperty(FulltextIndexConstants.PROP_NAME, "tag");
         prop1.setProperty(FulltextIndexConstants.PROP_INDEX, true);
         prop1.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
@@ -2254,7 +2285,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void relativePropertyWithIndexOnNtBase() throws Exception {
-        Tree idx = createIndex("test1", of("propa"));
+        Tree idx = createIndex("test1", Set.of("propa"));
         idx.setProperty(PROP_TYPE, "lucene");
         useV2(idx);
         //Do not provide type information
@@ -2420,12 +2451,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain(query), not(containsString("/oak:index/test1")));
 
         //Instead of reindex just refresh the index definition so that new index definition gets picked up
-        root.getTree("/oak:index/test1").setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
+        root.getTree("/oak:index/test1").setProperty(PROP_REFRESH_DEFN, true);
         root.commit();
 
         //Plan would reflect new defintion
         assertThat(explain(query), containsString("/oak:index/test1"));
-        assertFalse(root.getTree("/oak:index/test1").hasProperty(FulltextIndexConstants.PROP_REFRESH_DEFN));
+        assertFalse(root.getTree("/oak:index/test1").hasProperty(PROP_REFRESH_DEFN));
 
         //However as reindex was not done query would result in empty set
         assertPlanAndQuery(query, "/oak:index/test1", Collections.<String>emptyList());
@@ -3209,8 +3240,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree props = TestUtil.newRulePropTree(indexDefn, "oak:Unstructured");
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, propName);
-        prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
-        prop.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_ANALYZED, true);
         prop.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         prop.setProperty(FulltextIndexConstants.FIELD_BOOST, boost);
         return prop;
@@ -3259,7 +3290,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(PropertyStates.createProperty(INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
@@ -3274,10 +3305,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         Tree props = def.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild(PROP_NODE)
                 .addChild("allProps");
 
-        props.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        props.setProperty(PROP_ANALYZED, true);
         props.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         props.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true);
         props.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
@@ -3295,7 +3326,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         } else {
             Collections.sort(tuples);
         }
-        List<String> paths = Lists.newArrayListWithCapacity(tuples.size());
+        List<String> paths = new ArrayList<>(tuples.size());
         for (Tuple t : tuples) {
             paths.add(t.path);
         }
@@ -3304,7 +3335,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     static List<String> getSortedPaths(List<Tuple2> tuples) {
         Collections.sort(tuples);
-        List<String> paths = Lists.newArrayListWithCapacity(tuples.size());
+        List<String> paths = new ArrayList<>(tuples.size());
         for (Tuple2 t : tuples) {
             paths.add(t.path);
         }
@@ -3312,7 +3343,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     static List<Long> createLongs(int n){
-        List<Long> values = Lists.newArrayListWithCapacity(n);
+        List<Long> values = new ArrayList<>(n);
         for (long i = 0; i < n; i++){
             values.add(i);
         }
@@ -3322,7 +3353,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private static List<Double> createDoubles(int n){
         Random rnd = new Random();
-        List<Double> values = Lists.newArrayListWithCapacity(n);
+        List<Double> values = new ArrayList<>(n);
         for (long i = 0; i < n; i++){
             values.add(rnd.nextDouble());
         }
@@ -3331,7 +3362,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     static List<String> createStrings(int n){
-        List<String> values = Lists.newArrayListWithCapacity(n);
+        List<String> values = new ArrayList<>(n);
         for (long i = 0; i < n; i++){
             values.add(String.format("value%04d",i));
         }
@@ -3341,7 +3372,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private static List<Calendar> createDates(int n) throws ParseException {
         Random rnd = new Random();
-        List<Calendar> values = Lists.newArrayListWithCapacity(n);
+        List<Calendar> values = new ArrayList<>(n);
         for (long i = 0; i < n; i++){
             values.add(createCal(String.format("%02d/%02d/2%03d", rnd.nextInt(26) + 1, rnd.nextInt(10) + 1,i)));
         }
@@ -3411,11 +3442,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
 
         public AccessStateProvidingBlob(String content) {
-            this(content.getBytes(Charsets.UTF_8));
+            this(content.getBytes(StandardCharsets.UTF_8));
         }
 
         public AccessStateProvidingBlob(String content, String id) {
-            this(content.getBytes(Charsets.UTF_8));
+            this(content.getBytes(StandardCharsets.UTF_8));
             this.id = id;
         }
 

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.json.JsonSerializer.DEFAULT_FILTER_EXPRESSION;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -28,14 +28,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -55,7 +53,7 @@ public class RevisionHistory {
      * @throws IOException
      */
     public RevisionHistory(@NotNull File directory) throws IOException, InvalidFileStoreVersionException {
-        this.store = fileStoreBuilder(checkNotNull(directory)).buildReadOnly();
+        this.store = fileStoreBuilder(requireNonNull(directory)).buildReadOnly();
     }
 
     private static NodeState getNode(SegmentNodeState root, String path) {
@@ -77,18 +75,14 @@ public class RevisionHistory {
      */
     public Iterator<HistoryElement> getHistory(@NotNull JournalFile journal, @NotNull final String path)
             throws IOException {
-        checkNotNull(path);
+        requireNonNull(path);
 
-        try (JournalReader journalReader = new JournalReader(checkNotNull(journal))) {
-            return Iterators.transform(journalReader,
-                    new Function<JournalEntry, HistoryElement>() {
-                        @NotNull @Override
-                        public HistoryElement apply(JournalEntry entry) {
+        try (JournalReader journalReader = new JournalReader(requireNonNull(journal))) {
+            return Iterators.transform(journalReader, entry -> {
                             store.setRevision(entry.getRevision());
                             NodeState node = getNode(store.getHead(), path);
                             return new HistoryElement(entry.getRevision(), node);
-                        }
-                });
+                        });
         }
     }
 

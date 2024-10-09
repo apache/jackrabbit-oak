@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -217,7 +218,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
         Iterable<String> aggr = TreeUtil.getStrings(privTree, PrivilegeConstants.REP_AGGREGATES);
         assertNotNull(aggr);
-        assertEquals(ImmutableSet.of("jcr:read", "jcr:write"), ImmutableSet.copyOf(aggr));
+        assertEquals(Set.of("jcr:read", "jcr:write"), ImmutableSet.copyOf(aggr));
 
     }
 }

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -42,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.openmbean.CompositeData;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
@@ -119,13 +119,13 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
             @NotNull AsyncIndexInfoService asyncIndexInfoService,
             @NotNull GarbageCollectableBlobStore blobStore,
             @NotNull Executor executor) {
-        this.activeDeletedBlobCollector = checkNotNull(activeDeletedBlobCollector);
-        this.whiteboard = checkNotNull(whiteboard);
+        this.activeDeletedBlobCollector = requireNonNull(activeDeletedBlobCollector);
+        this.whiteboard = requireNonNull(whiteboard);
         this.store = store;
         this.indexPathService = indexPathService;
         this.asyncIndexInfoService = asyncIndexInfoService;
-        this.blobStore = checkNotNull(blobStore);
-        this.executor = checkNotNull(executor);
+        this.blobStore = requireNonNull(blobStore);
+        this.executor = requireNonNull(executor);
 
         LOG.info("Active blob collector initialized with minAge: {}", MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
     }
@@ -213,7 +213,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      */
     private boolean waitForRunningIndexCycles() {
         Map<IndexStatsMBean, Long> origIndexLaneToExecutinoCountMap = Maps.asMap(
-                Sets.newHashSet(StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
+                new HashSet<>(StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
                         .map(lane -> asyncIndexInfoService.getInfo(lane).getStatsMBean())
                         .filter(bean -> {
                             String beanStatus;

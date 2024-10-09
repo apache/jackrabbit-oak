@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.Calendar;
+import java.util.Objects;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -31,7 +32,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -78,11 +78,11 @@ class ValueImpl implements JackrabbitValue, OakValue {
                       @NotNull BlobAccessProvider blobAccessProvider)
             throws RepositoryException {
         checkArgument(index < property.count());
-        this.propertyState = checkNotNull(property);
+        this.propertyState = requireNonNull(property);
         this.type = getType(property);
         this.index = index;
-        this.namePathMapper = checkNotNull(namePathMapper);
-        this.blobAccessProvider = checkNotNull(blobAccessProvider);
+        this.namePathMapper = requireNonNull(namePathMapper);
+        this.blobAccessProvider = requireNonNull(blobAccessProvider);
     }
 
     /**
@@ -98,7 +98,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
               @NotNull NamePathMapper namePathMapper,
               @NotNull BlobAccessProvider blobAccessProvider)
             throws RepositoryException {
-        this(checkSingleValued(property), 0, namePathMapper, checkNotNull(blobAccessProvider));
+        this(checkSingleValued(property), 0, namePathMapper, requireNonNull(blobAccessProvider));
     }
 
     private static PropertyState checkSingleValued(PropertyState property) {
@@ -352,7 +352,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
             }
             try {
                 return thisType == thatType
-                        && Objects.equal(
+                        && Objects.equals(
                         getValue(thatType, index),
                         that.getValue(thatType, that.index));
             } catch (RepositoryException e) {

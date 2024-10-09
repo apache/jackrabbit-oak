@@ -46,8 +46,8 @@ public class AggregationFilterImplTest extends AbstractPrincipalBasedTest{
         super.before();
 
         aggregationFilter = new AggregationFilterImpl();
-        systemUserPrincipals = ImmutableSet.of(getTestSystemUser().getPrincipal());
-        testUserPrincipals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        systemUserPrincipals = Set.of(getTestSystemUser().getPrincipal());
+        testUserPrincipals = Set.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
     }
 
     @Test
@@ -91,7 +91,7 @@ public class AggregationFilterImplTest extends AbstractPrincipalBasedTest{
 
     @Test
     public void testStopAcMgrPrincipalsInvalid() {
-        assertFalse(aggregationFilter.stop(createAccessControlManager(root), ImmutableSet.of(new PrincipalImpl("invalid"))));
+        assertFalse(aggregationFilter.stop(createAccessControlManager(root), Set.of(new PrincipalImpl("invalid"))));
     }
 
     @Test

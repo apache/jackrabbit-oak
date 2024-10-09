@@ -40,9 +40,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
 
 /**
@@ -141,7 +140,7 @@ public class NodeStateCopier {
      */
     public static boolean copyNodeStore(@NotNull final NodeStore source, @NotNull final NodeStore target)
             throws CommitFailedException {
-        return builder().copy(checkNotNull(source), checkNotNull(target));
+        return builder().copy(requireNonNull(source), requireNonNull(target));
     }
 
     /**
@@ -374,7 +373,7 @@ public class NodeStateCopier {
      */
     public static class Builder {
 
-        private Set<String> includePaths = of("/");
+        private Set<String> includePaths = Set.of("/");
 
         private Set<String> excludePaths = emptySet();
 
@@ -402,7 +401,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
-            if (!checkNotNull(paths).isEmpty()) {
+            if (!requireNonNull(paths).isEmpty()) {
                 this.includePaths = copyOf(paths);
             }
             return this;
@@ -417,7 +416,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder include(@NotNull String... paths) {
-            return include(copyOf(checkNotNull(paths)));
+            return include(copyOf(requireNonNull(paths)));
         }
 
         /**
@@ -442,7 +441,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
-            if (!checkNotNull(paths).isEmpty()) {
+            if (!requireNonNull(paths).isEmpty()) {
                 this.excludePaths = copyOf(paths);
             }
             return this;
@@ -457,7 +456,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder exclude(@NotNull String... paths) {
-            return exclude(copyOf(checkNotNull(paths)));
+            return exclude(copyOf(requireNonNull(paths)));
         }
 
         /**
@@ -469,7 +468,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
-            if (!checkNotNull(paths).isEmpty()) {
+            if (!requireNonNull(paths).isEmpty()) {
                 this.fragmentPaths = copyOf(paths);
             }
             return this;
@@ -484,7 +483,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder supportFragment(@NotNull String... paths) {
-            return supportFragment(copyOf(checkNotNull(paths)));
+            return supportFragment(copyOf(requireNonNull(paths)));
         }
 
         /**
@@ -496,7 +495,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
-            if (!checkNotNull(fragments).isEmpty()) {
+            if (!requireNonNull(fragments).isEmpty()) {
                 this.excludeFragments = copyOf(fragments);
             }
             return this;
@@ -511,7 +510,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder excludeFragments(@NotNull String... fragments) {
-            return exclude(copyOf(checkNotNull(fragments)));
+            return exclude(copyOf(requireNonNull(fragments)));
         }
 
         /**
@@ -523,7 +522,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
-            if (!checkNotNull(paths).isEmpty()) {
+            if (!requireNonNull(paths).isEmpty()) {
                 this.mergePaths = copyOf(paths);
             }
             return this;
@@ -538,7 +537,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder merge(@NotNull String... paths) {
-            return merge(copyOf(checkNotNull(paths)));
+            return merge(copyOf(requireNonNull(paths)));
         }
 
         @NotNull
@@ -574,7 +573,7 @@ public class NodeStateCopier {
         public boolean copy(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
             final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths,
                 excludeFragments, mergePaths, referenceableFrozenNodes, preserveOnTarget, newNodesConsumer);
-            return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
+            return copier.copyNodeState(requireNonNull(sourceRoot), requireNonNull(targetRoot));
         }
 
         /**
@@ -593,8 +592,8 @@ public class NodeStateCopier {
          */
         public boolean copy(@NotNull final NodeStore source, @NotNull final NodeStore target)
                 throws CommitFailedException {
-            final NodeBuilder targetRoot = checkNotNull(target).getRoot().builder();
-            if (copy(checkNotNull(source).getRoot(), targetRoot)) {
+            final NodeBuilder targetRoot = requireNonNull(target).getRoot().builder();
+            if (copy(requireNonNull(source).getRoot(), targetRoot)) {
                 target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 return true;
             }

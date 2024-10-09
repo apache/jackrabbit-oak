@@ -22,6 +22,7 @@ import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.cjk.CJKBigramFilterFactory;
 import org.apache.lucene.analysis.commongrams.CommonGramsFilterFactory;
 import org.apache.lucene.analysis.compound.DictionaryCompoundWordTokenFilterFactory;
+import org.apache.lucene.analysis.core.TypeTokenFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.KeepWordFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.KeywordMarkerFilterFactory;
@@ -129,6 +130,17 @@ public class ElasticCustomAnalyzerMappings {
             ));
         });
 
+        LUCENE_ELASTIC_TRANSFORMERS.put(TypeTokenFilterFactory.class, luceneParams -> {
+            Object useWhitelist = luceneParams.remove("useWhitelist");
+            if (useWhitelist != null && Boolean.parseBoolean(useWhitelist.toString())) {
+                luceneParams.put("mode", "include");
+            } else {
+                luceneParams.put("mode", "exclude");
+            }
+
+            return luceneParams;
+        });
+
         LUCENE_ELASTIC_TRANSFORMERS.put(PatternCaptureGroupFilterFactory.class, luceneParams ->
                 reKey.apply(luceneParams, Map.of("pattern", "patterns"))
         );
@@ -234,6 +246,7 @@ public class ElasticCustomAnalyzerMappings {
             Map.entry("pattern_capture_group", "pattern_capture"),
             Map.entry("reverse_string", "reverse"),
             Map.entry("snowball_porter", "snowball"),
-            Map.entry("dictionary_compound_word", "dictionary_decompounder")
+            Map.entry("dictionary_compound_word", "dictionary_decompounder"),
+            Map.entry("type", "keep_types")
     );
 }

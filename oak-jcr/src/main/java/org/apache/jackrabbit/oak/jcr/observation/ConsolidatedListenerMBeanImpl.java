@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.MalformedObjectNameException;
@@ -39,7 +40,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(reference = {
@@ -157,7 +157,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                 EventListenerMBean mbean = e.getValue();
                 FilterConfigMBean filterConfigMBean = null;
                 for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                    if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                    if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                         filterConfigMBean = ef.getValue();
                         break;
                     }
@@ -204,23 +204,23 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
      * @return map of EventListenerMBean and corresponding Observer
      */
     private List<ListenerMBeans> getListenerMBeans() {
-        List<ListenerMBeans> mbeans = Lists.newArrayListWithCapacity(eventListeners.size());
+        List<ListenerMBeans> mbeans = new ArrayList<>(eventListeners.size());
         for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
             String listenerId = getListenerId(e.getKey());
             ListenerMBeans m = new ListenerMBeans();
             m.eventListenerMBean = e.getValue();
             for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.filterConfigMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, BackgroundObserverMBean> ef : bgObservers.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.observerMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, ChangeProcessorMBean> ef : changeProcessors.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.changeProcessorMBean = ef.getValue();
                 }
             }
@@ -313,7 +313,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         } else if (value instanceof ObjectName) {
             name = (ObjectName) value;
         }
-        return checkNotNull(name, "No 'jmx.objectname' property defined for MBean %s", config);
+        return requireNonNull(name, String.format("No 'jmx.objectname' property defined for MBean %s", config));
     }
 
     private static String getListenerId(ObjectName name){

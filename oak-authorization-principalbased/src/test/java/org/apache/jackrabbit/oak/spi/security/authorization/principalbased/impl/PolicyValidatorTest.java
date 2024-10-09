@@ -375,7 +375,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddUnknownRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setProperty("unknown", "test");
 
@@ -389,10 +389,10 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddInvalidRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         // wrong type. must be NAMES.
-        restrictions.setProperty(REP_ITEM_NAMES, ImmutableSet.of("test"), Type.STRINGS);
+        restrictions.setProperty(REP_ITEM_NAMES, Set.of("test"), Type.STRINGS);
         try {
             root.commit();
             failCommitFailedExpected(35);
@@ -411,13 +411,13 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testChangeWithInvalidRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setProperty(REP_GLOB, "*/glob/*");
         root.commit();
 
         // modify restriction tree changing glob property with type-cardinality mismatch
-        restrictions.setProperty(REP_GLOB, ImmutableSet.of("test"), Type.STRINGS);
+        restrictions.setProperty(REP_GLOB, Set.of("test"), Type.STRINGS);
         try {
             root.commit();
             failCommitFailedExpected(35);
@@ -428,13 +428,13 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testChangeFromSingleValuedToMvRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setProperty(REP_GLOB, "*/glob/*");
         root.commit();
 
         restrictions.removeProperty(REP_GLOB);
-        restrictions.setProperty(REP_ITEM_NAMES, ImmutableSet.of("someName", "anotherName"), Type.NAMES);
+        restrictions.setProperty(REP_ITEM_NAMES, Set.of("someName", "anotherName"), Type.NAMES);
         root.commit();
     }
 
@@ -473,7 +473,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddEntryWithEmptyPrivilegeSet() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of());
+        Tree entry = createPolicyEntryTree(Set.of());
         try {
             root.commit();
             failCommitFailedExpected(37);
@@ -486,7 +486,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     public void testAddEntryWithAbstractPrivilege() throws Exception {
         getPrivilegeManager(root).registerPrivilege("abstractPriv", true, new String[0]);
 
-        Tree entry = createPolicyEntryTree(ImmutableSet.of("abstractPriv"));
+        Tree entry = createPolicyEntryTree(Set.of("abstractPriv"));
         try {
             root.commit();
             failCommitFailedExpected(38);
@@ -497,7 +497,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddEntryWithInvalidPrivilege() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of("invalidPrivilege"));
+        Tree entry = createPolicyEntryTree(Set.of("invalidPrivilege"));
         try {
             root.commit();
             failCommitFailedExpected(39);

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -51,6 +49,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -184,8 +183,8 @@ class UserPrincipalProvider implements PrincipalProvider {
                     limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
             Iterator<Principal> principals = Iterators.filter(
-                    Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()),
-                    Predicates.notNull());
+                    Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
+                    x -> x != null);
 
             // everyone is injected only in complete set, not on pages
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);

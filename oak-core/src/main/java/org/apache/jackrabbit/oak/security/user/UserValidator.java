@@ -34,7 +34,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Validator that enforces user management specific constraints. Please note that
@@ -89,7 +89,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
             throw constraintViolation(22, msg);
         } else if (JcrConstants.JCR_UUID.equals(name)) {
-            checkNotNull(parentAfter);
+            requireNonNull(parentAfter);
             if (!isValidUUID(parentAfter, after.getValue(Type.STRING))) {
                 String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
                 throw constraintViolation(23, msg);
@@ -123,7 +123,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree tree = checkNotNull(parentAfter.getChild(name));
+        Tree tree = requireNonNull(parentAfter.getChild(name));
 
         validateAuthorizable(tree, UserUtil.getType(tree));
         return newValidator(null, tree, provider);

@@ -40,7 +40,7 @@ import org.codehaus.groovy.tools.shell.Groovysh
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
+import static java.util.Objects.requireNonNull
 
 class LuceneCommand extends ComplexCommandSupport {
     public static final String COMMAND_NAME = 'lucene'
@@ -156,8 +156,8 @@ class LuceneCommand extends ComplexCommandSupport {
     }
 
     private static NodeBuilder getNode(NodeBuilder node, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            node = node.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            node = node.getChildNode(requireNonNull(name));
         }
         return node;
     }

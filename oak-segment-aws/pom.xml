@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.65-SNAPSHOT</version>
+        <version>1.71-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@
     <name>Oak Segment AWS</name>
 
     <properties>
-        <aws.version>1.12.353</aws.version>
+        <aws.version>1.12.761</aws.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
     </properties>
 

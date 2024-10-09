@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A change dispatcher that pre-fetches visible external changes in a background
@@ -44,7 +44,7 @@ class PrefetchDispatcher extends ChangeDispatcher {
                               @NotNull Executor executor) {
         super(root);
         this.root = root;
-        this.executor = checkNotNull(executor);
+        this.executor = requireNonNull(executor);
     }
 
     @Override

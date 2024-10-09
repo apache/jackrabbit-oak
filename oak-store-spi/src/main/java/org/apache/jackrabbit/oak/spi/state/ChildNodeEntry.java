@@ -16,11 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-
-import org.apache.jackrabbit.guava.common.base.Function;
-
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code ChildNodeEntry} instance represents the child node states of a
@@ -49,20 +45,4 @@ public interface ChildNodeEntry {
      */
     @NotNull
     NodeState getNodeState();
-
-    /**
-     * Mapping from a ChildNodeEntry instance to its name.
-     */
-    Function<ChildNodeEntry, String> GET_NAME =
-            new Function<ChildNodeEntry, String>() {
-                @Override @Nullable
-                public String apply(@Nullable ChildNodeEntry input) {
-                    if (input != null) {
-                        return input.getName();
-                    } else {
-                        return null;
-                    }
-                }
-            };
-
 }

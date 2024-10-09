@@ -223,7 +223,7 @@ public class RevisionTest {
         }
 
         final List<Revision> duplicates = Lists.newArrayList();
-        final Set<Revision> seenRevs = Sets.newHashSet();
+        final Set<Revision> seenRevs = new HashSet<>();
         workers.add(new Thread(new Runnable() {
             @Override
             public void run() {

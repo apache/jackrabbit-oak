@@ -39,7 +39,7 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -49,8 +49,6 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
 
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
@@ -102,7 +100,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
     public static Properties getS3Config() {
         String config = System.getProperty(SYS_PROP_NAME);
         if (Strings.isNullOrEmpty(config)) {
-            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+            File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }
@@ -122,11 +120,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map filtered = Maps.filterEntries(Maps.fromProperties(props),
+                    input ->!Strings.isNullOrEmpty((String) input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }

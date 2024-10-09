@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
@@ -50,7 +50,6 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -368,7 +367,7 @@ public class Oak {
     private boolean failOnMissingIndexProvider;
 
     public Oak(NodeStore store) {
-        this.store = checkNotNull(store);
+        this.store = requireNonNull(store);
     }
 
     public Oak() {
@@ -385,7 +384,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull Clusterable c) {
-        this.clusterable = checkNotNull(c);
+        this.clusterable = requireNonNull(c);
         return this;
     }
 
@@ -399,13 +398,13 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull String defaultWorkspaceName) {
-        this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
+        this.defaultWorkspaceName = requireNonNull(defaultWorkspaceName);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull RepositoryInitializer initializer) {
-        initializers.add(checkNotNull(initializer));
+        initializers.add(requireNonNull(initializer));
         return this;
     }
 
@@ -428,7 +427,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull QueryIndexProvider provider) {
-        queryIndexProviders.add(checkNotNull(provider));
+        queryIndexProviders.add(requireNonNull(provider));
         return this;
     }
 
@@ -441,7 +440,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull IndexEditorProvider provider) {
-        indexEditorProviders.add(checkNotNull(provider));
+        indexEditorProviders.add(requireNonNull(provider));
         return this;
     }
 
@@ -453,7 +452,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull CommitHook hook) {
-        checkNotNull(hook);
+        requireNonNull(hook);
         withEditorHook();
         commitHooks.add(hook);
         return this;
@@ -483,7 +482,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull EditorProvider provider) {
-        editorProviders.add(checkNotNull(provider));
+        editorProviders.add(requireNonNull(provider));
         return this;
     }
 
@@ -495,7 +494,7 @@ public class Oak {
      */
     @NotNull
     public Oak with(@NotNull final Editor editor) {
-        checkNotNull(editor);
+        requireNonNull(editor);
         return with(new EditorProvider() {
             @Override @NotNull
             public Editor getRootEditor(
@@ -508,7 +507,7 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull SecurityProvider securityProvider) {
-        this.securityProvider = checkNotNull(securityProvider);
+        this.securityProvider = requireNonNull(securityProvider);
         return this;
     }
 
@@ -527,7 +526,7 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull ThreeWayConflictHandler conflictHandler) {
-        checkNotNull(conflictHandler);
+        requireNonNull(conflictHandler);
         withEditorHook();
 
         if (this.conflictHandler == null) {
@@ -546,25 +545,25 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull ScheduledExecutorService scheduledExecutor) {
-        this.scheduledExecutor = checkNotNull(scheduledExecutor);
+        this.scheduledExecutor = requireNonNull(scheduledExecutor);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull Executor executor) {
-        this.executor = checkNotNull(executor);
+        this.executor = requireNonNull(executor);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull MBeanServer mbeanServer) {
-        this.mbeanServer = checkNotNull(mbeanServer);
+        this.mbeanServer = requireNonNull(mbeanServer);
         return this;
     }
 
     @NotNull
     public Oak with(@NotNull Whiteboard whiteboard) {
-        this.whiteboard = checkNotNull(whiteboard);
+        this.whiteboard = requireNonNull(whiteboard);
         QueryEngineSettings whiteboardSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
         if (whiteboardSettings != null) {
             queryEngineSettings = new AnnotatedQueryEngineSettings(whiteboardSettings);
@@ -585,6 +584,10 @@ public class Oak {
             LOG.info("Registered Prefetch feature: " + QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES);
             closer.register(prefetchFeature);
             queryEngineSettings.setPrefetchFeature(prefetchFeature);
+            Feature improvedIsNullCostFeature = newFeature(QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST, whiteboard);
+            LOG.info("Registered improved cost feature: " + QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST);
+            closer.register(improvedIsNullCostFeature);
+            queryEngineSettings.setImprovedIsNullCostFeature(improvedIsNullCostFeature);
         }
 
         return this;
@@ -592,7 +595,7 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull Observer observer) {
-        observers.add(checkNotNull(observer));
+        observers.add(requireNonNull(observer));
         return this;
     }
 
@@ -701,16 +704,13 @@ public class Oak {
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
         Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
-                new Function<SecurityConfiguration, WorkspaceInitializer>() {
-                    @Override
-                    public WorkspaceInitializer apply(SecurityConfiguration sc) {
+                sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {
                             ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
                         }
                         return wi;
-                    }
-                });
+                    });
         OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, initHook);
     }
 
@@ -981,6 +981,10 @@ public class Oak {
 
         public void setPrefetchFeature(@Nullable Feature prefetch) {
             settings.setPrefetchFeature(prefetch);
+        }
+
+        public void setImprovedIsNullCostFeature(@Nullable Feature feature) {
+            settings.setImprovedIsNullCostFeature(feature);
         }
 
         @Override

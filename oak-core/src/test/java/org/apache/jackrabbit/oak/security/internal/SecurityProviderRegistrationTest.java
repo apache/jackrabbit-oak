@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -214,7 +213,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
-        assertEquals(6, Iterables.size(Iterables.filter(service.getConfigurations(), Predicates.notNull())));
+        assertEquals(6, Iterables.size(Iterables.filter(service.getConfigurations(), x -> x != null)));
     }
 
 
@@ -956,17 +955,17 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         AuthorizationConfiguration ac = service.getConfiguration(AuthorizationConfiguration.class);
         assertTrue(ac instanceof CompositeAuthorizationConfiguration);
 
-        PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of());
         assertSame(pp, permissionProvider);
-        verify(filter, times(1)).stop(pp, ImmutableSet.of());
+        verify(filter, times(1)).stop(pp, Set.of());
 
         JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) ac.getAccessControlManager(root, getNamePathMapper());
 
         assertEquals(1, am.getEffectivePolicies(PathUtils.ROOT_PATH).length);
         verify(filter, times(1)).stop(acMgr, PathUtils.ROOT_PATH);
 
-        assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
-        verify(filter, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        assertEquals(1, am.getEffectivePolicies(Set.of(EveryonePrincipal.getInstance())).length);
+        verify(filter, times(1)).stop(acMgr, Set.of(EveryonePrincipal.getInstance()));
     }
 
     @Test
@@ -992,18 +991,18 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         AuthorizationConfiguration ac = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
         assertTrue(ac instanceof CompositeAuthorizationConfiguration);
 
-        PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of());
         assertSame(pp, permissionProvider);
-        verify(filter, times(1)).stop(pp, ImmutableSet.of());
+        verify(filter, times(1)).stop(pp, Set.of());
 
         registration.unbindAggregationFilter(sr.getReference(), filter);
         assertNull(context.getService(SecurityProvider.class));
 
         registration.modified(configWithRequiredServiceIds("a1", "a2"));
 
-        context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of());
         // since unbind was called on filter -> no additional calls
-        verify(filter, times(1)).stop(pp, ImmutableSet.of());
+        verify(filter, times(1)).stop(pp, Set.of());
     }
 
     @Test
@@ -1038,10 +1037,10 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac2")));
 
         AuthorizationConfiguration config = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of());
 
-        verify(filter1, times(2)).stop(pp, ImmutableSet.of());
-        verify(filter2, times(2)).stop(pp, ImmutableSet.of());
+        verify(filter1, times(2)).stop(pp, Set.of());
+        verify(filter2, times(2)).stop(pp, Set.of());
 
 
         JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) config.getAccessControlManager(root, getNamePathMapper());
@@ -1050,9 +1049,9 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         verify(filter1, times(2)).stop(acMgr, PathUtils.ROOT_PATH);
         verify(filter2, times(2)).stop(acMgr, PathUtils.ROOT_PATH);
 
-        assertEquals(2, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
-        verify(filter1, times(2)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
-        verify(filter2, times(2)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        assertEquals(2, am.getEffectivePolicies(Set.of(EveryonePrincipal.getInstance())).length);
+        verify(filter1, times(2)).stop(acMgr, Set.of(EveryonePrincipal.getInstance()));
+        verify(filter2, times(2)).stop(acMgr, Set.of(EveryonePrincipal.getInstance()));
     }
 
     @Test
@@ -1086,10 +1085,10 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac2")));
 
         AuthorizationConfiguration config = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of());
 
-        verify(filter1, never()).stop(pp, ImmutableSet.of());
-        verify(filter2, times(1)).stop(pp, ImmutableSet.of());
+        verify(filter1, never()).stop(pp, Set.of());
+        verify(filter2, times(1)).stop(pp, Set.of());
 
         JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) config.getAccessControlManager(root, getNamePathMapper());
 
@@ -1097,9 +1096,9 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         verify(filter1, never()).stop(acMgr, PathUtils.ROOT_PATH);
         verify(filter2, times(1)).stop(acMgr, PathUtils.ROOT_PATH);
 
-        assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
-        verify(filter1, never()).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
-        verify(filter2, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        assertEquals(1, am.getEffectivePolicies(Set.of(EveryonePrincipal.getInstance())).length);
+        verify(filter1, never()).stop(acMgr, Set.of(EveryonePrincipal.getInstance()));
+        verify(filter2, times(1)).stop(acMgr, Set.of(EveryonePrincipal.getInstance()));
     }
 
     @Test

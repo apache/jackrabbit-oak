@@ -20,12 +20,13 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Objects;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -45,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -268,7 +269,7 @@ class UserProvider extends AuthorizableBaseProvider {
         }
 
         Tree typeRoot = root.getTree(NODE_TYPES_PATH);
-        String userId = Strings.nullToEmpty(root.getContentSession().getAuthInfo().getUserID());
+        String userId = Objects.toString(root.getContentSession().getAuthInfo().getUserID(), "");
         Tree authorizableNode = TreeUtil.addChild(folder, nodeName, ntName, typeRoot, userId);
         authorizableNode.setProperty(REP_AUTHORIZABLE_ID, authorizableId);
         authorizableNode.setProperty(JcrConstants.JCR_UUID, getContentID(authorizableId));
@@ -358,7 +359,7 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     private String getNodeName(@NotNull String authorizableId) {
-        AuthorizableNodeName generator = checkNotNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
+        AuthorizableNodeName generator = requireNonNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
         return generator.generateNodeName(authorizableId);
     }
 }

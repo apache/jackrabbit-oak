@@ -21,7 +21,7 @@
   <parent>
     <artifactId>oak-parent</artifactId>
     <groupId>org.apache.jackrabbit</groupId>
-    <version>1.65-SNAPSHOT</version>
+    <version>1.71-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -66,8 +66,13 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.component.annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.metatype.annotations</artifactId>
       <scope>provided</scope>
     </dependency>
 

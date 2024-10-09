@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import com.google.common.io.Files;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -32,7 +35,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
@@ -81,6 +84,8 @@ public class AzureCheck {
 
         private Integer persistentCacheSizeGb;
 
+        private CloudBlobDirectory cloudBlobDirectory;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -92,7 +97,7 @@ public class AzureCheck {
          * @return this builder.
          */
         public Builder withPath(String path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -105,7 +110,7 @@ public class AzureCheck {
          * @return this builder.
          */
         public Builder withJournal(String journal) {
-            this.journal = checkNotNull(journal);
+            this.journal = requireNonNull(journal);
             return this;
         }
 
@@ -254,7 +259,7 @@ public class AzureCheck {
          * @return this builder
          */
         public Builder withPersistentCachePath(String persistentCachePath) {
-            this.persistentCachePath = checkNotNull(persistentCachePath);
+            this.persistentCachePath = requireNonNull(persistentCachePath);
             return this;
         }
 
@@ -266,7 +271,18 @@ public class AzureCheck {
          * @return this builder
          */
         public Builder withPersistentCacheSizeGb(Integer persistentCacheSizeGb) {
-            this.persistentCacheSizeGb = checkNotNull(persistentCacheSizeGb);
+            this.persistentCacheSizeGb = requireNonNull(persistentCacheSizeGb);
+            return this;
+        }
+
+        /**
+         * The Azure blob directory to connect to.
+         * @param cloudBlobDirectory
+         *          the Azure blob directory.
+         * @return this builder
+         */
+        public Builder withCloudBlobDirectory(CloudBlobDirectory cloudBlobDirectory) {
+            this.cloudBlobDirectory = requireNonNull(cloudBlobDirectory);
             return this;
         }
 
@@ -276,7 +292,9 @@ public class AzureCheck {
          * @return an instance of {@link Runnable}.
          */
         public AzureCheck build() {
-            checkNotNull(path);
+            if (cloudBlobDirectory == null) {
+                requireNonNull(path);
+            }
             return new AzureCheck(this);
         }
 
@@ -329,6 +347,9 @@ public class AzureCheck {
 
     private final Integer persistentCacheSizeGb;
 
+    private final CloudBlobDirectory cloudBlobDirectory;
+    private final AzureStorageCredentialManager azureStorageCredentialManager;
+
     private AzureCheck(Builder builder) {
         this.path = builder.path;
         this.debugInterval = builder.debugInterval;
@@ -345,6 +366,8 @@ public class AzureCheck {
         this.failFast = builder.failFast;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
+        this.cloudBlobDirectory = builder.cloudBlobDirectory;
+        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     private static Integer revisionsToCheckCount(Integer revisionsCount) {
@@ -354,10 +377,15 @@ public class AzureCheck {
     public int run() {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
         SegmentNodeStorePersistence persistence;
-        if (persistentCachePath != null) {
-            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+
+        if (cloudBlobDirectory != null) {
+            persistence = new AzurePersistence(cloudBlobDirectory);
         } else {
-            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
+            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, azureStorageCredentialManager);
+        }
+
+        if (persistentCachePath != null) {
+            persistence = ToolUtils.decorateWithCache(persistence, persistentCachePath, persistentCacheSizeGb);
         }
 
         FileStoreBuilder builder = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence);
@@ -399,6 +427,8 @@ public class AzureCheck {
         } catch (Exception e) {
             e.printStackTrace(err);
             return 1;
+        } finally {
+            azureStorageCredentialManager.close();
         }
     }
 

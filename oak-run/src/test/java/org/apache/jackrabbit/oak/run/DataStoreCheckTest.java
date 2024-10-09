@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -30,8 +29,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
@@ -67,7 +68,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -153,7 +153,7 @@ public class DataStoreCheckTest {
         /* Create nodes with blobs stored in DS*/
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
-        blobsAdded = Sets.newHashSet();
+        blobsAdded = new HashSet<>();
         blobsAddedWithNodes = Maps.newHashMap();
 
         for (int i = 0; i < numBlobs; i++) {
@@ -212,8 +212,8 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)));
-        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
     @Test
@@ -235,9 +235,9 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId)), dsOption, blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
-            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -267,8 +267,8 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
-        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
     @Test
@@ -299,10 +299,10 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption,
+            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)), dsOption,
                 blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
-            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -406,10 +406,10 @@ public class DataStoreCheckTest {
 
     public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
+        System.setErr(new PrintStream(buffer, true, StandardCharsets.UTF_8));
 
         DataStoreCheckCommand.checkDataStore(argList.toArray(new String[0]));
-        String message = buffer.toString(UTF_8.toString());
+        String message = buffer.toString(StandardCharsets.UTF_8);
         log.info("Assert message: {}", assertMsg);
         log.info("Message logged in System.err: {}", message);
 
@@ -444,20 +444,13 @@ public class DataStoreCheckTest {
     }
 
     private static Set<String> encodedIds(Set<String> ids, String dsOption) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return DataStoreCheckCommand.encodeId(input, "--"+dsOption);
-            }
-        }));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
     }
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return Joiner.on(",").join(
-                    DataStoreCheckCommand.encodeId(input, "--"+dsOption),
-                    blobsAddedWithNodes.get(input));
-            }
-        }));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(),
+                input -> Joiner.on(",").join(
+                        DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                        blobsAddedWithNodes.get(input))));
     }
 }

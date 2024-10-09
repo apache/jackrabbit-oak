@@ -27,7 +27,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -138,12 +137,8 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeGroup() {
-        Iterable<? extends Principal> expected = Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(), new Predicate<Principal>() {
-            @Override
-            public boolean apply(Principal input) {
-                return input instanceof GroupPrincipal;
-            }
-        }));
+        Iterable<? extends Principal> expected = Iterables.concat(Set.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(),
+            input -> input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
         assertIterator(expected, result);
@@ -160,7 +155,7 @@ public class CompositePrincipalProviderTest {
     @Test
     public void findPrincipalsByTypeAll() {
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
-        assertIterator(Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
+        assertIterator(Iterables.concat(Set.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
     }
 
     /**

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.IOException;
@@ -24,7 +23,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -37,8 +35,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static java.util.Objects.requireNonNull;
 
 @Component
 public class IndexInfoServiceImpl implements IndexInfoService{
@@ -71,21 +68,18 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         } else {
             activeIndexes.addAll(allIndexes);
         }
-        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), new Function<String, IndexInfo>() {
-            @Override
-            public IndexInfo apply(String indexPath) {
-                try {
-                    IndexInfo info = getInfo(indexPath);
-                    if (info != null) {
-                        info.setActive(activeIndexes.contains(indexPath));
-                    }
-                    return info;
-                } catch (Exception e) {
-                    log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
-                    return null;
+        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), indexPath -> {
+            try {
+                IndexInfo info = getInfo(indexPath);
+                if (info != null) {
+                    info.setActive(activeIndexes.contains(indexPath));
                 }
+                return info;
+            } catch (Exception e) {
+                log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
+                return null;
             }
-        }), notNull());
+        }), x -> x != null);
     }
 
     @Override
@@ -123,7 +117,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
             service = IndexInfoProvider.class
     )
     public void bindInfoProviders(IndexInfoProvider infoProvider){
-        infoProviders.put(checkNotNull(infoProvider.getType()), infoProvider);
+        infoProviders.put(requireNonNull(infoProvider.getType()), infoProvider);
     }
 
     public void unbindInfoProviders(IndexInfoProvider infoProvider){

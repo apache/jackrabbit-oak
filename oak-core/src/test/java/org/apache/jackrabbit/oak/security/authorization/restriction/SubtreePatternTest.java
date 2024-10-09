@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -26,6 +25,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -154,7 +154,7 @@ public class SubtreePatternTest {
         assertNotEquals(pattern, new SubtreePattern(PATH, SUBTREES.subList(0, 2)));
         assertNotEquals(pattern, new SubtreePattern(PATH, Lists.asList("/subtree/", SUBTREES.toArray(new String[0]))));
         // different restrictions
-        assertNotEquals(pattern, new ItemNamePattern(ImmutableSet.of("a", "b")));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("a", "b", "c")));
+        assertNotEquals(pattern, new ItemNamePattern(Set.of("a", "b")));
+        assertNotEquals(pattern, new PrefixPattern(Set.of("a", "b", "c")));
     }
 }

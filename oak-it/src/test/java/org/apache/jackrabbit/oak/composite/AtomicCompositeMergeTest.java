@@ -49,6 +49,7 @@ import javax.jcr.query.Query;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +58,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.junit.Assert.assertEquals;
 
@@ -103,7 +103,7 @@ public class AtomicCompositeMergeTest {
     }
 
     private void testAtomicMerges(Function<Integer, Oak> oakSupplier) throws InterruptedException, IOException, ParseException, CommitFailedException {
-        Set<String> failedMerges = Collections.synchronizedSet(newHashSet());
+        Set<String> failedMerges = Collections.synchronizedSet(new HashSet<>());
         List<Thread> threads = newArrayList();
 
         ContentSession generalSession = oakSupplier.apply(100).createContentSession();

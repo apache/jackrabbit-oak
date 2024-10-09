@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -30,10 +29,9 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -71,12 +69,7 @@ public class JcrAllTest extends AbstractSecurityTest implements PrivilegeConstan
         Iterable<Privilege> declaredAggr = Arrays.asList(pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
         String[] allAggregates = Iterables.toArray(Iterables.transform(
                 declaredAggr,
-                new Function<Privilege, String>() {
-                    @Override
-                    public String apply(@Nullable Privilege privilege) {
-                        return checkNotNull(privilege).getName();
-                    }
-                }), String.class);
+                privilege -> requireNonNull(privilege).getName()), String.class);
         PrivilegeBits all2 = bitsProvider.getBits(allAggregates);
 
         assertEquals(all, all2);

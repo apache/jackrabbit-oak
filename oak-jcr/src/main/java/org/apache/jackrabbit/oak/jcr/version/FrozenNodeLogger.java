@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
@@ -59,7 +59,7 @@ public class FrozenNodeLogger implements Closeable {
 
     public FrozenNodeLogger(@NotNull Clock clock,
                             @NotNull Whiteboard whiteboard) {
-        this.clock = checkNotNull(clock);
+        this.clock = requireNonNull(clock);
         this.feature = newFeature("OAK-9139_log_frozen_node_lookup", whiteboard);
     }
 

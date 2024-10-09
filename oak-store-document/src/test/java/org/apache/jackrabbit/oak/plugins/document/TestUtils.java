@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NavigableMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Functions;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -34,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.guava.common.base.Functions.compose;
 import static org.apache.jackrabbit.guava.common.base.Functions.constant;
@@ -42,12 +40,7 @@ import static org.junit.Assert.fail;
 
 public class TestUtils {
 
-    public static final Predicate<UpdateOp> IS_LAST_REV_UPDATE = new Predicate<UpdateOp>() {
-        @Override
-        public boolean apply(@Nullable UpdateOp input) {
-            return input != null && isLastRevUpdate(input);
-        }
-    };
+    public static final Predicate<UpdateOp> IS_LAST_REV_UPDATE = input ->input != null && isLastRevUpdate(input);
 
     public static final Function<String, Long> NO_BINARY = compose(constant(-1L), Functions.<String>identity());
 

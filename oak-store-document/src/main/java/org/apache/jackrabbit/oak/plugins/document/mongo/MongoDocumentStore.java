@@ -31,13 +31,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -93,7 +94,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
@@ -119,8 +119,6 @@ import com.mongodb.client.result.UpdateResult;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
@@ -361,7 +359,8 @@ public class MongoDocumentStore implements DocumentStore {
         final boolean throttlingEnabled = isThrottlingEnabled(builder);
         if (throttlingEnabled) {
             MongoDatabase localDb = connection.getDatabase("local");
-            Optional<String> ol = Iterables.tryFind(localDb.listCollectionNames(), s -> Objects.equals(OPLOG_RS, s));
+            Optional<String> ol = StreamSupport.stream(localDb.listCollectionNames().spliterator(), false)
+                    .filter(s -> Objects.equals(OPLOG_RS, s)).findFirst();
 
             if (ol.isPresent()) {
                 // oplog window based on current oplog filling rate
@@ -529,7 +528,7 @@ public class MongoDocumentStore implements DocumentStore {
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modStamps);
-            for (String id : filter(ids, not(in(modStamps.keySet())))) {
+            for (String id : filter(ids, x -> !modStamps.keySet().contains(x))) {
                 nodesCache.invalidate(id);
                 invalidated++;
             }
@@ -1365,20 +1364,10 @@ public class MongoDocumentStore implements DocumentStore {
             }
         } catch (MongoException e) {
             throw handleException(e, collection, Iterables.transform(updateOps,
-                    new Function<UpdateOp, String>() {
-                @Override
-                public String apply(UpdateOp input) {
-                    return input.getId();
-                }
-            }));
+                    input -> input.getId()));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                    collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
-                @Override
-                public String apply(UpdateOp input) {
-                    return input.getId();
-                }
-            }));
+                    collection, Lists.transform(updateOps, input -> input.getId()));
         }
         List<T> resultList = new ArrayList<T>(results.values());
         log("createOrUpdate returns", resultList);
@@ -1501,7 +1490,7 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (collection == Collection.NODES) {
                 List<NodeDocument> docsToCache = new ArrayList<NodeDocument>();
-                for (UpdateOp op : filterKeys(bulkOperations, in(bulkResult.upserts)).values()) {
+                for (UpdateOp op : filterKeys(bulkOperations, x -> bulkResult.upserts.contains(x)).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
                     docsToCache.add(doc);
@@ -1538,12 +1527,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private static Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
-        return Maps.uniqueIndex(updateOps, new Function<UpdateOp, String>() {
-            @Override
-            public String apply(UpdateOp input) {
-                return input.getId();
-            }
-        });
+        return Maps.uniqueIndex(updateOps, input -> input.getId());
     }
 
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {

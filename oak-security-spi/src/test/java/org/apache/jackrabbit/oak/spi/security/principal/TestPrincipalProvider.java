@@ -18,16 +18,18 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -72,7 +74,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     }
 
     public Iterable<Principal> all() {
-        Set<Principal> all = Sets.newLinkedHashSet(principals.values());
+        Set<Principal> all = new LinkedHashSet<>(principals.values());
         all.add(EveryonePrincipal.getInstance());
         return all;
     }
@@ -106,9 +108,9 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         if (principals.equals(TestPrincipals.asMap())) {
             return TestPrincipals.membership(principal.getName());
         } else if (principals.values().contains(principal)) {
-            return ImmutableSet.of(EveryonePrincipal.getInstance());
+            return Set.of(EveryonePrincipal.getInstance());
         } else {
-            return ImmutableSet.of();
+            return Set.of();
         }
     }
 
@@ -119,19 +121,20 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         if (pName != null) {
             Principal p = principals.get(pName);
             if (p != null) {
-                Set<Principal> s = Sets.newHashSet(p);
+                Set<Principal> s = new HashSet<>();
+                s.add(p);
                 s.addAll(getMembershipPrincipals(p));
                 return s;
             }
         }
 
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-        return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)).iterator();
+        return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)::test).iterator();
     }
 
     @NotNull
@@ -151,7 +154,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
 
         @Override
-        public boolean apply(Principal principal) {
+        public boolean test(Principal principal) {
             if (nameHint != null && principal != null && !principal.getName().startsWith(nameHint)) {
                 return false;
             }
@@ -209,15 +212,15 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
         private static Set<Principal> membership(@NotNull String name) {
             if ("a".equals(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance(), gr2, gr3);
+                return Set.of(EveryonePrincipal.getInstance(), gr2, gr3);
             } else if ("ac".equals(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance(), gr3);
+                return Set.of(EveryonePrincipal.getInstance(), gr3);
             } else if (gr2.getName().equals(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance(), gr3);
+                return Set.of(EveryonePrincipal.getInstance(), gr3);
             } else if (principals.containsKey(name)) {
-                return ImmutableSet.of(EveryonePrincipal.getInstance());
+                return Set.of(EveryonePrincipal.getInstance());
             } else {
-                return ImmutableSet.of();
+                return Set.of();
             }
         }
     }

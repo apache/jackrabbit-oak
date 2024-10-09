@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptySet;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -45,9 +44,7 @@ public class AndImplTest {
         op2 = mockConstraint("op2", ComparisonImpl.class);
         op3 = mockConstraint("op3", ComparisonImpl.class);
         and = new AndImpl(new OrImpl(op1, op2), op3);
-        expected = of(
-            (ConstraintImpl) new AndImpl(op1, op3)
-            , (ConstraintImpl) new AndImpl(op2, op3)
+        expected = Set.of(new AndImpl(op1, op3), new AndImpl(op2, op3)
         );
         assertThat(and.convertToUnion(), is(expected));
 
@@ -56,10 +53,7 @@ public class AndImplTest {
         op3 = mockConstraint("op3", ComparisonImpl.class);
         op4 = mockConstraint("op4", ComparisonImpl.class);
         and = new AndImpl(new OrImpl(new OrImpl(op1, op4), op2), op3);
-        expected = of(
-            (ConstraintImpl) new AndImpl(op1, op3)
-            , (ConstraintImpl) new AndImpl(op2, op3)
-            , (ConstraintImpl) new AndImpl(op4, op3)
+        expected = Set.of(new AndImpl(op1, op3), new AndImpl(op2, op3), new AndImpl(op4, op3)
         );
         assertThat(and.convertToUnion(), is(expected));
 }
@@ -73,8 +67,8 @@ public class AndImplTest {
      */
     private static ConstraintImpl mockConstraint(@NotNull String toString, 
                                                  @NotNull Class<? extends ConstraintImpl> clazz) {
-        ConstraintImpl c = mock(checkNotNull(clazz));
-        when(c.toString()).thenReturn(checkNotNull(toString));
+        ConstraintImpl c = mock(requireNonNull(clazz));
+        when(c.toString()).thenReturn(requireNonNull(toString));
         return c;
     }
 }

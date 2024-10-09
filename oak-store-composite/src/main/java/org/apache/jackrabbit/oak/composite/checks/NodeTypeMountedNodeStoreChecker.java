@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ComponentPropertyType;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -39,23 +39,35 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
-@Component(configurationFactory=true, 
-    policy = ConfigurationPolicy.REQUIRE)
-@Service(MountedNodeStoreChecker.class)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, service = {MountedNodeStoreChecker.class})
 public class NodeTypeMountedNodeStoreChecker implements 
         MountedNodeStoreChecker<NodeTypeMountedNodeStoreChecker.Context>  {
     
     private final Logger log = LoggerFactory.getLogger(getClass());
-    
-    @Property(label = "The name of a node type that is invalid and will be rejected when found")
+
     private static final String INVALID_NODE_TYPE = "invalidNodeType";
-    @Property(label = "The error label to use when rejecting an invalid node type")
     private static final String ERROR_LABEL = "errorLabel";
-    
-    @Property(label="Node types that will cause the check to succeeed, even in the invalid node type is also found.",
-            cardinality = Integer.MAX_VALUE)
     private static final String EXCLUDED_NODE_TYPES = "excludedNodeTypes";
 
+    @ComponentPropertyType
+    @interface Config {
+        @AttributeDefinition(
+                name = "The name of a node type that is invalid and will be rejected when found"
+        )
+        String invalidNodeType();
+
+        @AttributeDefinition(
+                name = "The error label to use when rejecting an invalid node type"
+        )
+        String errorLabel();
+
+        @AttributeDefinition(
+                name = "Node types that will cause the check to succeeed, even in the invalid node type is also found.",
+                cardinality = Integer.MAX_VALUE
+        )
+        String[] excludedNodeTypes() default {};
+    }
+    
     private String invalidNodeType;
     private String errorLabel;
     private Set<String> excludedNodeTypes;
@@ -73,8 +85,8 @@ public class NodeTypeMountedNodeStoreChecker implements
     }
 
     protected void activate(ComponentContext ctx) {
-        invalidNodeType = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
-        errorLabel = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
+        invalidNodeType = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
+        errorLabel = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
         excludedNodeTypes = ImmutableSet.copyOf(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
     }
 

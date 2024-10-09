@@ -16,15 +16,18 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Test the PathUtils class.
@@ -232,6 +235,28 @@ public class PathUtilsTest extends TestCase {
         assertFalse(PathUtils.isAncestor(parent, child));
         assertFalse(PathUtils.isAncestor("/" + parent, "/" + parent + "123"));
         assertFalse(PathUtils.isAncestor("/" + parent, "/" + parent + "123/foo"));
+        assertTrue(PathUtils.isAncestor("/" + parent, "/" + parent + "/foo"));
+        assertFalse(PathUtils.isAncestor("/" + parent + "/foo", "/" + parent + "/foo"));
+        assertTrue(PathUtils.isAncestor("/" + parent, "/" + parent + "/foo/bar"));
+
+        // isDirectAncestor
+        assertFalse(PathUtils.isDirectAncestor("/", "/"));
+        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent));
+        assertFalse(PathUtils.isDirectAncestor(parent, parent));
+        assertTrue(PathUtils.isDirectAncestor("/", "/" + parent));
+        assertFalse(PathUtils.isDirectAncestor("/", "/" + parent + "/foo1"));
+        assertFalse(PathUtils.isDirectAncestor("/", "/" + parent + "/foo1/foo2"));
+        assertTrue(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo1"));
+        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo1/foo2"));
+        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo1/foo2/foo3"));
+        assertTrue(PathUtils.isDirectAncestor(parent, parent + "/" + child));
+        assertFalse(PathUtils.isDirectAncestor("/", parent + "/" + child));
+        assertTrue(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/" + child));
+        assertFalse(PathUtils.isDirectAncestor(parent, child));
+        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "123"));
+        assertFalse(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "123/foo"));
+        assertTrue(PathUtils.isDirectAncestor("/" + parent, "/" + parent + "/foo"));
+        assertFalse(PathUtils.isDirectAncestor("/" + parent + "/foo", "/" + parent + "/foo"));
 
         // relativize
         assertEquals("", PathUtils.relativize("/", "/"));
@@ -496,30 +521,30 @@ public class PathUtilsTest extends TestCase {
     }
 
     public void testOptimizeForIncludes() throws Exception{
-        Set<String> includes = newHashSet("/a", "/a/b");
-        Set<String> excludes = newHashSet("/a/b");
+        Set<String> includes = CollectionUtils.toSet("/a", "/a/b");
+        Set<String> excludes = new HashSet<>(Set.of("/a/b"));
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals("Excludes supercedes include", newHashSet("/a"), includes);
-        assertEquals(newHashSet("/a/b"), excludes);
+        assertEquals("Excludes supercedes include", Set.of("/a"), includes);
+        assertEquals(Set.of("/a/b"), excludes);
 
-        includes = newHashSet("/a", "/a/b/c");
-        excludes = newHashSet("/a/b");
+        includes = CollectionUtils.toSet("/a", "/a/b/c");
+        excludes = new HashSet<>(Set.of("/a/b"));
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals("Excludes supercedes include", newHashSet("/a"), includes);
-        assertEquals(newHashSet("/a/b"), excludes);
+        assertEquals("Excludes supercedes include", Set.of("/a"), includes);
+        assertEquals(Set.of("/a/b"), excludes);
 
-        includes = newHashSet("/a", "/a/b/c");
-        excludes = newHashSet();
+        includes = CollectionUtils.toSet("/a", "/a/b/c");
+        excludes = new HashSet<>();
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals(newHashSet("/a"), includes);
+        assertEquals(Set.of("/a"), includes);
     }
 
     public void testOptimizeForExcludes() throws Exception{
-        Set<String> includes = newHashSet("/a", "/b");
-        Set<String> excludes = newHashSet("/c");
+        Set<String> includes = CollectionUtils.toSet("/a", "/b");
+        Set<String> excludes = new HashSet<>(Set.of("/c"));
         PathUtils.unifyInExcludes(includes, excludes);
-        assertEquals(newHashSet("/a", "/b"), includes);
-        assertEquals(newHashSet(), excludes);
+        assertEquals(Set.of("/a", "/b"), includes);
+        assertEquals(Set.of(), excludes);
     }
 
     public void testDropIndexFromNamePerformance() {

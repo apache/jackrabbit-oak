@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -367,20 +366,6 @@ public interface QueryIndex {
          * The messages are returned as a map whose key indicates log level and value is a list of messages against that
          * log level.
 
-         * @deprecated use {@link #getAdditionalLogMessages()}  instead
-         * @return map containing log messages.
-         */
-        @Deprecated(forRemoval = true)
-        default Map<Level, List<String>> getAdditionalMessages() {
-            LOG.error("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
-            return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
-        }
-
-        /**
-         * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
-         * The messages are returned as a map whose key indicates log level and value is a list of messages against that
-         * log level.
-
          * @return map containing log messages.
          */
         default Map<String, List<String>> getAdditionalLogMessages() { return Collections.emptyMap(); }
@@ -432,22 +417,6 @@ public interface QueryIndex {
 
             public Builder setDelayed(boolean isDelayed) {
                 this.isDelayed = isDelayed;
-                return this;
-            }
-
-            /**
-             * @deprecated use {@link #addAdditionalMessage(String level, String s)} instead
-             * */
-            @Deprecated(forRemoval = true)
-            public Builder addAdditionalMessage(Level level, String s) {
-                LOG.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
-                this.additionalMessages.compute(level.name(), (k,v) -> {
-                    if (v == null) {
-                        v = new ArrayList<>();
-                    }
-                    v.add(s);
-                    return v;
-                });
                 return this;
             }
 

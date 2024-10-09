@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 
 import java.util.Formatter;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class RecordUsageAnalyser extends SegmentParser {
     private final RecordIdSet seenIds = new RecordIdSet();
-    private final Set<String> deadLinks = newHashSet();
+    private final Set<String> deadLinks = new HashSet<>();
 
     private long mapSize;       // leaf and branch
     private long listSize;      // list and bucket

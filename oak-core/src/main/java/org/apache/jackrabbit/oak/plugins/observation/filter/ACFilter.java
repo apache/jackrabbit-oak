@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -50,11 +50,11 @@ public final class ACFilter implements EventFilter {
                      @NotNull String name,
                      @NotNull PermissionProvider permissionProvider,
                      @NotNull ACFilter parentFilter) {
-        this.before = checkNotNull(before);
-        this.after = checkNotNull(after);
-        this.name = checkNotNull(name);
-        this.permissionProvider = checkNotNull(permissionProvider);
-        this.parentFilter = checkNotNull(parentFilter);
+        this.before = requireNonNull(before);
+        this.after = requireNonNull(after);
+        this.name = requireNonNull(name);
+        this.permissionProvider = requireNonNull(permissionProvider);
+        this.parentFilter = requireNonNull(parentFilter);
     }
 
     /**
@@ -68,10 +68,10 @@ public final class ACFilter implements EventFilter {
     public ACFilter(@NotNull NodeState before,
                     @NotNull NodeState after,
                     @NotNull PermissionProvider permissionProvider) {
-        this.before = checkNotNull(before);
-        this.after = checkNotNull(after);
+        this.before = requireNonNull(before);
+        this.after = requireNonNull(after);
         this.name = null;
-        this.permissionProvider = checkNotNull(permissionProvider);
+        this.permissionProvider = requireNonNull(permissionProvider);
         this.parentFilter = null;
     }
 

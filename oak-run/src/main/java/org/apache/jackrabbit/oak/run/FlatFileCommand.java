@@ -65,7 +65,7 @@ public class FlatFileCommand implements Command {
             outFileOpt = parser.accepts("out", "Name of the flatfile to create")
                     .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
             // Set of options which define action
-            actionOpts = ImmutableSet.of(flatfile);
+            actionOpts = Set.of(flatfile);
             operationNames = collectionOperationNames(actionOpts);
         }
 

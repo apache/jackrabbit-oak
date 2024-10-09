@@ -36,7 +36,11 @@ import org.osgi.service.component.runtime.dto.ComponentDescriptionDTO
 import org.osgi.util.promise.Promise
 import org.osgi.util.tracker.ServiceTracker
 
-import javax.jcr.*
+import javax.jcr.Repository
+import javax.jcr.RepositoryFactory
+import javax.jcr.RepositoryException
+import javax.jcr.Session
+import javax.jcr.SimpleCredentials
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 

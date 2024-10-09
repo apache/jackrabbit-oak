@@ -261,7 +261,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                                                         final LMSEstimator estimator) {
         return new AbstractIterator<SolrResultRow>() {
             public Collection<FacetField> facetFields = new LinkedList<FacetField>();
-            private final Set<String> seenPaths = Sets.newHashSet();
+            private final Set<String> seenPaths = new HashSet<>();
             private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
             private int offset = 0;
             private boolean noDocs = false;
@@ -535,7 +535,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
 
         Collection<String> indexPaths = new SolrIndexLookup(rootState).collectIndexNodePaths(filter);
-        List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
+        List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
 
         log.debug("looking for plans for paths : {}", indexPaths);
         for (String path : indexPaths) {

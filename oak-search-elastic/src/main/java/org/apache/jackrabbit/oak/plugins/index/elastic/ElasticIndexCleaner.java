@@ -145,7 +145,7 @@ public class ElasticIndexCleaner implements Runnable {
                 DeleteIndexResponse response = elasticConnection.getClient().indices().delete(i -> i.index(indicesToDelete));
                 LOG.info("Deleting remote indices {}", indicesToDelete);
                 if (!response.acknowledged()) {
-                    LOG.error("Could not delete remote indices " + indicesToDelete);
+                    LOG.error("Could not delete remote indices {}", indicesToDelete);
                 }
             }
         } catch (IOException e) {

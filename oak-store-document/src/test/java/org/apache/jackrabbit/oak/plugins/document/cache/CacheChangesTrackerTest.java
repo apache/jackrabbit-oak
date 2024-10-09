@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -38,13 +39,9 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class CacheChangesTrackerTest {
 
@@ -58,12 +55,8 @@ public class CacheChangesTrackerTest {
     @Test
     public void testTracker() {
         List<CacheChangesTracker> list = new ArrayList<CacheChangesTracker>();
-        CacheChangesTracker tracker = new CacheChangesTracker(new Predicate<String>() {
-            @Override
-            public boolean apply(@Nullable String input) {
-                return !"ignored".equals(input);
-            }
-        }, list, 100);
+        CacheChangesTracker tracker = new CacheChangesTracker(input -> !"ignored".equals(input),
+                list, 100);
 
         assertFalse(tracker.mightBeenAffected("xyz"));
         assertFalse(tracker.mightBeenAffected("abc"));
@@ -129,7 +122,7 @@ public class CacheChangesTrackerTest {
     @Test
     public void testRegisterKeysTracker() {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker(ImmutableSet.of("1:/xyz", "1:/abc", "1:/aaa"));
+        CacheChangesTracker tracker = cache.registerTracker(Set.of("1:/xyz", "1:/abc", "1:/aaa"));
 
         assertFalse(tracker.mightBeenAffected("1:/xyz"));
         assertFalse(tracker.mightBeenAffected("1:/abc"));
@@ -157,7 +150,7 @@ public class CacheChangesTrackerTest {
         Path parent = Path.fromString("/parent");
         CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
 
-        cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
+        cache.putNonConflictingDocs(tracker, Set.of(createDoc("2:/parent/local")));
         assertFalse(tracker.mightBeenAffected("2:/parent/local"));
 
         cache.put(createDoc("2:/parent/external"));

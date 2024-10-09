@@ -135,7 +135,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public static final String OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE = "oak.indexer.pipelined.sortBufferMemoryPercentage";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE = 25;
 
-    static final NodeDocument[] SENTINEL_MONGO_DOCUMENT = new NodeDocument[0];
     static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
     static final Path SENTINEL_SORTED_FILES_QUEUE = Paths.get("SENTINEL");
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
@@ -347,9 +346,9 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
-        ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
-                new ThreadFactoryBuilder().setDaemon(true).build()
-        );
+        ThreadMonitor threadMonitor = new ThreadMonitor();
+        var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
+        ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
@@ -387,7 +386,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     mongoDocQueue,
                     pathFilters,
                     statisticsProvider,
-                    indexingReporter
+                    indexingReporter,
+                    threadFactory
             ));
 
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
@@ -433,13 +433,15 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 int tasksFinished = 0;
                 int transformTasksFinished = 0;
                 boolean monitorQueues = true;
+                threadMonitor.start();
                 while (tasksFinished < numberOfThreads) {
                     // Wait with a timeout to print statistics periodically
-                    Future<?> completedTask = ecs.poll(30, TimeUnit.SECONDS);
+                    Future<?> completedTask = ecs.poll(60, TimeUnit.SECONDS);
                     if (completedTask == null) {
                         // Timeout waiting for a task to complete
                         if (monitorQueues) {
                             try {
+                                threadMonitor.printStatistics();
                                 printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
                             } catch (Exception e) {
                                 LOG.warn("Error while logging queue sizes", e);
@@ -451,10 +453,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             if (result instanceof PipelinedMongoDownloadTask.Result) {
                                 PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
                                 LOG.info("Download finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
-                                // Signal the end of documents to the transform threads.
-                                for (int i = 0; i < numberOfTransformThreads; i++) {
-                                    mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
-                                }
                                 mergeSortTask.stopEagerMerging();
                                 downloadFuture = null;
 
@@ -514,7 +512,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
                         .build());
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
-
+                // Unique heading to make it easier to find in the logs
+                threadMonitor.printStatistics("Final Thread/Memory report");
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (Throwable e) {
                 INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:FAIL] Metrics: {}, Error: {}",

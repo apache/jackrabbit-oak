@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -62,6 +61,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -1028,7 +1028,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         User u = getTestUser();
 
         assertNull(userManager.getAuthorizable("anyGroup", Group.class));
-        syncCtx.applyMembership(u, ImmutableSet.of("anyGroup"));
+        syncCtx.applyMembership(u, Set.of("anyGroup"));
         assertFalse(root.hasPendingChanges());
     }
 
@@ -1038,7 +1038,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         sync(externalUser);
         User u = getTestUser();
 
-        syncCtx.applyMembership(userManager.getAuthorizable(externalUser.getId()), ImmutableSet.of(u.getID()));
+        syncCtx.applyMembership(userManager.getAuthorizable(externalUser.getId()), Set.of(u.getID()));
         assertFalse(root.hasPendingChanges());
     }
 
@@ -1047,7 +1047,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         User u = getTestUser();
         Group gr = createTestGroup();
 
-        syncCtx.applyMembership(u, ImmutableSet.of(gr.getID()));
+        syncCtx.applyMembership(u, Set.of(gr.getID()));
         assertTrue(gr.isDeclaredMember(u));
         assertTrue(root.hasPendingChanges());
     }
@@ -1556,7 +1556,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
-            return ImmutableSet.of(declaredGroupRef);
+            return Set.of(declaredGroupRef);
         }
     }
 

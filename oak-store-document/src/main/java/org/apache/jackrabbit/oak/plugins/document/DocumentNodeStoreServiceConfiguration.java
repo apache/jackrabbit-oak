@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Configuration for the {@link DocumentNodeStoreService}. Access is provided
@@ -148,10 +148,10 @@ final class DocumentNodeStoreServiceConfiguration {
                              ConfigurationAdmin configurationAdmin,
                              Configuration preset,
                              Configuration configuration) throws IOException {
-            this.context = checkNotNull(context);
-            this.preset = checkNotNull(preset);
-            this.configuration = checkNotNull(configuration);
-            this.configurationKeys = getConfigurationKeys(checkNotNull(configurationAdmin));
+            this.context = requireNonNull(context);
+            this.preset = requireNonNull(preset);
+            this.configuration = requireNonNull(configuration);
+            this.configurationKeys = getConfigurationKeys(requireNonNull(configurationAdmin));
         }
 
         private static Set<String> getConfigurationKeys(ConfigurationAdmin configurationAdmin)

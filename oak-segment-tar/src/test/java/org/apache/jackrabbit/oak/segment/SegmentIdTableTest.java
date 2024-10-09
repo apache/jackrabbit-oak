@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -27,6 +26,7 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -124,7 +124,7 @@ public class SegmentIdTableTest {
             refs.add(tbl.newSegmentId(i, i % 2, maker));
         }
 
-        Set<UUID> reclaimed = newHashSet();
+        Set<UUID> reclaimed = new HashSet<>();
         for (SegmentId id : refs) {
             if (id.getMostSignificantBits() < 4) {
                 reclaimed.add(id.asUUID());

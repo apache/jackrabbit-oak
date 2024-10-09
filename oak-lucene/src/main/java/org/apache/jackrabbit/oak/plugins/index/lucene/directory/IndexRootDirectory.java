@@ -23,13 +23,13 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -47,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
@@ -152,7 +152,7 @@ public class IndexRootDirectory {
      *               correct local index directory (container dir) can be checked for deletion
      */
     public long gcEmptyDirs(File subDir) throws IOException {
-        File parent = checkNotNull(subDir).getParentFile().getCanonicalFile();
+        File parent = requireNonNull(subDir).getParentFile().getCanonicalFile();
         LocalIndexDir indexDir = findMatchingIndexDir(parent);
         long totalDeletedSize = 0;
         if (indexDir != null) {
@@ -193,7 +193,7 @@ public class IndexRootDirectory {
     static String getIndexFolderBaseName(String indexPath) {
         List<String> elements = Lists.newArrayList(PathUtils.elements(indexPath));
         Collections.reverse(elements);
-        List<String> result = Lists.newArrayListWithCapacity(2);
+        List<String> result = new ArrayList<>(2);
 
         //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
         for (String e : Iterables.limit(elements, 3)) {
@@ -213,7 +213,7 @@ public class IndexRootDirectory {
     }
 
     static String getPathHash(String indexPath) {
-        return Hashing.sha256().hashString(indexPath, Charsets.UTF_8).toString();
+        return Hashing.sha256().hashString(indexPath, StandardCharsets.UTF_8).toString();
     }
 
     /**

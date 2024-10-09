@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
@@ -30,7 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -88,9 +89,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -446,12 +445,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
-                    @Override
-                    public String apply(UpdateOp input) {
-                        return input.getId();
-                    }
-                }));
+                collection, Lists.transform(updateOps, input -> input.getId()));
         return new ArrayList<T>(results.values());
     }
 
@@ -1137,13 +1131,13 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private static String asQualifiedDbName(String one, String two) {
-        one = Strings.nullToEmpty(one).trim();
-        two = Strings.nullToEmpty(two).trim();
+        one = Objects.toString(one, "").trim();
+        two = Objects.toString(two, "").trim();
 
         if (one.isEmpty() && two.isEmpty()) {
             return null;
         } else {
-            one = Strings.nullToEmpty(one).trim();
+            one = Objects.toString(one, "").trim();
             two = two == null ? "" : two.trim();
             return one.isEmpty() ? two : one + "." + two;
         }
@@ -1170,12 +1164,12 @@ public class RDBDocumentStore implements DocumentStore {
         try {
             // if the result set metadata provides a table name, use that (the
             // other one might be inaccurate due to case insensitivity issues)
-            String rmetTableName = Strings.nullToEmpty(rmet.getTableName(1)).trim();
+            String rmetTableName = Objects.toString(rmet.getTableName(1), "").trim();
             if (!rmetTableName.isEmpty()) {
                 tableName = rmetTableName;
             }
 
-            String rmetSchemaName = Strings.nullToEmpty(rmet.getSchemaName(1)).trim();
+            String rmetSchemaName = Objects.toString(rmet.getSchemaName(1), "").trim();
 
             rs = met.getIndexInfo(null, null, tableName, false, true);
 
@@ -1245,8 +1239,8 @@ public class RDBDocumentStore implements DocumentStore {
                 info.nonunique = rs.getBoolean("NON_UNIQUE");
                 info.type = indexTypeAsString(rs.getInt("TYPE"));
                 String inSchema = rs.getString("TABLE_SCHEM");
-                inSchema = Strings.nullToEmpty(inSchema).trim();
-                String filterCondition = Strings.nullToEmpty(rs.getString("FILTER_CONDITION")).trim();
+                inSchema = Objects.toString(inSchema, "").trim();
+                String filterCondition = Objects.toString(rs.getString("FILTER_CONDITION"), "").trim();
                 if (!filterCondition.isEmpty()) {
                     info.filterCondition = filterCondition;
                 }
@@ -1858,7 +1852,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         return new MyCloseableIterable<T>() {
 
-            Set<Iterator<RDBRow>> returned = Sets.newHashSet();
+            Set<Iterator<RDBRow>> returned = new HashSet<>();
 
             @Override
             public Iterator<T> iterator() {
@@ -1866,12 +1860,7 @@ public class RDBDocumentStore implements DocumentStore {
                     Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns, conditions,
                             limit, sortBy);
                     returned.add(res);
-                    Iterator<T> tmp = Iterators.transform(res, new Function<RDBRow, T>() {
-                        @Override
-                        public T apply(RDBRow input) {
-                            return convertFromDBObject(collection, input);
-                        }
-                    });
+                    Iterator<T> tmp = Iterators.transform(res, input -> convertFromDBObject(collection, input));
                     return CloseableIterator.wrap(tmp, (Closeable) res);
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);
@@ -2235,13 +2224,7 @@ public class RDBDocumentStore implements DocumentStore {
             }).get();
 
     public static byte[] asBytes(@NotNull String data) {
-        byte[] bytes;
-        try {
-            bytes = data.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            LOG.error("UTF-8 not supported??", ex);
-            throw asDocumentStoreException(ex, "UTF-8 not supported??");
-        }
+        byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
 
         if (NOGZIP) {
             return bytes;
@@ -2333,7 +2316,7 @@ public class RDBDocumentStore implements DocumentStore {
         if (!USECMODCOUNT) {
             return false;
         } else {
-            for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
+            for (Entry<Key, Operation> e : requireNonNull(update).getChanges().entrySet()) {
                 Key k = e.getKey();
                 Operation op = e.getValue();
                 if (op.type == Operation.Type.SET_MAP_ENTRY) {

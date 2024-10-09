@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
@@ -31,6 +31,7 @@ import static org.junit.Assume.assumeTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -61,7 +63,6 @@ import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class NodeStoreTest extends OakBaseTest {
     private NodeState root;
@@ -230,7 +231,7 @@ public class NodeStoreTest extends OakBaseTest {
             public void contentChanged(
                     @NotNull NodeState root, @NotNull CommitInfo info) {
                 if (root.getChildNode("test").hasChildNode("newNode")) {
-                    observedRoot.set(checkNotNull(root));
+                    observedRoot.set(requireNonNull(root));
                     latch.countDown();
                 }
             }
@@ -559,20 +560,20 @@ public class NodeStoreTest extends OakBaseTest {
         assumeTrue(fixture != NodeStoreFixtures.SEGMENT_TAR);
         int numCps = 3;
         Map<String, String> info = Maps.newHashMap();
-        Set<String> cps = Sets.newHashSet();
+        Set<String> cps = new HashSet<>();
         for (int i = 0; i < numCps; i++) {
             info.put("key", "" + i);
             cps.add(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
         }
         assertEquals(numCps, cps.size());
-        assertEquals(cps, Sets.newHashSet(store.checkpoints()));
-        Set<String> keys = Sets.newHashSet();
+        assertEquals(cps, CollectionUtils.toSet(store.checkpoints()));
+        Set<String> keys = new HashSet<>();
         for (String cp : cps) {
             info = store.checkpointInfo(cp);
             assertTrue(info.containsKey("key"));
             keys.add(info.get("key"));
         }
-        assertEquals(Sets.newHashSet("0", "1", "2"), keys);
+        assertEquals(Set.of("0", "1", "2"), keys);
         while (!cps.isEmpty()) {
             String cp = cps.iterator().next();
             cps.remove(cp);

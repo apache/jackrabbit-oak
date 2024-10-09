@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.65-SNAPSHOT</version>
+  <version>1.71-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1716393921</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1727261344</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -48,7 +48,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.16</jackrabbit.version>
+    <jackrabbit.version>2.22.0</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -58,17 +58,17 @@
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
     <solr.version>8.11.1</solr.version>
-    <mongo.driver.version>3.12.11</mongo.driver.version>
+    <mongo.driver.version>3.12.14</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.17.1</jackson.version>
-    <testcontainers.version>1.19.7</testcontainers.version>
+    <jackson.version>2.17.2</jackson.version>
+    <testcontainers.version>1.20.1</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>3.0.21</groovy.version>
+    <groovy.version>3.0.22</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -125,7 +125,7 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <doclint>none</doclint>
-            <detectJavaApiLink>false</detectJavaApiLink>
+            <detectJavaApiLink>true</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
@@ -326,22 +326,22 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.3.1</version>
+            <version>3.5.0</version>
           </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.8.5.0</version>
+          <version>4.8.6.3</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.5.3</version>
+          <version>3.6.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.16.2</version>
+          <version>2.17.1</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -564,12 +564,12 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.2.0</version>
+        <version>5.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.6.0</version>
+        <version>5.13.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -625,18 +625,23 @@
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.14.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.15.1</version>
+        <version>2.16.1</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.16.1</version>
+        <version>1.17.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -770,7 +775,7 @@
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>9.30.2</version>
+        <version>9.40</version>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
@@ -1002,6 +1007,11 @@
             <artifactId>derby</artifactId>
             <version>${derby.version}</version>
          </dependency>
+         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyshared</artifactId>
+            <version>${derby.version}</version>
+         </dependency>
       </dependencies>
    </profile>
    
@@ -1168,7 +1178,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.18</version>
+          <version>42.7.4</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1401,6 +1411,6 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
     <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
-    <tag>trunk</tag>
+    <tag>jackrabbit-oak-1.70.0</tag>
   </scm>
 </project>

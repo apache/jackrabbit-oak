@@ -50,7 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 
 public class LuceneIndexInfoProvider implements IndexInfoProvider {
@@ -63,9 +63,9 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     private final File workDir;
 
     public LuceneIndexInfoProvider(NodeStore nodeStore, AsyncIndexInfoService asyncInfoService, File workDir) {
-        this.nodeStore = checkNotNull(nodeStore);
-        this.asyncInfoService = checkNotNull(asyncInfoService);
-        this.workDir = checkNotNull(workDir);
+        this.nodeStore = requireNonNull(nodeStore);
+        this.asyncInfoService = requireNonNull(asyncInfoService);
+        this.workDir = requireNonNull(workDir);
     }
 
     @Override
@@ -111,8 +111,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         }
 
         AsyncIndexInfo asyncInfo = asyncInfoService.getInfo(asyncName);
-        checkNotNull(asyncInfo, "No async info found for name [%s] " +
-                "for index at [%s]", asyncName, indexPath);
+        requireNonNull(asyncInfo, String.format("No async info found for name [%s] for index at [%s]", asyncName, indexPath));
 
         info.indexedUptoTime = asyncInfo.getLastIndexedTo();
         info.asyncName = asyncName;
@@ -290,7 +289,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     static class FilteringEqualsDiff extends EqualsDiff {
-        private static final Set<String> IGNORED_PROP_NAMES = ImmutableSet.of(
+        private static final Set<String> IGNORED_PROP_NAMES = Set.of(
                 IndexConstants.REINDEX_COUNT,
                 IndexConstants.REINDEX_PROPERTY_NAME
         );

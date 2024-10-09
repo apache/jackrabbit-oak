@@ -39,7 +39,7 @@ public class ElasticIndexTest extends ElasticAbstractQueryTest {
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
 
-        assertEventually(() -> assertEquals(ElasticIndexHelper.MAPPING_VERSION,
+        assertEventually(() -> assertEquals(ElasticIndexDefinition.MAPPING_VERSION.toString(),
                 getElasticIndexDefinition(index).getMappingVersion()));
     }
 

@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -33,16 +32,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
-    public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(
-            Iterable<E> set) {
-        return Iterables.transform(
-                set,
-                new Function<Entry<String, ? extends NodeState>, ChildNodeEntry>() {
-                    @Override
-                    public ChildNodeEntry apply(Entry<String, ? extends NodeState> entry) {
-                        return new MemoryChildNodeEntry(entry.getKey(), entry.getValue());
-                    }
-                });
+    public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(Iterable<E> set) {
+        return Iterables.transform(set, entry -> new MemoryChildNodeEntry(entry.getKey(), entry.getValue()));
     }
 
     private final String name;
@@ -57,8 +48,8 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
      * @param node child node state
      */
     public MemoryChildNodeEntry(String name, NodeState node) {
-        this.name = checkNotNull(name);
-        this.node = checkNotNull(node);
+        this.name = requireNonNull(name);
+        this.node = requireNonNull(node);
     }
 
     @Override

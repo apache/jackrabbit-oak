@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Validator provider to ensure that the principal-cache stored with a given
@@ -117,7 +117,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         @Override
         public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-            Tree beforeTree = checkNotNull(parentBefore).getChild(name);
+            Tree beforeTree = requireNonNull(parentBefore).getChild(name);
             Tree afterTree = parentAfter.getChild(name);
 
             if (isCache || isCache(beforeTree) || isCache(afterTree)) {

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -40,8 +39,9 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -211,12 +211,12 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicies() throws Exception {
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
+        JackrabbitAccessControlList acl = requireNonNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
         acl.addAccessControlEntry(supportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES));
         acl.addAccessControlEntry(unsupportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
+        PrincipalAccessControlList pacl = requireNonNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
         pacl.addEntry(testPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
         root.commit();
@@ -224,7 +224,7 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         // 1. get effective policies for just 'supportedPrincipal'
 
         // EXERCISE: what is the expected result? verify by filling in the missing assertions.
-        AccessControlPolicy[] effective = compositeAcMgr.getEffectivePolicies(ImmutableSet.of(supportedPrincipal));
+        AccessControlPolicy[] effective = compositeAcMgr.getEffectivePolicies(Set.of(supportedPrincipal));
         assertEquals(-1 /*EXERCISE*/, effective.length);
         // EXERCISE: inspect the nature of the policies
 
@@ -237,7 +237,7 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         // 2. get effective policies for the set containing both 'supportedPrincipal' and 'unsupportedPrincipal'
 
         // EXERCISE: what is the expected result? verify it by filling in the missing assertions.
-        effective = compositeAcMgr.getEffectivePolicies(ImmutableSet.of(supportedPrincipal, unsupportedPrincipal));
+        effective = compositeAcMgr.getEffectivePolicies(Set.of(supportedPrincipal, unsupportedPrincipal));
         assertEquals(-1 /*EXERCISE*/, effective.length);
         // EXERCISE: inspect the nature of the policies
 
@@ -250,11 +250,11 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePoliciesByPath() throws Exception {
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
+        JackrabbitAccessControlList acl = requireNonNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
         acl.addAccessControlEntry(unsupportedPrincipal, privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
+        PrincipalAccessControlList pacl = requireNonNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
         pacl.addEntry(testPath, privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
         root.commit();

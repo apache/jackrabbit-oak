@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -28,6 +27,7 @@ import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,7 +70,7 @@ public class TarFileTest {
         UUID id = UUID.randomUUID();
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
-        byte[] data = "Hello, World!".getBytes(UTF_8);
+        byte[] data = "Hello, World!".getBytes(StandardCharsets.UTF_8);
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
@@ -89,7 +89,7 @@ public class TarFileTest {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         String data = "test";
-        byte[] buffer = data.getBytes(UTF_8);
+        byte[] buffer = data.getBytes(StandardCharsets.UTF_8);
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, false));
@@ -107,7 +107,7 @@ public class TarFileTest {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         String data = "test";
-        byte[] buffer = data.getBytes(UTF_8);
+        byte[] buffer = data.getBytes(StandardCharsets.UTF_8);
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, true));
@@ -137,25 +137,25 @@ public class TarFileTest {
             writer.addBinaryReference(generation(3), new UUID(3, 1), "r8");
         }
 
-        Map<UUID, Set<String>> one = newHashMap();
+        Map<UUID, Set<String>> one = new HashMap<>();
 
         one.put(new UUID(1, 0), newSet("r0"));
         one.put(new UUID(1, 1), newSet("r1"));
         one.put(new UUID(1, 2), newSet("r2"));
         one.put(new UUID(1, 3), newSet("r3"));
 
-        Map<UUID, Set<String>> two = newHashMap();
+        Map<UUID, Set<String>> two = new HashMap<>();
 
         two.put(new UUID(2, 0), newSet("r4"));
         two.put(new UUID(2, 1), newSet("r5"));
         two.put(new UUID(2, 2), newSet("r6"));
 
-        Map<UUID, Set<String>> three = newHashMap();
+        Map<UUID, Set<String>> three = new HashMap<>();
 
         three.put(new UUID(3, 0), newSet("r7"));
         three.put(new UUID(3, 1), newSet("r8"));
 
-        Map<GCGeneration, Map<UUID, Set<String>>> expected = newHashMap();
+        Map<GCGeneration, Map<UUID, Set<String>>> expected = new HashMap<>();
 
         expected.put(generation(1), one);
         expected.put(generation(2), two);
@@ -196,13 +196,13 @@ public class TarFileTest {
             try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
                 assertNotNull(swept);
 
-                Map<UUID, Set<String>> one = newHashMap();
+                Map<UUID, Set<String>> one = new HashMap<>();
                 one.put(new UUID(1, 2), newSet("b"));
 
-                Map<UUID, Set<String>> two = newHashMap();
+                Map<UUID, Set<String>> two = new HashMap<>();
                 two.put(new UUID(2, 1), newSet("c"));
 
-                Map<GCGeneration, Map<UUID, Set<String>>> references = newHashMap();
+                Map<GCGeneration, Map<UUID, Set<String>>> references = new HashMap<>();
                 references.put(generation(1), one);
                 references.put(generation(2), two);
 
@@ -260,7 +260,7 @@ public class TarFileTest {
             try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
                 assertNotNull(swept);
 
-                Map<UUID, List<UUID>> graph = newHashMap();
+                Map<UUID, List<UUID>> graph = new HashMap<>();
                 graph.put(new UUID(2, 1), newArrayList(new UUID(2, 2)));
 
                 assertEquals(graph, swept.getGraph());

@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
 public class PropertyIndexUtil {
@@ -53,7 +53,7 @@ public class PropertyIndexUtil {
                 if (v.isEmpty()) {
                     v = EMPTY_TOKEN;
                 } else {
-                    v = URLEncoder.encode(v, Charsets.UTF_8.name());
+                    v = URLEncoder.encode(v, StandardCharsets.UTF_8.name());
                 }
                 values.add(v);
             }

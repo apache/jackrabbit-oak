@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -33,6 +32,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -77,7 +77,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -645,7 +645,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
 
                 long totalSize = nonExisting.size();
-                Set<String> memberContentIds = Sets.newHashSet(nonExisting.keySet());
+                Set<String> memberContentIds = new HashSet<>(nonExisting.keySet());
                 Set<String> failedContentIds = membershipProvider.addMembers(groupTree, nonExisting);
                 memberContentIds.removeAll(failedContentIds);
 
@@ -657,7 +657,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         @NotNull
         Map<String, Authorizable> getAuthorizablesToAdd(@NotNull Group gr, @NotNull Map<String, Authorizable> toRemove,
                                                         @NotNull Map<String, String> nonExisting) throws RepositoryException {
-            Map<String, Authorizable> toAdd = Maps.newHashMapWithExpectedSize(members.size());
+            Map<String, Authorizable> toAdd = CollectionUtils.newHashMap(members.size());
             for (String contentId : members) {
                 // NOTE: no need to check for re-mapped uuids with the referenceTracker because
                 // ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW is not supported for user/group imports (see line 189)
@@ -721,7 +721,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 throw new RepositoryException(userPath + " does not represent a valid user.");
             }
 
-            Impersonation imp = checkNotNull(((User) a).getImpersonation());
+            Impersonation imp = requireNonNull(((User) a).getImpersonation());
 
             // 1. collect principals to add and to remove.
             Map<String, Principal> toRemove = new HashMap<>();

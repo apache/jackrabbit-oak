@@ -19,10 +19,9 @@
 package org.apache.jackrabbit.oak.explorer;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
@@ -35,9 +34,11 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.json.JsopBuilder.prettyPrint;
 import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 
-import java.awt.*;
+import java.awt.GridLayout;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -160,7 +161,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
     private void refreshModel() {
         index = backend.getTarReaderIndex();
-        sizeCache = newHashMap();
+        sizeCache = new HashMap<>();
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
                 new NamePathModel("/", "/", backend.getHead(), sizeCache,
                         skipSizeCheck, backend), true);
@@ -399,7 +400,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         StringBuilder sb = new StringBuilder();
 
-        Set<UUID> uuids = newHashSet();
+        Set<UUID> uuids = new HashSet<>();
         for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getKey().endsWith(file)) {
                 sb.append("SegmentNodeState references to ").append(e.getKey());
@@ -460,10 +461,10 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
 
         List<String> paths = newArrayList();
-        filterNodeStates(newHashSet(id), paths, backend.getHead(), "/", backend);
+        filterNodeStates(Set.of(id), paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
-        Map<UUID, Set<Entry<UUID, String>>> links = newHashMap();
+        Map<UUID, Set<Entry<UUID, String>>> links = new HashMap<>();
         try {
             backend.getGcRoots(id, links);
         } catch (IOException e) {

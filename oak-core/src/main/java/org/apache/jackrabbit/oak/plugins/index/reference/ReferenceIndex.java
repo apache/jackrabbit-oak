@@ -45,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -135,24 +133,14 @@ class ReferenceIndex implements QueryIndex {
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
-                    + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
+                    + uuid + ")", indexRoot, Set.of(uuid)));
         }
         Iterable<String> paths = Iterables.concat(iterables);
 
         if (!"*".equals(name)) {
-            paths = filter(paths, new Predicate<String>() {
-                @Override
-                public boolean apply(String path) {
-                    return name.equals(getName(path));
-                }
-            });
+            paths = filter(paths, path -> name.equals(getName(path)));
         }
-        paths = transform(paths, new Function<String, String>() {
-            @Override
-            public String apply(String path) {
-                return getParentPath(path);
-            }
-        });
+        paths = transform(paths, path -> getParentPath(path));
         return newPathCursor(paths, filter.getQueryLimits());
     }
 

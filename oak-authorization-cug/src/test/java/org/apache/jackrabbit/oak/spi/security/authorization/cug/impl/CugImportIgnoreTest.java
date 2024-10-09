@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import javax.jcr.Node;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
+
+import java.util.Set;
 
 public class CugImportIgnoreTest extends CugImportBaseTest {
 
@@ -39,7 +40,7 @@ public class CugImportIgnoreTest extends CugImportBaseTest {
 
         Node cugNode = targetNode.getNode(CugConstants.REP_CUG_POLICY);
         Value[] principalNames = cugNode.getProperty(CugConstants.REP_PRINCIPAL_NAMES).getValues();
-        assertPrincipalNames(ImmutableSet.of(EveryonePrincipal.NAME), principalNames);
+        assertPrincipalNames(Set.of(EveryonePrincipal.NAME), principalNames);
 
         getImportSession().save();
     }
@@ -50,7 +51,7 @@ public class CugImportIgnoreTest extends CugImportBaseTest {
 
         Node cugNode = getTargetNode().getNode("child").getNode(CugConstants.REP_CUG_POLICY);
         Value[] principalNames = cugNode.getProperty(CugConstants.REP_PRINCIPAL_NAMES).getValues();
-        assertPrincipalNames(ImmutableSet.of(EveryonePrincipal.NAME), principalNames);
+        assertPrincipalNames(Set.of(EveryonePrincipal.NAME), principalNames);
 
         getImportSession().save();
     }

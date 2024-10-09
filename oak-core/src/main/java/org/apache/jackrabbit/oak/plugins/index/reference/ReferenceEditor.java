@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static java.util.Collections.emptySet;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -34,11 +32,13 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -117,12 +117,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.path = "/";
         this.definition = definition;
         this.root = root;
-        this.newRefs = newHashMap();
-        this.rmRefs = newHashMap();
-        this.newWeakRefs = newHashMap();
-        this.rmWeakRefs = newHashMap();
-        this.rmIds = newHashSet();
-        this.newIds = newHashSet();
+        this.newRefs = new HashMap<>();
+        this.rmRefs = new HashMap<>();
+        this.newWeakRefs = new HashMap<>();
+        this.rmWeakRefs = new HashMap<>();
+        this.rmIds = new HashSet<>();
+        this.newIds = new HashSet<>();
         this.mountInfoProvider = mountInfoProvider;
     }
 
@@ -298,7 +298,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         for (String key : keys) {
             Set<String> values = map.get(key);
             if (values == null) {
-                values = newHashSet();
+                values = new HashSet<>();
             }
             values.add(asRelative);
             map.put(key, values);
@@ -309,15 +309,15 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             NodeBuilder definition, String name, String key, Set<String> add,
             Set<String> rm) throws CommitFailedException {
         for (IndexStoreStrategy store : refStores) {
-            Set<String> empty = of();
+            Set<String> empty = Set.of();
             for (String p : rm) {
                 Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
-                store.update(index, p, name, definition, of(key), empty);
+                store.update(index, p, name, definition, Set.of(key), empty);
             }
             for (String p : add) {
                 // TODO do we still need to encode the values?
                 Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
-                store.update(index, p, name, definition, empty, of(key));
+                store.update(index, p, name, definition, empty, Set.of(key));
             }
         }
     }
@@ -328,7 +328,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
                                   String name,
                                   String key) {
         return definition.hasChildNode(name)
-                && refStore.count(root, definition, of(key), 1) > 0;
+                && refStore.count(root, definition, Set.of(key), 1) > 0;
     }
 
     private static void checkReferentialIntegrity(Set<IndexStoreStrategy> refStores,

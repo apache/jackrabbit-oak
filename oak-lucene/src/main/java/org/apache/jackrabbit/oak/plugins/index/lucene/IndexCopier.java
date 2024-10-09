@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.Closeable;
@@ -41,7 +40,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
@@ -72,7 +70,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
  * Copies index files to/from the local disk and the datastore.
  */
 public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
-    public static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
+    public static final Set<String> REMOTE_ONLY = Set.of("segments.gen");
     private static final int MAX_FAILURE_ENTRIES = 10000;
     private static final String WORK_DIR_NAME = "indexWriterDir";
 
@@ -612,12 +610,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getGarbageDetails() {
         return toArray(transform(failedToDeleteFiles.values(),
-                new Function<LocalIndexFile, String>() {
-                    @Override
-                    public String apply(LocalIndexFile input) {
-                        return input.deleteLog();
-                    }
-                }), String.class);
+                input -> input.deleteLog()), String.class);
     }
 
     @Override
@@ -661,12 +654,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getCopyInProgressDetails() {
         return toArray(transform(copyInProgressFiles,
-                new Function<LocalIndexFile, String>() {
-                    @Override
-                    public String apply(LocalIndexFile input) {
-                        return input.copyLog();
-                    }
-                }), String.class);
+                input -> input.copyLog()), String.class);
     }
 
     @Override

@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;

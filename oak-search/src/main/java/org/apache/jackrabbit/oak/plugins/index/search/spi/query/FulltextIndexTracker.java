@@ -43,10 +43,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
 import static java.util.Collections.emptyMap;
@@ -150,8 +148,8 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
 
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, I>builder()
-                    .putAll(filterKeys(original, not(in(updates.keySet()))))
-                    .putAll(filterValues(updates, notNull()))
+                    .putAll(filterKeys(original, x -> !updates.keySet().contains(x)))
+                    .putAll(filterValues(updates, x -> x != null))
                     .build();
 
             badIndexTracker.markGoodIndexes(updates.keySet());
@@ -214,7 +212,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
         I index = indices.get(path);
         if (index != null) {
             N indexNode = index.acquire();
-            return checkNotNull(indexNode);
+            return requireNonNull(indexNode);
         }
 
         if (badIndexTracker.isIgnoredBadIndex(path)){
@@ -231,7 +229,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
                 index = openIndex(path, root, node);
                 if (index != null) {
                     N indexNode = index.acquire();
-                    checkNotNull(indexNode);
+                    requireNonNull(indexNode);
                     indices = ImmutableMap.<String, I>builder()
                             .putAll(indices)
                             .put(path, index)

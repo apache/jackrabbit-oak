@@ -25,21 +25,21 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.framework.ServiceRegistration;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name = FileBlobStoreService.NAME)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, name = FileBlobStoreService.NAME)
 public class FileBlobStoreService {
     public static final String NAME = "org.apache.jackrabbit.oak.spi.blob.FileBlobStore";
 

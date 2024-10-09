@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.atomic;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -34,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -49,7 +50,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
@@ -178,7 +178,7 @@ public class AtomicCounterEditorTest {
         editor.propertyAdded(INCREMENT_BY_1);
         assertTotalCountersValue(builder.getProperties(), 2);
         AtomicCounterEditor.consolidateCount(builder);
-        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 2);
+        assertCounterNodeState(builder, Set.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 2);
     }
 
     /**
@@ -188,7 +188,7 @@ public class AtomicCounterEditorTest {
      * @param properties
      */
     private static void assertNoCounters(@NotNull final Iterable<? extends PropertyState> properties) {
-        checkNotNull(properties);
+        requireNonNull(properties);
         
         for (PropertyState p : properties) {
             assertFalse("there should be no counter property",
@@ -204,7 +204,7 @@ public class AtomicCounterEditorTest {
     private static void assertTotalCountersValue(@NotNull final Iterable<? extends PropertyState> properties,
                                             int expected) {
         int total = 0;
-        for (PropertyState p : checkNotNull(properties)) {
+        for (PropertyState p : requireNonNull(properties)) {
             if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
                 total += p.getValue(LONG);
             }
@@ -214,18 +214,18 @@ public class AtomicCounterEditorTest {
     }
     
     private static NodeBuilder setMixin(@NotNull final NodeBuilder builder) {
-        return checkNotNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
+        return requireNonNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
     }
     
     
     private static void assertCounterNodeState(@NotNull NodeBuilder builder, 
                                                @NotNull Set<String> hiddenProps, 
                                                long expectedCounter) {
-        checkNotNull(builder);
-        checkNotNull(hiddenProps);
+        requireNonNull(builder);
+        requireNonNull(hiddenProps);
         long totalHiddenValue = 0;
         PropertyState counter = builder.getProperty(PROP_COUNTER);
-        Set<String> hp = Sets.newHashSet(hiddenProps);
+        Set<String> hp = new HashSet<>(hiddenProps);
         
         assertNotNull("counter property cannot be null", counter);
         assertNull("The increment property should not be there",
@@ -246,7 +246,7 @@ public class AtomicCounterEditorTest {
     }
 
     private static NodeBuilder incrementBy(@NotNull NodeBuilder builder, @NotNull PropertyState increment) {
-        return checkNotNull(builder).setProperty(checkNotNull(increment));
+        return requireNonNull(builder).setProperty(requireNonNull(increment));
     }
     
     @Test
@@ -260,13 +260,13 @@ public class AtomicCounterEditorTest {
         builder = incrementBy(builder, INCREMENT_BY_1);
         after = builder.getNodeState();
         builder = HOOK_NO_CLUSTER.processCommit(before, after, EMPTY).builder();
-        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 1);
+        assertCounterNodeState(builder, Set.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 1);
 
         before = builder.getNodeState();
         builder = incrementBy(builder, INCREMENT_BY_2);
         after = builder.getNodeState(); 
         builder = HOOK_NO_CLUSTER.processCommit(before, after, EMPTY).builder();
-        assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 3);
+        assertCounterNodeState(builder, Set.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 3);
     }
     
     /**
@@ -286,7 +286,7 @@ public class AtomicCounterEditorTest {
         builder = HOOK_1_SYNC.processCommit(before, after, EMPTY).builder();
         assertCounterNodeState(
             builder, 
-            ImmutableSet.of(PREFIX_PROP_COUNTER + "1", PREFIX_PROP_REVISION + "1"),
+            Set.of(PREFIX_PROP_COUNTER + "1", PREFIX_PROP_REVISION + "1"),
             1);
         
         before = builder.getNodeState();
@@ -295,7 +295,7 @@ public class AtomicCounterEditorTest {
         builder = HOOK_2_SYNC.processCommit(before, after, EMPTY).builder();
         assertCounterNodeState(
             builder,
-            ImmutableSet.of(
+            Set.of(
                 PREFIX_PROP_COUNTER + "1",
                 PREFIX_PROP_COUNTER + "2", 
                 PREFIX_PROP_REVISION + "1",
@@ -381,7 +381,7 @@ public class AtomicCounterEditorTest {
         assertTrue("the counter node should exists", builder.exists());
         assertCounterNodeState(
             builder,
-            ImmutableSet.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(),
+            Set.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(),
                 PREFIX_PROP_REVISION + CLUSTER_1.getInstanceId()), 1);
     }
     
@@ -421,7 +421,7 @@ public class AtomicCounterEditorTest {
         assertTrue("the counter node should exists", builder.exists());
         assertCounterNodeState(
             builder,
-            ImmutableSet.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(),
+            Set.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(),
                 PREFIX_PROP_REVISION + CLUSTER_1.getInstanceId()), 1);
     }
     
@@ -495,8 +495,8 @@ public class AtomicCounterEditorTest {
         public <V> ScheduledFuture<V> schedule(final Callable<V> callable, long delay, TimeUnit unit) {
             LOG.debug("Scheduling with delay: {} and unit: {} the process {}", delay, unit, callable);
             
-            checkNotNull(callable);
-            checkNotNull(unit);
+            requireNonNull(callable);
+            requireNonNull(unit);
             if (delay < 0) {
                 delay = 0;
             }

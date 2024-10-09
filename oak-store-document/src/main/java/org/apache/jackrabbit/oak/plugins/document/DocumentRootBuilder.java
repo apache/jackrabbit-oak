@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 import java.io.IOException;
@@ -73,10 +73,10 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     DocumentRootBuilder(@NotNull NodeState base,
                         @NotNull DocumentNodeStore store,
                         @NotNull DocumentNodeStoreBranch branch) {
-        super(checkNotNull(base));
-        this.store = checkNotNull(store);
+        super(requireNonNull(base));
+        this.store = requireNonNull(store);
         this.base = base;
-        this.branch = checkNotNull(branch);
+        this.branch = requireNonNull(branch);
         this.updateLimit = store.getUpdateLimit();
     }
 
@@ -90,7 +90,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
     @Override
     public void reset(@NotNull NodeState newBase) {
-        base = checkNotNull(newBase);
+        base = requireNonNull(newBase);
         super.reset(newBase);
     }
 

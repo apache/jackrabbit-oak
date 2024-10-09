@@ -59,7 +59,7 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 /**
@@ -72,7 +72,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 final class NodeStateAnalyzerFactory {
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
-    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
+    private static final Set<String> IGNORE_PROP_NAMES = Set.of(
             FulltextIndexConstants.ANL_CLASS,
             FulltextIndexConstants.ANL_NAME,
             JcrConstants.JCR_PRIMARYTYPE
@@ -142,7 +142,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenizerFactory loadTokenizer(NodeState state) {
-        String clazz = checkNotNull(state.getString(FulltextIndexConstants.ANL_NAME));
+        String clazz = requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME));
         Map<String, String> args = convertNodeState(state);
         TokenizerFactory tf = TokenizerFactory.forName(clazz, args);
         init(tf, state);

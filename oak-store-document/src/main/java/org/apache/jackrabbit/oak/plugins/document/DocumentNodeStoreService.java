@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
@@ -45,12 +45,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
@@ -140,8 +139,7 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
-    static final boolean DEFAULT_FULL_GC_MODE_GAP_ORPHANS_ENABLED = false;
-    static final boolean DEFAULT_FULL_GC_EMPTY_PROPERTIES_ENABLED = false;
+    static final int DEFAULT_FULL_GC_MODE = 0;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -201,16 +199,6 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
 
-    /**
-     * Feature toggle name to enable full GC mode GAP_ORPHANS cleanup for Mongo Document Store
-     */
-    private static final String FT_NAME_FULL_GC_MODE_GAP_ORPHANS = "FT_FULL_GC_MODE_GAP_ORPHANS";
-
-    /**
-     * Feature toggle name to enable full GC mode EMPTY_PROPERTIES cleanup for Mongo Document Store
-     */
-    private static final String FT_NAME_FULL_GC_MODE_EMPTY_PROPERTIES = "FT_FULL_GC_MODE_EMPTY_PROPERTIES";
-
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
@@ -250,8 +238,6 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
-    private Feature docStoreFullGCModeGapOrphansFeature;
-    private Feature docStoreFullGCModeEmptyPropertiesFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -290,8 +276,6 @@ public class DocumentNodeStoreService {
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
         docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
-        docStoreFullGCModeGapOrphansFeature = Feature.newFeature(FT_NAME_FULL_GC_MODE_GAP_ORPHANS, whiteboard);
-        docStoreFullGCModeEmptyPropertiesFeature = Feature.newFeature(FT_NAME_FULL_GC_MODE_EMPTY_PROPERTIES, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -318,9 +302,9 @@ public class DocumentNodeStoreService {
         if (documentStoreType == DocumentStoreType.RDB) {
             RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
             configureBuilder(builder);
-            checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
+            requireNonNull(dataSource, String.format("DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE));
             if (!customBlobStore) {
-                checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
+                requireNonNull(blobDataSource, String.format("DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE));
                 builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
@@ -515,9 +499,10 @@ public class DocumentNodeStoreService {
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setFullGCEnabled(config.fullGCEnabled()).
+                setFullGCIncludePaths(config.fullGCIncludePaths()).
+                setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
-                setFullGCModeGapOrphansEnabled(config.fullGCModeGapOrphansEnabled()).
-                setFullGCModeEmptyPropertiesEnabled(config.fullGCModeEmptyPropertiesEnabled()).
+                setFullGCMode(config.fullGCMode()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
@@ -565,8 +550,8 @@ public class DocumentNodeStoreService {
 
         //Set blobstore before setting the document store
         if (customBlobStore && !isWrappingCustomBlobStore()) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
-                    "initialized", CUSTOM_BLOB_STORE);
+            requireNonNull(blobStore, String.format("Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE));
             builder.setBlobStore(blobStore);
         }
 
@@ -585,10 +570,10 @@ public class DocumentNodeStoreService {
 
     private Predicate<Path> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
         if (Arrays.equals(config.persistentCacheIncludes(), new String[]{"/"})) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
 
         Set<Path> paths = new HashSet<>();
@@ -678,14 +663,6 @@ public class DocumentNodeStoreService {
 
         if (docStoreEmbeddedVerificationFeature != null) {
             docStoreEmbeddedVerificationFeature.close();
-        }
-
-        if (docStoreFullGCModeGapOrphansFeature != null) {
-            docStoreFullGCModeGapOrphansFeature.close();
-        }
-
-        if (docStoreFullGCModeEmptyPropertiesFeature != null) {
-            docStoreFullGCModeEmptyPropertiesFeature.close();
         }
 
         unregisterNodeStore();
@@ -1004,7 +981,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final Registration reg) {
-        checkNotNull(reg);
+        requireNonNull(reg);
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -1014,7 +991,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final AbstractServiceTracker t) {
-        checkNotNull(t);
+        requireNonNull(t);
         return new Closeable() {
             @Override
             public void close() throws IOException {

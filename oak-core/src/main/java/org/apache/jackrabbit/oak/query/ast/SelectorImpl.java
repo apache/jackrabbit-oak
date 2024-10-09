@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
@@ -187,8 +187,8 @@ public class SelectorImpl extends SourceImpl {
     private boolean updateTotalQueryHistogram = true;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
-        this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
-        this.selectorName = checkNotNull(selectorName);
+        this.nodeTypeInfo = requireNonNull(nodeTypeInfo);
+        this.selectorName = requireNonNull(selectorName);
 
         this.nodeTypeName = nodeTypeInfo.getNodeTypeName();
         this.matchesAllTypes = NT_BASE.equals(nodeTypeName);
@@ -205,9 +205,9 @@ public class SelectorImpl extends SourceImpl {
                 primaryTypes.add(nodeTypeName);
             }
         } else {
-            this.supertypes = ImmutableSet.of();
-            this.primaryTypes = ImmutableSet.of();
-            this.mixinTypes = ImmutableSet.of();
+            this.supertypes = Set.of();
+            this.primaryTypes = Set.of();
+            this.mixinTypes = Set.of();
         }
     }
 

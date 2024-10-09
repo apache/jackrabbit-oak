@@ -19,20 +19,18 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Set;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -68,14 +66,8 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
     private static void assertAggregation(@NotNull Privilege[] aggr, @NotNull String... expectedNames) {
         assertEquals(expectedNames.length, aggr.length);
 
-        Set<String> expected = Sets.newHashSet(expectedNames);
-        Set<String> result = Sets.newHashSet(Iterables.transform(ImmutableSet.copyOf(aggr), new Function<Privilege, String>() {
-            @Nullable
-            @Override
-            public String apply(Privilege input) {
-                return input.getName();
-            }
-        }));
+        Set<String> expected = CollectionUtils.toSet(expectedNames);
+        Set<String> result = CollectionUtils.toSet(Iterables.transform(ImmutableSet.copyOf(aggr), Privilege::getName));
 
         assertEquals(expected, result);
     }

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -31,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -135,7 +136,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableSet.of(unknownContentId, knownMemberContentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(unknownContentId, knownMemberContentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -150,7 +151,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableSet.of(contentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(contentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -218,7 +219,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         // member to be imported has already been added before
         Group gr = (Group) ((UserManagerImpl) getUserManager(root)).getAuthorizable(groupTree);
-        checkNotNull(gr).addMembers(TEST_USER_ID);
+        requireNonNull(gr).addMembers(TEST_USER_ID);
 
         assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
         assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));

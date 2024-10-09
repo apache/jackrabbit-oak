@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,11 +35,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -59,9 +60,9 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     private final AtomicReference<NodeState> root;
 
-    private final Map<String, Checkpoint> checkpoints = newHashMap();
+    private final Map<String, Checkpoint> checkpoints = new HashMap<>();
 
-    private final Map<Closeable, Observer> observers = newHashMap();
+    private final Map<Closeable, Observer> observers = new HashMap<>();
 
     private final AtomicInteger checkpointCounter = new AtomicInteger();
 
@@ -126,7 +127,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
         checkArgument(builder instanceof MemoryNodeBuilder);
         MemoryNodeBuilder mnb = (MemoryNodeBuilder) builder;
         checkArgument(mnb.isRoot());
-        checkNotNull(commitHook);
+        requireNonNull(commitHook);
         rebase(builder);
         NodeStoreBranch branch = new MemoryNodeStoreBranch(this, getRoot());
         branch.setRoot(builder.getNodeState());
@@ -148,7 +149,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @Override
     public NodeState rebase(@NotNull NodeBuilder builder) {
         checkArgument(builder instanceof MemoryNodeBuilder);
-        NodeState head = checkNotNull(builder).getNodeState();
+        NodeState head = requireNonNull(builder).getNodeState();
         NodeState base = builder.getBaseState();
         NodeState newBase = getRoot();
         if (base != newBase) {
@@ -198,7 +199,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @Override
     public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         checkArgument(lifetime > 0);
-        checkNotNull(properties);
+        requireNonNull(properties);
         String checkpoint = "checkpoint" + checkpointCounter.incrementAndGet();
         checkpoints.put(checkpoint, new Checkpoint(getRoot(), properties));
         return checkpoint;
@@ -212,7 +213,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
-        Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
+        Checkpoint cp = checkpoints.get(requireNonNull(checkpoint));
         if (cp == null) {
             return Collections.emptyMap();
         } else {
@@ -228,7 +229,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     @Override @Nullable
     public synchronized NodeState retrieve(@NotNull String checkpoint) {
-        Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
+        Checkpoint cp = checkpoints.get(requireNonNull(checkpoint));
         if (cp == null) {
             return null;
         } else {
@@ -244,7 +245,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     /** test purpose only! */
     public Set<String> listCheckpoints() {
-        return Sets.newHashSet(checkpoints());
+        return CollectionUtils.toSet(checkpoints());
     }
 
     //------------------------------------------------------------< private >---
@@ -287,8 +288,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
         public NodeState merge(
                 @NotNull CommitHook hook, @NotNull CommitInfo info)
                 throws CommitFailedException {
-            checkNotNull(hook);
-            checkNotNull(info);
+            requireNonNull(hook);
+            requireNonNull(info);
             // TODO: rebase();
             checkNotMerged();
             NodeState merged = squeeze(hook.processCommit(base, root, info));

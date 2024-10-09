@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
@@ -60,7 +59,7 @@ public class VersionableEditor extends DefaultEditor {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionableEditor.class);
 
-    private static final Set<String> SKIPPED_PATHS = of("/oak:index", "/jcr:system/jcr:versionStorage");
+    private static final Set<String> SKIPPED_PATHS = Set.of("/oak:index", "/jcr:system/jcr:versionStorage");
 
     private final Provider provider;
 

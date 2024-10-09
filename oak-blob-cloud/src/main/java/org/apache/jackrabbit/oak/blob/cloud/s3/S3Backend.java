@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
@@ -38,6 +37,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -89,8 +89,7 @@ import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -239,22 +238,18 @@ public class S3Backend extends AbstractSharedBackend {
 
             presignedDownloadURIVerifyExists =
                     PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
-            
+
             // Initialize reference key secret
             getOrCreateReferenceKey();
-            
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.error("Error ", e);
             Map<String, Object> filteredMap = Maps.newHashMap();
             if (properties != null) {
-                filteredMap = Maps.filterKeys(Utils.asMap(properties), new Predicate<String>() {
-                    @Override public boolean apply(String input) {
-                        return !input.equals(S3Constants.ACCESS_KEY) &&
-                            !input.equals(S3Constants.SECRET_KEY);
-                    }
-                });
+                filteredMap = Maps.filterKeys(Utils.asMap(properties),
+                        input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
             }
             throw new DataStoreException("Could not initialize S3 from " + filteredMap, e);
         } finally {
@@ -441,13 +436,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers()
             throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(
-            new Function<S3ObjectSummary, DataIdentifier>() {
-                @Override
-                public DataIdentifier apply(S3ObjectSummary input) {
-                    return new DataIdentifier(getIdentifierName(input.getKey()));
-                }
-        });
+        return new RecordsIterator<DataIdentifier>(input -> new DataIdentifier(getIdentifierName(input.getKey())));
     }
 
     @Override
@@ -642,14 +631,8 @@ public class S3Backend extends AbstractSharedBackend {
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
         return new RecordsIterator<DataRecord>(
-            new Function<S3ObjectSummary, DataRecord>() {
-                @Override
-                public DataRecord apply(S3ObjectSummary input) {
-                    return new S3DataRecord(backend, s3service, bucket,
-                        new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator);
-                }
-            });
+                input -> new S3DataRecord(backend, s3service, bucket, new DataIdentifier(getIdentifierName(input.getKey())),
+                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator));
     }
 
     @Override
@@ -1117,12 +1100,7 @@ public class S3Backend extends AbstractSharedBackend {
 
                 List<S3ObjectSummary> listing = Lists.newArrayList(
                     filter(prevObjectListing.getObjectSummaries(),
-                        new Predicate<S3ObjectSummary>() {
-                            @Override
-                            public boolean apply(S3ObjectSummary input) {
-                                return !input.getKey().startsWith(META_KEY_PREFIX);
-                            }
-                        }));
+                            input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 
                 // After filtering no elements
                 if (listing.isEmpty()) {

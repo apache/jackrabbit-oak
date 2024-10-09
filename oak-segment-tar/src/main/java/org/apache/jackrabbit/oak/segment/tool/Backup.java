@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
@@ -68,7 +68,7 @@ public class Backup {
          * @return this builder.
          */
         public Builder withSource(File source) {
-            this.source = checkNotNull(source);
+            this.source = requireNonNull(source);
             return this;
         }
 
@@ -81,7 +81,7 @@ public class Backup {
          * @return this builder.
          */
         public Builder withTarget(File target) {
-            this.target = checkNotNull(target);
+            this.target = requireNonNull(target);
             return this;
         }
 
@@ -104,8 +104,8 @@ public class Backup {
          * @return an instance of {@link Runnable}.
          */
         public Backup build() {
-            checkNotNull(source);
-            checkNotNull(target);
+            requireNonNull(source);
+            requireNonNull(target);
             return new Backup(this);
         }
 

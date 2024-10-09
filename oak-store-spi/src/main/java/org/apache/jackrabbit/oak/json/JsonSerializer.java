@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.json;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -34,7 +34,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -83,12 +82,12 @@ public class JsonSerializer {
     private JsonSerializer(
             JsopWriter json, int depth, long offset, int maxChildNodes,
             JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
-        this.json = checkNotNull(json);
+        this.json = requireNonNull(json);
         this.depth = depth;
         this.offset = offset;
         this.maxChildNodes = maxChildNodes;
-        this.filter = checkNotNull(filter);
-        this.blobs = checkNotNull(blobs);
+        this.filter = requireNonNull(filter);
+        this.blobs = requireNonNull(blobs);
         this.catchExceptions = catchExceptions;
     }
 
@@ -190,7 +189,7 @@ public class JsonSerializer {
         PropertyState order = node.getProperty(":childOrder");
         if (order != null) {
             List<String> names = ImmutableList.copyOf(order.getValue(NAMES));
-            List<ChildNodeEntry> entries = Lists.newArrayListWithCapacity(names.size());
+            List<ChildNodeEntry> entries = new ArrayList<>(names.size());
             for (String name : names) {
                 try {
                     entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));

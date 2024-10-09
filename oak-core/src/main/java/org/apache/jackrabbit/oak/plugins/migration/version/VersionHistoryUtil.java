@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -42,6 +40,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -169,18 +168,18 @@ public class VersionHistoryUtil {
 
     static void addMixin(NodeBuilder builder, String name) {
         if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
+            final Set<String> mixins = CollectionUtils.toSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
             if (mixins.add(name)) {
                 builder.setProperty(nameProperty(JCR_MIXINTYPES, mixins));
             }
         } else {
-            builder.setProperty(nameProperty(JCR_MIXINTYPES, of(name)));
+            builder.setProperty(nameProperty(JCR_MIXINTYPES, Set.of(name)));
         }
     }
 
     private static void removeMixin(NodeBuilder builder, String name) {
         if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
+            final Set<String> mixins = CollectionUtils.toSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
             if (mixins.remove(name)) {
                 if (mixins.isEmpty()) {
                     builder.removeProperty(JCR_MIXINTYPES);

@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -31,10 +35,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.junit.Assert.assertEquals;
-
 public class DocumentPropertyStateTest {
 
     private static final int BLOB_SIZE = 16 * 1024;
@@ -42,7 +42,7 @@ public class DocumentPropertyStateTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    private Set<String> reads = newHashSet();
+    private Set<String> reads = new HashSet<>();
 
     private BlobStore bs = new MemoryBlobStore() {
         @Override
@@ -64,7 +64,7 @@ public class DocumentPropertyStateTest {
     @Test
     public void multiValuedBinarySize() throws Exception {
         NodeBuilder builder = ns.getRoot().builder();
-        List<Blob> blobs = newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
         }
@@ -80,5 +80,4 @@ public class DocumentPropertyStateTest {
         // must not read the blob via stream
         assertEquals(0, reads.size());
     }
-
 }

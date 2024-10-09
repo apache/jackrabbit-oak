@@ -16,28 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.min;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
+import static java.util.Objects.requireNonNull;
+
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
+import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
+import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -53,8 +50,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -140,12 +140,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @NotNull WriteOperationHandler writeOperationHandler,
             int binariesInlineThreshold
     ) {
-        this.store = checkNotNull(store);
-        this.reader = checkNotNull(reader);
-        this.idProvider = checkNotNull(idProvider);
+        this.store = requireNonNull(store);
+        this.reader = requireNonNull(reader);
+        this.idProvider = requireNonNull(idProvider);
         this.blobStore = blobStore;
-        this.cacheManager = checkNotNull(cacheManager);
-        this.writeOperationHandler = checkNotNull(writeOperationHandler);
+        this.cacheManager = requireNonNull(cacheManager);
+        this.writeOperationHandler = requireNonNull(writeOperationHandler);
         checkArgument(binariesInlineThreshold >= 0);
         checkArgument(binariesInlineThreshold <= Segment.MEDIUM_LIMIT);
         this.binariesInlineThreshold = binariesInlineThreshold;
@@ -333,7 +333,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeMapLeaf(int level, Collection<MapEntry> entries) throws IOException {
-            checkNotNull(entries);
+            requireNonNull(entries);
             int size = entries.size();
             checkElementIndex(size, MapRecord.MAX_SIZE);
             checkPositionIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS);
@@ -345,7 +345,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
             checkElementIndex(size, MapRecord.MAX_SIZE);
             int bitmap = 0;
-            List<RecordId> bucketIds = newArrayListWithCapacity(buckets.length);
+            List<RecordId> bucketIds = new ArrayList<>(buckets.length);
             for (int i = 0; i < buckets.length; i++) {
                 if (buckets[i] != null) {
                     bitmap |= 1L << i;
@@ -391,7 +391,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             // if the base map is small, update in memory and write as a new map
             if (base.isLeaf()) {
-                Map<String, MapEntry> map = newHashMap();
+                Map<String, MapEntry> map = new HashMap<>();
                 for (MapEntry entry : base.getEntries()) {
                     map.put(entry.getName(), entry);
                 }
@@ -453,7 +453,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
          * @return list record identifier
          */
         private RecordId writeList(@NotNull List<RecordId> list) throws IOException {
-            checkNotNull(list);
+            requireNonNull(list);
             checkArgument(!list.isEmpty());
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
@@ -519,7 +519,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return id; // shortcut if the same string was recently stored
             }
 
-            byte[] data = string.getBytes(UTF_8);
+            byte[] data = string.getBytes(StandardCharsets.UTF_8);
 
             if (data.length < Segment.MEDIUM_LIMIT) {
                 // only cache short strings to avoid excessive memory use
@@ -607,7 +607,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
          * @see Segment#BLOB_ID_SMALL_LIMIT
          */
         private RecordId writeBlobId(String blobId) throws IOException {
-            byte[] data = blobId.getBytes(UTF_8);
+            byte[] data = blobId.getBytes(StandardCharsets.UTF_8);
 
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
                 return writeOperationHandler.execute(gcGeneration, newWriteOperation(
@@ -621,7 +621,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
         private RecordId writeBlock(@NotNull byte[] bytes, int offset, int length)
                 throws IOException {
-            checkNotNull(bytes);
+            requireNonNull(bytes);
             checkPositionIndexes(offset, offset + length, bytes.length);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
                 RecordWriters.newBlockWriter(bytes, offset, length)));
@@ -747,7 +747,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeTemplate(Template template) throws IOException {
-            checkNotNull(template);
+            requireNonNull(template);
 
             RecordId id = templateCache.get(template);
             if (id != null) {
@@ -1037,7 +1037,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private class ChildNodeCollectorDiff extends DefaultNodeStateDiff {
-            private final Map<String, RecordId> childNodes = newHashMap();
+            private final Map<String, RecordId> childNodes = new HashMap<>();
 
             @Nullable
             private MapRecord base;

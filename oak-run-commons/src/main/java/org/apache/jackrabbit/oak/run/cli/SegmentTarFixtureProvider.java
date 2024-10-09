@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.cli;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
@@ -31,6 +30,7 @@ import java.nio.file.Files;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -46,17 +46,19 @@ class SegmentTarFixtureProvider {
 
     static NodeStore configureSegment(Options options, BlobStore blobStore, Whiteboard wb, Closer closer, boolean readOnly)
             throws IOException, InvalidFileStoreVersionException {
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+        StatisticsProvider statisticsProvider = requireNonNull(getService(wb, StatisticsProvider.class));
 
         String pathOrUri = options.getOptionBean(CommonOptions.class).getStoreArg();
         ToolUtils.SegmentStoreType segmentStoreType = ToolUtils.storeTypeFromPathOrUri(pathOrUri);
 
         FileStoreBuilder builder;
         if (segmentStoreType == ToolUtils.SegmentStoreType.AZURE) {
+            final AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager();
             SegmentNodeStorePersistence segmentNodeStorePersistence =
-                ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri);
+                ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri, azureStorageCredentialManager);
             File tempDir = Files.createTempDirectory("azure-segment-store").toFile();
             closer.register(() -> FileUtils.deleteQuietly(tempDir));
+            closer.register(azureStorageCredentialManager);
             builder = fileStoreBuilder(tempDir).withCustomPersistence(segmentNodeStorePersistence);
         } else {
             builder = fileStoreBuilder(new File(pathOrUri)).withMaxFileSize(256);

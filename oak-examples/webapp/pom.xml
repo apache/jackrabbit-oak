@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.65-SNAPSHOT</version>
+    <version>1.71-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-webapp</artifactId>
@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>9.0.89</tomcat.version>
+    <tomcat.version>9.0.90</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -76,11 +76,6 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-servlet</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-jcr-rmi</artifactId>
       <version>${jackrabbit.version}</version>
     </dependency>
     <dependency>
@@ -182,9 +177,9 @@
       <version>1.4.01</version>
     </dependency>
     <dependency>
-      <groupId>net.sourceforge.htmlunit</groupId>
+      <groupId>org.htmlunit</groupId>
       <artifactId>htmlunit</artifactId>
-      <version>2.43.0</version>
+      <version>4.4.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -215,7 +210,7 @@
       <plugin>
          <groupId>org.eclipse.jetty</groupId>
          <artifactId>jetty-maven-plugin</artifactId>
-         <version>11.0.21</version>
+         <version>11.0.24</version>
          <configuration>
            <scan>-1</scan>
            <httpConnector>

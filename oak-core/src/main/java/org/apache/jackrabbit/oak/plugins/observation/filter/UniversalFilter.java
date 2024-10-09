@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.function.Predicate;
@@ -53,10 +53,10 @@ public class UniversalFilter implements EventFilter {
     public UniversalFilter(
             @NotNull NodeState before, @NotNull NodeState after,
             @NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
-        this.beforeState = checkNotNull(before);
-        this.afterState = checkNotNull(after);
-        this.predicate = checkNotNull(predicate);
-        this.selector = checkNotNull(selector);
+        this.beforeState = requireNonNull(before);
+        this.afterState = requireNonNull(after);
+        this.predicate = requireNonNull(predicate);
+        this.selector = requireNonNull(selector);
     }
 
     /**

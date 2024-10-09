@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -58,8 +60,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -84,9 +84,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     }
 
     private static Predicate<NodeDocument> splitDocsWithClusterId(final int clusterId) {
-        return new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(@Nullable NodeDocument doc) {
+        return doc -> {
                 if (!Utils.isPreviousDocId(doc.getId())) {
                     return false;
                 }
@@ -94,8 +92,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
                 p = p.getAncestor(1);
                 Revision rev = Revision.fromString(p.getName());
                 return rev.getClusterId() == clusterId;
-            }
-        };
+            };
     }
 
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
@@ -286,8 +283,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
         assertNotNull(garbage);
         assertEquals(totalSplits, Iterables.size(garbage));
-        assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1))));
-        assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2))));
+        assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1)::test)));
+        assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2)::test)));
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);

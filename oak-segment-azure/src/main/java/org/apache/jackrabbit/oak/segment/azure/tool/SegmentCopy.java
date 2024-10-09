@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printMessage;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.Segment;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
@@ -107,7 +108,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withSource(String source) {
-            this.source = checkNotNull(source);
+            this.source = requireNonNull(source);
             return this;
         }
 
@@ -120,7 +121,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withDestination(String destination) {
-            this.destination = checkNotNull(destination);
+            this.destination = requireNonNull(destination);
             return this;
         }
 
@@ -132,7 +133,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withSrcPersistencee(SegmentNodeStorePersistence srcPersistence) {
-            this.srcPersistence = checkNotNull(srcPersistence);
+            this.srcPersistence = requireNonNull(srcPersistence);
             return this;
         }
 
@@ -144,7 +145,7 @@ public class SegmentCopy {
          * @return this builder.
          */
         public Builder withDestPersistence(SegmentNodeStorePersistence destPersistence) {
-            this.destPersistence = checkNotNull(destPersistence);
+            this.destPersistence = requireNonNull(destPersistence);
             return this;
         }
 
@@ -226,8 +227,8 @@ public class SegmentCopy {
          */
         public SegmentCopy build() {
             if (srcPersistence == null && destPersistence == null) {
-                checkNotNull(source);
-                checkNotNull(destination);
+                requireNonNull(source);
+                requireNonNull(destination);
             }
 
             return new SegmentCopy(this);
@@ -259,6 +260,7 @@ public class SegmentCopy {
     private SegmentNodeStorePersistence destPersistence;
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
+    private final AzureStorageCredentialManager azureStorageCredentialManager;
 
     public SegmentCopy(Builder builder) {
         this.source = builder.source;
@@ -271,6 +273,7 @@ public class SegmentCopy {
         this.maxSizeGb = builder.maxSizeGb;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
+        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     public int run() {
@@ -284,7 +287,9 @@ public class SegmentCopy {
 
         if (flat && destType == SegmentStoreType.TAR) {
             try {
-                srcPersistence = newSegmentNodeStorePersistence(srcType, source);
+                if (srcPersistence == null) {
+                    srcPersistence = newSegmentNodeStorePersistence(srcType, source, azureStorageCredentialManager);
+                }
 
                 SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false, false,
                         new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
@@ -361,12 +366,14 @@ public class SegmentCopy {
                         destination);
                 e.printStackTrace(errWriter);
                 return 1;
+            } finally {
+                azureStorageCredentialManager.close();
             }
         } else {
             try {
                 if (srcPersistence == null || destPersistence == null) {
-                    srcPersistence = newSegmentNodeStorePersistence(srcType, source);
-                    destPersistence = newSegmentNodeStorePersistence(destType, destination);
+                    srcPersistence = newSegmentNodeStorePersistence(srcType, source, azureStorageCredentialManager);
+                    destPersistence = newSegmentNodeStorePersistence(destType, destination, azureStorageCredentialManager);
                 }
 
                 printMessage(outWriter, "Started segment-copy transfer!");
@@ -390,6 +397,8 @@ public class SegmentCopy {
                         destination);
                 e.printStackTrace(errWriter);
                 return 1;
+            } finally {
+                azureStorageCredentialManager.close();
             }
 
         }

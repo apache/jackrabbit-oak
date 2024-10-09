@@ -30,11 +30,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
+import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
@@ -118,6 +120,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void orderableAddManyChildrenWithSave() throws Exception {
+        Assume.assumeTrue ("test is skipped for RDB (see OAK-10997)", !(fixture instanceof DocumentRdbFixture));
         int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
         //keep name length below 512, since that is the maximum supported by RDBDocumentStore
@@ -130,10 +133,12 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         for (int k = 0; k < childCount; k++) {
             test.addNode(prefix.toString() + k, "nt:unstructured");
         }
+        session.save();
     }
 
     @Test
     public void moveOrderableWithManyChildren() throws Exception {
+        Assume.assumeTrue ("test is skipped for RDB (see OAK-10997)", !(fixture instanceof DocumentRdbFixture));
         int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
         //keep name length below 512, since that is the maximum supported by RDBDocumentStore
@@ -156,6 +161,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void copyOrderableWithManyChildren() throws Exception {
+        Assume.assumeTrue ("test is skipped for RDB (see OAK-10997)", !(fixture instanceof DocumentRdbFixture));
         int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
         //keep name length below 512, since that is the maximum supported by RDBDocumentStore

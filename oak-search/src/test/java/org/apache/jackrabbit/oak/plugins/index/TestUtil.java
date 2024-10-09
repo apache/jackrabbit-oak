@@ -52,10 +52,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.Repository;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -133,7 +133,7 @@ public class TestUtil {
     }
 
     public static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;
@@ -215,7 +215,7 @@ public class TestUtil {
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {
-        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"), STRINGS);
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, Set.of(indexingMode, "async"), STRINGS);
     }
 
     private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
@@ -224,7 +224,7 @@ public class TestUtil {
             case SYNC:
                 return createAsyncProperty(indexingMode.asyncValueName());
             case ASYNC:
-                return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("async"), STRINGS);
+                return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, Set.of("async"), STRINGS);
             default:
                 throw new IllegalArgumentException("Unknown mode " + indexingMode);
         }

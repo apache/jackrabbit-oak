@@ -81,51 +81,51 @@ public class GroupPredicateTest extends AbstractSecurityTest {
         assertNull(userManager.getAuthorizable(id));
 
         GroupPredicate gp = new GroupPredicate(userManager, id, false);
-        assertFalse(gp.apply(testUser));
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testUser));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testUserId() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testUser.getID(), false);
-        assertFalse(gp.apply(testUser));
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testUser));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testDeclaredMembersOnly() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
-        assertTrue(gp.apply(testMember));
+        assertTrue(gp.test(testMember));
 
-        assertFalse(gp.apply(testUser));
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testUser));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testInheritedMembers() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), false);
-        assertTrue(gp.apply(testMember));
-        assertTrue(gp.apply(testUser));
+        assertTrue(gp.test(testMember));
+        assertTrue(gp.test(testUser));
 
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testApplyTwice() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
-        gp.apply(testMember);
-        assertTrue(gp.apply(testMember));
+        gp.test(testMember);
+        assertTrue(gp.test(testMember));
     }
 
     @Test
     public void testApplyTwiceNotMember() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
-        gp.apply(testUser);
-        assertFalse(gp.apply(testUser));
+        gp.test(testUser);
+        assertFalse(gp.test(testUser));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class GroupPredicateTest extends AbstractSecurityTest {
 
         Authorizable a = mock(Authorizable.class);
         when(a.getID()).thenThrow(new RepositoryException());
-        assertFalse(gp.apply(a));
+        assertFalse(gp.test(a));
     }
 
     @Test
@@ -146,6 +146,6 @@ public class GroupPredicateTest extends AbstractSecurityTest {
         Authorizable a = when(mock(Authorizable.class).getID()).thenReturn("a").getMock();
 
         GroupPredicate gp = new GroupPredicate(uMgr, "g", true);
-        assertFalse(gp.apply(a));
+        assertFalse(gp.test(a));
     }
 }

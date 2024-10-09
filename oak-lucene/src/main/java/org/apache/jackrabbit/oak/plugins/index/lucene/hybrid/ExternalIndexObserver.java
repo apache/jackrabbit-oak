@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -40,7 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class ExternalIndexObserver implements Observer, Filter {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -50,8 +50,8 @@ class ExternalIndexObserver implements Observer, Filter {
     private final TimerStats timer;
 
     public ExternalIndexObserver(IndexingQueue indexingQueue, IndexTracker indexTracker, StatisticsProvider statisticsProvider) {
-        this.indexingQueue = checkNotNull(indexingQueue);
-        this.indexTracker = checkNotNull(indexTracker);
+        this.indexingQueue = requireNonNull(indexingQueue);
+        this.indexTracker = requireNonNull(indexTracker);
         this.added = statisticsProvider.getMeter("HYBRID_EXTERNAL_ADDED", StatsOptions.METRICS_ONLY);
         this.timer = statisticsProvider.getTimer("HYBRID_EXTERNAL_TIME", StatsOptions.METRICS_ONLY);
     }
@@ -100,7 +100,7 @@ class ExternalIndexObserver implements Observer, Filter {
         int droppedCount = 0;
         int indexedCount = 0;
         TimerStats.Context ctx = timer.time();
-        Set<String> indexPaths = Sets.newHashSet();
+        Set<String> indexPaths = new HashSet<>();
         for (IndexedPathInfo indexData : indexedPaths) {
             String path = indexData.getPath();
             NodeState indexedNode = null;

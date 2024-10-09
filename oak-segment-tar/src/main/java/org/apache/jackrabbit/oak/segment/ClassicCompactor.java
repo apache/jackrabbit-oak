@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -77,8 +77,8 @@ public class ClassicCompactor extends Compactor {
     public ClassicCompactor(
             @NotNull CompactionWriter writer,
             @NotNull GCNodeWriteMonitor compactionMonitor) {
-        this.writer = checkNotNull(writer);
-        this.compactionMonitor = checkNotNull(compactionMonitor);
+        this.writer = requireNonNull(writer);
+        this.compactionMonitor = requireNonNull(compactionMonitor);
     }
 
     @Override
@@ -145,16 +145,16 @@ public class ClassicCompactor extends Compactor {
         private void updated() throws IOException {
             if (++modCount % UPDATE_LIMIT == 0) {
                 SegmentNodeState newBase = writeNodeState(builder.getNodeState(), null, false);
-                checkNotNull(newBase);
+                requireNonNull(newBase);
                 builder = new MemoryNodeBuilder(newBase);
             }
         }
 
         CompactDiff(@NotNull NodeState base, @NotNull Canceller hardCanceller, @NotNull Canceller softCanceller) {
-            this.base = checkNotNull(base);
+            this.base = requireNonNull(base);
             this.builder = new MemoryNodeBuilder(base);
-            this.hardCanceller = checkNotNull(hardCanceller);
-            this.softCanceller = checkNotNull(softCanceller);
+            this.hardCanceller = requireNonNull(hardCanceller);
+            this.softCanceller = requireNonNull(softCanceller);
         }
 
         private @NotNull CancelableDiff newCancelableDiff() {

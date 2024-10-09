@@ -35,6 +35,7 @@ import java.net.URL;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.Assume.assumeNotNull;
@@ -49,9 +50,9 @@ public class ElasticTestServer implements AutoCloseable {
             "8.7.1.0", "80c8d34334b0cf4def79835ea6dab78b59ba9ee54c8f5f3cba0bde53123d7820",
             "8.10.4.0", "b2ae8faf1e272319594b4d47a72580fa4f61a5c11cbc8d3f13453fd34b153441",
             "8.11.0.0", "8d4d80b850c4da4da6dfe2d675b2e2355d2014307f8bdc54cc1b34323c81c7ae",
-            "8.11.1.0", "a00a920d4bc29f0deacde7c2ef3d3f70692b00b62bf7fb82b0fe18eeb1dafee9",
             "8.11.3.0", "1f14b496baf973fb5c64e77fc458d9814dd6905170d7b15350f9f1a009824f41",
-            "8.13.2.0", "586f553b109266d7996265f3f34a20914b569d494b49da2c0534428770e551f0");
+            "8.13.2.0", "586f553b109266d7996265f3f34a20914b569d494b49da2c0534428770e551f0",
+            "8.15.0.0", "6cbb54d68d654a3476df0b730856cfa3194bce5c6e1050a35e7a86ffec8a3e20");
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;
@@ -104,6 +105,8 @@ public class ElasticTestServer implements AutoCloseable {
                         "/tmp/plugins/elastiknn.zip")
                 .withNetwork(network)
                 .withNetworkAliases("elasticsearch")
+                // Default is 30 seconds, which might not be enough on environments with limited resources or network latency
+                .withStartupTimeout(Duration.ofMinutes(3))
                 .withStartupAttempts(3);
         CONTAINER.start();
 

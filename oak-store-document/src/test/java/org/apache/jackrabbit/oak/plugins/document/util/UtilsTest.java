@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
@@ -125,7 +124,7 @@ public class UtilsTest {
 
     @Test
     public void getParentId() throws Exception{
-        Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
+        Path longPath = Path.fromString(PathUtils.concat("/" + "p".repeat(Utils.PATH_LONG + 1), "foo"));
         assertTrue(Utils.isLongPath(longPath));
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
@@ -234,6 +233,31 @@ public class UtilsTest {
         builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
         boolean fullGCEnabled = isFullGCEnabled(builder);
         assertFalse("Full GC is disabled for RDB Document Store", fullGCEnabled);
+    }
+
+    @Test
+    public void fullGCModeDefaultValue() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        int fullGCModeDefaultValue = builder.getFullGCMode();
+        final int fullGcModeNone = 0;
+        assertEquals("Full GC mode has NONE value by default", fullGCModeDefaultValue, fullGcModeNone);
+    }
+
+    @Test
+    public void fullGCModeSetViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        final int fullGcModeGapOrphans = 2;
+        builder.setFullGCMode(fullGcModeGapOrphans);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode set correctly via configuration", fullGCModeValue, fullGcModeGapOrphans);
+    }
+
+    @Test
+    public void fullGCModeHasDefaultValueForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCMode(3);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode has default value 0 for RDB Document Store", fullGCModeValue, 0);
     }
 
     @Test

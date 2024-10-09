@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,7 +29,6 @@ import java.sql.Types;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -55,31 +54,31 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testPerfUpdateLimit() throws SQLException, UnsupportedEncodingException {
+    public void testPerfUpdateLimit() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateLimit", "raw row update (set long)", 0);
     }
 
     @Test
-    public void testPerfUpdateLimitString() throws SQLException, UnsupportedEncodingException {
+    public void testPerfUpdateLimitString() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateLimitString", "raw row update (set long/string)", 1);
     }
 
     @Test
-    public void testPerfUpdateLimitStringBlob() throws SQLException, UnsupportedEncodingException {
+    public void testPerfUpdateLimitStringBlob() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateLimitStringBlob", "raw row update (set long/string/blob)", 2);
     }
 
     @Test
-    public void testPerfUpdateAppendString() throws SQLException, UnsupportedEncodingException {
+    public void testPerfUpdateAppendString() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateAppendString", "raw row update (append string)", 3);
     }
 
     @Test
-    public void testPerfUpdateGrowingDoc() throws SQLException, UnsupportedEncodingException {
+    public void testPerfUpdateGrowingDoc() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateGrowingDoc", "raw row update (string + blob)", 4);
     }
 
-    private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException, UnsupportedEncodingException {
+    private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException {
         String key = name;
         Connection connection = null;
         String table = DocumentStoreFixture.TABLEPREFIX + "NODES";
@@ -227,7 +226,7 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                             stmt.setBinaryStream(si++, null, 0);
                         } else {
                             stmt.setString(si++, "null");
-                            stmt.setBytes(si++, sdata.getBytes("UTF-8"));
+                            stmt.setBytes(si++, sdata.getBytes(StandardCharsets.UTF_8));
                         }
                         setIdInStatement(stmt, si++, key);
                         assertEquals(1, stmt.executeUpdate());
@@ -278,12 +277,7 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
     private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
         boolean binaryId = super.dsname.contains("MySQL") || super.dsname.contains("MSSql");
         if (binaryId) {
-            try {
-                stmt.setBytes(idx, id.getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException ex) {
-                LOG.error("UTF-8 not supported??", ex);
-                throw new DocumentStoreException(ex);
-            }
+            stmt.setBytes(idx, id.getBytes(StandardCharsets.UTF_8));
         } else {
             stmt.setString(idx, id);
         }

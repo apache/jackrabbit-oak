@@ -16,20 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static java.util.Objects.isNull;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toUnmodifiableSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -41,6 +46,7 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -67,9 +73,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 /**
@@ -131,8 +134,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
-    private Feature docStoreFullGCModeGapOrphansFeature;
-    private Feature docStoreFullGCModeEmptyPropertiesFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -168,13 +169,14 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private long maxRevisionGCAgeMillis = TimeUnit.SECONDS.toMillis(DEFAULT_VER_GC_MAX_AGE);
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
-    private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
+    private Predicate<Path> nodeCachePredicate = x -> true;
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean fullGCEnabled;
+    private Set<String> fullGCIncludePaths = Set.of();
+    private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
-    private boolean fullGCModeGapOrphansEnabled;
-    private boolean fullGCModeEmptyPropertiesEnabled;
+    private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -307,6 +309,32 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.fullGCEnabled;
     }
 
+    public T setFullGCIncludePaths(@Nullable String[] includePaths) {
+        if (isNull(includePaths) || includePaths.length == 0 || Arrays.equals(includePaths, new String[]{"/"})) {
+            this.fullGCIncludePaths = Set.of();
+        } else {
+            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCIncludePaths() {
+        return fullGCIncludePaths;
+    }
+
+    public T setFullGCExcludePaths(@Nullable String[] excludePaths) {
+        if (isNull(excludePaths) || excludePaths.length == 0) {
+            this.fullGCExcludePaths = Set.of();
+        } else {
+            this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCExcludePaths() {
+        return fullGCExcludePaths;
+    }
+
     public T setEmbeddedVerificationEnabled(boolean b) {
         this.embeddedVerificationEnabled = b;
         return thisBuilder();
@@ -316,19 +344,14 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.embeddedVerificationEnabled;
     }
 
-    public T setFullGCModeGapOrphansEnabled(boolean b) {
-        this.fullGCModeGapOrphansEnabled = b;
+    public T setFullGCMode(int v) {
+        this.fullGCMode = v;
         return thisBuilder();
     }
 
-    public boolean isFullGCModeGapOrphansEnabled() { return this.fullGCModeGapOrphansEnabled; }
-
-    public T setFullGCModeEmptyPropertiesEnabled(boolean b) {
-        this.fullGCModeEmptyPropertiesEnabled = b;
-        return thisBuilder();
+    public int getFullGCMode() {
+        return this.fullGCMode;
     }
-
-    public boolean isFullGCModeEmptyPropertiesEnabled() { return this.fullGCModeEmptyPropertiesEnabled; }
 
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
@@ -397,22 +420,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     public Feature getDocStoreEmbeddedVerificationFeature() {
         return docStoreEmbeddedVerificationFeature;
     }
-
-    public T setDocStoreFullGCModeGapOrphansFeature(@Nullable Feature docStoreFullGCModeGapOrphans) {
-        this.docStoreFullGCModeGapOrphansFeature = docStoreFullGCModeGapOrphans;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getDocStoreFullGCModeGapOrphansFeature() { return this.docStoreFullGCModeGapOrphansFeature;    }
-
-    public T setDocStoreFullGCModeEmptyPropertiesFeature(@Nullable Feature docStoreFullGCModeEmptyProperties) {
-        this.docStoreFullGCModeEmptyPropertiesFeature = docStoreFullGCModeEmptyProperties;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getDocStoreFullGCModeEmptyPropertiesFeature() { return this.docStoreFullGCModeEmptyPropertiesFeature; };
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;
@@ -807,7 +814,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {
-        this.gcMonitor = checkNotNull(gcMonitor);
+        this.gcMonitor = requireNonNull(gcMonitor);
         return thisBuilder();
     }
 
@@ -866,7 +873,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     @Deprecated
     public T setNodeCachePredicate(Predicate<String> p){
-        this.nodeCachePredicate = input -> input != null && p.apply(input.toString());
+        this.nodeCachePredicate = input -> input != null && p.test(input.toString());
         return thisBuilder();
     }
 
@@ -875,7 +882,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     @Deprecated
     public Predicate<String> getNodeCachePredicate() {
-        return input -> input != null && nodeCachePredicate.apply(Path.fromString(input));
+        return input -> input != null && nodeCachePredicate.test(Path.fromString(input));
     }
 
     public T setNodeCachePathPredicate(Predicate<Path> p){

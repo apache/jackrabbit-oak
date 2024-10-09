@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -51,9 +51,9 @@ public class SegmentRevisionGCMBean
             @NotNull SegmentGCOptions gcOptions,
             @NotNull FileStoreGCMonitor fileStoreGCMonitor) {
         super(SegmentRevisionGC.class);
-        this.fileStore = checkNotNull(fileStore);
-        this.gcOptions = checkNotNull(gcOptions);
-        this.fileStoreGCMonitor = checkNotNull(fileStoreGCMonitor);
+        this.fileStore = requireNonNull(fileStore);
+        this.gcOptions = requireNonNull(gcOptions);
+        this.fileStoreGCMonitor = requireNonNull(fileStoreGCMonitor);
     }
 
     //------------------------------------------------------------< SegmentRevisionGC >---

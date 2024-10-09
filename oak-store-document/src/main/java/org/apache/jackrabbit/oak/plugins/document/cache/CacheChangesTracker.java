@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.hash.BloomFilter;
 import org.apache.jackrabbit.guava.common.hash.Funnel;
 import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
@@ -25,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class CacheChangesTracker implements Closeable {
 
@@ -48,13 +48,13 @@ public class CacheChangesTracker implements Closeable {
     }
 
     public void invalidateDocument(String key) {
-        if (keyFilter.apply(key)) {
+        if (keyFilter.test(key)) {
             lazyBloomFilter.put(key);
         }
     }
 
     public boolean mightBeenAffected(String key) {
-        return keyFilter.apply(key) && lazyBloomFilter.mightContain(key);
+        return keyFilter.test(key) && lazyBloomFilter.mightContain(key);
     }
 
     @Override

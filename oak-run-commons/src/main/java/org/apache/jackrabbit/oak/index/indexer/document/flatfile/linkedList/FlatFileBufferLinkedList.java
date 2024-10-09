@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * Linked list implementation which supports multiple iterators. The iterator's state
@@ -32,7 +33,7 @@ import java.util.Iterator;
  */
 public class FlatFileBufferLinkedList implements NodeStateEntryList {
 
-    private ListNode head = new ListNode();
+    private final ListNode head = new ListNode();
     private ListNode tail = head;
 
     private int size = 0;
@@ -52,9 +53,8 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
         long incomingSize = item.estimatedMemUsage();
         long memUsage = estimatedMemoryUsage();
         Preconditions.checkState(memUsage + incomingSize <= memLimit,
-                String.format(
                 "Adding item (%s) estimated with %s bytes would increase mem usage beyond upper limit (%s)." +
-                        " Current estimated mem usage is %s bytes", item.getPath(), incomingSize, memLimit, memUsage));
+                        " Current estimated mem usage is %s bytes", item.getPath(), incomingSize, memLimit, memUsage);
         tail.next = new ListNode(item);
         tail = tail.next;
         size++;
@@ -113,7 +113,7 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
         }
 
         ListNode(@NotNull NodeStateEntry data) {
-            Preconditions.checkNotNull(data);
+            Objects.requireNonNull(data);
             this.data = data;
             this.next = null;
         }
@@ -123,12 +123,12 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
         private ListNode current;
 
         static NodeIterator iteratorFor(@NotNull ListNode node) {
-            Preconditions.checkNotNull(node);
+            Objects.requireNonNull(node);
             return new NodeIterator(node);
         }
 
         NodeIterator(@NotNull ListNode start) {
-            Preconditions.checkNotNull(start);
+            Objects.requireNonNull(start);
             this.current = start;
         }
 
