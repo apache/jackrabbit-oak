@@ -396,6 +396,7 @@ public class RDBExport {
         if (fieldNames.isEmpty()) {
             return fulljson;
         } else {
+            @SuppressWarnings("unchecked")
             Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
             StringBuilder buf = new StringBuilder();
             buf.append('{');
@@ -416,6 +417,7 @@ public class RDBExport {
 
     @NotNull
     private static StringBuilder asCSV(List<String> csvFieldNames, StringBuilder fulljson) {
+        @SuppressWarnings("unchecked")
         Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
         StringBuilder buf = new StringBuilder();
         String delim = "";
@@ -428,6 +430,7 @@ public class RDBExport {
                 Object o = doc.get(fn[0]);
                 if (checkMember) {
                     if (o instanceof Map) {
+                        @SuppressWarnings("unchecked")
                         Map<String, Object> m = (Map<String, Object>) o;
                         if (m.containsKey(fn[1])) {
                             dumpJsonValuetoCsv(buf, m.get(fn[1]));

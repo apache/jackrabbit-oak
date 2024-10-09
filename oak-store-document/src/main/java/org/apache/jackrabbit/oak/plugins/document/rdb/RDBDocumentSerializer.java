@@ -224,6 +224,7 @@ public class RDBDocumentSerializer {
                     if (!(ob instanceof List)) {
                         throw new DocumentStoreException("expected array but got: " + ob);
                     }
+                    @SuppressWarnings("unchecked")
                     List<List<Object>> update = (List<List<Object>>) ob;
                     for (List<Object> op : update) {
                         applyUpdate(doc, update, op);
@@ -251,7 +252,7 @@ public class RDBDocumentSerializer {
         }
     }
 
-    private <T extends Document> void applyUpdate(T doc, List updateString, List<Object> op) {
+    private <T extends Document> void applyUpdate(T doc, List<List<Object>> updateString, List<Object> op) {
         String opcode = op.get(0).toString();
         String key = op.get(1).toString();
         Revision rev = null;
@@ -298,7 +299,8 @@ public class RDBDocumentSerializer {
             }
         } else if ("M".equals(opcode)) {
             if (rev == null) {
-                Comparable newValue = (Comparable) value;
+                @SuppressWarnings("unchecked")
+                Comparable<Object> newValue = (Comparable<Object>) value;
                 if (old == null || newValue.compareTo(old) > 0) {
                     doc.put(key, value);
                 }
