@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -29,7 +30,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -74,7 +74,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     }
 
     public Iterable<Principal> all() {
-        Set<Principal> all = Sets.newLinkedHashSet(principals.values());
+        Set<Principal> all = new LinkedHashSet<>(principals.values());
         all.add(EveryonePrincipal.getInstance());
         return all;
     }
