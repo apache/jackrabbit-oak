@@ -124,77 +124,71 @@ public class BranchTest {
         Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
-    /**
-     * OAK-11184 : a cluster node A is merging a change on root. That
-     * involves two updates : the first one writing the changes. The
-     * second one updating the commit root (with a revisions=c).
-     * If a cluster node B reads the root while the commit root
-     * was not yet updated, it has to read previous documents as
-     * part of doing commit value resolution. Only to find the
-     * commit value to be null. As we are not caching null normally
-     * (as the revision is likely to be committed very soon after),
-     * cluster node B will have to repeat going through previous
-     * documents whenever it resolves that unmerged revision.
-     * Until B is able to a backgroundRead.
-     * The backgroundRead however could be blocked by a number
-     * of merge operations - as those merge operations acquire
-     * the backgroundOperationLock - and backgroundRead wants
-     * that lock exclusively.
-     *
-     * The test currently reproduces only part of the above.
-     */
-    @Test
-    public void unmergedCommitOnRoot() throws Exception {
-        Clock clock = new Clock.Virtual();
-        clock.waitUntil(System.currentTimeMillis());
-        Revision.setClock(clock);
-        ClusterNodeInfo.setClock(clock);
+	/**
+	 * OAK-11184 : a cluster node A is merging a change on root. That involves two
+	 * updates : the first one writing the changes. The second one updating the
+	 * commit root (with a revisions=c). If a cluster node B reads the root while
+	 * the commit root was not yet updated, it has to read previous documents as
+	 * part of doing commit value resolution. Only to find the commit value to be
+	 * null. As we are not caching null normally (as the revision is likely to be
+	 * committed very soon after), cluster node B will have to repeat going through
+	 * previous documents whenever it resolves that unmerged revision. Until B is
+	 * able to a backgroundRead. The backgroundRead however could be blocked by a
+	 * number of merge operations - as those merge operations acquire the
+	 * backgroundOperationLock - and backgroundRead wants that lock exclusively.
+	 *
+	 * The test currently reproduces only part of the above.
+	 */
+	@Test
+	public void unmergedCommitOnRoot() throws Exception {
+		Clock clock = new Clock.Virtual();
+		clock.waitUntil(System.currentTimeMillis());
+		Revision.setClock(clock);
+		ClusterNodeInfo.setClock(clock);
 
-        // the shared main store
-        MemoryDocumentStore memStore = new MemoryDocumentStore();
+		// the shared main store
+		MemoryDocumentStore memStore = new MemoryDocumentStore();
 
-        FailingDocumentStore fs1 = new FailingDocumentStore(memStore);
-        PausableDocumentStore store1 = new PausableDocumentStore(fs1);
-        DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setClusterId(1)
-                .clock(clock)
-                .setDocumentStore(store1).build();
+		FailingDocumentStore fs1 = new FailingDocumentStore(memStore);
+		PausableDocumentStore store1 = new PausableDocumentStore(fs1);
+		DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).clock(clock).setDocumentStore(store1)
+				.build();
 
-        NodeBuilder b1 = ns1.getRoot().builder();
-        b1.setProperty("prop", -1);
-        ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+		NodeBuilder b1 = ns1.getRoot().builder();
+		b1.setProperty("prop", -1);
+		ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // create MANY previous docs
-        for (int j = 0; j < 500; j++) {
-	        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
-	            b1 = ns1.getRoot().builder();
-	            b1.setProperty("prop", i);
-	            ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-	        }
-	        ns1.runBackgroundOperations();
-        }
+		// create MANY previous docs
+		for (int j = 0; j < 500; j++) {
+			for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
+				b1 = ns1.getRoot().builder();
+				b1.setProperty("prop", i);
+				ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+			}
+			ns1.runBackgroundOperations();
+		}
 
-        // create /a as some initial content
-        NodeBuilder builder = ns1.getRoot().builder();
-        builder.child("a1").child("b1");
-        builder.child("a2").child("b2");
-        merge(ns1, builder);
+		// create /a as some initial content
+		NodeBuilder builder = ns1.getRoot().builder();
+		builder.child("a1").child("b1");
+		builder.child("a2").child("b2");
+		merge(ns1, builder);
 
-        // update a root property (but not via a branch commit)
-        builder = ns1.getRoot().builder();
-        builder.setProperty("rootprop", "v");
-        builder.child("a1").setProperty("nonrootprop", "v");
-        final NodeBuilder finalBuilder = builder;
-        final Semaphore breakpointReachedSemaphore = new Semaphore(0);
-        final Semaphore continueSemaphore = new Semaphore(0);
-        final Thread mergeThread = new Thread(() -> {
-            try {
+		// update a root property (but not via a branch commit)
+		builder = ns1.getRoot().builder();
+		builder.setProperty("rootprop", "v");
+		builder.child("a1").setProperty("nonrootprop", "v");
+		final NodeBuilder finalBuilder = builder;
+		final Semaphore breakpointReachedSemaphore = new Semaphore(0);
+		final Semaphore continueSemaphore = new Semaphore(0);
+		final Thread mergeThread = new Thread(() -> {
+			try {
 				merge(ns1, finalBuilder);
 			} catch (CommitFailedException e) {
 				throw new RuntimeException(e);
 			}
-        });
-        PauseCallback pauseCallback = new PauseCallback() {
+		});
+		PauseCallback pauseCallback = new PauseCallback() {
 			@Override
 			public PauseCallback handlePause(List<UpdateOp> remainingOps) {
 				breakpointReachedSemaphore.release(1);
@@ -208,53 +202,50 @@ public class BranchTest {
 				return null;
 			}
 		};
-        store1.pauseWith(pauseCallback).on(NODES).on("0:/").after(2).eternally();
-        mergeThread.start();
-        boolean breakpointReached = breakpointReachedSemaphore.tryAcquire(30, TimeUnit.SECONDS);
-        assertTrue(breakpointReached);
+		store1.pauseWith(pauseCallback).on(NODES).on("0:/").after(2).eternally();
+		mergeThread.start();
+		boolean breakpointReached = breakpointReachedSemaphore.tryAcquire(30, TimeUnit.SECONDS);
+		assertTrue(breakpointReached);
 
-        // start B
-        CountingDocumentStore cds = new CountingDocumentStore(memStore);
-        DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setClusterId(2)
-                .clock(clock)
-                .setDocumentStore(cds).build();
+		// start B
+		CountingDocumentStore cds = new CountingDocumentStore(memStore);
+		DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).clock(clock).setDocumentStore(cds).build();
 
-        // now simulate any write and count how many times
-        // find() had to be invoked (basically to read a previous doc)
-        // if there's more than 495, then that's considered expensive
-        {
-	        boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v0", 495);
+		// now simulate any write and count how many times
+		// find() had to be invoked (basically to read a previous doc)
+		// if there's more than 495, then that's considered expensive
+		{
+			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v0", 495);
 			assertTrue(updateIsExpensive);
-        }
+		}
 
-        // while the merge in the other thread isn't done, we can repeat this
-        // and it's still slow
-        {
-	        boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v1", 495);
+		// while the merge in the other thread isn't done, we can repeat this
+		// and it's still slow
+		{
+			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v1", 495);
 			assertTrue(updateIsExpensive);
-        }
+		}
 
-        // and again, you get the point
-        {
-	        boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v2", 495);
+		// and again, you get the point
+		{
+			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v2", 495);
 			assertTrue(updateIsExpensive);
-        }
+		}
 
-        // but as soon as we release the other thread and let it finish
-        // its commit, then our updates here are no longer expensive
-        continueSemaphore.release();
-        // let's make sure that other thread is really done
-        mergeThread.join(10000);
-        assertFalse(mergeThread.isAlive());
+		// but as soon as we release the other thread and let it finish
+		// its commit, then our updates here are no longer expensive
+		continueSemaphore.release();
+		// let's make sure that other thread is really done
+		mergeThread.join(10000);
+		assertFalse(mergeThread.isAlive());
 
-        {
-	        boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v3", 1995);
+		{
+			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v3", 1995);
 			assertFalse(updateIsExpensive);
-        }
+		}
 
-        // a bit simplistic, but that's one way to reproduce the bug
-    }
+		// a bit simplistic, but that's one way to reproduce the bug
+	}
 
 	private boolean anyUpdateIsExpensive(CountingDocumentStore cds, DocumentNodeStore ns2, String newValue, int definitionOfExpensive)
 			throws CommitFailedException {
