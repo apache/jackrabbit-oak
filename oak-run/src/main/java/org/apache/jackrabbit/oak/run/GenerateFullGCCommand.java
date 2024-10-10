@@ -17,23 +17,43 @@
 package org.apache.jackrabbit.oak.run;
 
 import joptsimple.OptionSpec;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 
 import static java.util.List.of;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_PATTERN;
+import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
  * GenerateFullGCCommand generates garbage nodes in the repository in order to allow for testing fullGC functionality.
  */
-public class GenerateFullGCCommand {
+public class GenerateFullGCCommand implements Command {
     private static final Logger LOG = LoggerFactory.getLogger(GenerateFullGCCommand.class);
 
     private static final String USAGE = "generateFullGC {<jdbc-uri> | <mongodb-uri>} [options]";
 
     private static final List<String> LOGGER_NAMES = of(
     );
+
+    private final String FULLGC_GEN_BASE_PATH = "/fullGCGenTest/";
+    private final String FULLGC_GEN_PARENT_NODE_PREFIX = "fullGCParent_";
+    private final String FULLGC_GEN_NODE_PREFIX = "fullGCNode_";
 
     private static class GenerateFullGCOptions extends Utils.NodeStoreOptions {
 
@@ -107,6 +127,98 @@ public class GenerateFullGCCommand {
         public int getGenerateIntervalSeconds() {
             return generateIntervalSeconds.value(options);
         }
+    }
+
+    public void execute(String... args) throws Exception {
+        Closer closer = Closer.create();
+        try {
+            GenerateFullGCOptions options = new GenerateFullGCOptions(USAGE).parse(args);
+
+            generateGarbage(options, closer);
+
+        } catch (Throwable e) {
+            LOG.error("Command failed", e);
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
+    }
+
+    private void generateGarbage(GenerateFullGCOptions options, Closer closer) throws IOException, Exception {
+        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
+        if (builder == null) {
+            System.err.println("generateFullGC mode only available for DocumentNodeStore");
+            System.exit(1);
+        }
+
+        System.out.println("Generating fullGC on the document: " + FULLGC_GEN_BASE_PATH);
+        DocumentNodeStore documentNodeStore = builder.build();
+
+        VersionGarbageCollector.FullGCMode fullGCMode = getFullGCMode(options);
+        if (fullGCMode == VersionGarbageCollector.FullGCMode.NONE) {
+            System.err.println("Invalid garbageType specified. Must be one of the following: 1 - EMPTYPROPS, 2 - GAP_ORPHANS, 3 - GAP_ORPHANS_EMPTYPROPS");
+            System.exit(1);
+        }
+
+        //1. Create nodes with properties
+        NodeBuilder b1 = documentNodeStore.getRoot().builder();
+        b1.child(FULLGC_GEN_BASE_PATH).setProperty("jcr:primaryType", "nt:file", NAME);
+
+        int nodesCountUnderParent = options.getGarbageNodesParentCount() / options.getGarbageNodesParentCount();
+        for(int i = 0; i < options.getGarbageNodesParentCount(); i ++) {
+            b1.child(FULLGC_GEN_BASE_PATH).child(FULLGC_GEN_PARENT_NODE_PREFIX + i).setProperty("jcr:primaryType", "nt:folder", NAME);
+
+            for(int j = 0; j < nodesCountUnderParent; j ++) {
+                b1.child(FULLGC_GEN_BASE_PATH).child(FULLGC_GEN_PARENT_NODE_PREFIX + i).child(FULLGC_GEN_NODE_PREFIX + j).
+                        setProperty("jcr:primaryType", "nt:file", NAME);
+
+                if (fullGCMode == VersionGarbageCollector.FullGCMode.EMPTYPROPS || fullGCMode == VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
+                    b1.child(FULLGC_GEN_BASE_PATH).child(FULLGC_GEN_PARENT_NODE_PREFIX + i).child(FULLGC_GEN_NODE_PREFIX + j).
+                            setProperty("prop", "bar", NAME);
+                }
+            }
+        }
+        documentNodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //2. Generate garbage nodes - EMPTY_PROPERTIES
+        if (fullGCMode == VersionGarbageCollector.FullGCMode.EMPTYPROPS || fullGCMode == VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
+            for(int i = 0; i < options.getCreateGarbageNodesCount(); i ++) {
+                for(int j = 0; j < nodesCountUnderParent; j ++) {
+                    b1.child(FULLGC_GEN_BASE_PATH).child(FULLGC_GEN_PARENT_NODE_PREFIX + i).child(FULLGC_GEN_NODE_PREFIX + j).
+                            setProperty("prop", null, NAME);
+                }
+            }
+        }
+
+        //3.1. Generate garbage nodes - GAP_ORPHANS - remove parent nodes
+        StringBuilder sbNodePath = new StringBuilder();
+        if (fullGCMode == VersionGarbageCollector.FullGCMode.GAP_ORPHANS || fullGCMode == VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
+            for(int i = 0; i < options.getCreateGarbageNodesCount(); i ++) {
+                for(int j = 0; j < nodesCountUnderParent; j ++) {
+
+                    sbNodePath.setLength(0);
+                    sbNodePath.append("2:/").append(FULLGC_GEN_BASE_PATH).append("/").append(FULLGC_GEN_PARENT_NODE_PREFIX).append(i);
+
+                    // Remove parent node
+                    documentNodeStore.getDocumentStore().remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES,
+                            sbNodePath.toString());
+                    documentNodeStore.runBackgroundOperations();
+                }
+            }
+        }
+    }
+
+    private VersionGarbageCollector.FullGCMode getFullGCMode(GenerateFullGCOptions options) {
+        VersionGarbageCollector.FullGCMode fullGCMode = VersionGarbageCollector.FullGCMode.NONE;
+        int garbageType = options.getGarbageType();
+        if (garbageType == 1) {
+            fullGCMode = VersionGarbageCollector.FullGCMode.EMPTYPROPS;
+        } else if (garbageType == 2) {
+            fullGCMode = VersionGarbageCollector.FullGCMode.GAP_ORPHANS;
+        } else if (garbageType == 3) {
+            fullGCMode = VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS;
+        }
+        return fullGCMode;
     }
 }
 
