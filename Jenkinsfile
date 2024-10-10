@@ -20,7 +20,7 @@
 
 // schedule oak-jcr:ut,oak-search-elastic,oak-segment-tar,oak-store-document first
 // because they are longest running modules
-def OAK_MODULES = 'oak-jcr:ut,oak-search-elastic,oak-segment-tar,oak-store-document,oak-api,oak-auth-external,oak-auth-ldap,oak-authorization-cug,oak-authorization-principalbased,oak-benchmarks,oak-blob,oak-blob-cloud,oak-blob-cloud-azure,oak-blob-plugins,oak-commons,oak-core,oak-core-spi,oak-examples,oak-exercise,oak-http,oak-it,oak-it-osgi,oak-jackrabbit-api,oak-jcr:it,oak-lucene,oak-pojosr,oak-query-spi,oak-run,oak-run-commons,oak-search,oak-search-mt,oak-security-spi,oak-segment-azure,oak-solr-core,oak-solr-osgi,oak-standalone,oak-store-composite,oak-store-spi,oak-upgrade,oak-webapp'
+def OAK_MODULES = 'oak-jcr:ut,oak-search-elastic,oak-segment-tar,oak-store-document,oak-api,oak-auth-external,oak-auth-ldap,oak-authorization-cug,oak-authorization-principalbased,oak-benchmarks,oak-blob,oak-blob-cloud,oak-blob-cloud-azure,oak-blob-plugins,oak-commons,oak-core,oak-core-spi,oak-examples,oak-exercise,oak-http,oak-it,oak-it-osgi,oak-jackrabbit-api,oak-jcr:it,oak-lucene,oak-pojosr,oak-query-spi,oak-run,oak-run-commons,oak-search,oak-security-spi,oak-segment-azure,oak-solr-core,oak-solr-osgi,oak-standalone,oak-store-composite,oak-store-spi,oak-upgrade,oak-webapp'
 
 properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10'))])
 
