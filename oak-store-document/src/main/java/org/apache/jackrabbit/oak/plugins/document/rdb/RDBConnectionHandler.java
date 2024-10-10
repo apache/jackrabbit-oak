@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -132,7 +131,7 @@ public class RDBConnectionHandler implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         this.ds = null;
         this.closedTime = System.currentTimeMillis();
     }
