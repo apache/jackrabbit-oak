@@ -215,21 +215,21 @@ public class BranchTest {
 		// find() had to be invoked (basically to read a previous doc)
 		// if there's more than 495, then that's considered expensive
 		{
-			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v0", 495);
-			assertTrue(updateIsExpensive);
+			int c = getNodesFindCountOfAnUpdate(cds, ns2, "v0");
+			assertTrue("c expected larger than 495, is: " + c, c > 495);
 		}
 
 		// while the merge in the other thread isn't done, we can repeat this
 		// and it's still slow
 		{
-			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v1", 495);
-			assertTrue(updateIsExpensive);
+			int c = getNodesFindCountOfAnUpdate(cds, ns2, "v1");
+			assertTrue("c expected larger than 495, is: " + c, c > 495);
 		}
 
 		// and again, you get the point
 		{
-			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v2", 495);
-			assertTrue(updateIsExpensive);
+			int c = getNodesFindCountOfAnUpdate(cds, ns2, "v2");
+			assertTrue("c expected larger than 495, is: " + c, c > 495);
 		}
 
 		// but as soon as we release the other thread and let it finish
@@ -239,15 +239,16 @@ public class BranchTest {
 		mergeThread.join(10000);
 		assertFalse(mergeThread.isAlive());
 
+		ns2.runBackgroundOperations();
 		{
-			boolean updateIsExpensive = anyUpdateIsExpensive(cds, ns2, "v3", 1995);
-			assertFalse(updateIsExpensive);
+			int c = getNodesFindCountOfAnUpdate(cds, ns2, "v3");
+			assertTrue("c expected smaller than 495, is: " + c, c < 495);
 		}
 
 		// a bit simplistic, but that's one way to reproduce the bug
 	}
 
-	private boolean anyUpdateIsExpensive(CountingDocumentStore cds, DocumentNodeStore ns2, String newValue, int definitionOfExpensive)
+	private int getNodesFindCountOfAnUpdate(CountingDocumentStore cds, DocumentNodeStore ns2, String newValue)
 			throws CommitFailedException {
 		cds.resetCounters();
 		int nodesFindCount;
@@ -256,7 +257,7 @@ public class BranchTest {
 		merge(ns2, b2);
 		nodesFindCount = cds.getNumFindCalls(NODES);
 		cds.resetCounters();
-		return nodesFindCount > definitionOfExpensive;
+		return nodesFindCount;
 	}
 
     @Test
