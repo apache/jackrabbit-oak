@@ -45,7 +45,7 @@ public class RDBTestPropSupplier {
     }
 
     private static final SystemPropertySupplier<String> RDBDB2URL = SystemPropertySupplier.create(url("db2"),
-            "jdbc:db2://localhost:50000/oak");
+            "jdbc:db2://localhost:50000/OAK");
     private static final SystemPropertySupplier<String> RDBDB2USER = SystemPropertySupplier.create(username("db2"), "oak");
     private static final SystemPropertySupplier<String> RDBDB2PASSWD = SystemPropertySupplier.create(passwd("db2"), "geheim");
 
