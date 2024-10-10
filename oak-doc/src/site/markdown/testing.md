@@ -61,6 +61,8 @@ Note that Derby supports a local filesytem-based persistence, and thus does not 
 
 Even if a database is not installed locally, it still can be used using Docker.
 
+#### PostgreSQL
+
 Here's an example how to configure PostgreSQL using Docker (assuming Docker is already installed):
 
 `docker run -p 8080:5432 --name oak-postgres -e POSTGRES_PASSWORD=geheim -e POSTGRES_DB=oak -d postgres:13-alpine`
@@ -70,3 +72,15 @@ This pulls the docker image "postgres:13-alpine", specifies a system password an
 To run tests, the following parameters would be used:
 
 `mvn clean install -PintegrationTesting -Prdb-postgres -Dnsfixtures=DOCUMENT_RDB -Drdb.jdbc-url=jdbc:postgresql://localhost:8080/oak -Drdb.jdbc-user=postgres -Drdb.jdbc-passwd=geheim -Dmax.jar.size=200000000`
+
+#### IBM DB2
+
+Simlilarily, DB2 can be run using Docker:
+
+`docker run -h db2server --name db2server --privileged=true -p 50000:50000 baedke/db2-community-oak:11.5.9.0`
+
+Note that on first run, initalization will be slow as the image does not come preconfigured.
+
+To run tests, the following parameters would be used:
+
+`mvn clean install -PintegrationTesting -Prdb-db2 -Dnsfixtures=DOCUMENT_RDB -Drdb.jdbc-url=jdbc:db2://localhost:50000/OAK -Drdb.jdbc-user=oak -Drdb.jdbc-passwd=geheim -Dmax.jar.size=200000000`
