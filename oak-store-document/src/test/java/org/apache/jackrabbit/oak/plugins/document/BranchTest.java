@@ -133,11 +133,11 @@ public class BranchTest {
 	 * null. As we are not caching null normally (as the revision is likely to be
 	 * committed very soon after), cluster node B will have to repeat going through
 	 * previous documents whenever it resolves that unmerged revision. Until B is
-	 * able to a backgroundRead. The backgroundRead however could be blocked by a
+	 * able to do a backgroundRead. The backgroundRead however could be blocked by a
 	 * number of merge operations - as those merge operations acquire the
 	 * backgroundOperationLock - and backgroundRead wants that lock exclusively.
 	 *
-	 * The test currently reproduces only part of the above.
+	 * The test currently reproduces only part one of the above.
 	 */
 	@Test
 	public void unmergedCommitOnRoot() throws Exception {
