@@ -171,10 +171,6 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 new AutoMembershipPrincipals(userManager, 
                 Collections.singletonMap(idpName, syncConfig.group().getAutoMembership().toArray(new String[0])),
                 Collections.singletonMap(idpName, syncConfig.group().getAutoMembershipConfig()));
-
-        cacheReaderFactory = (String name) -> userConfiguration.getCachedMembershipReader(root,
-                (principalName) -> createExternalGroupPrincipal(principalName, name),
-                CACHE_PRINCIPAL_NAMES);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
