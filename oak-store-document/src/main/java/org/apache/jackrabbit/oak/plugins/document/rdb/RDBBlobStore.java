@@ -69,7 +69,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         try {
             initialize(ds, builder, options == null ? new RDBOptions() : options);
         } catch (Exception ex) {
-            throw new DocumentStoreException("initializing RDB blob store", ex);
+            throw DocumentStoreException.convert(ex, "initializing RDB blob store");
         }
     }
 
@@ -120,11 +120,9 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
             dropped = dropped.trim();
         }
-        try {
-            this.ch.close();
-        } catch (IOException ex) {
-            LOG.error("closing connection handler", ex);
-        }
+
+        this.ch.close();
+
         LOG.info("RDBBlobStore (" + getModuleVersion() + ") closed"
                 + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
     }
