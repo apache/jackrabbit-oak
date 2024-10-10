@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -26,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
@@ -33,8 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
@@ -47,32 +48,71 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
     public static final DocumentStoreFixture MONGO = new MongoFixture();
 
-    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
-            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
-            "rdb-db2-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", System.getProperty(
-            "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-ds-test;create=true"),
-            System.getProperty("rdb-derby-jdbc-user", "sa"), System.getProperty("rdb-derby-jdbc-passwd", ""));
-    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", System.getProperty("rdb-h2-jdbc-url",
-            "jdbc:h2:file:./target/h2-ds-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
-            "rdb-h2-jdbc-passwd", ""));
-    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql", System.getProperty("rdb-mssql-jdbc-url",
-            "jdbc:sqlserver://localhost:1433;databaseName=OAK"), System.getProperty("rdb-mssql-jdbc-user", "sa"),
-            System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", System.getProperty("rdb-mysql-jdbc-url",
-            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"), System.getProperty(
-            "rdb-mysql-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", System.getProperty("rdb-oracle-jdbc-url",
-            "jdbc:oracle:thin:@localhost:1521:orcl"), System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
-            "rdb-oracle-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", System.getProperty("rdb-postgres-jdbc-url",
-            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
-            "rdb-postgres-jdbc-passwd", "geheim"));
+    private static final String rdbDB2URL = SystemPropertySupplier.create("rdb-db2-jdbc-url", "jdbc:db2://localhost:50000/OAK")
+            .loggingTo(LOG).get();
+    private static final String rdbDB2User = SystemPropertySupplier.create("rdb-db2-jdbc-user", "oak").loggingTo(LOG).get();
+    private static final String rdbDB2Passwd = SystemPropertySupplier.create("rdb-db2-jdbc-passwd", "geheim").hideValue()
+            .loggingTo(LOG).get();
+
+    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", rdbDB2URL, rdbDB2User, rdbDB2Passwd);
+
+    private static final String rdbDerbyURL = SystemPropertySupplier
+            .create("rdb-derby-jdbc-url", "jdbc:derby:./target/derby-ds-test;create=true").loggingTo(LOG).get();
+    private static final String rdbDerbyUser = SystemPropertySupplier.create("rdb-derby-jdbc-user", "sa").loggingTo(LOG).get();
+    private static final String rdbDerbyPasswd = SystemPropertySupplier.create("rdb-derby-jdbc-passwd", "").hideValue()
+            .loggingTo(LOG).get();
+
+    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", rdbDerbyURL, rdbDerbyUser,
+            rdbDerbyPasswd);
+
+    private static final String rdbH2URL = SystemPropertySupplier.create("rdb-h2-jdbc-url", "jdbc:h2:file:./target/h2-ds-test")
+            .loggingTo(LOG).get();
+    private static final String rdbH2User = SystemPropertySupplier.create("rdb-h2-jdbc-user", "sa").loggingTo(LOG).get();
+    private static final String rdbH2Passwd = SystemPropertySupplier.create("rdb-h2-jdbc-passwd", "").hideValue().loggingTo(LOG)
+            .get();
+
+    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", rdbH2URL, rdbH2User, rdbH2Passwd);
+
+    private static final String rdbMsSQLURL = SystemPropertySupplier
+            .create("rdb-mssql-jdbc-url", "jdbc:sqlserver://localhost:1433;databaseName=OAK").loggingTo(LOG).get();
+    private static final String rdbMsSQLUser = SystemPropertySupplier.create("rdb-mssql-jdbc-user", "sa").loggingTo(LOG).get();
+    private static final String rdbMsSQLPasswd = SystemPropertySupplier.create("rdb-mssql-jdbc-passwd", "geheim").hideValue()
+            .loggingTo(LOG).get();
+
+    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql", rdbMsSQLURL, rdbMsSQLUser, rdbMsSQLPasswd);
+
+    private static final String rdbMySQLURL = SystemPropertySupplier.create("rdb-mysql-jdbc-url", "jdbc:mysql://localhost:3306/oak")
+            .loggingTo(LOG).get();
+    private static final String rdbMySQLUser = SystemPropertySupplier.create("rdb-mysql-jdbc-user", "root").loggingTo(LOG).get();
+    private static final String rdbMySQLPasswd = SystemPropertySupplier.create("rdb-mysql-jdbc-passwd", "geheim").hideValue()
+            .loggingTo(LOG).get();
+
+    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", rdbMySQLURL, rdbMySQLUser, rdbMySQLPasswd);
+
+    private static final String rdbOracleURL = SystemPropertySupplier
+            .create("rdb-oracle-jdbc-url", "jdbc:oracle:thin:@localhost:1521:orcl").loggingTo(LOG).get();
+    private static final String rdbOracleUser = SystemPropertySupplier.create("rdb-oracle-jdbc-user", "system").loggingTo(LOG)
+            .get();
+    private static final String rdbOraclePasswd = SystemPropertySupplier.create("rdb-oracle-jdbc-passwd", "geheim").hideValue()
+            .loggingTo(LOG).get();
+
+    public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", rdbOracleURL, rdbOracleUser,
+            rdbOraclePasswd);
+
+    private static final String rdbPostgresURL = SystemPropertySupplier.create("rdb-postgres-jdbc-url", "jdbc:postgresql:oak")
+            .loggingTo(LOG).get();
+    private static final String rdbPostgresUser = SystemPropertySupplier.create("rdb-postgres-jdbc-user", "postgres").loggingTo(LOG)
+            .get();
+    private static final String rdbPostgresPasswd = SystemPropertySupplier.create("rdb-postgres-jdbc-passwd", "geheim").hideValue()
+            .loggingTo(LOG).get();
+
+    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", rdbPostgresURL, rdbPostgresUser,
+            rdbPostgresPasswd);
 
     public static final String TABLEPREFIX = "dstest_";
 
     public static List<Object[]> getFixtures() {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         if (FixturesHelper.getFixtures().contains(DOCUMENT_MEM)) {
             fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
         }
@@ -187,7 +227,6 @@ public abstract class DocumentStoreFixture {
             try {
                 dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
-                LOG.debug("Database instance not available at " + url + ", skipping tests...", ex);
                 LOG.info("Database instance not available at {} because of '{}', skipping tests...", url, ex.getMessage());
             }
         }
@@ -212,7 +251,18 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            return dataSource != null;
+            if (dataSource == null) {
+                return false;
+            } else {
+                try (RDBConnectionHandler ch = new RDBConnectionHandler(dataSource); Connection c = ch.getRWConnection()) {
+                    ch.closeConnection(c);
+                    return true;
+                } catch (Throwable t) {
+                    LOG.info("Datasource failure for {} because of {}, skipping tests...", name,
+                            t.getMessage() == null ? t : t.getMessage());
+                    return false;
+                }
+            }
         }
 
         @Override
@@ -240,7 +290,7 @@ public abstract class DocumentStoreFixture {
 
         public static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
 
-        protected List<MongoConnection> connections = Lists.newArrayList();
+        protected List<MongoConnection> connections = new ArrayList<>();
 
         @Override
         public String getName() {
