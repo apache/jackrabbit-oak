@@ -129,6 +129,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void finalize() throws Throwable {
         if (!this.ch.isClosed() && this.callStack != null) {

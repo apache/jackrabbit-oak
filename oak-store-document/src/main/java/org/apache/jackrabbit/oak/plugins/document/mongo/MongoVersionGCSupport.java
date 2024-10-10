@@ -25,7 +25,9 @@ import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.lt;
 import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
+
 import static java.util.Collections.emptyList;
+import static com.mongodb.client.model.Sorts.ascending;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
@@ -255,7 +257,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                         and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
-        final Bson sort = Sorts.ascending(MODIFIED_IN_SECS, ID);
+
+        final Bson sort = ascending(MODIFIED_IN_SECS, ID);
 
         logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
 
@@ -341,8 +344,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
         LOG.debug("getOldestDeletedOnceTimestamp() <- start");
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
-        Bson sort = Sorts.ascending(MODIFIED_IN_SECS);
-        
+
+        Bson sort = ascending(MODIFIED_IN_SECS);
         List<Long> result = new ArrayList<>(1);
         getNodeCollection().find(query).sort(sort).limit(1).forEach(
                 document -> {
@@ -368,19 +371,20 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
-        final Bson sort = Sorts.ascending(MODIFIED_IN_SECS, ID);
-        
+
         // we need to add query condition to ignore `previous` documents which doesn't have this field
         final Bson query = exists(MODIFIED_IN_SECS);
+        // sort by MODIFIED_IN_SECS first, ID otherwise
+        final Bson sort = ascending(MODIFIED_IN_SECS, ID);
 
         FindIterable<BasicDBObject> limit = getNodeCollection().find(query).sort(sort).limit(1);
 
-        try(MongoCursor<BasicDBObject> cur = limit.iterator()) {
+        try (MongoCursor<BasicDBObject> cur = limit.iterator()) {
             return cur.hasNext() ? ofNullable(store.convertFromDBObject(NODES, cur.next())) : empty();
         } catch (Exception ex) {
             LOG.error("getOldestModifiedDoc() <- error while fetching data from Mongo", ex);
         }
-        LOG.info("No Modified Doc has been found, retuning empty");
+        LOG.info("No Modified Doc has been found, returning empty");
         return empty();
     }
 
