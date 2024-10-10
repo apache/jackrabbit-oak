@@ -18,7 +18,7 @@
  * <em>For Oak internal use only. Do not use outside Oak components.</em>
  */
 @Internal(since = "1.1.0")
-@Version("2.0.0")
+@Version("2.1.0")
 package org.apache.jackrabbit.oak.commons.properties;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
