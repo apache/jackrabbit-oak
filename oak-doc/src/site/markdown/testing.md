@@ -79,6 +79,8 @@ Simlilarily, DB2 can be run using Docker:
 
 `docker run -h db2server --name db2server --privileged=true -p 50000:50000 baedke/db2-community-oak:11.5.9.0`
 
+The Docker image baedke/db2-community-oak:11.5.9.0 may also be build from the official DB2 community image `icr.io/db2_community/db2:11.5.9.0` using the Dockerfile https://github.com/apache/jackrabbit-oak/blob/issue/trunk/oak-store-document/src/test/resources/Dockerfile
+
 Note that on first run, initalization will be slow as the image does not come preconfigured.
 
 To run tests, the following parameters would be used:
