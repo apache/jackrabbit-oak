@@ -48,12 +48,12 @@ public class RDBConnectionHandlerTest {
             assertTrue("unexpected elapsed time between two fetches of connections: " + (ts2 - ts1), ts2 - ts1 <= 20);
             c2 = ch.getROConnection();
             // age threshold not reached
-            assertTrue("There should be no log message get, but got: " + customLogs.getLogs(), customLogs.getLogs().isEmpty());
+            assertTrue("There should be no log message yet, but got: " + customLogs.getLogs(), customLogs.getLogs().isEmpty());
             while (System.currentTimeMillis() - ts2 < 101) {
                 // busy wait for RDBConnectionHandler.LOGTHRESHOLD to pass
             }
             c3 = ch.getROConnection();
-            assertEquals("There should be exacly one log message get, but got: " + customLogs.getLogs(), 1, customLogs.getLogs().size());
+            assertEquals("There should be exacly one log message, but got: " + customLogs.getLogs(), 1, customLogs.getLogs().size());
         } finally {
             close(c1);
             close(c2);
