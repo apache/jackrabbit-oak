@@ -154,7 +154,7 @@ public class RDBConnectionHandler implements Closeable {
         remember(c);
         if (LOG.isDebugEnabled()) {
             long elapsed = System.currentTimeMillis() - ts;
-            if (elapsed >= 100) {
+            if (elapsed >= 20) {
                 LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms", new Exception("call stack"));
             }
         }
@@ -221,9 +221,13 @@ public class RDBConnectionHandler implements Closeable {
         }
     }
 
-    private final int LOGTHRESHOLD = 20;
-
+    // map holding references to currently open connections
     private ConcurrentMap<WeakReference<Connection>, ConnectionHolder> connectionMap = new ConcurrentHashMap<>();
+
+    // time in millis for a connection in the map to be logged as "old"; note
+    // that this is meant to catch both connection leaks and long-running
+    // transactions
+    private final int LOGTHRESHOLD = 100;
 
     private void dumpConnectionMap(long ts) {
         if (LOG.isTraceEnabled()) {
