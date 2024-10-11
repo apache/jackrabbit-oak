@@ -20,11 +20,13 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,7 @@ public class GenerateFullGCCommand implements Command {
         public GenerateFullGCOptions(String usage) {
             super(usage);
             createGarbageNodesCount = parser
-                    .accepts("createGarbageNodesCount", "the total number of garbage nodes to create").withRequiredArg()
+                    .accepts("garbageNodesCount", "the total number of garbage nodes to create").withRequiredArg()
                     .ofType(Integer.class).defaultsTo(0);
             garbageNodesParentCount = parser
                     .accepts("garbageNodesParentCount", "total number of parent nodes under which to create garbage nodes").withRequiredArg()
@@ -77,7 +79,7 @@ public class GenerateFullGCCommand implements Command {
                             "used by the fullGC (24h right now) when collecting garbage").withRequiredArg()
                     .ofType(Long.class).defaultsTo(1036800L);
             maxRevisionAgeDelaySeconds = parser
-                    .accepts("garbageType", "the time subtracted from  to the timestampAge when generating the timestamps for the garbage. " +
+                    .accepts("maxRevisionAgeDelaySeconds", "the time subtracted from  to the timestampAge when generating the timestamps for the garbage. " +
                             "This is in order for the garbage to be collected after a delay after insertion, not right away").withRequiredArg()
                     .ofType(Integer.class).defaultsTo(60);
             numberOfRuns = parser
@@ -170,10 +172,16 @@ public class GenerateFullGCCommand implements Command {
 
     private void generateGarbage(GenerateFullGCOptions options, Closer closer, int runIndex) throws IOException, Exception {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
+
         if (builder == null) {
             System.err.println("generateFullGC mode only available for DocumentNodeStore");
             System.exit(1);
         }
+
+        // set the clock to a time that is maxRevisionAgeMillis + maxRevisionAgeDelaySeconds in the past
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis() - options.getMaxRevisionAgeMillis() + options.getMaxRevisionAgeDelaySeconds() * 1000);
+        builder.clock(clock);
 
         System.out.println("Generating fullGC on the document: " + FULLGC_GEN_BASE_PATH);
         DocumentNodeStore documentNodeStore = builder.build();
