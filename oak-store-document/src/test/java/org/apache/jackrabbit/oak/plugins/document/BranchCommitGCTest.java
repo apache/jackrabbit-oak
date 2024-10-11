@@ -38,6 +38,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -85,19 +86,6 @@ public class BranchCommitGCTest {
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
             for (FullGCMode gcType : FullGCMode.values()) {
-                if (gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC
-                        || gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC) {
-                    // temporarily skip due to flakyness
-                    continue;
-                }
-                if (f.getName().equals("Memory") || f.getName().startsWith("RDB")) {
-                    // then only run NONE and EMPTY_PROPS, cause we are rolling EMPTY_PROPS first
-                    if (gcType != FullGCMode.NONE && gcType != FullGCMode.EMPTYPROPS
-                            && gcType != FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
-                        // temporarily skip due to slowness
-                        continue;
-                    }
-                }
                 params.add(new Object[] {f, gcType});
             }
         }
@@ -177,6 +165,7 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddThenMergedAddAndRemoveChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         RevisionVector br = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -267,6 +256,8 @@ public class BranchCommitGCTest {
 
     @Test
     public void testDeletedPropsAndUnmergedBC() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         // create a node with property.
         NodeBuilder nb = store.getRoot().builder();
         nb.child("bar").setProperty("prop", "value");
@@ -320,6 +311,8 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddTwoChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC);
         RevisionVector br1 = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -370,6 +363,7 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddsThenMergedAddsChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         RevisionVector br1 = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -425,6 +419,8 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedAddsThenMergedAddThenUnmergedRemovesChildren() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC); // see OAK-10852
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS); // see OAK-10852
         RevisionVector br1 = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -592,6 +588,8 @@ public class BranchCommitGCTest {
 
     @Test
     public void unmergedRemoveChild() throws Exception {
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         mergedBranchCommit(b -> {
             b.child("foo");
             b.child("bar");
