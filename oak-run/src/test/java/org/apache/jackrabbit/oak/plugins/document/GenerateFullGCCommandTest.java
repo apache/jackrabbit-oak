@@ -24,11 +24,22 @@ import org.apache.jackrabbit.oak.run.GenerateFullGCCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemOut;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 public class GenerateFullGCCommandTest {
+
+    final String OPTION_GARBAGE_NODES_COUNT = "--garbageNodesCount";
+    final String OPTION_GARBAGE_NODES_PARENT_COUNT = "--garbageNodesParentCount";
+    final String OPTION_GARBAGE_TYPE = "--garbageType";
+    final String OPTION_MAX_REVISION_AGE_MILLIS = "--maxRevisionAgeMillis";
+    final String OPTION_MAX_REVISION_AGE_DELAY_SECONDS = "--maxRevisionAgeDelaySeconds";
+    final String OPTION_NUMBER_OF_RUNS = "--numberOfRuns";
+    final String OPTION_GENERATE_INTERVAL_SECONDS = "--generateIntervalSeconds";
 
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
@@ -54,6 +65,21 @@ public class GenerateFullGCCommandTest {
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setFullGCEnabled(false)
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+    }
+
+    @Test
+    public void generateGarbageEmptyPropsUnderOneParent() {
+        ns.dispose();
+
+        String output = captureSystemOut(new GenerateFullGCCmd(OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
+                OPTION_GARBAGE_TYPE, "1"));
+//        assertTrue(output.contains("DryRun is enabled : true"));
+//        assertTrue(output.contains("ResetFullGC is enabled : false"));
+//        assertTrue(output.contains("Compaction is enabled : false"));
+//        assertTrue(output.contains("starting gc collect"));
+//        assertTrue(output.contains("FullGcMode is : 3"));
+
+        String str = "";
     }
 
     private static class GenerateFullGCCmd implements Runnable {
