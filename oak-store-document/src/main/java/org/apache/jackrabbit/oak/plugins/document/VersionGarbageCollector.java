@@ -1303,6 +1303,9 @@ public class VersionGarbageCollector {
             // in both of these cases we should now delete it. That's all with above return.
             if (!isOrphan) {
                 // nothing to do here
+                if (AUDIT_LOG.isTraceEnabled()) {
+                    AUDIT_LOG.trace("<Skipping> non-orphaned node [{}]", doc.getId());
+                }
                 phases.stop(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES);
                 return false;
             }
@@ -1317,6 +1320,9 @@ public class VersionGarbageCollector {
                     missingDocsTypes.put(geaChildPath, missingType);
                 }
                 if (!missingType) {
+                    if (AUDIT_LOG.isDebugEnabled()) {
+                        AUDIT_LOG.debug("<Skipping> orphaned node [{}] due to non-gap in ancestor [{}]", doc.getId(), geaChildPath);
+                    }
                     // then it is not a gap orphan
                     // nothing to do here then
                     // (even though somewhere along descendants

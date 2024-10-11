@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL;
@@ -178,7 +177,7 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
         when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(1, true));
         when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, true));
 
-        Set<String> principalNames = Sets.newLinkedHashSet(Set.of("a", "b"));
+        Set<String> principalNames = new LinkedHashSet<>(Set.of("a", "b"));
         assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
@@ -204,7 +203,7 @@ public class PermissionCacheBuilderTest extends AbstractCacheTest {
         when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, true));
         when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, false));
 
-        Set<String> principalNames = Sets.newLinkedHashSet(Set.of("a", "b"));
+        Set<String> principalNames = new LinkedHashSet<>(Set.of("a", "b"));
         assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();

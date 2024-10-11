@@ -48,7 +48,7 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     public LuceneIndexWriter newInstance(IndexDefinition def, NodeBuilder definitionBuilder,
                                          CommitInfo commitInfo, boolean reindex) {
         Preconditions.checkArgument(def instanceof LuceneIndexDefinition,
-                "Expected {} but found {} for index definition",
+                "Expected %s but found %s for index definition",
                 LuceneIndexDefinition.class, def.getClass());
 
         LuceneIndexDefinition definition = (LuceneIndexDefinition)def;

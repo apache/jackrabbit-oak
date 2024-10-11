@@ -51,6 +51,9 @@ public class MongoConnectionFactory extends ExternalResource {
 
     @Nullable
     public MongoConnection getConnection(String dbName) {
+        if (DocumentStoreFixture.MongoFixture.SKIP_MONGO) {
+            return null;
+        }
         // first try MongoDB running on configured host and port
         MongoConnection c = MongoUtils.getConnection(dbName);
         if (c == null && MongoDockerRule.isDockerAvailable()) {

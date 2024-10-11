@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -79,8 +79,8 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testSimpleBlob() throws UnsupportedEncodingException {
-        RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", "{}".getBytes("UTF-8"));
+    public void testSimpleBlob() {
+        RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", "{}".getBytes(StandardCharsets.UTF_8));
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals(false, doc.hasBinary());
@@ -91,7 +91,7 @@ public class RDBDocumentSerializerTest {
     public void testSimpleBlobGzipped() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         GZIPOutputStream gos = new GZIPOutputStream(bos);
-        gos.write("{}".getBytes("UTF-8"));
+        gos.write("{}".getBytes(StandardCharsets.UTF_8));
         gos.close();
         RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", bos.toByteArray());
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
@@ -101,9 +101,9 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testSimpleBlob2() throws UnsupportedEncodingException {
+    public void testSimpleBlob2() {
         RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"",
-                "{\"s\":\"string\", \"b\":true, \"i\":1}".getBytes("UTF-8"));
+                "{\"s\":\"string\", \"b\":true, \"i\":1}".getBytes(StandardCharsets.UTF_8));
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals(false, doc.hasBinary());
@@ -114,9 +114,9 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testSimpleBoth() throws UnsupportedEncodingException {
+    public void testSimpleBoth() {
         try {
-            RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L, "{}", "{}".getBytes("UTF-8"));
+            RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L, "{}", "{}".getBytes(StandardCharsets.UTF_8));
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
         } catch (DocumentStoreException expected) {
@@ -124,10 +124,10 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testBlobAndDiff() throws UnsupportedEncodingException {
+    public void testBlobAndDiff() {
         RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L,
                 "\"blob\", [[\"=\", \"foo\", \"bar\"],[\"M\", \"m1\", 1],[\"M\", \"m2\", 3]]",
-                "{\"m1\":2, \"m2\":2}".getBytes("UTF-8"));
+                "{\"m1\":2, \"m2\":2}".getBytes(StandardCharsets.UTF_8));
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("bar", doc.get("foo"));
         assertEquals(2L, doc.get("m1"));
@@ -135,9 +135,9 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testBlobAndDiffBorked() throws UnsupportedEncodingException {
+    public void testBlobAndDiffBorked() {
         try {
-            RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L, "[[\"\", \"\", \"\"]]", "{}".getBytes("UTF-8"));
+            RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L, "[[\"\", \"\", \"\"]]", "{}".getBytes(StandardCharsets.UTF_8));
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
         } catch (DocumentStoreException expected) {
@@ -145,14 +145,14 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testNullModified() throws UnsupportedEncodingException {
+    public void testNullModified() {
         RDBRow row = new RDBRow("_foo", 1L, true, null, 2l, 3l, 0L, 0L, 0L, "{}", null);
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertNull(doc.getModified());
     }
 
     @Test
-    public void testBrokenJSONTrailingComma() throws UnsupportedEncodingException {
+    public void testBrokenJSONTrailingComma() {
         try {
             RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L, "{ \"x\" : 1, }", null);
             this.ser.fromRow(Collection.NODES, row);
@@ -162,7 +162,7 @@ public class RDBDocumentSerializerTest {
     }
 
     @Test
-    public void testBrokenJSONUnquotedIdentifier() throws UnsupportedEncodingException {
+    public void testBrokenJSONUnquotedIdentifier() {
         try {
             RDBRow row = new RDBRow("_foo", 1L, false, 1l, 2l, 3l, 0L, 0L, 0L, "{ x : 1, }", null);
             this.ser.fromRow(Collection.NODES, row);

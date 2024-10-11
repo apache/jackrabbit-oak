@@ -701,7 +701,7 @@ public final class JournalEntry extends Document {
 
         TreeNode(MapFactory mapFactory, TreeNode parent, String name) {
             checkArgument(!name.contains("/"),
-                    "name must not contain '/': {}", name);
+                    "name must not contain '/': %s", name);
 
             this.mapFactory = mapFactory;
             this.parent = parent;

@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeS
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -84,7 +84,7 @@ public class RDBDocumentStoreJDBC {
     private final int queryHitsLimit, queryTimeLimit;
 
     private static final Long INITIALMODCOUNT = Long.valueOf(1);
-    
+
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -665,6 +665,7 @@ public class RDBDocumentStoreJDBC {
             internalClose();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void finalize() throws Throwable {
             try {
@@ -732,7 +733,7 @@ public class RDBDocumentStoreJDBC {
         PreparedStatement stmt = connection.prepareStatement(query.toString());
 
         int si = 1;
-        if (minId != null) {
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             setIdInStatement(tmd, stmt, si++, minId);
         }
         if (maxId != null) {
@@ -982,11 +983,17 @@ public class RDBDocumentStoreJDBC {
         SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
     }
 
+    // some DBs do not accept null character as string
+    private static boolean shouldSkipGreaterthanClauseForId(String id) {
+        return id != null && !"\u0000".equals(id);
+    }
+
     private static String buildWhereClause(String minId, String maxId, List<String> excludeKeyPatterns, List<QueryCondition> conditions) {
         StringBuilder result = new StringBuilder();
 
         String whereSep = "";
-        if (minId != null) {
+
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             result.append("ID > ?");
             whereSep = " and ";
         }
@@ -1050,12 +1057,7 @@ public class RDBDocumentStoreJDBC {
 
     private static String getIdFromRS(RDBTableMetaData tmd, ResultSet rs, int idx) throws SQLException {
         if (tmd.isIdBinary()) {
-            try {
-                return new String(rs.getBytes(idx), "UTF-8");
-            } catch (UnsupportedEncodingException ex) {
-                LOG.error("UTF-8 not supported", ex);
-                throw asDocumentStoreException(ex, "UTF-8 not supported");
-            }
+            return new String(rs.getBytes(idx), StandardCharsets.UTF_8);
         } else {
             return rs.getString(idx);
         }
@@ -1067,7 +1069,7 @@ public class RDBDocumentStoreJDBC {
                 stmt.setBytes(idx, UTF8Encoder.encodeAsByteArray(id));
             } else {
                 if (!UTF8Encoder.canEncode(id)) {
-                    throw new IOException("can not encode as UTF-8");
+                    throw new IOException("can not encode as valid UTF-8");
                 }
                 stmt.setString(idx, id);
             }

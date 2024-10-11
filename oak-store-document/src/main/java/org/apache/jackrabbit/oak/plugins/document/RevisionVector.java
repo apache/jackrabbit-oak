@@ -26,9 +26,9 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -526,7 +526,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         if (revisions.length < 2) {
             return;
         }
-        Set<Integer> known = Sets.newHashSetWithExpectedSize(revisions.length);
+        Set<Integer> known = CollectionUtils.newHashSet(revisions.length);
         for (Revision revision : revisions) {
             if (!known.add(revision.getClusterId())) {
                 throw new IllegalArgumentException(
