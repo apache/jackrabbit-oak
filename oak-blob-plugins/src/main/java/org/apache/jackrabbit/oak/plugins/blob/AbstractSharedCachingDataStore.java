@@ -32,6 +32,7 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +45,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -57,6 +58,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closeables;
@@ -74,6 +78,8 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
  *     &lt;param name="{@link #setUploadThreads(int) uploadThreads}" value="10"/&gt;
  *     &lt;param name="{@link #setStagingPurgeInterval(int) stagingPurgeInterval}" value="300"/&gt;
  *     &lt;param name="{@link #setStagingRetryInterval(int) stagingRetryInterval} " value="600"/&gt;
+ *     &lt;param name="{@link #setRecordCacheSize(long) recordCacheSize}" value="10000"/&gt;
+ *     &lt;param name="{@link #setRecordCacheExpiration(long) recordCacheExpiration}" value="15"/&gt;
  * &lt;/DataStore&gt;
  * </pre>
  */
@@ -145,6 +151,29 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     protected ExecutorService executor;
 
+    /**
+     * DataRecord cache
+     */
+    protected Optional<Cache<String, DataRecord>> recordCache = Optional.empty();
+
+    /**
+     * DataRecord cache size
+     */
+    private long recordCacheSize = SystemPropertySupplier
+            .create("oak.blob.recordcache.size", 0L)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
+
+    /**
+     * DataRecord cache expiration in minutes
+     */
+    private long recordCacheExpiration = SystemPropertySupplier
+            .create("oak.blob.recordcache.expiration", 15)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s minutes", name, value) )
+            .get();
+
     public void init(String homeDir) throws DataStoreException {
         if (path == null) {
             path = homeDir + "/repository/datastore";
@@ -178,6 +207,13 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 }
             }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
                 stagingRetryInterval);
+        if (recordCacheSize > 0) {
+            this.recordCache = Optional.of(CacheBuilder
+                    .newBuilder()
+                    .maximumSize(recordCacheSize)
+                    .expireAfterAccess(recordCacheExpiration, TimeUnit.MINUTES)
+                    .build());
+        }
     }
 
     protected abstract AbstractSharedBackend createBackend();
@@ -207,7 +243,12 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         } else {
             // Return the metadata from backend and lazily load the stream
             try {
-                DataRecord rec = backend.getRecord(dataIdentifier);
+                DataRecord rec;
+                if (recordCache.isPresent()) {
+                    rec = recordCache.get().get(dataIdentifier.toString(), () -> backend.getRecord(dataIdentifier));
+                } else {
+                    rec = backend.getRecord(dataIdentifier);
+                }
                 return new FileCacheDataRecord(this, backend, dataIdentifier, rec.getLength(),
                     tmp, rec.getLastModified());
             } catch (Exception e) {
@@ -282,6 +323,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     @Override
     public void deleteRecord(DataIdentifier dataIdentifier) throws DataStoreException {
         cache.invalidate(dataIdentifier.toString());
+        recordCache.ifPresent( c -> c.invalidate(dataIdentifier.toString()) );
         backend.deleteRecord(dataIdentifier);
     }
 
@@ -409,6 +451,14 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     public void setStatisticsProvider(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
+    }
+
+    public void setRecordCacheSize(long recordCacheSize) {
+        this.recordCacheSize = recordCacheSize;
+    }
+
+    public void setRecordCacheExpiration(long recordCacheExpiration) {
+        this.recordCacheExpiration = recordCacheExpiration;
     }
 
     /**------------------------ SharedDataStore methods -----------------------------------------**/

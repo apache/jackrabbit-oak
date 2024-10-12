@@ -99,6 +99,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     private void init(int i, int cacheSize, int uploadSplit) throws Exception {
+        init(i, cacheSize, uploadSplit, 0L);
+    }
+
+    private void init(int i, int cacheSize, int uploadSplit, long recordCacheSize) throws Exception {
         LOG.info("Starting init");
 
         // create executor
@@ -136,6 +140,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.executor = newDirectExecutorService();
         dsPath = new File(root.getAbsolutePath(), "ds").getAbsolutePath();
         dataStore.setPath(dsPath);
+        dataStore.setRecordCacheSize(recordCacheSize);
         dataStore.init(root.getAbsolutePath());
 
         LOG.info("Finished init");
@@ -637,5 +642,40 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void testRecordCacheInGetRecordIfStored() throws Exception {
+        // we have to initialise the datastore with the recordCache enabled
+        tear();
+
+        final File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        final String id = getIdForInputStream(f);
+        final DataIdentifier di = new DataIdentifier(id);
+
+        init(1, 64 * 1024 * 1024, 10, 10000L);
+        // we write directly to the backend because that's the situation we have in a shared remote datastore:
+        // the file was already written by a different datastore but isn't present in the datastore.cache.
+        backend.write(di, f);
+
+        assertTrue("The datastore was initialised with a recordCacheSize of 10000 but the recordCache is not present",
+                dataStore.recordCache.isPresent());
+        assertNull("Record with id " + id + " should not be in the recordCache yet",
+                dataStore.recordCache.get().getIfPresent(id));
+        assertNotNull("The record could not be loaded from the backend",
+                dataStore.getRecordIfStored(di));
+        assertNotNull("Record with id " + id + " should be in the recordCache now",
+                dataStore.recordCache.get().getIfPresent(id));
+        // make sure the record is loaded from the record cache
+        backend.deleteRecord(di);
+        dataStore.cache.invalidate(id);
+        assertNull("Record with id " + id + " should not be in the backend anymore",
+                backend.getRecord(di));
+        assertNotNull("The record could not be loaded from the cache",
+                dataStore.getRecordIfStored(di));
+        // make sure the record is no longer cached after deletion
+        dataStore.deleteRecord(di);
+        assertNull("The record could be loaded from the cache after deletion",
+                dataStore.getRecordIfStored(di));
     }
 }
