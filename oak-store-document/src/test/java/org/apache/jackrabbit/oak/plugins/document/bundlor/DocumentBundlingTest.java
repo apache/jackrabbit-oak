@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.document.NamePathRev;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RandomStream;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
+import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -64,6 +65,7 @@ import org.h2.mvstore.WriteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -855,6 +857,53 @@ public class DocumentBundlingTest {
         assertThat(names, containsInAnyOrder("jcr:primaryType"));
     }
 
+    @Ignore("OAK-10499")
+    @Test
+    public void deleteBundledWithDescendantsAndRecreateAsNonBundledNode() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder asset = newNode("app:Asset");
+        createChild(asset,
+                "jcr:content",
+                "jcr:content/comments" //not bundled
+        );
+        builder.child("test").setChildNode("book.jpg", asset.getNodeState());
+
+        merge(builder);
+        store.runBackgroundOperations();
+
+        // delete it using another clusterId
+        DocumentNodeStore store2 = builderProvider
+                .newBuilder()
+                .setDocumentStore(ds)
+                .setClusterId(2)
+                .setAsyncDelay(0)
+                .memoryCacheSize(0)
+                .getNodeStore();
+
+        builder = store2.getRoot().builder();
+        asset = builder.getChildNode("test").getChildNode("book.jpg");
+        assertTrue(asset.exists());
+        assertTrue(asset.remove());
+        TestUtils.merge(store2, builder);
+        store2.runBackgroundOperations();
+
+        // now add book.jpg again, but as non-bundled node
+        store.runBackgroundOperations();
+        builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("oak:Unstructured");
+        // adding a node under jcr:content is necessary to trigger
+        // the issue this test is supposed to detect
+        fileNode.child("jcr:content").child("foo");
+        builder.getChildNode("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+        store.runBackgroundOperations();
+
+        // must not resurrect non-bundled comments node
+        store2.runBackgroundOperations();
+        builder = store2.getRoot().builder();
+        assertFalse(getNodeBuilder(builder, "test/book.jpg/jcr:content/comments").exists());
+    }
+
     private Set<String> propertyNamesFor(String path) {
         Set<String> names = new HashSet<>();
         for (PropertyState p : getLatestNode(path).getProperties()) {
@@ -1061,6 +1110,13 @@ public class DocumentBundlingTest {
     private static NodeBuilder newNtFileWithContent() {
         NodeBuilder builder = newNode("nt:file");
         builder.child("jcr:content").setProperty("jcr:data", "test");
+        return builder;
+    }
+
+    private static NodeBuilder getNodeBuilder(NodeBuilder builder, String path) {
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.getChildNode(name);
+        }
         return builder;
     }
 
