@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -824,7 +825,7 @@ public final class JournalEntry extends Document {
         MapFactory CONCURRENT = new MapFactory() {
             @Override
             public Map<String, TreeNode> newMap() {
-                return Maps.newConcurrentMap();
+                return new ConcurrentHashMap<>();
             }
         };
 
