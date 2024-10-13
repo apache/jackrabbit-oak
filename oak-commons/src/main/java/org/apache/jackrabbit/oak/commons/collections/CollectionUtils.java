@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -97,6 +98,20 @@ public class CollectionUtils {
     public static <T> Set<T> toLinkedSet(@NotNull  final Iterable<T> iterable) {
         Objects.requireNonNull(iterable);
         final Set<T> result = new LinkedHashSet<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
+     * Convert an iterable to a {@link java.util.TreeSet}. The returning set is mutable and supports all optional operations.
+     * @param iterable the iterable to convert
+     * @return the treeSet
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T extends Comparable> TreeSet<T> toTreeSet(@NotNull  final Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        final TreeSet<T> result = new TreeSet<>();
         iterable.forEach(result::add);
         return result;
     }
