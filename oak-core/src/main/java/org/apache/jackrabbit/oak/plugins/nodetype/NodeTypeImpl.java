@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -209,7 +210,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public NodeType[] getSupertypes() {
-        Map<String, NodeType> supertypes = Maps.newLinkedHashMap();
+        Map<String, NodeType> supertypes = new LinkedHashMap<>();
         addSupertypes(definition, supertypes);
         return supertypes.values().toArray(NO_NODE_TYPES);
     }

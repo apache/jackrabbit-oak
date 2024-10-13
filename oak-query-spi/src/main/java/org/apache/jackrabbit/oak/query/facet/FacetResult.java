@@ -34,6 +34,7 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,7 +110,7 @@ public class FacetResult {
     private void parseJson(String dimension, String jsonFacetString) {
         JsopTokenizer jsopTokenizer = new JsopTokenizer(jsonFacetString);
         List<Facet> facets = perDimFacets.get(dimension);
-        Map<String, Facet> facetsMap = Maps.newLinkedHashMap();
+        Map<String, Facet> facetsMap = new LinkedHashMap<>();
         if (facets != null) {
             for (Facet facet : facets) {
                 if (!facetsMap.containsKey(facet.getLabel())) {

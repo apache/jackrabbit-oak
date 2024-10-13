@@ -20,9 +20,9 @@ package org.apache.jackrabbit.oak.scalability.suites;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 
 import java.io.PrintStream;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +135,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     private RepositoryFixture fixture;
 
     protected ScalabilityAbstractSuite() {
-        this.benchmarks = newLinkedHashMap();
+        this.benchmarks = new LinkedHashMap<>();
     }
 
     @Override
@@ -429,7 +429,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         private final Map<ScalabilityBenchmark, DescriptiveStatistics> stats;
 
         public Result() {
-            this.stats = newLinkedHashMap();
+            this.stats = new LinkedHashMap<>();
         }
 
         public void addBenchmarkStatistics(ScalabilityBenchmark benchmark,

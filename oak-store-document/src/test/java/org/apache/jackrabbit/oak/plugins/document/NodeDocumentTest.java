@@ -20,6 +20,7 @@ import java.lang.ref.ReferenceQueue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -46,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
@@ -978,7 +978,7 @@ public class NodeDocumentTest {
     @Test
     public void tooManyReadsOnGetVisibleChangesWithLongRunningBranchCommit() throws Exception {
         int numChanges = 843;
-        final Map<String, Document> prevDocCalls = newLinkedHashMap();
+        final Map<String, Document> prevDocCalls = new LinkedHashMap<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1045,7 +1045,7 @@ public class NodeDocumentTest {
 
     @Test
     public void readsWithOverlappingPreviousDocuments() throws Exception {
-        final Map<String, Document> prevDocCalls = newLinkedHashMap();
+        final Map<String, Document> prevDocCalls = new LinkedHashMap<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,

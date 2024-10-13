@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
@@ -365,7 +364,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private Map<String, NodeId> createNodes(NodePropBundle bundle) {
-        Map<String, NodeId> children = newLinkedHashMap();
+        Map<String, NodeId> children = new LinkedHashMap<>();
         for (ChildNodeEntry entry : bundle.getChildNodeEntries()) {
             String base = createName(entry.getName());
             String name = base;
