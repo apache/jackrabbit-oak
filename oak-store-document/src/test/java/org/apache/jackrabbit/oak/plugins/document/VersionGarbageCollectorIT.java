@@ -1618,7 +1618,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1701,7 +1701,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -3621,7 +3621,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
@@ -3654,7 +3654,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
