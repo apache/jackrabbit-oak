@@ -48,10 +48,10 @@ public class MongoConnection {
 
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
-    
+
     // TODO why using a non-sense "w"? values for w should those listed in the head comment of WriteConcern...
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
-    
+
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final ConnectionString mongoURI;
     private final MongoClient mongo;

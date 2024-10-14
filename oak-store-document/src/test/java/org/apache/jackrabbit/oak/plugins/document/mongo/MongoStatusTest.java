@@ -1,13 +1,18 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work
- * for additional information regarding copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License. You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
@@ -99,8 +104,7 @@ public class MongoStatusTest {
 
     @Test
     public void testGetVersion() {
-        assertTrue(status.getVersion()
-                .matches("^\\d+\\.\\d+\\.\\d+$"));
+        assertTrue(status.getVersion().matches("^\\d+\\.\\d+\\.\\d+$"));
     }
 
     @Test
@@ -140,55 +144,53 @@ public class MongoStatusTest {
                     }
 
                     @Override
-                    public @NotNull Document runCommand(@NotNull Bson command,
-                            @NotNull ReadPreference readPreference) {
+                    public @NotNull Document runCommand(@NotNull Bson command, @NotNull ReadPreference readPreference) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(command, readPreference);
                     }
 
                     @Override
-                    public <TResult> @NotNull TResult runCommand(@NotNull Bson command,
-                            @NotNull Class<TResult> tResultClass) {
+                    public <TResult> @NotNull TResult runCommand(@NotNull Bson command, @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(command, tResultClass);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull Bson command,
-                            @NotNull ReadPreference readPreference,
-                            @NotNull Class<TResult> tResultClass) {
+                                                                 @NotNull ReadPreference readPreference,
+                                                                 @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(command, readPreference, tResultClass);
                     }
 
                     @Override
                     public @NotNull Document runCommand(@NotNull ClientSession clientSession,
-                            @NotNull Bson command) {
+                                                       @NotNull Bson command) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command);
                     }
 
                     @Override
                     public @NotNull Document runCommand(@NotNull ClientSession clientSession,
-                            @NotNull Bson command,
-                            @NotNull ReadPreference readPreference) {
+                                                        @NotNull Bson command,
+                                                        @NotNull ReadPreference readPreference) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command, readPreference);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull ClientSession clientSession,
-                            @NotNull Bson command,
-                            @NotNull Class<TResult> tResultClass) {
+                                                                 @NotNull Bson command,
+                                                                 @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command, tResultClass);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull ClientSession clientSession,
-                            @NotNull Bson command,
-                            @NotNull ReadPreference readPreference,
-                            @NotNull Class<TResult> tResultClass) {
+                                                                 @NotNull Bson command,
+                                                                 @NotNull ReadPreference readPreference,
+                                                                 @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command, readPreference, tResultClass);
                     }
@@ -202,16 +204,16 @@ public class MongoStatusTest {
                     response.put("errmsg", new BsonString("command serverStatus requires authentication"));
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
-                    
+
                     ServerAddress address = null;
                     ClusterDescription clusterDescription = getClusterDescription();
                     for (Iterator<ServerDescription> iterator = clusterDescription.getServerDescriptions().iterator(); iterator.hasNext();) {
                         ServerDescription serverDescription = iterator.next();
-                        
+
                         address = serverDescription.getAddress();
                         break;
                     }
-                    
+
                     if (address == null) {
                         // OAK-8459: use dummy/default address instead
                         address = new ServerAddress();

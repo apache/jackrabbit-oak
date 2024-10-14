@@ -560,7 +560,7 @@
         <groupId>org.mongodb</groupId>
         <artifactId>mongodb-driver-sync</artifactId>
         <version>${mongo.driver.version}</version>
-      </dependency>      
+      </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>

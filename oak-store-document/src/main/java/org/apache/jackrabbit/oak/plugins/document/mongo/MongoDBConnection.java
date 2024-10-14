@@ -36,7 +36,8 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
 
 /**
- * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and {@code MongoStatus}.
+ * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and
+ * {@code MongoStatus}.
  */
 final class MongoDBConnection {
 

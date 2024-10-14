@@ -333,8 +333,8 @@ public class DocumentNodeStoreService {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                        "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
-                        "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
+                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
+                                "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
                         journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
                         config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
@@ -483,36 +483,35 @@ public class DocumentNodeStoreService {
         String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
         String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
         final Tracker<LeaseFailureHandler> leaseFailureHandlerTracker = whiteboard.track(LeaseFailureHandler.class);
-        builder.setStatisticsProvider(statisticsProvider)
-                .setExecutor(executor)
-                .memoryCacheSize(config.cache() * MB)
-                .memoryCacheDistribution(
+        builder.setStatisticsProvider(statisticsProvider).
+                setExecutor(executor).
+                memoryCacheSize(config.cache() * MB).
+                memoryCacheDistribution(
                         config.nodeCachePercentage(),
                         config.prevDocCachePercentage(),
                         config.childrenCachePercentage(),
-                        config.diffCachePercentage())
-                .setCacheSegmentCount(config.cacheSegmentCount())
-                .setCacheStackMoveDistance(config.cacheStackMoveDistance())
-                .setBundlingDisabled(config.bundlingDisabled())
-                .setJournalPropertyHandlerFactory(journalPropertyHandlerFactory)
-                .setLeaseCheckMode(
-                        ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode()))
-                .setPrefetchFeature(prefetchFeature)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
-                .setNoChildOrderCleanupFeature(noChildOrderCleanupFeature)
-                .setCancelInvalidationFeature(cancelInvalidationFeature)
-                .setDocStoreFullGCFeature(docStoreFullGCFeature)
-                .setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature)
-                .setThrottlingEnabled(config.throttlingEnabled())
-                .setFullGCEnabled(config.fullGCEnabled())
-                .setFullGCIncludePaths(config.fullGCIncludePaths())
-                .setFullGCExcludePaths(config.fullGCExcludePaths())
-                .setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled())
-                .setFullGCMode(config.fullGCMode())
-                .setSuspendTimeoutMillis(config.suspendTimeoutMillis())
-                .setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis())
-                .setRecoveryDelayMillis(config.recoveryDelayMillis())
-                .setLeaseFailureHandler(new LeaseFailureHandler() {
+                        config.diffCachePercentage()).
+                setCacheSegmentCount(config.cacheSegmentCount()).
+                setCacheStackMoveDistance(config.cacheStackMoveDistance()).
+                setBundlingDisabled(config.bundlingDisabled()).
+                setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
+                setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
+                setPrefetchFeature(prefetchFeature).
+                setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+                setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
+                setCancelInvalidationFeature(cancelInvalidationFeature).
+                setDocStoreFullGCFeature(docStoreFullGCFeature).
+                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
+                setThrottlingEnabled(config.throttlingEnabled()).
+                setFullGCEnabled(config.fullGCEnabled()).
+                setFullGCIncludePaths(config.fullGCIncludePaths()).
+                setFullGCExcludePaths(config.fullGCExcludePaths()).
+                setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
+                setFullGCMode(config.fullGCMode()).
+                setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
+                setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
+                setRecoveryDelayMillis(config.recoveryDelayMillis()).
+                setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
 
@@ -541,11 +540,11 @@ public class DocumentNodeStoreService {
                             }
                         }
                     }
-                })
-                .setPrefetchExternalChanges(config.prefetchExternalChanges())
-                .setUpdateLimit(config.updateLimit())
-                .setJournalGCMaxAge(config.journalGCMaxAge())
-                .setNodeCachePathPredicate(createCachePredicate());
+                }).
+                setPrefetchExternalChanges(config.prefetchExternalChanges()).
+                setUpdateLimit(config.updateLimit()).
+                setJournalGCMaxAge(config.journalGCMaxAge()).
+                setNodeCachePathPredicate(createCachePredicate());
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
