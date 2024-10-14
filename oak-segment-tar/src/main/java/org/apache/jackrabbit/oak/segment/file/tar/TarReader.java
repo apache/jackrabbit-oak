@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
@@ -97,7 +96,7 @@ public class TarReader implements Closeable {
 
         // no generation has a valid index, so recover as much as we can
         log.warn("Could not find a valid tar index in {}, recovering...", list);
-        LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+        LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
         for (String file : sorted.values()) {
             collectFileEntries(file, entries, true, archiveManager);
         }
@@ -128,7 +127,7 @@ public class TarReader implements Closeable {
             log.info("Could not find a valid tar index in {}, recovering read-only", archiveName);
             // collecting the entries (without touching the original file) and
             // writing them into an artificial tar file '.ro.bak'
-            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+            LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
             collectFileEntries(archiveName, entries, false, segmentArchiveManager);
             String bakFile = findAvailGen(archiveName, ".ro.bak", segmentArchiveManager);
             generateTarFile(entries, bakFile, recovery, segmentArchiveManager);

@@ -2391,7 +2391,7 @@ public class VersionGarbageCollector {
             int lastLoggedCount = 0;
             int recreatedCount = 0;
             while (idListItr.hasNext() && !cancel.get()) {
-                Map<String, Long> deletionBatch = Maps.newLinkedHashMap();
+                Map<String, Long> deletionBatch = new LinkedHashMap<>();
                 for (String s : idListItr.next()) {
                     Map.Entry<String, Long> parsed;
                     try {
