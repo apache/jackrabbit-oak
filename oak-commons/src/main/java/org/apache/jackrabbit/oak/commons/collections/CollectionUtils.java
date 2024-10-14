@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,6 +33,7 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -198,6 +200,14 @@ public class CollectionUtils {
     public static <K> Set<K> newLinkedHashSet(final int capacity) {
         // make sure the set does not need to be resized given the initial content
         return new LinkedHashSet<>(ensureCapacity(capacity));
+    }
+
+    /**
+     * Creates a new, empty IdentityHashSet with default size.
+     */
+    @NotNull
+    public static <E> Set<E> newIdentityHashSet() {
+        return Collections.newSetFromMap(Maps.newIdentityHashMap());
     }
 
     /**
