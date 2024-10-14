@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.scalability.suites;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 
 import java.io.PrintStream;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -514,7 +514,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     public static class ExecutionContext {
         private Profiler profiler;
         private final AtomicLong iteration = new AtomicLong();
-        private Map<Object, Object> map = newConcurrentMap();
+        private Map<Object, Object> map = new ConcurrentHashMap<>();
 
         protected void setIncrement(int increment) {
             iteration.getAndSet(increment);

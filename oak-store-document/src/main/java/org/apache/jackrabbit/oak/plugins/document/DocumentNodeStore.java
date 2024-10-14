@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -306,8 +307,7 @@ public final class DocumentNodeStore
      * by {@link #updateClusterState()}.
      * Key: clusterId, value: ClusterNodeInfoDocument
      */
-    private final ConcurrentMap<Integer, ClusterNodeInfoDocument> clusterNodes
-            = Maps.newConcurrentMap();
+    private final ConcurrentMap<Integer, ClusterNodeInfoDocument> clusterNodes = new ConcurrentHashMap<>();
 
     /**
      * Unmerged branches of this DocumentNodeStore instance.
@@ -328,7 +328,7 @@ public final class DocumentNodeStore
     /**
      * Set of IDs for documents that may need to be split.
      */
-    private final Map<String, String> splitCandidates = Maps.newConcurrentMap();
+    private final Map<String, String> splitCandidates = new ConcurrentHashMap<>();
 
     /**
      * Summary of changes done by this cluster node to persist by the background

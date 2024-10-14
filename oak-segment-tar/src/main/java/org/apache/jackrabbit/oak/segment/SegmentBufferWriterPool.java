@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 import static java.lang.Thread.currentThread;
 
@@ -32,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -122,7 +122,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
          * Pool of writers. Every thread is assigned a unique writer per GC generation, therefore only requiring
          * a concurrent map to synchronize access to them.
          */
-        private final ConcurrentMap<Object, SegmentBufferWriter> writers = newConcurrentMap();
+        private final ConcurrentMap<Object, SegmentBufferWriter> writers = new ConcurrentHashMap<>();
 
         public ThreadSpecificSegmentBufferWriterPool(
                 @NotNull SegmentIdProvider idProvider,
