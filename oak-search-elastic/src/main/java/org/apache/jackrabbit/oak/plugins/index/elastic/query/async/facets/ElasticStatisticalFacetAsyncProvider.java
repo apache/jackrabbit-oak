@@ -84,7 +84,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                         s.field(fs -> fs.field(
                                 ElasticIndexDefinition.PATH_RANDOM_VALUE)
                                 // this will handle the case when the field is not present in the index
-                                .unmappedType(FieldType.Short)
+                                .unmappedType(FieldType.Integer)
                         )
                 )
         );

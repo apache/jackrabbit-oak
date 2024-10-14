@@ -97,7 +97,7 @@ class ElasticIndexHelper {
         builder.properties(FieldNames.PATH,
                         b1 -> b1.keyword(builder3 -> builder3))
                 .properties(ElasticIndexDefinition.PATH_RANDOM_VALUE,
-                        b1 -> b1.short_(b2 -> b2.docValues(true).index(false)))
+                        b1 -> b1.integer(b2 -> b2.docValues(true).index(false)))
                 .properties(FieldNames.ANCESTORS,
                         b1 -> b1.text(
                                 b2 -> b2.analyzer("ancestor_analyzer")

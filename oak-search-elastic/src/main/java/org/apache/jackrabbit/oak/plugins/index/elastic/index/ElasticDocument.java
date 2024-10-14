@@ -19,14 +19,15 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,7 @@ public class ElasticDocument {
     @JsonProperty(FieldNames.PATH)
     public final String path;
     @JsonProperty(ElasticIndexDefinition.PATH_RANDOM_VALUE)
-    public final short pathRandomValue;
+    public final int pathRandomValue;
     @JsonProperty(FieldNames.FULLTEXT)
     public final Set<String> fulltext;
     @JsonProperty(FieldNames.SUGGEST)
@@ -61,7 +62,7 @@ public class ElasticDocument {
 
     ElasticDocument(String path) {
         this.path = path;
-        this.pathRandomValue = ElasticIndexUtils.getRandomShortFromString(path);
+        this.pathRandomValue = Hashing.murmur3_32_fixed(300).hashString(path, StandardCharsets.UTF_8).asInt();
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();

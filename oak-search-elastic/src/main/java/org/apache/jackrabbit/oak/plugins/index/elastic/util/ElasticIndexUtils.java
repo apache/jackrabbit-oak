@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -51,31 +50,6 @@ public class ElasticIndexUtils {
             }
         }
         return path;
-    }
-
-    /**
-     * Generates a consistent short value based on a given string using the SHA-256 algorithm.
-     * The generated value  is a 16-bit integer ranging from -32,768 to 32,767.
-     *
-     * @param input the input string to be hashed
-     * @return a short value from the input string
-     * @throws IllegalStateException if the SHA-256 algorithm is not available
-     */
-    public static short getRandomShortFromString(String input) {
-        try {
-            // Get a SHA-256 MessageDigest instance
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-
-            // Compute the hash of the input string
-            byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
-
-            // Convert the first 2 bytes of the hash to an integer value
-            int hashValue = (hash[0] & 0xFF) << 8 | (hash[1] & 0xFF);
-
-            return (short) hashValue;
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     /**
