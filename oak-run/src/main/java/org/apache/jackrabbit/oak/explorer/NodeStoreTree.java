@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
@@ -43,9 +42,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.JTree;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -481,7 +484,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
     }
 
     private static void filterNodeStates(Set<UUID> uuids, List<String> paths, NodeState state, String path, ExplorerBackend store) {
-        Set<String> localPaths = newTreeSet();
+        Set<String> localPaths = new TreeSet<>();
         for (PropertyState ps : state.getProperties()) {
             if (store.isPersisted(ps)) {
                 String recordId = store.getRecordId(ps);

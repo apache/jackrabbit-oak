@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -58,7 +59,6 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -1975,7 +1975,7 @@ public final class NodeDocument extends Document {
         // overlay with unsaved last modified from this instance
         lastRevs.update(pendingLastRev);
         // collect clusterIds
-        SortedSet<Revision> mostRecentChanges = Sets.newTreeSet(REVERSE);
+        SortedSet<Revision> mostRecentChanges = new TreeSet<>(REVERSE);
         mostRecentChanges.addAll(getLocalRevisions().keySet());
         mostRecentChanges.addAll(getLocalCommitRoot().keySet());
         Set<Integer> clusterIds = new HashSet<>();

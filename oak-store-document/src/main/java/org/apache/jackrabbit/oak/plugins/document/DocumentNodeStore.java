@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -1680,7 +1681,7 @@ public final class DocumentNodeStore
                 }
             } else {
                 DocumentNodeState.Children c = new DocumentNodeState.Children();
-                Set<String> set = Sets.newTreeSet();
+                Set<String> set = new TreeSet<>();
                 for (Path p : added) {
                     set.add(p.getName());
                 }
@@ -1729,7 +1730,7 @@ public final class DocumentNodeStore
                     nodeChildrenCache.put(afterKey, children);
                 } else if (!children.hasMore){
                     // list is complete. use before children as basis
-                    Set<String> afterChildren = Sets.newTreeSet(children.children);
+                    Set<String> afterChildren = new TreeSet<>(children.children);
                     for (Path p : added) {
                         afterChildren.add(p.getName());
                     }
@@ -2974,7 +2975,7 @@ public final class DocumentNodeStore
 
         // are there in-doubt commit revisions that are older than
         // the current head revision?
-        SortedSet<Revision> garbage = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
+        SortedSet<Revision> garbage = new TreeSet<>(StableRevisionComparator.INSTANCE);
         for (Revision r : inDoubtTrunkCommits) {
             if (r.compareRevisionTime(head) < 0) {
                 garbage.add(r);
