@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoIncompatibleDriverException;
 import com.mongodb.MongoInterruptedException;
@@ -204,7 +203,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
 
-    private final MongoClientURI mongoClientURI;
+    private final ConnectionString mongoClientURI;
     private final MongoDocumentStore docStore;
     private final int maxBatchSizeBytes;
     private final int maxBatchNumberOfDocuments;
@@ -229,7 +228,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final DownloadStageStatistics downloadStageStatistics = new DownloadStageStatistics();
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
 
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+    public PipelinedMongoDownloadTask(ConnectionString mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
@@ -240,7 +239,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this(mongoClientURI, docStore, maxBatchSizeBytes, maxBatchNumberOfDocuments, queue, pathFilters, statisticsProvider, reporter, new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+    public PipelinedMongoDownloadTask(ConnectionString mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
@@ -343,7 +342,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             );
 
             MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder()
-                    .applyConnectionString(new ConnectionString(mongoClientURI.getURI()))
+                    .applyConnectionString(mongoClientURI)
                     .readPreference(ReadPreference.secondaryPreferred());
             if (parallelDump && parallelDumpSecondariesOnly) {
                 // Set a custom server selector that is able to distribute the two connections between the two secondaries.

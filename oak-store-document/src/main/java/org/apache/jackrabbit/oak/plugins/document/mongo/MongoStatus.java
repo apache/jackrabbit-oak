@@ -20,7 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ClientSessionOptions;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.MongoClientException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoQueryException;

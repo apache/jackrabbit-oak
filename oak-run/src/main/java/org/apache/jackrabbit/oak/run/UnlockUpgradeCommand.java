@@ -22,8 +22,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import com.mongodb.MongoClientURI;
-
+import com.mongodb.ConnectionString;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.run.commons.Command;
@@ -38,7 +37,6 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
-import static com.mongodb.MongoURI.MONGODB_PREFIX;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.VERSION;
 
@@ -74,12 +72,12 @@ class UnlockUpgradeCommand implements Command {
         DocumentStore store = null;
         try {
             String uri = nonOptions.get(0);
-            if (uri.startsWith(MONGODB_PREFIX)) {
-                MongoClientURI clientURI = new MongoClientURI(uri);
+            if (uri.startsWith("mongodb://")) {
+                ConnectionString clientURI = new ConnectionString(uri);
                 if (clientURI.getDatabase() == null) {
-                    System.err.println("Database missing in MongoDB URI: " + clientURI.getURI());
+                    System.err.println("Database missing in MongoDB URI: " + clientURI);
                 } else {
-                    MongoConnection mongo = new MongoConnection(clientURI.getURI());
+                    MongoConnection mongo = new MongoConnection(uri);
                     store = new MongoDocumentStore(
                             mongo.getMongoClient(), mongo.getDatabase(),
                             new MongoDocumentNodeStoreBuilder());

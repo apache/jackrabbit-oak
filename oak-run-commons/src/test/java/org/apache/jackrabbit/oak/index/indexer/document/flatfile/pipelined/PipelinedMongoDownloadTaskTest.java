@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.MongoClient;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -336,8 +336,8 @@ public class PipelinedMongoDownloadTaskTest {
             throw new AssertionError("One of the bson is null. Actual: " + actual + ", expected: " + expected);
         }
         assertEquals(
-                actual.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry()),
-                expected.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry())
+                actual.toBsonDocument(BsonDocument.class, MongoClientSettings.getDefaultCodecRegistry()),
+                expected.toBsonDocument(BsonDocument.class, MongoClientSettings.getDefaultCodecRegistry())
         );
     }
 

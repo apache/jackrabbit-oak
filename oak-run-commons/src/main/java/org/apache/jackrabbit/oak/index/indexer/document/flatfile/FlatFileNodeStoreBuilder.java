@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -112,7 +112,7 @@ public class FlatFileNodeStoreBuilder {
     private String checkpoint;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
-    private MongoClientURI mongoClientURI;
+    private ConnectionString mongoClientURI;
     private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
@@ -191,7 +191,7 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withMongoClientURI(MongoClientURI mongoClientURI) {
+    public FlatFileNodeStoreBuilder withMongoClientURI(ConnectionString mongoClientURI) {
         this.mongoClientURI = mongoClientURI;
         return this;
     }

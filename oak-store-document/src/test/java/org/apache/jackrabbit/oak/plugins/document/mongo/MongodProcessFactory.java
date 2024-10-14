@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongodProcess.join;
+import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -25,15 +27,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import com.mongodb.MongoClient;
-
 import org.bson.Document;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodStarter;
 import de.flapdoodle.embed.mongo.config.Defaults;
@@ -42,9 +42,6 @@ import de.flapdoodle.embed.process.io.directories.Directory;
 import de.flapdoodle.embed.process.io.directories.FixedPath;
 import de.flapdoodle.embed.process.io.progress.Slf4jProgressListener;
 import de.flapdoodle.embed.process.runtime.Network;
-
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongodProcess.join;
-import static org.junit.Assert.assertTrue;
 
 /**
  * External resource for mongod processes.
@@ -145,7 +142,7 @@ public class MongodProcessFactory extends ExternalResource {
         }
         Document config = new Document("_id", rs);
         config.append("members", members);
-        try (MongoClient c = new MongoClient(localhost(), ports[0])) {
+        try (MongoClient c = MongoClients.create("mongodb://" + localhost() + ":" + ports[0])) {
             c.getDatabase("admin").runCommand(
                     new Document("replSetInitiate", config));
         }

@@ -17,8 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
 import com.mongodb.ReadConcern;
@@ -31,12 +36,14 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.DistinctIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.ListIndexesIterable;
+import com.mongodb.client.ListSearchIndexesIterable;
 import com.mongodb.client.MapReduceIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.CreateIndexOptions;
 import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.DropCollectionOptions;
 import com.mongodb.client.model.DropIndexOptions;
 import com.mongodb.client.model.EstimatedDocumentCountOptions;
 import com.mongodb.client.model.FindOneAndDeleteOptions;
@@ -48,16 +55,13 @@ import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.InsertOneOptions;
 import com.mongodb.client.model.RenameCollectionOptions;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.SearchIndexModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.InsertManyResult;
+import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
-
-import org.bson.Document;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.conversions.Bson;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
 
@@ -141,44 +145,6 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
     @Override
     public MongoCollection<TDocument> withReadConcern(@NotNull ReadConcern readConcern) {
         return new MongoTestCollection<>(collection.withReadConcern(readConcern), beforeQueryException, beforeUpdateException, afterUpdateException);
-    }
-
-    @Override
-    @Deprecated
-    public long count() {
-        return collection.count();
-    }
-
-    @Override
-    @Deprecated
-    public long count(@NotNull Bson filter) {
-        return collection.count(filter);
-    }
-
-    @Override
-    @Deprecated
-    public long count(@NotNull Bson filter, @NotNull CountOptions options) {
-        return collection.count(filter, options);
-    }
-
-    @Override
-    @Deprecated
-    public long count(@NotNull ClientSession clientSession) {
-        return collection.count(clientSession);
-    }
-
-    @Override
-    @Deprecated
-    public long count(@NotNull ClientSession clientSession, @NotNull Bson filter) {
-        return collection.count(clientSession, filter);
-    }
-
-    @Override
-    @Deprecated
-    public long count(@NotNull ClientSession clientSession,
-                      @NotNull Bson filter,
-                      @NotNull CountOptions options) {
-        return collection.count(clientSession, filter, options);
     }
 
     @Override
@@ -472,65 +438,73 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
     }
 
     @Override
-    public void insertOne(@NotNull TDocument tDocument) {
+    public InsertOneResult insertOne(@NotNull TDocument tDocument) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertOne(tDocument);
+        InsertOneResult insertOne = collection.insertOne(tDocument);
         maybeThrowExceptionAfterUpdate();
+        return insertOne;
     }
 
     @Override
-    public void insertOne(@NotNull TDocument tDocument, @NotNull InsertOneOptions options) {
+    public InsertOneResult insertOne(@NotNull TDocument tDocument, @NotNull InsertOneOptions options) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertOne(tDocument, options);
+        InsertOneResult insertOne = collection.insertOne(tDocument, options);
         maybeThrowExceptionAfterUpdate();
+        return insertOne;
     }
 
     @Override
-    public void insertOne(@NotNull ClientSession clientSession, @NotNull TDocument tDocument) {
+    public InsertOneResult insertOne(@NotNull ClientSession clientSession, @NotNull TDocument tDocument) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertOne(clientSession, tDocument);
+        InsertOneResult insertOne = collection.insertOne(clientSession, tDocument);
         maybeThrowExceptionAfterUpdate();
+        return insertOne;
     }
 
     @Override
-    public void insertOne(@NotNull ClientSession clientSession,
+    public InsertOneResult insertOne(@NotNull ClientSession clientSession,
                           @NotNull TDocument tDocument,
                           @NotNull InsertOneOptions options) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertOne(clientSession, tDocument, options);
+        InsertOneResult insertOne = collection.insertOne(clientSession, tDocument, options);
         maybeThrowExceptionAfterUpdate();
+        return insertOne;
     }
 
     @Override
-    public void insertMany(@NotNull List<? extends TDocument> tDocuments) {
+    public InsertManyResult insertMany(@NotNull List<? extends TDocument> tDocuments) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertMany(tDocuments);
+        InsertManyResult insertMany = collection.insertMany(tDocuments);
         maybeThrowExceptionAfterUpdate();
+        return insertMany;
     }
 
     @Override
-    public void insertMany(@NotNull List<? extends TDocument> tDocuments,
+    public InsertManyResult insertMany(@NotNull List<? extends TDocument> tDocuments,
                            @NotNull InsertManyOptions options) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertMany(tDocuments, options);
+        InsertManyResult insertMany = collection.insertMany(tDocuments, options);
         maybeThrowExceptionAfterUpdate();
+        return insertMany;
     }
 
     @Override
-    public void insertMany(@NotNull ClientSession clientSession,
+    public InsertManyResult insertMany(@NotNull ClientSession clientSession,
                            @NotNull List<? extends TDocument> tDocuments) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertMany(clientSession, tDocuments);
+        InsertManyResult insertMany = collection.insertMany(clientSession, tDocuments);
         maybeThrowExceptionAfterUpdate();
+        return insertMany;
     }
 
     @Override
-    public void insertMany(@NotNull ClientSession clientSession,
+    public InsertManyResult insertMany(@NotNull ClientSession clientSession,
                            @NotNull List<? extends TDocument> tDocuments,
                            @NotNull InsertManyOptions options) {
         maybeThrowExceptionBeforeUpdate();
-        collection.insertMany(clientSession, tDocuments, options);
+        InsertManyResult insertMany = collection.insertMany(clientSession, tDocuments, options);
         maybeThrowExceptionAfterUpdate();
+        return insertMany;
     }
 
     @NotNull
@@ -620,36 +594,11 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
 
     @NotNull
     @Override
-    @Deprecated
-    public UpdateResult replaceOne(@NotNull Bson filter,
-                                   @NotNull TDocument replacement,
-                                   @NotNull UpdateOptions updateOptions) {
-        maybeThrowExceptionBeforeUpdate();
-        UpdateResult result = collection.replaceOne(filter, replacement, updateOptions);
-        maybeThrowExceptionAfterUpdate();
-        return result;
-    }
-
-    @NotNull
-    @Override
     public UpdateResult replaceOne(@NotNull ClientSession clientSession,
                                    @NotNull Bson filter,
                                    @NotNull TDocument replacement) {
         maybeThrowExceptionBeforeUpdate();
         UpdateResult result = collection.replaceOne(clientSession, filter, replacement);
-        maybeThrowExceptionAfterUpdate();
-        return result;
-    }
-
-    @NotNull
-    @Override
-    @Deprecated
-    public UpdateResult replaceOne(@NotNull ClientSession clientSession,
-                                   @NotNull Bson filter,
-                                   @NotNull TDocument replacement,
-                                   @NotNull UpdateOptions updateOptions) {
-        maybeThrowExceptionBeforeUpdate();
-        UpdateResult result = collection.replaceOne(clientSession, filter, replacement, updateOptions);
         maybeThrowExceptionAfterUpdate();
         return result;
     }
@@ -1193,6 +1142,61 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
                                  @NotNull MongoNamespace newCollectionNamespace,
                                  @NotNull RenameCollectionOptions renameCollectionOptions) {
         collection.renameCollection(clientSession, newCollectionNamespace, renameCollectionOptions);
+    }
+    
+    @Override
+    public Long getTimeout(TimeUnit timeUnit) {
+        return collection.getTimeout(timeUnit);
+    }
+
+    @Override
+    public MongoCollection<TDocument> withTimeout(long timeout, TimeUnit timeUnit) {
+        return collection.withTimeout(timeout, timeUnit);
+    }
+
+    @Override
+    public void drop(DropCollectionOptions dropCollectionOptions) {
+        collection.drop(dropCollectionOptions);
+    }
+
+    @Override
+    public void drop(ClientSession clientSession, DropCollectionOptions dropCollectionOptions) {
+        collection.drop(clientSession, dropCollectionOptions);
+    }
+
+    @Override
+    public String createSearchIndex(String indexName, Bson definition) {
+        return collection.createSearchIndex(indexName, definition);
+    }
+
+    @Override
+    public String createSearchIndex(Bson definition) {
+        return collection.createSearchIndex(definition);
+    }
+
+    @Override
+    public List<String> createSearchIndexes(List<SearchIndexModel> searchIndexModels) {
+        return collection.createSearchIndexes(searchIndexModels);
+    }
+
+    @Override
+    public void updateSearchIndex(String indexName, Bson definition) {
+        collection.updateSearchIndex(indexName, definition);
+    }
+
+    @Override
+    public void dropSearchIndex(String indexName) {
+        collection.dropSearchIndex(indexName);
+    }
+
+    @Override
+    public ListSearchIndexesIterable<Document> listSearchIndexes() {
+        return collection.listSearchIndexes();
+    }
+
+    @Override
+    public <TResult> ListSearchIndexesIterable<TResult> listSearchIndexes(Class<TResult> resultClass) {
+        return collection.listSearchIndexes(resultClass);
     }
 
     private void maybeThrowExceptionBeforeQuery() {
