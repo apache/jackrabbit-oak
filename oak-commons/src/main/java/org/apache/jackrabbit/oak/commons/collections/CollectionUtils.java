@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,6 +57,20 @@ public class CollectionUtils {
     public static <T> List<T> toList(@NotNull final Iterable<T> iterable) {
         Objects.requireNonNull(iterable);
         List<T> result = new ArrayList<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
+     * Convert an iterable to a {@link java.util.LinkedList}. The returning LinkedList is mutable and supports all optional operations.
+     * @param iterable the iterator to convert
+     * @return the LinkedList
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<T> toLinkedList(final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
+        List<T> result = new LinkedList<>();
         iterable.forEach(result::add);
         return result;
     }
@@ -107,6 +122,11 @@ public class CollectionUtils {
      * @param iterable the iterable to convert
      * @return the treeSet
      * @param <T> the type of the elements
+     * @throws ClassCastException if the specified object cannot be compared
+     *         with the elements currently in this set
+     * @throws NullPointerException if the specified element is null
+     *         and this set uses natural ordering, or its comparator
+     *         does not permit null elements
      */
     @NotNull
     public static <T extends Comparable> TreeSet<T> toTreeSet(@NotNull  final Iterable<? extends T> iterable) {

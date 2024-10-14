@@ -27,7 +27,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,6 +46,14 @@ public class CollectionUtilsTest {
 
         Assert.assertEquals(data, CollectionUtils.toList(iterable));
 
+    }
+
+    @Test
+    public void iterableToLinkedList() {
+        // create an iterable
+        final Iterable<String> iterable = new SimpleIterable<>(data);
+
+        Assert.assertEquals(data, CollectionUtils.toLinkedList(iterable));
     }
 
     @Test
@@ -70,6 +80,15 @@ public class CollectionUtilsTest {
         final Iterable<String> iterable = new SimpleIterable<>(s);
 
         Assert.assertEquals(s, CollectionUtils.toLinkedSet(iterable));
+    }
+
+    @Test
+    public void iterableToTreeSet() {
+        // create an iterable, after removing nulls
+        final Set<String> s = data.stream().filter(Objects::nonNull).collect(Collectors.toCollection(TreeSet::new));
+        final Iterable<String> iterable = new SimpleIterable<>(s);
+
+        Assert.assertEquals(s, CollectionUtils.toTreeSet(iterable));
     }
     
     @Test
