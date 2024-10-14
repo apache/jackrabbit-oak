@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
@@ -89,7 +90,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //this might consume lots of memory. For such case we would need to switch to
     //some off heap map
     private Map<String, Long> existingMappings = Collections.emptyMap();
-    private Map<String, Long> newMappings = Maps.newConcurrentMap();
+    private Map<String, Long> newMappings = new ConcurrentHashMap<>();
 
     private String mappingFilePath = "datastore-list.txt";
     private String delegateClass;
