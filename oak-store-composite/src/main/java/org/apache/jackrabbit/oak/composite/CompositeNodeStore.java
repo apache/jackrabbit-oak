@@ -126,7 +126,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
                 .collect(Collectors.toList());
 
         checkArgument(readWriteMountNames.isEmpty(),
-                "Following partial mounts are write-enabled: {}", readWriteMountNames);
+                "Following partial mounts are write-enabled: %s", readWriteMountNames);
     }
 
     @Override
