@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -179,7 +179,7 @@ public class PipelineITUtil {
     }
 
     static MongoTestBackend createNodeStore(boolean readOnly, String mongoUri, DocumentMKBuilderProvider builderProvider) {
-        MongoClientURI mongoClientUri = new MongoClientURI(mongoUri);
+        ConnectionString mongoClientUri = new ConnectionString(mongoUri);
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setMongoDB(mongoUri, "oak", 0);
         if (readOnly) {

@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -483,8 +482,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return requireNonNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
-    private MongoClientURI getMongoClientURI() {
-        return requireNonNull(indexHelper.getService(MongoClientURI.class));
+    private ConnectionString getMongoClientURI() {
+        return requireNonNull(indexHelper.getService(ConnectionString.class));
     }
 
     private MongoDatabase getMongoDatabase() {
@@ -508,7 +507,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     private long getEstimatedDocumentCount() {
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            return mongoConnection.getDatabase().getCollection("nodes").count();
+            return mongoConnection.getDatabase().getCollection("nodes").countDocuments();
         }
         return 0;
     }

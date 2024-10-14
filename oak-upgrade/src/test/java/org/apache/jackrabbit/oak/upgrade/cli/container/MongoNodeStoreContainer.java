@@ -17,18 +17,20 @@
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.junit.Assume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoIterable;
 
 public class MongoNodeStoreContainer implements NodeStoreContainer {
 
@@ -71,11 +73,16 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     }
 
     private static boolean testMongoAvailability() {
-        Mongo mongo = null;
+        MongoClient mongo = null;
         try {
-            MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000");
-            mongo = new MongoClient(uri);
-            mongo.getDatabaseNames();
+            ConnectionString uri = new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000");
+            mongo = MongoClients.create(uri);
+            MongoIterable<String> listDatabaseNames = mongo.listDatabaseNames();
+
+            // To do real call to mongo and so test its availability we need to call iterator on just returned result
+            for (Iterator<String> iterator = listDatabaseNames.iterator(); iterator.hasNext();) {
+                // do nothing...
+            }
             return true;
         } catch (Exception e) {
             return false;
@@ -103,9 +110,9 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        MongoClientURI uri = new MongoClientURI(mongoUri);
-        MongoClient client = new MongoClient(uri);
-        client.dropDatabase(uri.getDatabase());
+        ConnectionString uri = new ConnectionString(mongoUri);
+        MongoClient client = MongoClients.create(uri);
+        client.getDatabase(uri.getDatabase()).drop();
         blob.clean();
     }
 

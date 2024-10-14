@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -25,23 +35,11 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertFalse;
 
 public class MongoDBExceptionTest {
 
@@ -245,7 +243,7 @@ public class MongoDBExceptionTest {
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
             assertThat(e.getMessage(), containsString(id));
-       }
+        }
     }
 
     private void setExceptionMsg() {
@@ -263,11 +261,11 @@ public class MongoDBExceptionTest {
     private UpdateOp create16MBProp(UpdateOp op) {
         // create a 1 MB property
         String content = create1MBContent();
-        
 
-        //create 16MB property
+
+        // create 16MB property
         for (int i = 0; i < 16; i++) {
-            op.set("property"+ i, content);
+            op.set("property" + i, content);
         }
         return op;
     }

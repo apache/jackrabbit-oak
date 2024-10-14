@@ -53,7 +53,8 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -320,7 +321,11 @@ public class DocumentNodeStoreService {
             String db = config.db();
             boolean soKeepAlive = config.socketKeepAlive();
 
-            MongoClientURI mongoURI = new MongoClientURI(uri);
+            ConnectionString mongoURI = new ConnectionString(uri);
+            MongoClientSettings settings = MongoClientSettings.builder()
+                    .applyConnectionString(mongoURI)
+                    .build();
+
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
             String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
@@ -333,7 +338,7 @@ public class DocumentNodeStoreService {
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
                         journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
                         config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
-                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+                log.info("Mongo Connection details {}", MongoConnection.toString(settings));
             }
 
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
