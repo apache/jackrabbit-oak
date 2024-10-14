@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 
@@ -40,6 +41,8 @@ public class ElasticDocument {
 
     @JsonProperty(FieldNames.PATH)
     public final String path;
+    @JsonProperty(ElasticIndexDefinition.PATH_RANDOM_VALUE)
+    public final float pathRandomValue;
     @JsonProperty(FieldNames.FULLTEXT)
     public final Set<String> fulltext;
     @JsonProperty(FieldNames.SUGGEST)
@@ -58,6 +61,7 @@ public class ElasticDocument {
 
     ElasticDocument(String path) {
         this.path = path;
+        this.pathRandomValue = ElasticIndexUtils.getRandomLongFromString(path);
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
