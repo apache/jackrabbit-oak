@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.bson.RawBsonDocument;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -28,6 +28,18 @@ import org.jetbrains.annotations.NotNull;
  * that the download completed and the two threads should stop.
  */
 class MongoParallelDownloadCoordinator {
+
+    public static class RawBsonDocumentWrapper {
+        final RawBsonDocument rawBsonDocument;
+        final long modified;
+        final String id;
+
+        public RawBsonDocumentWrapper(RawBsonDocument rawBsonDocument, long modified, String id) {
+            this.rawBsonDocument = rawBsonDocument;
+            this.modified = modified;
+            this.id = id;
+        }
+    }
 
     static class DownloadPosition implements Comparable<DownloadPosition> {
         final long lastModified;
@@ -85,12 +97,12 @@ class MongoParallelDownloadCoordinator {
      *
      * @param batch The batch of documents to be added to the lower range, must be in ascending order
      */
-    public synchronized int extendLowerRange(NodeDocument[] batch, int sizeOfBatch) {
+    public synchronized int extendLowerRange(RawBsonDocumentWrapper[] batch, int sizeOfBatch) {
         // batch must be in ascending order
         int i = sizeOfBatch - 1;
         // Start by the highest value in the range and compare it with the bottom of the upper range.
         while (i >= 0) {
-            var bi = new DownloadPosition(batch[i].getModified(), batch[i].getId());
+            var bi = new DownloadPosition(batch[i].modified, batch[i].id);
             if (bi.compareTo(upperRangeBottom) < 0) {
                 // batch[i] < upperRangeLowerLimit. Can add this element
                 this.lowerRangeTop = bi;
@@ -111,12 +123,12 @@ class MongoParallelDownloadCoordinator {
      *
      * @param batch The batch of documents to be added to the upper range, must be in descending order
      */
-    public synchronized int extendUpperRange(NodeDocument[] batch, int sizeOfBatch) {
+    public synchronized int extendUpperRange(RawBsonDocumentWrapper[] batch, int sizeOfBatch) {
         // batch must be in descending order
         int i = sizeOfBatch - 1;
         // Find the highest value in the batch that is not yet on the upper range of values downloaded
         while (i >= 0) {
-            var bi = new DownloadPosition(batch[i].getModified(), batch[i].getId());
+            var bi = new DownloadPosition(batch[i].modified, batch[i].id);
             if (bi.compareTo(lowerRangeTop) > 0) {
                 // batch[i] > upperRangeLowerLimit. Can add this element
                 upperRangeBottom = bi;

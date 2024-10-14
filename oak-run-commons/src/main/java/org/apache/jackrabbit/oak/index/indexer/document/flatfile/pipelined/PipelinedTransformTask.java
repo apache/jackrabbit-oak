@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.bson.RawBsonDocument;
+import org.bson.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,11 +79,12 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
+    private final Codec<NodeDocument> nodeDocumentCodec;
     private final RevisionVector rootRevision;
     private final NodeStateEntryWriter entryWriter;
     private final Predicate<String> pathPredicate;
     // Input queue
-    private final ArrayBlockingQueue<NodeDocument[]> mongoDocQueue;
+    private final ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue;
     // Output queue
     private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
     // Queue with empty (recycled) buffers
@@ -93,15 +96,17 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
+                                  Codec<NodeDocument> nodeDocumentCodec,
                                   RevisionVector rootRevision,
                                   Predicate<String> pathPredicate,
                                   NodeStateEntryWriter entryWriter,
-                                  ArrayBlockingQueue<NodeDocument[]> mongoDocQueue,
+                                  ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
                                   TransformStageStatistics statsCollector) {
         this.mongoStore = mongoStore;
         this.documentNodeStore = documentNodeStore;
+        this.nodeDocumentCodec = nodeDocumentCodec;
         this.rootRevision = rootRevision;
         this.pathPredicate = pathPredicate;
         this.entryWriter = entryWriter;
@@ -131,9 +136,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
-                NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
+                RawBsonDocument[] rawBsonDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                if (nodeDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
+                if (rawBsonDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
                     // So that other threads listening on this queue also get the sentinel
                     mongoDocQueue.put(PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT);
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
@@ -157,7 +162,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     tryEnqueue(nseBatch);
                     return new Result(threadId, totalEntryCount);
                 } else {
-                    for (NodeDocument nodeDoc : nodeDocumentBatch) {
+                    for (RawBsonDocument rawBsonDocument : rawBsonDocumentBatch) {
+                        int sizeEstimate = rawBsonDocument.getByteBuffer().remaining() * 2;
+                        NodeDocument nodeDoc = rawBsonDocument.decode(nodeDocumentCodec);
                         statistics.incrementMongoDocumentsTraversed();
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50_000 == 0) {
@@ -167,6 +174,10 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
+                        if (nodeDoc == NodeDocument.NULL) {
+                            continue;
+                        }
+                        nodeDoc.put(NodeDocumentCodec.SIZE_FIELD, sizeEstimate);
                         //TODO Review the cache update approach where tracker has to track *all* docs
                         // TODO: should we cache splitDocuments? Maybe this can be moved to after the check for split document
                         nodeCache.put(nodeDoc);
