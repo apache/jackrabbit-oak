@@ -30,8 +30,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;

@@ -1,30 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work
+ * for additional information regarding copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoCommandException;
-import com.mongodb.ReadPreference;
-import com.mongodb.ServerAddress;
-import com.mongodb.client.ClientSession;
-import com.mongodb.client.MongoDatabase;
-
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -39,13 +33,15 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoCommandException;
+import com.mongodb.ReadPreference;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
 
 public class MongoStatusTest {
 
@@ -103,12 +99,13 @@ public class MongoStatusTest {
 
     @Test
     public void testGetVersion() {
-        assertTrue(status.getVersion().matches("^\\d+\\.\\d+\\.\\d+$"));
+        assertTrue(status.getVersion()
+                .matches("^\\d+\\.\\d+\\.\\d+$"));
     }
 
     @Test
     public void testCheckVersionValid() {
-        for (String v : new String[] { "2.6.0", "2.7.0", "3.0.0"}) {
+        for (String v : new String[] {"2.6.0", "2.7.0", "3.0.0"}) {
             status.setVersion(v);
             status.checkVersion();
         }
@@ -116,7 +113,7 @@ public class MongoStatusTest {
 
     @Test
     public void testCheckVersionInvalid() {
-        for (String v : new String[] { "1.0.0", "2.0.0", "2.5.0"}) {
+        for (String v : new String[] {"1.0.0", "2.0.0", "2.5.0"}) {
             status.setVersion(v);
             try {
                 status.checkVersion();
@@ -144,54 +141,54 @@ public class MongoStatusTest {
 
                     @Override
                     public @NotNull Document runCommand(@NotNull Bson command,
-                                                        @NotNull ReadPreference readPreference) {
+                            @NotNull ReadPreference readPreference) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(command, readPreference);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull Bson command,
-                                                                 @NotNull Class<TResult> tResultClass) {
+                            @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(command, tResultClass);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull Bson command,
-                                                                 @NotNull ReadPreference readPreference,
-                                                                 @NotNull Class<TResult> tResultClass) {
+                            @NotNull ReadPreference readPreference,
+                            @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(command, readPreference, tResultClass);
                     }
 
                     @Override
                     public @NotNull Document runCommand(@NotNull ClientSession clientSession,
-                                                        @NotNull Bson command) {
+                            @NotNull Bson command) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command);
                     }
 
                     @Override
                     public @NotNull Document runCommand(@NotNull ClientSession clientSession,
-                                                        @NotNull Bson command,
-                                                        @NotNull ReadPreference readPreference) {
+                            @NotNull Bson command,
+                            @NotNull ReadPreference readPreference) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command, readPreference);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull ClientSession clientSession,
-                                                                 @NotNull Bson command,
-                                                                 @NotNull Class<TResult> tResultClass) {
+                            @NotNull Bson command,
+                            @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command, tResultClass);
                     }
 
                     @Override
                     public <TResult> @NotNull TResult runCommand(@NotNull ClientSession clientSession,
-                                                                 @NotNull Bson command,
-                                                                 @NotNull ReadPreference readPreference,
-                                                                 @NotNull Class<TResult> tResultClass) {
+                            @NotNull Bson command,
+                            @NotNull ReadPreference readPreference,
+                            @NotNull Class<TResult> tResultClass) {
                         unauthorizedIfServerStatus(command);
                         return super.runCommand(clientSession, command, readPreference, tResultClass);
                     }
@@ -199,12 +196,22 @@ public class MongoStatusTest {
             }
 
             private void unauthorizedIfServerStatus(Bson command) {
-                if (command.toBsonDocument(BasicDBObject.class, getDefaultCodecRegistry()).containsKey("serverStatus")) {
+                if (command.toBsonDocument(BasicDBObject.class, MongoClientSettings.getDefaultCodecRegistry())
+                        .containsKey("serverStatus")) {
                     BsonDocument response = new BsonDocument("ok", new BsonDouble(0.0));
                     response.put("errmsg", new BsonString("command serverStatus requires authentication"));
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
-                    ServerAddress address = getAddress();
+                    
+                    ServerAddress address = null;
+                    ClusterDescription clusterDescription = getClusterDescription();
+                    for (Iterator<ServerDescription> iterator = clusterDescription.getServerDescriptions().iterator(); iterator.hasNext();) {
+                        ServerDescription serverDescription = iterator.next();
+                        
+                        address = serverDescription.getAddress();
+                        break;
+                    }
+                    
                     if (address == null) {
                         // OAK-8459: use dummy/default address instead
                         address = new ServerAddress();

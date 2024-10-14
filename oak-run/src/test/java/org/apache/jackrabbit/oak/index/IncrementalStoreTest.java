@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.index;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.collections4.set.ListOrderedSet;
 import org.apache.commons.io.IOUtils;
@@ -723,13 +723,13 @@ public class IncrementalStoreTest {
 
 
     static class Backend {
-        private final MongoClientURI mongoURI;
+        private final ConnectionString mongoURI;
         final MongoDocumentStore mongoDocumentStore;
         final DocumentNodeStore documentNodeStore;
         final MongoDatabase mongoDatabase;
         final BlobStore blobStore;
 
-        public Backend(MongoClientURI mongoURI, MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase, BlobStore blobStore) {
+        public Backend(ConnectionString mongoURI, MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase, BlobStore blobStore) {
             this.mongoURI = mongoURI;
             this.mongoDocumentStore = mongoDocumentStore;
             this.documentNodeStore = documentNodeStore;

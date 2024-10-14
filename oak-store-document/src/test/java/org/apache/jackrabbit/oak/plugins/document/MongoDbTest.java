@@ -25,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.ExplainVerbosity;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -199,9 +200,9 @@ public class MongoDbTest {
         c.close();
     }
 
-    private static BasicDBObject explain(MongoCollection<BasicDBObject> collection,
+    private static org.bson.Document explain(MongoCollection<BasicDBObject> collection,
                                          Bson query) {
-        return collection.find(query).modifiers(new BasicDBObject("$explain", true)).first();
+        return collection.find(query).explain(ExplainVerbosity.QUERY_PLANNER);
     }
 
     private static void log(String msg) {
