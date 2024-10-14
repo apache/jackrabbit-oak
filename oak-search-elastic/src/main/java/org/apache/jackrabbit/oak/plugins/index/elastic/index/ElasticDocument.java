@@ -42,7 +42,7 @@ public class ElasticDocument {
     @JsonProperty(FieldNames.PATH)
     public final String path;
     @JsonProperty(ElasticIndexDefinition.PATH_RANDOM_VALUE)
-    public final float pathRandomValue;
+    public final short pathRandomValue;
     @JsonProperty(FieldNames.FULLTEXT)
     public final Set<String> fulltext;
     @JsonProperty(FieldNames.SUGGEST)
@@ -61,7 +61,7 @@ public class ElasticDocument {
 
     ElasticDocument(String path) {
         this.path = path;
-        this.pathRandomValue = ElasticIndexUtils.getRandomLongFromString(path);
+        this.pathRandomValue = ElasticIndexUtils.getRandomShortFromString(path);
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();

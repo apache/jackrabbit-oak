@@ -54,14 +54,14 @@ public class ElasticIndexUtils {
     }
 
     /**
-     * Generates a consistent float value based on a given string using the SHA-256 algorithm.
-     * The generated float value will be between 0 and 1.
+     * Generates a consistent short value based on a given string using the SHA-256 algorithm.
+     * The generated value  is a 16-bit integer ranging from -32,768 to 32,767.
      *
      * @param input the input string to be hashed
-     * @return a float value between 0 and 1 derived from the input string
+     * @return a short value from the input string
      * @throws IllegalStateException if the SHA-256 algorithm is not available
      */
-    public static float getRandomLongFromString(String input) {
+    public static short getRandomShortFromString(String input) {
         try {
             // Get a SHA-256 MessageDigest instance
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -69,12 +69,10 @@ public class ElasticIndexUtils {
             // Compute the hash of the input string
             byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
 
-            // Convert the first 8 bytes of the hash to a long value
-            BigInteger bigInt = new BigInteger(1, hash);
+            // Convert the first 2 bytes of the hash to an integer value
+            int hashValue = (hash[0] & 0xFF) << 8 | (hash[1] & 0xFF);
 
-            // Normalize the long value to a float between 0 and 1
-            // We use Long.MAX_VALUE to map the long into the 0 to 1 range
-            return (bigInt.longValue() & 0x7FFFFFFFFFFFFFFFL) / (float) Long.MAX_VALUE;
+            return (short) hashValue;
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
