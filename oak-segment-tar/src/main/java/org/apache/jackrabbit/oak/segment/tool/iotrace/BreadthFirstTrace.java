@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Checks.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singleton;

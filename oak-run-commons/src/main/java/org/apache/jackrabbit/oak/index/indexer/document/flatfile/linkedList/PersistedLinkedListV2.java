@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Checks;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
@@ -132,7 +133,7 @@ public class PersistedLinkedListV2 implements NodeStateEntryList {
 
     @Override
     public void add(@NotNull NodeStateEntry item) {
-        Preconditions.checkArgument(item != null, "Can't add null to the list");
+        Checks.checkArgument(item != null, "Can't add null to the list");
         long index = tailIndex++;
         addEntryToCache(index, item);
     }
