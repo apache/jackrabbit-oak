@@ -128,7 +128,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                     }
                     treeStore.putNode(line.path, line.value);
                     break;
-                case UPSERT:
+                case INSERT_OR_UPDATE:
                     upserted++;
                     // upsert = insert or update
                     treeStore.putNode(line.path, line.value);
@@ -142,11 +142,15 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                     }
                     treeStore.removeNode(line.path);
                     break;
-                case REMOVE:
+                case REMOVE_IF_EXISTS:
                     removed++;
                     // ignore if already removed
                     treeStore.removeNode(line.path);
                     break;
+                default:
+                    LOG.warn(
+                            "Unexpected operation {}, ignoring",
+                            line.operation);
                 }
             }
         }
@@ -172,7 +176,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                     // base EOF: we expect ADD
                     switch (increment.operation) {
                     case ADD:
-                    case UPSERT:
+                    case INSERT_OR_UPDATE:
                         // ok
                         break;
                     default:
@@ -203,7 +207,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                             LOG.warn("Expected ADD but got {} for incremental path {} value {}. " +
                                     "Merging will proceed, but this is unexpected.",
                                     increment.operation, increment.path, increment.value);
-                          }
+                        }
                         write = increment;
                         advanceBase = false;
                         advanceIncrement = true;
@@ -213,17 +217,19 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
                         advanceBase = true;
                         advanceIncrement = true;
                         switch (increment.operation) {
+                        case MODIFY:
+                        case INSERT_OR_UPDATE:
+                            break;
+                        case DELETE:
+                        case REMOVE_IF_EXISTS:
+                            write = null;
+                            break;
                         case ADD:
+                        default:
                             LOG.warn("Expected MODIFY/DELETE but got {} for incremental path {} value {}. " +
                                     "Merging will proceed, but this is unexpected.",
                                     increment.operation, increment.path, increment.value);
                             break;
-                        case MODIFY:
-                        case UPSERT:
-                            break;
-                        case DELETE:
-                        case REMOVE:
-                            write = null;
                         }
                     }
                 }
