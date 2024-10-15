@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.index.SimpleIndexEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +94,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, byte[] data, int offset, int size, int generation, int fullGeneration, boolean compacted) throws IOException {
+    public void writeSegment(long msb, long lsb, byte @NotNull [] data, int offset, int size, int generation, int fullGeneration, boolean compacted) throws IOException {
         UUID uuid = new UUID(msb, lsb);
         CRC32 checksum = new CRC32();
         checksum.update(data, offset, size);
@@ -153,7 +154,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public void writeGraph(byte[] data) throws IOException {
+    public void writeGraph(byte @NotNull [] data) throws IOException {
         int paddingSize = getPaddingSize(data.length);
         byte[] header = newEntryHeader(file.getName() + ".gph", data.length + paddingSize);
         access.write(header);
@@ -167,7 +168,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public void writeBinaryReferences(byte[] data) throws IOException {
+    public void writeBinaryReferences(byte @NotNull [] data) throws IOException {
         int paddingSize = getPaddingSize(data.length);
         byte[] header = newEntryHeader(file.getName() + ".brf", data.length + paddingSize);
         access.write(header);
@@ -237,13 +238,18 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public String getName() {
+    public @NotNull String getName() {
         return file.getName();
     }
 
     @Override
     public boolean isRemote() {
         return false;
+    }
+
+    @Override
+    public int getMaxEntryCount() {
+        return Integer.MAX_VALUE;
     }
 
     private static byte[] newEntryHeader(String name, int size) {
