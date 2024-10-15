@@ -30,6 +30,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.AutoMembershipTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.CachedMembershipLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersTest;
@@ -442,6 +443,13 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getAutoMembership().values(options),
                                 benchmarkOptions.getReport().value(options), statsProvider,
                                 benchmarkOptions.getCacheExpiration().value(options)),
+                        new CachedMembershipLoginTest(benchmarkOptions.getNumberOfUsers().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getExpiration().value(options), benchmarkOptions.getDynamicMembership().value(options),
+                                benchmarkOptions.getAutoMembership().values(options),
+                                benchmarkOptions.getReport().value(options), statsProvider,
+                                benchmarkOptions.getCacheExpiration().value(options),
+                                benchmarkOptions.getNumberOfLocalGroups().value(options)),
                         new SyncAllExternalUsersTest(benchmarkOptions.getNumberOfUsers().value(options),
                                 benchmarkOptions.getNumberOfGroups().value(options), benchmarkOptions.getExpiration().value(options),
                                 benchmarkOptions.getDynamicMembership().value(options),

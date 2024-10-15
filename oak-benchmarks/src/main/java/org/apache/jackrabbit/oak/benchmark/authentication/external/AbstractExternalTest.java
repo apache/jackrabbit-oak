@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -97,7 +99,6 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     protected final long seed = Long.getLong("seed", System.currentTimeMillis());
     private final Random random = new Random(seed);
     private final ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
-    private final long cacheExpiration;
 
     private ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
@@ -107,6 +108,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
     final TestIdentityProvider idp;
     final long delay;
+    final long cacheExpiration;
 
     SyncManagerImpl syncManager;
     ExternalIdentityProviderManager idpManager;
@@ -122,6 +124,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                                    @NotNull List<String> autoMembership,
                                    int roundtripDelay, long cacheExpiration) {
 
+        this.cacheExpiration = cacheExpiration;
         idp = (roundtripDelay < 0) ? new PrincipalResolvingProvider(numberOfUsers, numberOfGroups) : new TestIdentityProvider(numberOfUsers, numberOfGroups);
         delay = roundtripDelay;
         syncConfig.user()
@@ -132,7 +135,6 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         syncConfig.group()
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
         securityProvider = newTestSecurityProvider(externalPrincipalConfiguration);
-        this.cacheExpiration = cacheExpiration;
         expandSyncConfig();
     }
 
@@ -215,7 +217,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                     OsgiContextImpl context = new OsgiContextImpl();
                     Whiteboard whiteboard = new OsgiWhiteboard(context.bundleContext());
                     oak.with(whiteboard);
-                    
+
                     syncManager = new SyncManagerImpl(whiteboard);
                     whiteboard.register(SyncManager.class, syncManager, Collections.emptyMap());
 
@@ -231,16 +233,19 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                         // register the userconfiguration in order to have the dynamicmembership provider registered in 
                         // the activate method
                         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
-                        context.registerInjectActivateService(uc, ImmutableMap.of("cacheExpiration", cacheExpiration));
+                        context.registerInjectActivateService(uc, getSecurityConfiguration().get(UserConfiguration.NAME));
 
                         // register the ExternalPrincipal configuration in order to have it's
                         // activate method invoked.
+                        externalPrincipalConfiguration.setRootProvider(new RootProviderService());
+                        externalPrincipalConfiguration.setTreeProvider(new TreeProviderService());
                         context.registerInjectActivateService(externalPrincipalConfiguration);
 
                         // now register the sync-handler with the dynamic membership config
                         // in order to enable dynamic membership with the external principal configuration
                         Map<String, Object> props = ImmutableMap.of(
                                 DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership(),
+                                DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS, syncConfig.group().getDynamicGroups(),
                                 DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership());
                         context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
 
