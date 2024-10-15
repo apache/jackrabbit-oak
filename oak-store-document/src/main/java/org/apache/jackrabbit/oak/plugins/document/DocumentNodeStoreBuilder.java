@@ -177,6 +177,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+    private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+    private double fullGCDelayFactor = DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -351,6 +353,24 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getFullGCMode() {
         return this.fullGCMode;
+    }
+
+    public T setFullGCBatchSize(int v) {
+        this.fullGCBatchSize = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCBatchSize() {
+        return this.fullGCBatchSize;
+    }
+
+    public T setFullGCDelayFactor(double v) {
+        this.fullGCDelayFactor = v;
+        return thisBuilder();
+    }
+
+    public double getFullGCDelayFactor() {
+        return this.fullGCDelayFactor;
     }
 
     public T setReadOnlyMode() {

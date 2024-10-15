@@ -114,7 +114,6 @@ public class VersionGarbageCollector {
     private static final int DELETE_BATCH_SIZE = 450;
     private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
-    private static final int FULL_GC_BATCH_SIZE = 1000;
     private static final int FULL_GC_MISSING_DOCS_TYPE_CACHE_SIZE = 64;
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
@@ -241,6 +240,8 @@ public class VersionGarbageCollector {
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
+    private final double fullGCDelayFactor;
+    private final int fullGCBatchSize;
     private Set<String> fullGCIncludePaths = Collections.emptySet();
     private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
@@ -256,7 +257,8 @@ public class VersionGarbageCollector {
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
         this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
-                DocumentNodeStoreService.DEFAULT_FULL_GC_MODE);
+                DocumentNodeStoreService.DEFAULT_FULL_GC_MODE, DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR,
+                DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE);
     }
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
@@ -264,13 +266,17 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification,
-                            final int fullGCMode) {
+                            final int fullGCMode,
+                            final double fullGCDelayFactor,
+                            final int fullGCBatchSize) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
         this.fullGCEnabled = fullGCEnabled;
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
+        this.fullGCDelayFactor = fullGCDelayFactor;
+        this.fullGCBatchSize = fullGCBatchSize;
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
@@ -889,7 +895,7 @@ public class VersionGarbageCollector {
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId, fullGCIncludePaths, fullGCExcludePaths);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, fullGCBatchSize, fromId, fullGCIncludePaths, fullGCExcludePaths);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -2077,7 +2083,7 @@ public class VersionGarbageCollector {
                 deletedInternalPropRevsCountMap.clear();
                 deletedUnmergedBCSet.clear();
                 garbageDocsCount = 0;
-                delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);
+                delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel, fullGCDelayFactor);
             }
         }
 
@@ -2120,8 +2126,8 @@ public class VersionGarbageCollector {
             return !traversedState.exists();
         }
     }
-    private void delayOnModifications(final long durationMs, final AtomicBoolean cancel) {
-        long delayMs = round(durationMs * options.delayFactor);
+    private void delayOnModifications(final long durationMs, final AtomicBoolean cancel, final double delayFactor) {
+        long delayMs = round(durationMs * delayFactor);
         if (!cancel.get() && delayMs > 0) {
             try {
                 Clock clock = nodeStore.getClock();
@@ -2440,7 +2446,7 @@ public class VersionGarbageCollector {
                         monitor.info(msg);
                     }
                 } finally {
-                    delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel);
+                    delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel, options.delayFactor);
                 }
             }
             return deletedCount;
@@ -2473,7 +2479,7 @@ public class VersionGarbageCollector {
                 }
             }
             finally {
-                delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel);
+                delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel, options.delayFactor);
             }
             return updateCount;
         }
