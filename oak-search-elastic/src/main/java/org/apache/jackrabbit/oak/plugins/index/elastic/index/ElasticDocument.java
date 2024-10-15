@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -61,8 +61,13 @@ public class ElasticDocument {
     private final List<Map<String, Object>> dynamicProperties;
 
     ElasticDocument(String path) {
+        this(path, 0);
+    }
+
+    ElasticDocument(String path, int seed) {
         this.path = path;
-        this.pathRandomValue = Hashing.murmur3_32_fixed(300).hashString(path, StandardCharsets.UTF_8).asInt();
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        this.pathRandomValue = MurmurHash3.hash32x86(pathBytes, 0, pathBytes.length, seed);
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
