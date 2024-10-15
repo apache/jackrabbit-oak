@@ -1680,10 +1680,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     @Override
-    public Node getParentOrNull() throws RepositoryException {
-        return perform(new NodeOperation<Node>(dlg, "getParentOrNull") {
+    public @Nullable Node getParentOrNull() throws RepositoryException {
+        return sessionDelegate.performNullable(new NodeOperation<Node>(dlg, "getParentOrNull") {
+            @Nullable
             @Override
-            public Node perform() throws RepositoryException {
+            public Node performNullable() throws RepositoryException {
                 if (node.isRoot()) {
                     return null;
                 } else {
