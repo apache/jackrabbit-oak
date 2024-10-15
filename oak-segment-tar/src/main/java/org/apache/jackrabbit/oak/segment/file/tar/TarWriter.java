@@ -121,7 +121,7 @@ class TarWriter implements Closeable {
     }
 
     /**
-     * @return the maximum number of entries supported this writer
+     * @return the maximum number of entries supported by this writer
      */
     int getMaxEntryCount() {
         return archive.getMaxEntryCount();
