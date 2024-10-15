@@ -45,6 +45,9 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+
 /**
  * Helper class to access package private method of DocumentNodeStore and other
  * classes in this package.
@@ -72,7 +75,7 @@ public class DocumentNodeStoreHelper {
                                                           boolean fullGCEnabled, boolean isFullGCDryRun,
                                                           boolean embeddedVerification, int fullGCMode) {
         return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
-                fullGCMode);
+                fullGCMode, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE);
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {
