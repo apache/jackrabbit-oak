@@ -84,7 +84,6 @@ import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createUnstarted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
-import static org.apache.jackrabbit.guava.common.util.concurrent.Atomics.newReference;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -245,7 +244,7 @@ public class VersionGarbageCollector {
     private Set<String> fullGCIncludePaths = Collections.emptySet();
     private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
-    private final AtomicReference<GCJob> collector = newReference();
+    private final AtomicReference<GCJob> collector = new AtomicReference<>();
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
@@ -2392,7 +2391,7 @@ public class VersionGarbageCollector {
             int lastLoggedCount = 0;
             int recreatedCount = 0;
             while (idListItr.hasNext() && !cancel.get()) {
-                Map<String, Long> deletionBatch = Maps.newLinkedHashMap();
+                Map<String, Long> deletionBatch = new LinkedHashMap<>();
                 for (String s : idListItr.next()) {
                     Map.Entry<String, Long> parsed;
                     try {

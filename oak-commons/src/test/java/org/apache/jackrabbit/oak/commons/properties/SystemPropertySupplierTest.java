@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.commons.properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.Test;
@@ -73,6 +74,24 @@ public class SystemPropertySupplierTest {
                     .usingSystemPropertyReader((n) -> "-1").validateWith(n -> n >= 0).get();
             assertEquals(123, positive);
             assertEquals(1, logCustomizer.getLogs().size());
+        } finally {
+            logCustomizer.finished();
+        }
+    }
+
+    @Test
+    public void testHidden() {
+        String secret = "secret123";
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName()).enable(Level.TRACE)
+                .contains(secret).create();
+        logCustomizer.starting();
+
+        try {
+            String password = SystemPropertySupplier.create("password", "").hideValue().loggingTo(LOG)
+                    .usingSystemPropertyReader((n) -> secret).get();
+            assertEquals(secret, password);
+            assertTrue("Log message should not contain secret password, but found: " + logCustomizer.getLogs(),
+                    logCustomizer.getLogs().size() == 0);
         } finally {
             logCustomizer.finished();
         }

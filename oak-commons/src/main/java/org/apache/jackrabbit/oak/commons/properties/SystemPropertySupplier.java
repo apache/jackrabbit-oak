@@ -50,11 +50,12 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
 
     private Logger log = LOG;
     private String successLogLevel = "INFO";
+    private boolean hideValue = false;
+    private String hiddenReplacement = "*****";
     private Predicate<T> validator = (a) -> true;
     private Function<String, String> sysPropReader = System::getProperty;
-    private BiFunction<String, T, String> setMessageFormatter = (a, b) -> {
-        return String.format("System property %s found to be '%s'", a, b);
-    };
+    private BiFunction<String, T, String> setMessageFormatter = (a, b) -> String.format("System property %s found to be '%s'", a,
+            hideValue ? hiddenReplacement : b);
 
     private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) throws IllegalArgumentException {
         this.propName = Objects.requireNonNull(propName, "propertyName must be non-null");
@@ -116,6 +117,17 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     }
 
     /**
+     * Used to hide property value in log messages (for instance, for passwords)
+     * <p>
+     * <em>Note:</em> will have no effect when custom message formatter is used
+     * (see {@link #setMessageFormatter}).
+     */
+    public SystemPropertySupplier<T> hideValue() {
+        this.hideValue = true;
+        return this;
+    }
+
+    /**
      * <em>For unit testing</em>: specify a function to read system properties
      * (overriding default of {@code System.getProperty(String}).
      */
@@ -132,26 +144,27 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
      */
     public T get() {
 
-        T ret = defaultValue;
+        T returnValue = defaultValue;
 
         String value = sysPropReader.apply(propName);
         if (value == null) {
             log.trace("System property {} not set", propName);
         } else {
-            log.trace("System property {} set to '{}'", propName, value);
+            String displayedValue = hideValue ? hiddenReplacement : value;
+            log.trace("System property {} set to '{}'", propName, displayedValue);
             try {
                 T v = parser.apply(value);
                 if (!validator.test(v)) {
-                    log.error("Ignoring invalid value '{}' for system property {}", value, propName);
+                    log.error("Ignoring invalid value '{}' for system property {}", displayedValue, propName);
                 } else {
-                    ret = v;
+                    returnValue = v;
                 }
             } catch (NumberFormatException ex) {
-                log.error("Ignoring malformed value '{}' for system property {}", value, propName);
+                log.error("Ignoring malformed value '{}' for system property {}", displayedValue, propName);
             }
 
-            if (!ret.equals(defaultValue)) {
-                String msg = setMessageFormatter.apply(propName, ret);
+            if (!returnValue.equals(defaultValue)) {
+                String msg = setMessageFormatter.apply(propName, returnValue);
                 switch (successLogLevel) {
                     case "INFO":
                         log.info(msg);
@@ -174,7 +187,7 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
             }
         }
 
-        return ret;
+        return returnValue;
     }
 
     @SuppressWarnings("unchecked")

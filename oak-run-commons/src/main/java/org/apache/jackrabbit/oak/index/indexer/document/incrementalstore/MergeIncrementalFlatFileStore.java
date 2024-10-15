@@ -113,7 +113,6 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
             String baseFFSLine = baseFFSBufferedReader.readLine();
             String incrementalFFSLine = incrementalFFSBufferedReader.readLine();
 
-
             int compared;
             while (baseFFSLine != null || incrementalFFSLine != null) {
                 if (baseFFSLine != null && incrementalFFSLine != null) {
@@ -190,7 +189,7 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                 incrementalFFSLine = incrementalFFSBufferedReader.readLine();
                 break;
             default:
-                log.error("Wrong operand in incremental ffs: operand:{}, line:{}", operand, incrementalFFSLine);
+                log.error("Unsupported operand in incremental ffs: operand:{}, line:{}", operand, incrementalFFSLine);
                 throw new RuntimeException("wrong operand in incremental ffs: operand:" + operand + ", line:" + incrementalFFSLine);
         }
         return incrementalFFSLine;

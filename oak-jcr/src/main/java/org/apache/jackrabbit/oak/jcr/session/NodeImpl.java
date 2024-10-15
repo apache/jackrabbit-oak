@@ -1679,6 +1679,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         });
     }
 
+    @Override
+    public @Nullable Node getParentOrNull() throws RepositoryException {
+        return sessionDelegate.performNullable(new NodeOperation<Node>(dlg, "getParentOrNull") {
+            @Nullable
+            @Override
+            public Node performNullable() throws RepositoryException {
+                if (node.isRoot()) {
+                    return null;
+                } else {
+                    NodeDelegate parent = node.getParent();
+                    if (parent == null) {
+                        return null;
+                    }
+                    return createNode(parent, sessionContext);
+                }
+            }
+        });
+    }
+
     /**
      * Provide current node path. Should be invoked from within
      * the SessionDelegate#perform and preferred instead of getPath

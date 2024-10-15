@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
@@ -33,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -201,7 +201,7 @@ public class FileStoreIT {
     @Test
     public void snfeAfterOnRC()
     throws IOException, InvalidFileStoreVersionException, InterruptedException {
-        Map<String, String> roots = newLinkedHashMap();
+        Map<String, String> roots = new LinkedHashMap<>();
         try (FileStore rwStore = fileStoreBuilder(getFileStoreFolder()).build()) {
 
             // Block scheduled journal updates

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
@@ -80,8 +79,7 @@ public class OrImpl extends ConstraintImpl {
             }
         }
 
-        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in =
-                newLinkedHashMap();
+        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in = new LinkedHashMap<>();
         Iterator<ConstraintImpl> iterator = simplified.iterator();
         while (iterator.hasNext()) {
             ConstraintImpl simple = iterator.next();
