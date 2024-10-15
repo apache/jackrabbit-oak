@@ -19,10 +19,12 @@
 package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +33,7 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -56,6 +59,20 @@ public class CollectionUtils {
     public static <T> List<T> toList(@NotNull final Iterable<T> iterable) {
         Objects.requireNonNull(iterable);
         List<T> result = new ArrayList<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
+     * Convert an iterable to a {@link java.util.LinkedList}. The returning LinkedList is mutable and supports all optional operations.
+     * @param iterable the iterator to convert
+     * @return the LinkedList
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<T> toLinkedList(final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
+        List<T> result = new LinkedList<>();
         iterable.forEach(result::add);
         return result;
     }
@@ -107,6 +124,11 @@ public class CollectionUtils {
      * @param iterable the iterable to convert
      * @return the treeSet
      * @param <T> the type of the elements
+     * @throws ClassCastException if the specified object cannot be compared
+     *         with the elements currently in this set
+     * @throws NullPointerException if the specified element is null
+     *         and this set uses natural ordering, or its comparator
+     *         does not permit null elements
      */
     @NotNull
     public static <T extends Comparable> TreeSet<T> toTreeSet(@NotNull  final Iterable<? extends T> iterable) {
@@ -178,6 +200,14 @@ public class CollectionUtils {
     public static <K> Set<K> newLinkedHashSet(final int capacity) {
         // make sure the set does not need to be resized given the initial content
         return new LinkedHashSet<>(ensureCapacity(capacity));
+    }
+
+    /**
+     * Creates a new, empty IdentityHashSet with default size.
+     */
+    @NotNull
+    public static <E> Set<E> newIdentityHashSet() {
+        return Collections.newSetFromMap(Maps.newIdentityHashMap());
     }
 
     /**
