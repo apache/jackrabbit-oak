@@ -121,6 +121,13 @@ class TarWriter implements Closeable {
     }
 
     /**
+     * @return the maximum number of entries supported this writer
+     */
+    int getMaxEntryCount() {
+        return archive.getMaxEntryCount();
+    }
+
+    /**
      * If the given segment is in this file, get the byte buffer that allows
      * reading it.
      * 
@@ -145,8 +152,10 @@ class TarWriter implements Closeable {
             archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
             segmentCount.inc();
             long currentLength = archive.getLength();
+            int currentEntryCount = archive.getEntryCount();
 
             checkState(currentLength <= Integer.MAX_VALUE);
+            checkState(currentEntryCount <= archive.getMaxEntryCount());
 
             return currentLength;
         }
