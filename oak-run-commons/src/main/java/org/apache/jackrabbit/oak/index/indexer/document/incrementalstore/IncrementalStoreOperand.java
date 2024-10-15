@@ -33,27 +33,27 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
  */
 public enum IncrementalStoreOperand {
 
-    // add a new node;
-    // log a warning if it doesn't exist
-    // (this is used by the 'diff' command)
+    // Add a new node;
+    // log a warning if it already exists.
+    // (This operation is used by the 'diff' command.)
     ADD("A"),
 
-    // delete an existing node;
-    // log a warning if it doesn't exist
-    // (this is used by the 'diff' command)
+    // Delete an existing node;
+    // log a warning if it doesn't exist.
+    // (This operation is used by the 'diff' command.)
     DELETE("D"),
 
-    // modify an existing node;
-    // log a warning if it doesn't exist
-    // (this is used by the 'diff' command)
+    // Modify an existing node;
+    // log a warning if it doesn't exist.
+    // (This operation is used by the 'diff' command.)
     MODIFY("M"),
 
-    // remove a node that may or may not exist
-    // (this operation may be used by the 'top up' command)
+    // Remove a node if it exists.
+    // (This operation is used by the 'top up' command.)
     REMOVE_IF_EXISTS("R"),
 
-    // add or update a new or existing node
-    // (this operation may be used by the 'top up' command)
+    // Add a new node or update an existing node.
+    // (This operation is used by the 'top up' command.)
     INSERT_OR_UPDATE("U");
 
     private final String operand;

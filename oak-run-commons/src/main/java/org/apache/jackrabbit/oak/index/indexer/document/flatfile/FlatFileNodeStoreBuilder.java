@@ -192,6 +192,13 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    /**
+     * Use the given lower bound of the "_modified" property, when using the document node
+     * store.
+     *
+     * @param minModified the minimum value of the "_modified" property
+     * @return this
+     */
     public FlatFileNodeStoreBuilder withMinModified(long minModified) {
         this.minModified = minModified;
         return this;

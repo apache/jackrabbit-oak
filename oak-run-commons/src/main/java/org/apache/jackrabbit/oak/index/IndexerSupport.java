@@ -76,6 +76,11 @@ public class IndexerSupport {
     private File indexDefinitions;
     private final String checkpoint;
     private File existingDataDumpDir;
+
+    /**
+     * The lower bound of the "_modified" property, when using the document node
+     * store.
+     */
     private long minModified;
 
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
