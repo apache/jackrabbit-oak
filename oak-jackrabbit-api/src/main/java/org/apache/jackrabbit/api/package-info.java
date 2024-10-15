@@ -18,6 +18,6 @@
 /**
  * Jackrabbit extensions for JCR core interfaces
  */
-@org.osgi.annotation.versioning.Version("2.8.1")
+@org.osgi.annotation.versioning.Version("2.9.0")
 package org.apache.jackrabbit.api;
 
