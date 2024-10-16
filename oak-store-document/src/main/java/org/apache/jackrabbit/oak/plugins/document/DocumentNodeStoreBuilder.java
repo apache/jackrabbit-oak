@@ -178,6 +178,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
     private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+    private int fullGCProgressSize = DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
     private double fullGCDelayFactor = DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
@@ -362,6 +363,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getFullGCBatchSize() {
         return this.fullGCBatchSize;
+    }
+
+    public T setFullGCProgressSize(int v) {
+        this.fullGCProgressSize = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCProgressSize() {
+        return this.fullGCProgressSize;
     }
 
     public T setFullGCDelayFactor(double v) {

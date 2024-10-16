@@ -54,6 +54,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
@@ -546,7 +547,7 @@ public class VersionGCTest {
         // reinitialize VersionGarbageCollector with not allowed value
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeNotAllowedValue, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE);
+                fullGcModeNotAllowedValue, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
         assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
                 "will set fullGcMode to default NONE", VersionGarbageCollector.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
@@ -557,7 +558,7 @@ public class VersionGCTest {
         int fullGcModeNone = 0;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeNone, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE);
+                fullGcModeNone, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
         assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
     }
@@ -567,7 +568,7 @@ public class VersionGCTest {
         int fullGcModeGapOrphans = 2;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeGapOrphans, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE);
+                fullGcModeGapOrphans, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
         assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS);
     }
@@ -577,7 +578,7 @@ public class VersionGCTest {
         int fullGcModeGapOrphansEmptyProperties = 3;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeGapOrphansEmptyProperties, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE);
+                fullGcModeGapOrphansEmptyProperties, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
         assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS);
     }

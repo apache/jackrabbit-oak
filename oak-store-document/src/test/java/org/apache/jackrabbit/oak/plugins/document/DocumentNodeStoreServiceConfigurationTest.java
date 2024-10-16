@@ -36,6 +36,7 @@ import org.osgi.service.component.ComponentContext;
 import static java.util.List.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
@@ -97,6 +98,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DEFAULT_FULL_GC_MODE, config.fullGCMode());
         assertEquals(DEFAULT_FGC_DELAY_FACTOR, config.fullGCDelayFactor(), 0.01);
         assertEquals(DEFAULT_FGC_BATCH_SIZE, config.fullGCBatchSize());
+        assertEquals(DEFAULT_FGC_PROGRESS_SIZE, config.fullGCProgressSize());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
         assertEquals(DEFAULT_EMBEDDED_VERIFICATION_ENABLED, config.embeddedVerificationEnabled());
         assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
@@ -161,9 +163,17 @@ public class DocumentNodeStoreServiceConfigurationTest {
     @Test
     public void fullGCBatchSize() throws Exception {
         int batchSize = 2000;
-        addConfigurationEntry(preset, "fullGCBatchSize", 2000);
+        addConfigurationEntry(preset, "fullGCBatchSize", batchSize);
         Configuration config = createConfiguration();
         assertEquals(batchSize, config.fullGCBatchSize());
+    }
+
+    @Test
+    public void fullGCProgressSize() throws Exception {
+        int progressSize = 20000;
+        addConfigurationEntry(preset, "fullGCProgressSize", progressSize);
+        Configuration config = createConfiguration();
+        assertEquals(progressSize, config.fullGCProgressSize());
     }
 
     @Test

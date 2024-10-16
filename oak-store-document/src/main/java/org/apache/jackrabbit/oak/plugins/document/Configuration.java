@@ -364,6 +364,13 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     @AttributeDefinition(
             name = "Batch Size to fetch data for each FullGC cycle",
             description = "Integer value indicating the number of documents to fetch from database in a single query to check for Full GC." +
+                    "It should be a factor of fullGCProgressSize for better performance " +
                     "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE)
     int fullGCBatchSize() default DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+
+    @AttributeDefinition(
+            name = "Progress Size for FullGC cycle",
+            description = "Integer value indicating the number of documents to check for garbage in each Full GC cycle." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE)
+    int fullGCProgressSize() default DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 }
