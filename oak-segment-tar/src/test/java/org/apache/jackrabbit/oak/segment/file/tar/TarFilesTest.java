@@ -500,5 +500,7 @@ public class TarFilesTest {
         for (int i = 0; i < TOTAL_ENTRIES; i++) {
             writeSegment(randomUUID());
         }
+
+        assertEquals(TOTAL_ENTRIES / WRITER_ENTRY_LIMIT, tarFiles.readerCount());
     }
 }
