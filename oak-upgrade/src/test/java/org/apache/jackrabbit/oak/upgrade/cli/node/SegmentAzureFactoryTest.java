@@ -25,8 +25,8 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.upgrade.cli.CliUtils;
@@ -40,11 +40,11 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRET_KEY;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_SECRET_KEY;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_TENANT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeNotNull;
 import static org.junit.Assume.assumeTrue;
@@ -109,7 +109,7 @@ public class SegmentAzureFactoryTest {
 
         String uri = String.format(CONNECTION_URI, ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
         Closer closer = Closer.create();
-        try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
+        try (AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8()) {
             try {
                 SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
                         false)
@@ -122,7 +122,7 @@ public class SegmentAzureFactoryTest {
                 assertEquals(1, nodeStore.getFileStore().getSegmentCount());
             } finally {
                 closer.close();
-                cleanup(uri, azureStorageCredentialManager);
+                cleanup(uri, azureStorageCredentialManagerV8);
             }
         }
     }
@@ -136,7 +136,7 @@ public class SegmentAzureFactoryTest {
 
         String uri = String.format(CONNECTION_URI, ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
         Closer closer = Closer.create();
-        try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
+        try (AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8()) {
             try {
                 SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
                         false)
@@ -149,16 +149,16 @@ public class SegmentAzureFactoryTest {
                 assertEquals(1, nodeStore.getFileStore().getSegmentCount());
             } finally {
                 closer.close();
-                cleanup(uri, azureStorageCredentialManager);
+                cleanup(uri, azureStorageCredentialManagerV8);
             }
         }
     }
 
-    private void cleanup(String uri, AzureStorageCredentialManager azureStorageCredentialManager) {
+    private void cleanup(String uri, AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8) {
         uri = uri + "/" + DIR;
         try {
-            CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(uri, ENVIRONMENT, azureStorageCredentialManager);
-            AzureUtilities.deleteAllBlobs(cloudBlobDirectory);
+            CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(uri, ENVIRONMENT, azureStorageCredentialManagerV8);
+            AzureUtilitiesV8.deleteAllBlobs(cloudBlobDirectory);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

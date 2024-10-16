@@ -53,7 +53,7 @@ public final class FixturesHelper {
      * default fixtures when no {@code nsfixtures} system property is provided
      */
     public enum Fixture {
-       DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, SEGMENT_AWS, SEGMENT_AZURE, COMPOSITE_SEGMENT, COMPOSITE_MEM, COW_DOCUMENT
+       DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, SEGMENT_AWS, SEGMENT_AZURE_V8, SEGMENT_AZURE, COMPOSITE_SEGMENT, COMPOSITE_MEM, COW_DOCUMENT
     }
 
     private static final Set<Fixture> FIXTURES;

@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import com.azure.storage.blob.BlobContainerClient;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFilesTest;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
-import org.apache.jackrabbit.oak.segment.file.tar.TarFilesTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -33,16 +31,18 @@ public class AzureTarFilesTest extends TarFilesTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private CloudBlobContainer container;
+    private BlobContainerClient readBlobContainerClient;
+    private BlobContainerClient writeBlobContainerClient;
 
     @Before
     @Override
     public void setUp() throws Exception {
-        container = azurite.getContainer("oak-test");
-        AzurePersistence azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
+        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
+        AzurePersistence azurePersistenceV8 = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, "oak");
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        azurePersistence.setWriteAccessController(writeAccessController);
+        azurePersistenceV8.setWriteAccessController(writeAccessController);
         tarFiles = TarFiles.builder()
                 .withDirectory(folder.newFolder())
                 .withTarRecovery((id, data, recovery) -> {
@@ -52,7 +52,7 @@ public class AzureTarFilesTest extends TarFilesTest {
                 .withFileStoreMonitor(new FileStoreMonitorAdapter())
                 .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
                 .withMaxFileSize(MAX_FILE_SIZE)
-                .withPersistence(azurePersistence)
+                .withPersistence(azurePersistenceV8)
                 .build();
     }
 }

@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.Configuration;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -289,7 +289,7 @@ public class SegmentTarFixture extends OakFixture {
             CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
             container.createIfNotExists();
             CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
-            fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
+            fileStoreBuilder.withCustomPersistence(new AzurePersistenceV8(directory));
         }
 
         BlobStore blobStore = null;
@@ -341,7 +341,7 @@ public class SegmentTarFixture extends OakFixture {
                 container.createIfNotExists();
                 containers[i] = container;
                 CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath + "/primary-" + i);
-                builder.withCustomPersistence(new AzurePersistence(directory));
+                builder.withCustomPersistence(new AzurePersistenceV8(directory));
             }
 
             if (blobStore != null) {

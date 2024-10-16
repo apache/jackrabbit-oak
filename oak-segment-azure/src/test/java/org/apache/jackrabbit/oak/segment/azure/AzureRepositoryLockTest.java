@@ -18,12 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageErrorCodeStrings;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import com.azure.core.http.HttpHeaderName;
+import com.azure.core.http.HttpHeaders;
+import com.azure.core.http.RequestConditions;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlobLeaseClient;
+import com.azure.storage.blob.specialized.BlobLeaseClientBuilder;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
@@ -42,6 +45,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.*;
 
 public class AzureRepositoryLockTest {
 
@@ -53,11 +57,11 @@ public class AzureRepositoryLockTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private CloudBlobContainer container;
+    private BlobContainerClient container;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
-        container = azurite.getContainer("oak-test");
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
+        container = azurite.getReadBlobContainerClient("oak-test");
     }
 
     @Rule
@@ -66,11 +70,12 @@ public class AzureRepositoryLockTest {
             .and(AzureRepositoryLock.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_BLOCK);
 
     @Test
-    public void testFailingLock() throws URISyntaxException, IOException, StorageException {
-        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
-        new AzureRepositoryLock(blob, () -> {}, new WriteAccessController()).lock();
+    public void testFailingLock() throws IOException, BlobStorageException {
+        BlockBlobClient blockBlobClient = container.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(blockBlobClient).buildClient();
+        new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
         try {
-            new AzureRepositoryLock(blob, () -> {}, new WriteAccessController()).lock();
+            new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine
@@ -78,12 +83,13 @@ public class AzureRepositoryLockTest {
     }
 
     @Test
-    public void testWaitingLock() throws URISyntaxException, IOException, StorageException, InterruptedException {
-        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+    public void testWaitingLock() throws BlobStorageException, InterruptedException, IOException {
+        BlockBlobClient blockBlobClient = container.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(blockBlobClient).buildClient();
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {
-                RepositoryLock lock = new AzureRepositoryLock(blob, () -> {}, new WriteAccessController()).lock();
+                RepositoryLock lock = new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
                 s.release();
                 Thread.sleep(1000);
                 lock.unlock();
@@ -93,33 +99,35 @@ public class AzureRepositoryLockTest {
         }).start();
 
         s.acquire();
-        new AzureRepositoryLock(blob, () -> {}, new WriteAccessController(), 10).lock();
+        new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController(), 10).lock();
     }
 
     @Test
-    public void testLeaseRefreshUnsuccessful() throws URISyntaxException, StorageException, IOException, InterruptedException {
-        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+    public void testLeaseRefreshUnsuccessful() throws BlobStorageException, IOException, InterruptedException {
+        BlockBlobClient blockBlobClient = container.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(blockBlobClient).buildClient();
 
-        CloudBlockBlob blobMocked = Mockito.spy(blob);
+        BlockBlobClient blobMocked = Mockito.spy(blockBlobClient);
+        BlobLeaseClient blobLeaseMocked = Mockito.spy(blobLeaseClient);
 
         // instrument the mock to throw the exception twice when renewing the lease
-        StorageException storageException =
-                new StorageException(StorageErrorCodeStrings.OPERATION_TIMED_OUT, "operation timeout", new TimeoutException());
+        BlobStorageException storageException =
+                new BlobStorageException("operation timeout", null, new TimeoutException());
         Mockito.doThrow(storageException)
                 .doThrow(storageException)
                 .doCallRealMethod()
-                .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+                .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
 
-        new AzureRepositoryLock(blobMocked, () -> {}, new WriteAccessController()).lock();
+        new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, new WriteAccessController()).lock();
 
         // wait till lease expires
         Thread.sleep(16000);
 
         // reset the mock to default behaviour
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
 
         try {
-            new AzureRepositoryLock(blobMocked, () -> {}, new WriteAccessController()).lock();
+            new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, new WriteAccessController()).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine
@@ -129,22 +137,31 @@ public class AzureRepositoryLockTest {
     @Test
     public void testWritesBlockedOnlyAfterFewUnsuccessfulAttempts() throws Exception {
 
-        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+        BlockBlobClient blockBlobClient = container.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(blockBlobClient).buildClient();
 
-        CloudBlockBlob blobMocked = Mockito.spy(blob);
+        BlockBlobClient blobMocked = Mockito.spy(blockBlobClient);
+        BlobLeaseClient blobLeaseMocked = Mockito.spy(blobLeaseClient);
 
         // instrument the mock to throw the exception twice when renewing the lease
-        StorageException storageException =
-                new StorageException(StorageErrorCodeStrings.OPERATION_TIMED_OUT, "operation timeout", new TimeoutException());
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaderName.fromString("x-ms-error-code"), BlobErrorCode.OPERATION_TIMED_OUT.toString());
+
+        MockAzureHttpResponse mockAzureHttpResponse = new MockAzureHttpResponse(306, "operation timeout");
+        mockAzureHttpResponse.setHeaders(headers);
+
+        BlobStorageException storageException =
+                new BlobStorageException("operation timeout", mockAzureHttpResponse, new TimeoutException());
+
         Mockito
                 .doCallRealMethod()
                 .doThrow(storageException)
-                .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+                .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) isNull(), Mockito.any(), Mockito.any());
 
 
         WriteAccessController writeAccessController = new WriteAccessController();
 
-        new AzureRepositoryLock(blobMocked, () -> {}, writeAccessController).lock();
+        new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, writeAccessController).lock();
 
 
         Thread thread = new Thread(() -> {
@@ -166,6 +183,6 @@ public class AzureRepositoryLockTest {
         Thread.sleep(5000);
         assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
 
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
     }
 }

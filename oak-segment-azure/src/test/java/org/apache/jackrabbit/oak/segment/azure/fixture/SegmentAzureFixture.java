@@ -19,22 +19,22 @@
 
 package org.apache.jackrabbit.oak.segment.azure.fixture;
 
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import org.apache.jackrabbit.guava.common.io.Files;
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -49,26 +49,39 @@ public class SegmentAzureFixture extends NodeStoreFixture {
 
     private Map<NodeStore, FileStore> fileStoreMap = new HashMap<>();
 
-    private Map<NodeStore, CloudBlobContainer> containerMap = new HashMap<>();
+    private Map<NodeStore, BlobContainerClient> containerMap = new HashMap<>();
 
     @Override
     public NodeStore createNodeStore() {
         AzurePersistence persistence;
-        CloudBlobContainer container;
+        BlobContainerClient writeBlobContainerClient;
         try {
-            CloudStorageAccount cloud = CloudStorageAccount.parse(AZURE_CONNECTION_STRING);
+            String containerName = AZURE_CONTAINER + "-" + UUID.randomUUID().toString();
 
-            while (true) {
-                String containerName = AZURE_CONTAINER + "-" + UUID.randomUUID().toString();
-                container = cloud.createCloudBlobClient().getContainerReference(containerName);
-                if (!container.exists()) {
-                    container.create();
-                    break;
-                }
-            }
-            CloudBlobDirectory directory = container.getDirectoryReference(AZURE_ROOT_PATH);
-            persistence = new AzurePersistence(directory);
-        } catch (StorageException | URISyntaxException | InvalidKeyException e) {
+            String endpoint = String.format("https://%s.blob.core.windows.net", containerName);
+
+            RequestRetryOptions retryOptions = AzureRequestOptions.getRetryOptionsDefault();
+            BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
+                    .endpoint(endpoint)
+                    .connectionString(AZURE_CONNECTION_STRING)
+                    .retryOptions(retryOptions)
+                    .buildClient();
+
+            BlobContainerClient reaBlobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
+
+            RequestRetryOptions writeRetryOptions = AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations();
+            BlobServiceClient writeBlobServiceClient = new BlobServiceClientBuilder()
+                    .endpoint(endpoint)
+                    .connectionString(AZURE_CONNECTION_STRING)
+                    .retryOptions(writeRetryOptions)
+                    .buildClient();
+
+            writeBlobContainerClient = writeBlobServiceClient.getBlobContainerClient(containerName);
+
+            writeBlobContainerClient.createIfNotExists();
+
+            persistence = new AzurePersistence(reaBlobContainerClient, writeBlobContainerClient, AZURE_ROOT_PATH);
+        } catch (BlobStorageException e) {
             throw new RuntimeException(e);
         }
 
@@ -76,7 +89,7 @@ public class SegmentAzureFixture extends NodeStoreFixture {
             FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence).build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             fileStoreMap.put(nodeStore, fileStore);
-            containerMap.put(nodeStore, container);
+            containerMap.put(nodeStore, writeBlobContainerClient);
             return nodeStore;
         } catch (IOException | InvalidFileStoreVersionException e) {
             throw new RuntimeException(e);
@@ -89,11 +102,11 @@ public class SegmentAzureFixture extends NodeStoreFixture {
             fs.close();
         }
         try {
-            CloudBlobContainer container = containerMap.remove(nodeStore);
+            BlobContainerClient container = containerMap.remove(nodeStore);
             if (container != null) {
                 container.deleteIfExists();
             }
-        } catch (StorageException e) {
+        } catch (BlobStorageException e) {
             throw new RuntimeException(e);
         }
     }

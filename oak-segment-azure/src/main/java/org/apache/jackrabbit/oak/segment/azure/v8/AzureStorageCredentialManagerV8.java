@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.azure;
+package org.apache.jackrabbit.oak.segment.azure.v8;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
@@ -39,13 +39,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRET_KEY;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_SECRET_KEY;
+import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_TENANT_ID;
 
-public class AzureStorageCredentialManager implements Closeable {
-    private static final Logger log = LoggerFactory.getLogger(AzureStorageCredentialManager.class);
+public class AzureStorageCredentialManagerV8 implements Closeable {
+    private static final Logger log = LoggerFactory.getLogger(AzureStorageCredentialManagerV8.class);
     private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
     private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
     private static final long TOKEN_REFRESHER_DELAY = 1L;

@@ -36,8 +36,8 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -307,7 +307,7 @@ public class AzureCompact {
     private final CloudBlobDirectory sourceCloudBlobDirectory;
 
     private final CloudBlobDirectory destinationCloudBlobDirectory;
-    private final AzureStorageCredentialManager azureStorageCredentialManager;
+    private final AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
 
     private AzureCompact(Builder builder) {
         this.path = builder.path;
@@ -324,7 +324,7 @@ public class AzureCompact {
         this.garbageThresholdPercentage = builder.garbageThresholdPercentage;
         this.sourceCloudBlobDirectory = builder.sourceCloudBlobDirectory;
         this.destinationCloudBlobDirectory = builder.destinationCloudBlobDirectory;
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
+        this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
     }
 
     public int run() throws IOException, StorageException, URISyntaxException {
@@ -333,11 +333,11 @@ public class AzureCompact {
         SegmentNodeStorePersistence roPersistence;
         SegmentNodeStorePersistence rwPersistence;
         if (sourceCloudBlobDirectory != null && destinationCloudBlobDirectory != null) {
-            roPersistence = new AzurePersistence(sourceCloudBlobDirectory);
-            rwPersistence = new AzurePersistence(destinationCloudBlobDirectory);
+            roPersistence = new AzurePersistenceV8(sourceCloudBlobDirectory);
+            rwPersistence = new AzurePersistenceV8(destinationCloudBlobDirectory);
         } else {
-            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, azureStorageCredentialManager);
-            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath, azureStorageCredentialManager);
+            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, azureStorageCredentialManagerV8);
+            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath, azureStorageCredentialManagerV8);
         }
 
         if (persistentCachePath != null) {
@@ -363,7 +363,7 @@ public class AzureCompact {
 
         CloudBlobContainer targetContainer = null;
         if (targetPath != null) {
-            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManager);
+            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManagerV8);
             targetContainer = targetDirectory.getContainer();
         } else {
             targetContainer = destinationCloudBlobDirectory.getContainer();
@@ -424,7 +424,7 @@ public class AzureCompact {
         persistGCJournal(rwPersistence, newSize, gcGeneration, root);
 
         // close azure storage credential manager
-        azureStorageCredentialManager.close();
+        azureStorageCredentialManagerV8.close();
         return 0;
     }
 
