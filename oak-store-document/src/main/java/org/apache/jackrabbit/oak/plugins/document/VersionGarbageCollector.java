@@ -281,7 +281,7 @@ public class VersionGarbageCollector {
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.fullGCDelayFactor = fullGCDelayFactor;
-        this.fullGCBatchSize = fullGCBatchSize;
+        this.fullGCBatchSize = Math.min(fullGCBatchSize, fullGCProgressSize);
         this.fullGCProgressSize = fullGCProgressSize;
         this.options = new VersionGCOptions();
 
@@ -1172,9 +1172,9 @@ public class VersionGarbageCollector {
                             greatestExistingAncestorOrSelf, name);
                 }
             }
+            
             // start timer for collect garbage
             timer.reset().start();
-
             try {
                 if (fullGcMode == EMPTYPROPS) {
                     if (!traversedState.exists()) {
