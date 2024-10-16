@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -54,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
@@ -187,7 +187,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      */
     @Override @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        Map<Integer, PropertyDefinition> definitions = newTreeMap();
+        Map<Integer, PropertyDefinition> definitions = new TreeMap<>();
         for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
         }
@@ -201,7 +201,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      */
     @Override @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        Map<Integer, NodeDefinition> definitions = newTreeMap();
+        Map<Integer, NodeDefinition> definitions = new TreeMap<>();
         for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
         }
