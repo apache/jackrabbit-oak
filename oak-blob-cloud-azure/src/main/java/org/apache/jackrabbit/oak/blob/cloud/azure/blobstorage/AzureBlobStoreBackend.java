@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1240,7 +1241,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         ResultContinuation resultContinuation;
         boolean firstCall = true;
         final Function<AzureBlobInfo, T> transformer;
-        final Queue<AzureBlobInfo> items = Lists.newLinkedList();
+        final Queue<AzureBlobInfo> items = new LinkedList<>();
 
         public RecordsIterator (Function<AzureBlobInfo, T> transformer) {
             this.transformer = transformer;

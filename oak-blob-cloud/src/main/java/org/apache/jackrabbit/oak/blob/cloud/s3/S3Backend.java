@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -1055,7 +1056,7 @@ public class S3Backend extends AbstractSharedBackend {
         Function<S3ObjectSummary, T> transformer;
 
         public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
-            queue = Lists.newLinkedList();
+            queue = new LinkedList<>();
             this.transformer = transformer;
         }
 
