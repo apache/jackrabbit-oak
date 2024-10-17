@@ -1417,7 +1417,7 @@ public final class NodeDocument extends Document {
             return Collections.emptyIterator();
         }
         // create a mutable copy
-        final NavigableMap<Revision, Range> ranges = Maps.newTreeMap(getPreviousRanges());
+        final NavigableMap<Revision, Range> ranges = new TreeMap<>(getPreviousRanges());
         return new AbstractIterator<NodeDocument>() {
             @Override
             protected NodeDocument computeNext() {

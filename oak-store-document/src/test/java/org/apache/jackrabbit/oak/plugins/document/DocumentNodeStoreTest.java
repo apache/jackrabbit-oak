@@ -74,6 +74,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -97,7 +98,6 @@ import javax.jcr.InvalidItemStateException;
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -4479,8 +4479,7 @@ public class DocumentNodeStoreTest {
      */
     private boolean isDocDeleted(NodeDocument doc, RevisionContext context) {
         boolean latestDeleted = false;
-        SortedMap<Revision, String> localDeleted =
-                Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        SortedMap<Revision, String> localDeleted = new TreeMap<>(StableRevisionComparator.REVERSE);
         localDeleted.putAll(doc.getLocalDeleted());
 
         for (Map.Entry<Revision, String> entry : localDeleted.entrySet()) {
