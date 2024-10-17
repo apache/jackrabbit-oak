@@ -29,18 +29,18 @@ public class ValidateTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void checkArgumentFalse() {
-        Vaildate.checkArgument(false);
+        Validate.checkArgument(false);
     }
 
     @Test
     public void checkArgumentTrue() {
-        Vaildate.checkArgument(true);
+        Validate.checkArgument(true);
     }
 
     @Test
     public void checkArgumentFalseWithMessage() {
         try {
-            Vaildate.checkArgument(false, "foo%");
+            Validate.checkArgument(false, "foo%");
             fail("exception expected");
         } catch (IllegalArgumentException ex) {
             assertEquals("foo%", ex.getMessage());
@@ -49,13 +49,13 @@ public class ValidateTest {
 
     @Test
     public void checkArgumentTrueWithMessage() {
-        Vaildate.checkArgument(true, "foo%");
+        Validate.checkArgument(true, "foo%");
     }
 
     @Test
     public void checkArgumentFalseWithMessageTemplate() {
         try {
-            Vaildate.checkArgument(false, "foo %s bar %s", "qux1", "qux2");
+            Validate.checkArgument(false, "foo %s bar %s", "qux1", "qux2");
             fail("exception expected");
         } catch (IllegalArgumentException ex) {
             assertEquals("foo qux1 bar qux2", ex.getMessage());
@@ -65,7 +65,7 @@ public class ValidateTest {
     @Test
     public void checkArgumentFalseWithMessageTemplateNull() {
         try {
-            Vaildate.checkArgument(false, "foo %s bar %s", null, "qux2");
+            Validate.checkArgument(false, "foo %s bar %s", null, "qux2");
             fail("exception expected");
         } catch (IllegalArgumentException ex) {
             assertEquals("foo null bar qux2", ex.getMessage());
@@ -75,7 +75,7 @@ public class ValidateTest {
     @Test
     public void checkArgumentFalseWithMessageTemplateTooFew() {
         try {
-            Vaildate.checkArgument(false, "foo %s bar %s", "qux2");
+            Validate.checkArgument(false, "foo %s bar %s", "qux2");
             fail("exception expected");
         } catch (IllegalArgumentException ex) {
             // expected, thrown by String.format
@@ -85,7 +85,7 @@ public class ValidateTest {
     @Test
     public void checkArgumentFalseWithMessageTemplateTooMany() {
         try {
-            Vaildate.checkArgument(false, "foo %s bar %s", 1, 2, 3);
+            Validate.checkArgument(false, "foo %s bar %s", 1, 2, 3);
             fail("exception expected");
         } catch (IllegalArgumentException ex) {
             assertEquals("foo 1 bar 2", ex.getMessage());
@@ -94,17 +94,17 @@ public class ValidateTest {
 
     @Test
     public void countArguments() {
-        assertEquals(3, Vaildate.countArguments("1%s2%d%%%c"));
+        assertEquals(3, Validate.countArguments("1%s2%d%%%c"));
     }
 
     @Test(expected = NullPointerException.class)
     public void checkTemplatemullParam() {
-        Vaildate.checkTemplate("foo", (Object[]) null);
+        Validate.checkTemplate("foo", (Object[]) null);
     }
 
     @Test
     public void checkTemplate() {
-        assertFalse(Vaildate.checkTemplate("foo", "x"));
-        assertTrue(Vaildate.checkTemplate("foo"));
+        assertFalse(Validate.checkTemplate("foo", "x"));
+        assertTrue(Validate.checkTemplate("foo"));
     }
 }
