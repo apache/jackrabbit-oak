@@ -148,6 +148,9 @@ public class DocumentNodeStoreService {
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
     public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
     public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
+    public static final double DEFAULT_FGC_DELAY_FACTOR = 2;
+    public static final int DEFAULT_FGC_BATCH_SIZE = 1000;
+    public static final int DEFAULT_FGC_PROGRESS_SIZE = 10000;
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
@@ -503,6 +506,9 @@ public class DocumentNodeStoreService {
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setFullGCMode(config.fullGCMode()).
+                setFullGCBatchSize(config.fullGCBatchSize()).
+                setFullGCProgressSize(config.fullGCProgressSize()).
+                setFullGCDelayFactor(config.fullGCDelayFactor()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
