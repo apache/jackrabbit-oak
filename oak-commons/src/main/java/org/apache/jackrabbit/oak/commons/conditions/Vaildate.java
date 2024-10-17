@@ -8,13 +8,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Checks {
+public final class Vaildate {
 
-    private Checks() {
+    private Vaildate() {
         // no instances for you
     }
 
-    private static Logger LOG = LoggerFactory.getLogger(Checks.class);
+    private static Logger LOG = LoggerFactory.getLogger(Vaildate.class);
 
     // when true, message template are arguments checked even when the condition
     // to check for is true
