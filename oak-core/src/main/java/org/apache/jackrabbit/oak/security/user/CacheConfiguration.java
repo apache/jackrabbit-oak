@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,17 +31,32 @@ final class CacheConfiguration {
     public static final long EXPIRATION_NO_CACHE = 0;
     public static final long NO_STALE_CACHE = 0;
 
+    private static final int MEMBERSHIP_THRESHOLD = 0;
+
+
     private final UserConfiguration userConfig;
     private final long expiration;
     private final long maxStale;
     private final String propertyName;
+    private final int membershipThreshold;
 
-    private CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale,
-            @NotNull String propertyName) {
+    private CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale, @NotNull String propertyName) {
         this.userConfig = userConfig;
         this.expiration = expiration;
         this.maxStale = maxStale;
         this.propertyName = propertyName;
+        this.membershipThreshold = 0;
+    }
+
+    // Only for testing
+    CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale,
+            @NotNull String propertyName,
+            int membershipThreshold) {
+        this.userConfig = userConfig;
+        this.expiration = expiration;
+        this.maxStale = maxStale;
+        this.propertyName = propertyName;
+        this.membershipThreshold = Math.max(membershipThreshold, MEMBERSHIP_THRESHOLD);
     }
 
     /**
@@ -54,22 +68,13 @@ final class CacheConfiguration {
      */
     public static CacheConfiguration fromUserConfiguration(@NotNull UserConfiguration config, @NotNull String propertyName) {
 
-        long expiration = EXPIRATION_NO_CACHE;
-        long maxStale = NO_STALE_CACHE;
-
         if (Strings.isNullOrEmpty(propertyName) || propertyName.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid property name: " + propertyName);
         }
 
-        if (config.getParameters() != null) {
-            expiration  = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
-            maxStale = config.getParameters().getConfigValue(PARAM_CACHE_MAX_STALE, NO_STALE_CACHE);
-        }
-        return new CacheConfiguration(
-                config,
-                expiration,
-                maxStale,
-                propertyName);
+        long maxStale = config.getParameters().getConfigValue(PARAM_CACHE_MAX_STALE, NO_STALE_CACHE);
+        long expiration  = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
+        return new CacheConfiguration(config, expiration, maxStale, propertyName);
     }
 
     public boolean isCacheEnabled() {
@@ -90,5 +95,9 @@ final class CacheConfiguration {
 
     UserConfiguration getUserConfiguration() {
         return userConfig;
+    }
+
+    int getMembershipThreshold() {
+        return membershipThreshold;
     }
 }

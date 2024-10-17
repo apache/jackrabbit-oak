@@ -91,4 +91,31 @@ public class CacheConfigurationTest extends AbstractSecurityTest {
         assertEquals(0, cacheConfiguration.getMaxStale());
         assertNotNull(cacheConfiguration.getPropertyName());
     }
+
+    @Test
+    public void testConfigurationWithMembershipThreshold() {
+        CacheConfiguration cacheConfiguration = new CacheConfiguration(getUserConfiguration(), 10000, 100, UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES, 10);
+
+        assertNotNull(cacheConfiguration);
+        assertTrue(cacheConfiguration.isCacheEnabled());
+        assertEquals(10000, cacheConfiguration.getExpiration());
+        assertEquals(100, cacheConfiguration.getMaxStale());
+        assertNotNull(cacheConfiguration.getPropertyName());
+        assertEquals(10, cacheConfiguration.getMembershipThreshold());
+    }
+
+    @Test
+    public void testEmptyConfigurationParameters() {
+        changeUserConfiguration(ConfigurationParameters.of(
+                UserConfiguration.NAME,
+                ConfigurationParameters.EMPTY
+        ));
+        CacheConfiguration cacheConfiguration = CacheConfiguration.fromUserConfiguration(getUserConfiguration(), UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES);
+
+        assertNotNull(cacheConfiguration);
+        assertFalse(cacheConfiguration.isCacheEnabled());
+        assertEquals(0, cacheConfiguration.getExpiration());
+        assertEquals(0, cacheConfiguration.getMaxStale());
+        assertNotNull(cacheConfiguration.getPropertyName());
+    }
 }

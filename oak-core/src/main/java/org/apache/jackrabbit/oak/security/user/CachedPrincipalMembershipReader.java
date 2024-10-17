@@ -64,8 +64,6 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(CachedPrincipalMembershipReader.class);
 
-    private static final long MEMBERSHIP_THRESHOLD = 0;
-
     /**
      * Keep track of cache updates for 100 most recent authorizables.
      */
@@ -81,6 +79,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
     private final long expiration;
     private final long maxStale;
     private final String propertyName;
+    private final int membershipThreshold;
 
     CachedPrincipalMembershipReader(@NotNull CacheConfiguration cacheConfiguration, @NotNull Root root,
             @NotNull CachePrincipalFactory principalFactory) {
@@ -88,6 +87,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
         this.maxStale = cacheConfiguration.getMaxStale();
         this.propertyName = cacheConfiguration.getPropertyName();
         this.config = cacheConfiguration.getUserConfiguration();
+        this.membershipThreshold = cacheConfiguration.getMembershipThreshold();
         this.root = root;
         this.principalFactory = principalFactory;
     }
@@ -108,7 +108,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
         Tree principalCache = authorizableTree.getChild(CacheConstants.REP_CACHE);
         long expirationTime = readExpirationTime(principalCache);
         long now = System.currentTimeMillis();
-        if (isValidCache(expirationTime, now) && hasCacheValues(principalCache)) {
+        if (isValidCache(expirationTime, now) && hasPropertyCached(principalCache)) {
             LOG.debug("Reading membership from cache for '{}'", authorizablePath);
             return serveGroupsFromCache(principalCache);
         }
@@ -176,8 +176,12 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
         return now - expirationTime < maxStale;
     }
 
+    private boolean hasPropertyCached(Tree principalCache) {
+        return principalCache.hasProperty(propertyName);
+    }
+
     private boolean hasCacheValues(@NotNull Tree principalCache) {
-        return principalCache.exists() &&
+        return principalCache.hasProperty(propertyName) &&
                 !Strings.isNullOrEmpty(TreeUtil.getString(principalCache, propertyName));
     }
 
@@ -212,7 +216,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
             Tree cache = authorizableTree.getChild(CacheConstants.REP_CACHE);
             String authorizablePath = authorizableTree.getPath();
             if (!cache.exists()) {
-                if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
+                if (groupPrincipals.size() < membershipThreshold) {
                     LOG.debug("Omit cache creation for user without membership at {}", authorizablePath);
                     return;
                 } else {

@@ -166,8 +166,7 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
                 name -> getPrincipalByName(root, name));
     }
 
-    private CacheLoader membershipLoader(@NotNull Root root,
-            @NotNull UserConfiguration userConfiguration) {
+    private CacheLoader membershipLoader(@NotNull Root root, @NotNull UserConfiguration userConfiguration) {
         return (Tree tree) -> {
             MembershipProvider membershipProvider = new MembershipProvider(root, userConfiguration.getParameters());
             Set<Principal> groupPrincipals = new HashSet<>();
@@ -228,7 +227,6 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
     /**
      * This test checks that 'readMembership' works for objects that are not users but doesn't cache them
      *
-     * @throws Exception
      */
     @Test
     public void testReadMembershipForNonUser() throws Exception {
@@ -536,6 +534,34 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         assertTrue(logCustomizer.getLogs().get(NUM_THREADS - 1).startsWith("Cached membership property 'rep:groupPrincipalNames' at " + mockedUser.getPath()));
     }
 
+    @Test
+    public void testBelowMembershipThresholdIsNotStored() throws Exception {
+        Root systemRoot = getSystemRoot();
+
+        //Create cache configuration but targeting different property name
+        String newCachePropertyName = "anotherCache";
+        CacheConfiguration anotherCacheConfiguration =
+                new CacheConfiguration(getUserConfiguration(), 5000, cacheMaxStale, newCachePropertyName, 2);
+        CachedMembershipReader anotherCacheReader = new CachedPrincipalMembershipReader(anotherCacheConfiguration,
+                systemRoot, name -> getPrincipalByName(systemRoot, name));
+
+        Set<Principal> groupPrincipal = new HashSet<>();
+        groupPrincipal.addAll(anotherCacheReader.readMembership(systemRoot.getTree(userPath), (ignore) ->
+                Set.of(mockPrincipal("mock1"))));
+
+        //Assert that the first time the cache was created
+        assertEquals(1, logCustomizer.getLogs().size());
+        assertEquals("Omit cache creation for user without membership at " + userPath, logCustomizer.getLogs().get(0));
+        assertEquals(1, groupPrincipal.size());
+
+        assertEquals(1, logCustomizer.getLogs().size());
+
+        //Assert that the cache was not written
+        assertFalse(systemRoot.getTree(userPath).hasChild(REP_CACHE));
+        Tree cacheNode = systemRoot.getTree(userPath).getChild(REP_CACHE);
+        assertFalse(cacheNode.hasProperty(newCachePropertyName));
+    }
+
 
     // -------------------------- Helper methods --------------------------------
 
@@ -551,4 +577,9 @@ public class CachedPrincipalMembershipReaderTest extends AbstractSecurityTest {
         }
     }
 
+    private Principal mockPrincipal(String name) {
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn(name);
+        return principal;
+    }
 }
