@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.base.Preconditions;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
@@ -72,14 +72,14 @@ public class IndexDefinitionUpdater {
 
         OptionSet optionSet = parser.parse(args);
 
-        Preconditions.checkArgument(optionSet.has("in"), "input index definition must be provided");
+        Validate.checkArgument(optionSet.has("in"), "input index definition must be provided");
         String inFilePath = optionSet.valueOf("in").toString();
 
-        Preconditions.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
+        Validate.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
         String initializerClassName = optionSet.valueOf("initializer").toString();
         Class<?> repoInitClazz = Class.forName(initializerClassName);
         Object obj = repoInitClazz.newInstance();
-        Preconditions.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
+        Validate.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
 
         String outFilePath = optionSet.has("out") ? optionSet.valueOf("out").toString() : null;
 

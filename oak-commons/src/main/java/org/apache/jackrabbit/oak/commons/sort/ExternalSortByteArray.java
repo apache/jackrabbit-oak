@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -120,7 +120,7 @@ public class ExternalSortByteArray {
 
         public BinaryFileBuffer(InputStream r, Function<byte[], T> byteArrayToType, int bufferSize)
                 throws IOException {
-            Preconditions.checkArgument(bufferSize > 1024, "Buffer size must be greater than 1024 bytes");
+            Validate.checkArgument(bufferSize > 1024, "Buffer size must be greater than 1024 bytes");
             this.fbr = r;
             this.byteArrayToType = byteArrayToType;
             this.buffer = new byte[bufferSize];

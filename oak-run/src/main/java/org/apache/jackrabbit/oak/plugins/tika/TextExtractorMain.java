@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;

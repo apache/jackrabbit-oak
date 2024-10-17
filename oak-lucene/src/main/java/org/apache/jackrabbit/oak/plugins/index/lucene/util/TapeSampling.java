@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 
 import java.util.Iterator;
 import java.util.Random;
@@ -53,7 +53,7 @@ public class TapeSampling<T> {
                 }
 
                 while (true) {
-                    Preconditions.checkArgument(input.hasNext(),
+                    Validate.checkArgument(input.hasNext(),
                             "Not enough input items provided. Declared: " + N + "; got " + seen + "; sampled: " + sampled);
 
                     T i = input.next();

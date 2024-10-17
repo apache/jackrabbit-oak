@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static java.util.Collections.emptySet;

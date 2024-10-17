@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static java.util.Collections.emptyList;

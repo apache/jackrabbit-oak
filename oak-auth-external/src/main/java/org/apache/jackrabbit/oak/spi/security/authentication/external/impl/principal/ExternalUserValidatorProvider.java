@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 
 class ExternalUserValidatorProvider extends ValidatorProvider implements ExternalIdentityConstants  {

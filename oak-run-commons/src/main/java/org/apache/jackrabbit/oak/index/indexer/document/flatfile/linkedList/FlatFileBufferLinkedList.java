@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,7 +50,7 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
     }
 
     public void add(@NotNull NodeStateEntry item) {
-        Preconditions.checkArgument(item != null, "Can't add null to the list");
+        Validate.checkArgument(item != null, "Can't add null to the list");
         long incomingSize = item.estimatedMemUsage();
         long memUsage = estimatedMemoryUsage();
         Preconditions.checkState(memUsage + incomingSize <= memLimit,
