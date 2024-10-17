@@ -81,7 +81,6 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createUnstarted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -89,7 +88,6 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.BRANCH_COMMITS;
@@ -262,7 +260,7 @@ public class VersionGarbageCollector {
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
         this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, DEFAULT_FULL_GC_MODE,
-                DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
     }
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
@@ -286,7 +284,8 @@ public class VersionGarbageCollector {
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
+        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, batchSize: {}, progressSize: {}",
+                fullGcMode, fullGCBatchSize, fullGCProgressSize);
     }
 
     /**
@@ -878,6 +877,7 @@ public class VersionGarbageCollector {
             final long oldestModifiedMs = rec.scopeFullGC.fromMs;
             final long toModifiedMs = rec.scopeFullGC.toMs;
             final String oldestModifiedDocId = rec.fullGCId;
+            final Stopwatch timer = Stopwatch.createUnstarted();
 
             int docsTraversed = 0;
             boolean foundDoc = true;
@@ -901,6 +901,8 @@ public class VersionGarbageCollector {
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
+                        // start timer to record time taken by each batch
+                        timer.reset().start();
                         Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, fullGCBatchSize, fromId, fullGCIncludePaths, fullGCExcludePaths);
                         try {
                             for (NodeDocument doc : itr) {
@@ -962,6 +964,7 @@ public class VersionGarbageCollector {
                             if (log.isDebugEnabled()) {
                                 log.debug("Fetched docs till [{}] with Id [{}]", timestampToString(fromModifiedMs), fromId);
                             }
+                            delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel, fullGCDelayFactor);
                         }
                         // if we didn't find any document i.e. either we are already at last document
                         // of current timeStamp or there is no document for this timeStamp
@@ -1078,7 +1081,6 @@ public class VersionGarbageCollector {
         private final long toModifiedMs;
         private final GCMonitor monitor;
         private final AtomicBoolean cancel;
-        private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
 
         /** contains the list of _ids of orphan or deleted documents to be removed in the current batch **/
@@ -1141,7 +1143,6 @@ public class VersionGarbageCollector {
             this.deletedPropRevsCountMap = new HashMap<>();
             this.deletedInternalPropRevsCountMap = new HashMap<>();
             this.deletedUnmergedBCSet = new HashSet<>();
-            this.timer = createUnstarted();
             // clusterId is not used
             this.revisionForModified = Revision.newRevision(0);
             this.root = nodeStore.getRoot(headRevision);
@@ -1173,81 +1174,74 @@ public class VersionGarbageCollector {
                 }
             }
             
-            // start timer for collect garbage
-            timer.reset().start();
-            try {
-                if (fullGcMode == EMPTYPROPS) {
-                    if (!traversedState.exists()) {
-                        // doc is an orphan, this mode skips orphans
-                        if (AUDIT_LOG.isDebugEnabled()){
-                            AUDIT_LOG.debug("Skipping orphaned document [{}] for mode [{}]", doc.getId(), fullGcMode);
-                        }
+            if (fullGcMode == EMPTYPROPS) {
+                if (!traversedState.exists()) {
+                    // doc is an orphan, this mode skips orphans
+                    if (AUDIT_LOG.isDebugEnabled()){
+                        AUDIT_LOG.debug("Skipping orphaned document [{}] for mode [{}]", doc.getId(), fullGcMode);
+                    }
+                    return;
+                }
+                collectDeletedProperties(doc, phases, op, traversedState);
+            } else if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
+                // here the node is not orphaned which means that we can reach the node from root
+                switch(fullGcMode) {
+                    case NONE : {
+                        // shouldn't be reached
                         return;
                     }
-                    collectDeletedProperties(doc, phases, op, traversedState);
-                } else if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
-                    // here the node is not orphaned which means that we can reach the node from root
-                    switch(fullGcMode) {
-                        case NONE : {
-                            // shouldn't be reached
-                            return;
-                        }
-                        case GAP_ORPHANS : {
-                            // this mode does neither unusedproprev, nor unmergedBC
-                            break;
-                        }
-                        case GAP_ORPHANS_EMPTYPROPS :
-                        case ALL_ORPHANS_EMPTYPROPS : {
-                            collectDeletedProperties(doc, phases, op, traversedState);
-                            // this mode does neither unusedproprev, nor unmergedBC
-                            break;
-                        }
-                        case ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS : {
-                            collectDeletedProperties(doc, phases, op, traversedState);
-                            collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, false);
-                            combineInternalPropRemovals(doc, op);
-                            break;
-                        }
-                        case ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS : {
-                            collectDeletedProperties(doc, phases, op, traversedState);
-                            collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, true);
-                            combineInternalPropRemovals(doc, op);
-                            break;
-                        }
-                        case ORPHANS_EMPTYPROPS_UNMERGED_BC : {
-                            collectDeletedProperties(doc, phases, op, traversedState);
-                            collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-                            break;
-                        }
-                        case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC : {
-                            collectDeletedProperties(doc, phases, op, traversedState);
-                            collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-                            collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
-                            break;
-                        }
-                        case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC : {
-                            collectDeletedProperties(doc, phases, op, traversedState);
-                            collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
-                            break;
-                        }
+                    case GAP_ORPHANS : {
+                        // this mode does neither unusedproprev, nor unmergedBC
+                        break;
+                    }
+                    case GAP_ORPHANS_EMPTYPROPS :
+                    case ALL_ORPHANS_EMPTYPROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        // this mode does neither unusedproprev, nor unmergedBC
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, false);
+                        combineInternalPropRemovals(doc, op);
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, true);
+                        combineInternalPropRemovals(doc, op);
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_UNMERGED_BC : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
+                        collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
+                        break;
                     }
                 }
-                // only add if there are changes for this doc
-                if (op.hasChanges()) {
-                    op.equals(MODIFIED_IN_SECS, doc.getModified());
-                    garbageDocsCount++;
-                    totalGarbageDocsCount++;
-                    monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
-                    AUDIT_LOG.info("<Collected> [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
-                    updateOpList.add(op);
-                }
-                if (log.isTraceEnabled() && op.hasChanges()) {
-                    // only log in case of changes & debug level enabled
-                    log.trace("UpdateOp for [{}] is [{}]", doc.getId(), op);
-                }
-            } finally {
-                // pause the fullGC thread to avoid excessive load on the system
-                delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel, fullGCDelayFactor);
+            }
+            // only add if there are changes for this doc
+            if (op.hasChanges()) {
+                op.equals(MODIFIED_IN_SECS, doc.getModified());
+                garbageDocsCount++;
+                totalGarbageDocsCount++;
+                monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
+                AUDIT_LOG.info("<Collected> [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
+                updateOpList.add(op);
+            }
+            if (log.isTraceEnabled() && op.hasChanges()) {
+                // only log in case of changes & debug level enabled
+                log.trace("UpdateOp for [{}] is [{}]", doc.getId(), op);
             }
         }
 
@@ -1955,7 +1949,6 @@ public class VersionGarbageCollector {
                 return;
             }
 
-            timer.reset().start();
             try {
                 if (embeddedVerification) {
                     // embedded verification is done completely independent of DocumentStore
@@ -2096,7 +2089,6 @@ public class VersionGarbageCollector {
                 deletedInternalPropRevsCountMap.clear();
                 deletedUnmergedBCSet.clear();
                 garbageDocsCount = 0;
-                delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel, fullGCDelayFactor);
             }
         }
 

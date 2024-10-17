@@ -76,7 +76,7 @@ public class DocumentNodeStoreHelper {
                                                           boolean fullGCEnabled, boolean isFullGCDryRun,
                                                           boolean embeddedVerification, int fullGCMode) {
         return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
-                fullGCMode, DEFAULT_FGC_DELAY_FACTOR, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGCMode, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {
