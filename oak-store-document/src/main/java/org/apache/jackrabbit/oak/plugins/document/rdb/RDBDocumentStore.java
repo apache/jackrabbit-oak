@@ -809,11 +809,9 @@ public class RDBDocumentStore implements DocumentStore {
             }
             this.droppedTables = dropped.trim();
         }
-        try {
-            this.ch.close();
-        } catch (IOException ex) {
-            LOG.error("closing connection handler", ex);
-        }
+
+        this.ch.close();
+
         try {
             this.nodesCache.close();
         } catch (IOException ex) {
