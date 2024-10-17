@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.oak.commons.conditions.Checks.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.singleton;
 
 import javax.jcr.PropertyType;

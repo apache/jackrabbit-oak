@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.Date;
 
 import static java.text.DateFormat.getDateTimeInstance;
-import static org.apache.jackrabbit.oak.commons.conditions.Checks.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 public class CheckHelper {
     /**

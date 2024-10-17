@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.conditions.Checks;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
@@ -72,14 +72,14 @@ public class IndexDefinitionUpdater {
 
         OptionSet optionSet = parser.parse(args);
 
-        Checks.checkArgument(optionSet.has("in"), "input index definition must be provided");
+        Validate.checkArgument(optionSet.has("in"), "input index definition must be provided");
         String inFilePath = optionSet.valueOf("in").toString();
 
-        Checks.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
+        Validate.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
         String initializerClassName = optionSet.valueOf("initializer").toString();
         Class<?> repoInitClazz = Class.forName(initializerClassName);
         Object obj = repoInitClazz.newInstance();
-        Checks.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
+        Validate.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
 
         String outFilePath = optionSet.has("out") ? optionSet.valueOf("out").toString() : null;
 

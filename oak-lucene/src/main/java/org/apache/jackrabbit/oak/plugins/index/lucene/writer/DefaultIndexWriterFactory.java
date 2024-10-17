@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import org.apache.jackrabbit.oak.commons.conditions.Checks;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
@@ -46,7 +46,7 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition def, NodeBuilder definitionBuilder,
                                          CommitInfo commitInfo, boolean reindex) {
-        Checks.checkArgument(def instanceof LuceneIndexDefinition,
+        Validate.checkArgument(def instanceof LuceneIndexDefinition,
                 "Expected %s but found %s for index definition",
                 LuceneIndexDefinition.class, def.getClass());
 

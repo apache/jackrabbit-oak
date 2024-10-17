@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.util.Base64;
 
-import static org.apache.jackrabbit.oak.commons.conditions.Checks.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 public class Base64BlobSerializer extends BlobSerializer implements BlobDeserializer {
     private static final int DEFAULT_LIMIT = Integer.getInteger("oak.serializer.maxBlobSize", (int)FileUtils.ONE_MB);

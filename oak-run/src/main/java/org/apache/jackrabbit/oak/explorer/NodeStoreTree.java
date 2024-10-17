@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.explorer;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
@@ -42,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -274,7 +273,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append("Properties (count: ").append(state.getPropertyCount()).append(")");
         sb.append(newline);
-        Map<String, String> propLines = newTreeMap();
+        Map<String, String> propLines = new TreeMap<>();
         for (PropertyState ps : state.getProperties()) {
             StringBuilder l = new StringBuilder();
             l.append("  - ").append(ps.getName()).append(" = {").append(ps.getType()).append("} ");
@@ -317,7 +316,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append("Child nodes (count: ").append(state.getChildNodeCount(Long.MAX_VALUE)).append(")");
         sb.append(newline);
-        Map<String, String> childLines = newTreeMap();
+        Map<String, String> childLines = new TreeMap<>();
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
             StringBuilder l = new StringBuilder();
             l.append("  + ").append(ce.getName());

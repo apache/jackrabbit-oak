@@ -27,7 +27,6 @@ import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
@@ -36,6 +35,7 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -72,8 +72,8 @@ public class IndexAugmentorFactory {
     private volatile Map<String, CompositeFulltextQueryTermsProvider> fulltextQueryTermsProviderMap;
 
     public IndexAugmentorFactory() {
-        indexFieldProviders = Sets.newIdentityHashSet();
-        fulltextQueryTermsProviders = Sets.newIdentityHashSet();
+        indexFieldProviders = CollectionUtils.newIdentityHashSet();
+        fulltextQueryTermsProviders = CollectionUtils.newIdentityHashSet();
 
         resetState();
     }

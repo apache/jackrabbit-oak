@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.jackrabbit.oak.commons.conditions.Checks.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
@@ -1417,7 +1417,7 @@ public final class NodeDocument extends Document {
             return Collections.emptyIterator();
         }
         // create a mutable copy
-        final NavigableMap<Revision, Range> ranges = Maps.newTreeMap(getPreviousRanges());
+        final NavigableMap<Revision, Range> ranges = new TreeMap<>(getPreviousRanges());
         return new AbstractIterator<NodeDocument>() {
             @Override
             protected NodeDocument computeNext() {

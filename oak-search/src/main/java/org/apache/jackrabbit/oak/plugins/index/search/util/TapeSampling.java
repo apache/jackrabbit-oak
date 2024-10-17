@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.oak.commons.conditions.Checks;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 
 import java.util.Iterator;
 import java.util.Random;
@@ -64,7 +64,7 @@ public class TapeSampling<T> {
                 }
 
                 while (true) {
-                    Checks.checkArgument(input.hasNext(),
+                    Validate.checkArgument(input.hasNext(),
                             "Not enough input items provided. Declared: " + N + "; got " + seen + "; sampled: " + sampled);
 
                     T i = input.next();

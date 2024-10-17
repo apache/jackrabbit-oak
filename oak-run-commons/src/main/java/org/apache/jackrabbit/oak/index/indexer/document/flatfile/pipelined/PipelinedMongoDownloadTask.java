@@ -38,7 +38,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.conditions.Checks;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -199,7 +199,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private static final BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private static final BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
-    private static final Bson WITH_MODIFIED_FIELD = Filters.gte(NodeDocument.MODIFIED_IN_SECS, 0);
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
@@ -228,17 +227,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final DownloadStageStatistics downloadStageStatistics = new DownloadStageStatistics();
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
-
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
-                                      MongoDocumentStore docStore,
-                                      int maxBatchSizeBytes,
-                                      int maxBatchNumberOfDocuments,
-                                      BlockingQueue<NodeDocument[]> queue,
-                                      List<PathFilter> pathFilters,
-                                      StatisticsProvider statisticsProvider,
-                                      IndexingReporter reporter) {
-        this(mongoClientURI, docStore, maxBatchSizeBytes, maxBatchNumberOfDocuments, queue, pathFilters, statisticsProvider, reporter, new ThreadFactoryBuilder().setDaemon(true).build());
-    }
+    private final long minModified;
 
     public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
                                       MongoDocumentStore docStore,
@@ -249,6 +238,20 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       StatisticsProvider statisticsProvider,
                                       IndexingReporter reporter,
                                       ThreadFactory threadFactory) {
+        this(mongoClientURI, docStore, maxBatchSizeBytes, maxBatchNumberOfDocuments,
+                queue, pathFilters, statisticsProvider, reporter, threadFactory, 0);
+    }
+
+    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+                                      MongoDocumentStore docStore,
+                                      int maxBatchSizeBytes,
+                                      int maxBatchNumberOfDocuments,
+                                      BlockingQueue<NodeDocument[]> queue,
+                                      List<PathFilter> pathFilters,
+                                      StatisticsProvider statisticsProvider,
+                                      IndexingReporter reporter,
+                                      ThreadFactory threadFactory,
+                                      long minModified) {
         this.mongoClientURI = mongoClientURI;
         this.docStore = docStore;
         this.statisticsProvider = statisticsProvider;
@@ -258,12 +261,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.mongoDocQueue = queue;
         this.pathFilters = pathFilters;
         this.threadFactory = threadFactory;
+        this.minModified = minModified;
 
         // Default retries for 5 minutes.
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
                 OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS);
-        Checks.checkArgument(retryDuringSeconds > 0,
+        Validate.checkArgument(retryDuringSeconds > 0,
                 "Property " + OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS + " must be > 0. Was: " + retryDuringSeconds);
         this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS, String.valueOf(retryDuringSeconds));
 
@@ -326,6 +330,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             throw new IllegalArgumentException("Invalid paths in " + OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS + " " +
                     " system property: " + invalidPaths + ". Paths must be valid, must be absolute and must not be the root.");
         }
+    }
+
+    private Bson getModifiedFieldFilter() {
+        return Filters.gte(NodeDocument.MODIFIED_IN_SECS, minModified);
     }
 
     @Override
@@ -402,11 +410,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
-
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
-                    .find(WITH_MODIFIED_FIELD) // Download only documents that have _modified set
+                    .find(getModifiedFieldFilter()) // Download only documents that have _modified set
                     .hint(NATURAL_HINT);
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             downloadTask.download(mongoIterable);
@@ -419,7 +426,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             LOG.info("Downloading from Mongo with natural order using filter: {}", mongoFilter);
             FindIterable<NodeDocument> findIterable = dbCollection
-                    .find(Filters.and(WITH_MODIFIED_FIELD, mongoFilter))
+                    .find(Filters.and(getModifiedFieldFilter(), mongoFilter))
                     .hint(NATURAL_HINT);
             downloadTask.download(findIterable);
             downloadTask.reportFinalResults();
@@ -433,6 +440,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
+        mongoFilter = addMinModifiedToMongoFilter(mongoFilter);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository");
         } else {
@@ -562,6 +570,28 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             downloadTask.download(mongoFilter);
         }
+    }
+
+    /**
+     * If minModified is set, add this condition to the MongoDB filter.
+     * If minModified is not set, the old filter is returned.
+     * This method accepts null, and may return null.
+     *
+     * @param mongoFilter the previous filter (may be null)
+     * @return the combined filter (may be null)
+     */
+    private Bson addMinModifiedToMongoFilter(Bson mongoFilter) {
+        if (minModified == 0) {
+            // the is no minModified condition: return the unchanged filter
+            return mongoFilter;
+        }
+        Bson minModifiedFilter = getModifiedFieldFilter();
+        if (mongoFilter == null) {
+            // there is no previous filter: return the minModified filter
+            return minModifiedFilter;
+        }
+        // combine both filters
+        return Filters.and(mongoFilter, minModifiedFilter);
     }
 
     private Future<?> submitDownloadTask(ExecutorCompletionService<Void> executor, DownloadTask downloadTask, Bson mongoFilter, String name) {
