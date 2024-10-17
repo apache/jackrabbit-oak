@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +27,6 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -48,10 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -160,11 +158,11 @@ public class IndexTracker {
         Map<String, LuceneIndexNodeManager> original = indices;
         final Map<String, LuceneIndexNodeManager> updates = new HashMap<>();
 
-        Set<String> indexPaths = Sets.newHashSet();
+        Set<String> indexPaths = new HashSet<>();
         indexPaths.addAll(original.keySet());
         indexPaths.addAll(badIndexTracker.getIndexPaths());
 
-        List<Editor> editors = newArrayListWithCapacity(indexPaths.size());
+        List<Editor> editors = new ArrayList<>(indexPaths.size());
         for (final String path : indexPaths) {
             editors.add(new SubtreeEditor(new DefaultEditor() {
                 @Override
@@ -188,7 +186,7 @@ public class IndexTracker {
 
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
-                    .putAll(Maps.filterKeys(original, not(in(updates.keySet()))))
+                    .putAll(Maps.filterKeys(original, x -> !updates.keySet().contains(x)))
                     .putAll(Maps.filterValues(updates, x -> x != null))
                     .build();
 

@@ -23,7 +23,6 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -61,6 +60,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -474,7 +474,7 @@ public class BenchmarkRunner {
         );
 
 
-        Set<String> argset = Sets.newHashSet(benchmarkOptions.getNonOption().values(options));
+        Set<String> argset = new HashSet<>(benchmarkOptions.getNonOption().values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {

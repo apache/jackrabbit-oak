@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -242,7 +243,7 @@ public class TextPopulatorTest {
     }
 
     private static class FakeTextWriter implements TextWriter {
-        final Set<String> processed = Sets.newHashSet();
+        final Set<String> processed = new HashSet<>();
         final Map<String, String> data = new HashMap<>();
 
         @Override

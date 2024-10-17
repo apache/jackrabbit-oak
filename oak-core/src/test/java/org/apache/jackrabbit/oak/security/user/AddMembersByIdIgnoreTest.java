@@ -47,7 +47,7 @@ public class AddMembersByIdIgnoreTest extends AbstractAddMembersByIdTest {
     @Test
     public void testExistingMemberWithoutAccess() throws Exception {
         Set<String> failed = addExistingMemberWithoutAccess();
-        assertEquals(ImmutableSet.of(memberGroup.getID()), failed);
+        assertEquals(Set.of(memberGroup.getID()), failed);
 
         root.refresh();
         assertFalse(testGroup.isMember(memberGroup));

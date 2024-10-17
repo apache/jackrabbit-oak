@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import java.util.function.Function;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -47,16 +45,4 @@ public interface ChildNodeEntry {
      */
     @NotNull
     NodeState getNodeState();
-
-    /**
-     * Mapping from a ChildNodeEntry instance to its name.
-     */
-    Function<ChildNodeEntry, String> GET_NAME =
-            input -> {
-                    if (input != null) {
-                        return input.getName();
-                    } else {
-                        return null;
-                    }
-                };
 }

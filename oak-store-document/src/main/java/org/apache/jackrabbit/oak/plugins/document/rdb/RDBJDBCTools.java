@@ -412,7 +412,7 @@ public class RDBJDBCTools {
                             stmt.setBytes(startIndex++, UTF8Encoder.encodeAsByteArray(value));
                         } else {
                             if (!UTF8Encoder.canEncode(value)) {
-                                throw new IOException("can not encode as UTF-8");
+                                throw new IOException("can not encode as valid UTF-8");
                             }
                             stmt.setString(startIndex++, value);
                         }
@@ -425,12 +425,13 @@ public class RDBJDBCTools {
             }
         };
     }
-    
+
     private static DocumentStoreException.Type exceptionTypeFor(Exception cause) {
         return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT : DocumentStoreException.Type.GENERIC;
     }
-    
+
     public static DocumentStoreException asDocumentStoreException(@NotNull Exception cause, @NotNull String message) {
-        return new DocumentStoreException(message, cause, exceptionTypeFor(cause));
+        return new DocumentStoreException(message + (cause != null ? " (cause: " + cause.getMessage() + ")" : ""), cause,
+                exceptionTypeFor(cause));
     }
 }

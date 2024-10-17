@@ -40,7 +40,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
@@ -63,14 +62,13 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
  * Copies index files to/from the local disk and the datastore.
  */
 public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
-    public static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
+    public static final Set<String> REMOTE_ONLY = Set.of("segments.gen");
     private static final int MAX_FAILURE_ENTRIES = 10000;
     private static final String WORK_DIR_NAME = "indexWriterDir";
 
@@ -100,8 +98,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     private final Monitor copyCompletionMonitor = new Monitor();
 
-    private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
-    private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
+    private final Map<String, String> indexPathVersionMapping = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = new ConcurrentHashMap<>();
     private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
     private final boolean prefetchEnabled;
     private volatile boolean closed;

@@ -22,9 +22,9 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -290,7 +290,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         private Context[] delegatees = null;
 
         private void refresh(@NotNull List<? extends SecurityConfiguration> configurations) {
-            Set<Context> s = Sets.newLinkedHashSetWithExpectedSize(configurations.size());
+            Set<Context> s = CollectionUtils.newLinkedHashSet(configurations.size());
             for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE::apply)) {
                 if (DEFAULT != c) {
                     s.add(c);

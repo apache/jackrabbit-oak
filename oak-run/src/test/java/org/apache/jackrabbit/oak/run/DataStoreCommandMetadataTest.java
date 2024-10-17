@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -192,7 +193,7 @@ public class DataStoreCommandMetadataTest {
 
         File f = new File(dump, "metadata");
         Set<String> actuals = FileIOUtils.readStringsAsSet(new FileInputStream(f), false);
-        Assert.assertEquals(Sets.newHashSet(expectations), actuals);
+        Assert.assertEquals(new HashSet<>(expectations), actuals);
     }
 
     protected static String getOption(Type dsOption) {

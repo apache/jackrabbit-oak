@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,12 +43,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 import static java.util.List.of;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
@@ -103,7 +104,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Atomics;
 import com.mongodb.ReadPreference;
 
@@ -131,7 +131,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -140,6 +142,9 @@ import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
+
+    @Rule
+    public TestName name = new TestName();
 
     private static final Logger LOG = LoggerFactory.getLogger(VersionGarbageCollectorIT.class);
 
@@ -199,11 +204,15 @@ public class VersionGarbageCollectorIT {
 
     private DocumentNodeStore store1, store2;
 
+    private List<DocumentStore> documentStoresToBeDisposedAfter = new ArrayList<>();
+
     private VersionGarbageCollector gc;
 
     private ExecutorService execService;
 
     private FullGCMode originalFullGcMode;
+
+    private long startTime = System.currentTimeMillis();
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
     public static java.util.Collection<Object[]> params() throws IOException {
@@ -251,7 +260,7 @@ public class VersionGarbageCollectorIT {
 
         originalFullGcMode = VersionGarbageCollector.getFullGcMode();
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
-        LOG.info("setUp: DONE. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
+        LOG.info("setUp: DONE. fullGcMode = {}, test = {}", fullGcMode, name.getMethodName());
     }
 
     @After
@@ -269,15 +278,33 @@ public class VersionGarbageCollectorIT {
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
         fixture.dispose();
-        LOG.info("tearDown: DONE. fullGcMode = {}, fixture = {}", fullGcMode, fixture);
+        for (DocumentStore ds : documentStoresToBeDisposedAfter) {
+            try {
+                LOG.info("Try to dispose {} used in test {}", ds, name.getMethodName());
+                ds.dispose();
+                LOG.info("Disposed {} used in test {}", ds, name.getMethodName());
+            } catch (Throwable e) {
+                LOG.error("Failed to dispose" + ds, e);
+            }
+        }
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        LOG.info("tearDown: DONE. fullGcMode = {}, test = {}, elapsed = {}ms ({})", fullGcMode, name.getMethodName(), elapsed,
+                Duration.ofMillis(elapsed));
     }
 
-    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
+    private final String internalRdbTablePrefix = "VGCIT" + Long.toHexString(startTime);
+
+    private String getRdbTablePrefix() {
+        // log which test case used which table prefix in case some leak
+        LOG.info("RDB table prefix for {} is {}", name.getMethodName(), internalRdbTablePrefix);
+        return internalRdbTablePrefix;
+    }
 
     private void createPrimaryStore() {
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+                    new RDBOptions().tablePrefix(getRdbTablePrefix()).dropTablesOnClose(true));
         }
         ds1 = fixture.createDocumentStore();
         documentMKBuilder = new DocumentMK.Builder().clock(clock).setClusterId(1)
@@ -297,10 +324,12 @@ public class VersionGarbageCollectorIT {
                 leaseCheckNode, withFailingDS);
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
+                    // dropping the tables not needed here because done for the primary store
+                    new RDBOptions().tablePrefix(getRdbTablePrefix()).dropTablesOnClose(false));
         }
         ds2 = fixture.createDocumentStore();
         if (withFailingDS) {
+            documentStoresToBeDisposedAfter.add(ds2);
             FailingDocumentStore failingDs = new FailingDocumentStore(ds2);
             failingDs.noDispose();
             ds2 = failingDs;
@@ -547,35 +576,35 @@ public class VersionGarbageCollectorIT {
         String longName = "p".repeat(PATH_LONG + 1);
         createEmptyProps("/a/b/" + longName + "/x", "/b/c/" + longName + "/x",
                 "/c/d/" + longName + "/x");
-        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b/c", "/c"));
+        setGCIncludeExcludes(Set.of(), Set.of("/b/c", "/c"));
         doTestDeletedPropsGC(1, 1);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_oneInclude() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet("/a"), Sets.newHashSet());
+        setGCIncludeExcludes(Set.of("/a"), Set.of());
         doTestDeletedPropsGC(1, 1);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_twoIncludes() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet("/a", "/c"), Sets.newHashSet());
+        setGCIncludeExcludes(Set.of("/a", "/c"), Set.of());
         doTestDeletedPropsGC(2, 2);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_inclAndExcl() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet("/a", "/c"), Sets.newHashSet("/c/d"));
+        setGCIncludeExcludes(Set.of("/a", "/c"), Set.of("/c/d"));
         doTestDeletedPropsGC(1, 1);
     }
 
     @Test
     public void testGCDeletedPropsInclExcl_excludes() throws Exception {
         createEmptyProps("/a/b/c", "/b/c/d", "/c/d/e");
-        setGCIncludeExcludes(Sets.newHashSet(), Sets.newHashSet("/b", "/c"));
+        setGCIncludeExcludes(Set.of(), Set.of("/b", "/c"));
         doTestDeletedPropsGC(1, 1);
     }
 
@@ -944,7 +973,10 @@ public class VersionGarbageCollectorIT {
         if (store1 != null) {
             store1.dispose();
         }
-        final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
+
+        DocumentStore hiddenStore = fixture.createDocumentStore();
+        documentStoresToBeDisposedAfter.add(hiddenStore);
+        final FailingDocumentStore fds = new FailingDocumentStore(hiddenStore, 42) {
             @Override
             public void dispose() {}
         };
@@ -1532,9 +1564,9 @@ public class VersionGarbageCollectorIT {
                     @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
                 Iterable<NodeDocument> modifiedDocs = super.getModifiedDocs(fromModified,
                         toModified, limit, fromId, includePaths, excludePaths);
-                List<NodeDocument> result = stream(modifiedDocs.spliterator(), false).collect(toList());
+                List<NodeDocument> result = StreamSupport.stream(modifiedDocs.spliterator(), false).collect(toList());
                 final Revision updateRev = newRevision(1);
-                store1.getDocumentStore().findAndUpdate(NODES, stream(modifiedDocs.spliterator(), false)
+                store1.getDocumentStore().findAndUpdate(NODES, StreamSupport.stream(modifiedDocs.spliterator(), false)
                         .map(doc -> {
                             UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
                             setModified(op, updateRev);
@@ -1586,7 +1618,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1669,7 +1701,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1914,7 +1946,7 @@ public class VersionGarbageCollectorIT {
         createSecondaryStore(LeaseCheckMode.LENIENT);
 
         // while "2" was written to node1/a via an unmerged branch commit,
-        // it should not have been made visible through DGC/sweep combo
+        // it should not have been made visible through FGC/sweep combo
         invalidateCaches(store2);
         assertEquals("1", store2.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
         assertEquals("4", store2.getRoot().getChildNode("node1").getProperty("b").getValue(Type.STRING));
@@ -3301,7 +3333,7 @@ public class VersionGarbageCollectorIT {
         long maxAge = 1; //hrs
         long delta = TimeUnit.MINUTES.toMillis(10);
 
-        Set<String> names = Sets.newHashSet();
+        Set<String> names = new HashSet<>();
         NodeBuilder b1 = store1.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             String name = "test-" + i;
@@ -3326,7 +3358,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(1, stats.deletedLeafDocGCCount);
 
-        Set<String> children = Sets.newHashSet();
+        Set<String> children = new HashSet<>();
         for (ChildNodeEntry entry : store1.getRoot().getChildNodeEntries()) {
             children.add(entry.getName());
         }
@@ -3589,7 +3621,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
@@ -3622,7 +3654,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {

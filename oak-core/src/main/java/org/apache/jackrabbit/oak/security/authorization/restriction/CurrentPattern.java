@@ -53,7 +53,7 @@ class CurrentPattern implements RestrictionPattern {
     /**
      * Built-in namespace prefixes
      */
-    private static final Set<String> PREFIXES = ImmutableSet.of(
+    private static final Set<String> PREFIXES = Set.of(
             NamespaceConstants.PREFIX_OAK, 
             NamespaceConstants.PREFIX_REP,
             NamespaceRegistry.PREFIX_JCR);

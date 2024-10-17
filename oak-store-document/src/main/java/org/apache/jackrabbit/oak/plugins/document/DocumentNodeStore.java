@@ -52,12 +52,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -80,6 +83,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -303,8 +307,7 @@ public final class DocumentNodeStore
      * by {@link #updateClusterState()}.
      * Key: clusterId, value: ClusterNodeInfoDocument
      */
-    private final ConcurrentMap<Integer, ClusterNodeInfoDocument> clusterNodes
-            = Maps.newConcurrentMap();
+    private final ConcurrentMap<Integer, ClusterNodeInfoDocument> clusterNodes = new ConcurrentHashMap<>();
 
     /**
      * Unmerged branches of this DocumentNodeStore instance.
@@ -325,7 +328,7 @@ public final class DocumentNodeStore
     /**
      * Set of IDs for documents that may need to be split.
      */
-    private final Map<String, String> splitCandidates = Maps.newConcurrentMap();
+    private final Map<String, String> splitCandidates = new ConcurrentHashMap<>();
 
     /**
      * Summary of changes done by this cluster node to persist by the background
@@ -1678,7 +1681,7 @@ public final class DocumentNodeStore
                 }
             } else {
                 DocumentNodeState.Children c = new DocumentNodeState.Children();
-                Set<String> set = Sets.newTreeSet();
+                Set<String> set = new TreeSet<>();
                 for (Path p : added) {
                     set.add(p.getName());
                 }
@@ -1727,7 +1730,7 @@ public final class DocumentNodeStore
                     nodeChildrenCache.put(afterKey, children);
                 } else if (!children.hasMore){
                     // list is complete. use before children as basis
-                    Set<String> afterChildren = Sets.newTreeSet(children.children);
+                    Set<String> afterChildren = new TreeSet<>(children.children);
                     for (Path p : added) {
                         afterChildren.add(p.getName());
                     }
@@ -1746,7 +1749,7 @@ public final class DocumentNodeStore
                 } else if (added.isEmpty()) {
                     // incomplete list, but we only removed nodes
                     // use linked hash set to retain order
-                    Set<String> afterChildren = Sets.newLinkedHashSet(children.children);
+                    Set<String> afterChildren = new LinkedHashSet<>(children.children);
                     for (Path p : removed) {
                         afterChildren.remove(p.getName());
                     }
@@ -2225,7 +2228,7 @@ public final class DocumentNodeStore
             return null;
         }
         // make sure all changes up to checkpoint are visible
-        suspendUntilAll(Sets.newHashSet(rv));
+        suspendUntilAll(CollectionUtils.toSet(rv));
         return getRoot(rv);
     }
 
@@ -2457,7 +2460,7 @@ public final class DocumentNodeStore
      */
     boolean updateClusterState() {
         boolean hasChanged = false;
-        Set<Integer> clusterIds = Sets.newHashSet();
+        Set<Integer> clusterIds = new HashSet<>();
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(nonLeaseCheckingStore)) {
             int cId = doc.getClusterId();
             clusterIds.add(cId);
@@ -2972,7 +2975,7 @@ public final class DocumentNodeStore
 
         // are there in-doubt commit revisions that are older than
         // the current head revision?
-        SortedSet<Revision> garbage = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
+        SortedSet<Revision> garbage = new TreeSet<>(StableRevisionComparator.INSTANCE);
         for (Revision r : inDoubtTrunkCommits) {
             if (r.compareRevisionTime(head) < 0) {
                 garbage.add(r);
@@ -3405,9 +3408,18 @@ public final class DocumentNodeStore
                 fromRev = from.getRootRevision();
                 toRev = to.getRootRevision();
             } catch (RuntimeException e) {
-                LOG.warn("diffJournalChildren failed with " +
-                        e.getClass().getSimpleName() +
-                        ", falling back to classic diff", e);
+                // avoid filling the log file with stack traces for a known issue
+                // see OAK-6016 and OAK-6011
+                if (e instanceof IllegalStateException &&
+                        "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
+                    LOG.warn("diffJournalChildren failed with " +
+                            e.getClass().getSimpleName() +
+                            ", falling back to classic diff : " + e.getMessage());
+                } else {
+                    LOG.warn("diffJournalChildren failed with " +
+                            e.getClass().getSimpleName() +
+                            ", falling back to classic diff", e);
+                }
             }
         }
         if (diff == null) {
@@ -3475,7 +3487,7 @@ public final class DocumentNodeStore
         long minValue = NodeDocument.getModifiedInSecs(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
-        Set<Path> paths = Sets.newHashSet();
+        Set<Path> paths = new HashSet<>();
 
         LOG.debug("diffManyChildren: path: {}, fromRev: {}, toRev: {}", path, fromRev, toRev);
 
@@ -3552,7 +3564,7 @@ public final class DocumentNodeStore
                                  RevisionVector fromRev,
                                  DocumentNodeState.Children toChildren,
                                  RevisionVector toRev) {
-        Set<String> childrenSet = Sets.newHashSet(toChildren.children);
+        Set<String> childrenSet = new HashSet<>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n);
@@ -3571,7 +3583,7 @@ public final class DocumentNodeStore
                 }
             }
         }
-        childrenSet = Sets.newHashSet(fromChildren.children);
+        childrenSet = new HashSet<>(fromChildren.children);
         for (String n : toChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('+').key(n).object().endObject();
@@ -4000,7 +4012,7 @@ public final class DocumentNodeStore
         
         // otherwise wait until the visibility token's revisions all become visible
         // (or maxWaitMillis has passed)
-        commitQueue.suspendUntilAll(Sets.newHashSet(visibilityTokenRv), maxWaitMillis);
+        commitQueue.suspendUntilAll(CollectionUtils.toSet(visibilityTokenRv), maxWaitMillis);
         
         // if we got interrupted above would throw InterruptedException
         // otherwise, we don't know why suspendUntilAll returned, so

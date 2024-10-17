@@ -123,7 +123,7 @@ class NamespaceEditor extends DefaultEditor {
         modified = true;
     }
 
-    private static Set<String> jcrSystemNS = ImmutableSet.of(PREFIX_JCR,
+    private static Set<String> jcrSystemNS = Set.of(PREFIX_JCR,
             PREFIX_NT, PREFIX_MIX, NamespaceConstants.PREFIX_SV);
 
     private static CommitFailedException modificationNotAllowed(String prefix) {

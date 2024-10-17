@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.base.Ticker;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +48,8 @@ public class BadIndexTracker {
     private static final long DEFAULT_RECHECK_INTERVAL = TimeUnit.MINUTES.toMillis(15);
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Map<String, BadIndexInfo> badIndexesForRead = Maps.newConcurrentMap();
-    private final Map<String, BadIndexInfo> badPersistedIndexes = Maps.newConcurrentMap();
+    private final Map<String, BadIndexInfo> badIndexesForRead = new ConcurrentHashMap<>();
+    private final Map<String, BadIndexInfo> badPersistedIndexes = new ConcurrentHashMap<>();
     private final long recheckIntervalMillis;
     private Ticker ticker = Ticker.systemTicker();
     private int indexerCycleCount;

@@ -20,11 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -270,7 +270,7 @@ public class NodeStoreDiffTest {
 
 
     private static class TestDocumentStore extends MemoryDocumentStore {
-        final Set<String> paths = Sets.newHashSet();
+        final Set<String> paths = new HashSet<>();
 
         @Override
         public <T extends Document> T find(Collection<T> collection, String key) {

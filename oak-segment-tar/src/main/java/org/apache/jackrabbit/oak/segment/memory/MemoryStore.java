@@ -22,9 +22,8 @@ import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defa
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -60,8 +59,7 @@ public class MemoryStore implements SegmentStore {
     @NotNull
     private final SegmentWriter segmentWriter;
 
-    private final ConcurrentMap<SegmentId, Segment> segments =
-            Maps.newConcurrentMap();
+    private final ConcurrentMap<SegmentId, Segment> segments = new ConcurrentHashMap<>();
 
     public MemoryStore() throws IOException {
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
@@ -117,7 +115,7 @@ public class MemoryStore implements SegmentStore {
         Buffer buffer = Buffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = new Segment(tracker, segmentReader, id, buffer);
+        Segment segment = new Segment(tracker, id, buffer);
         if (segments.putIfAbsent(id, segment) != null) {
             throw new IOException("Segment override: " + id);
         }

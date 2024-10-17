@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.69-SNAPSHOT</version>
+  <version>1.71-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1723622532</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1727261344</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -58,15 +58,15 @@
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
     <solr.version>8.11.1</solr.version>
-    <mongo.driver.version>3.12.11</mongo.driver.version>
+    <mongo.driver.version>3.12.14</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.17.1</jackson.version>
-    <testcontainers.version>1.19.7</testcontainers.version>
+    <derby.version>10.15.2.0</derby.version>
+    <jackson.version>2.17.2</jackson.version>
+    <testcontainers.version>1.20.1</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>3.0.22</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
@@ -326,22 +326,22 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.3.1</version>
+            <version>3.5.0</version>
           </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.8.6.2</version>
+          <version>4.8.6.3</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.5.3</version>
+          <version>3.6.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.16.2</version>
+          <version>2.17.1</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -569,7 +569,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.12.0</version>
+        <version>5.13.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -625,13 +625,18 @@
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.14.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.16.1</version>
+        <version>2.17.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
@@ -1002,6 +1007,11 @@
             <artifactId>derby</artifactId>
             <version>${derby.version}</version>
          </dependency>
+         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyshared</artifactId>
+            <version>${derby.version}</version>
+         </dependency>
       </dependencies>
    </profile>
    
@@ -1168,7 +1178,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.18</version>
+          <version>42.7.4</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1209,32 +1219,13 @@
       </dependencies>
     </profile>
     <profile>
-      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
-      <!-- for instance:
-        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.77
-       -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
           <groupId>com.ibm.db2</groupId>
-          <artifactId>db2</artifactId>
-          <version>4.19.77</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
-      <!-- for instance:
-        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.25.13
-       -->
-      <id>rdb-db2-11</id>
-      <dependencies>
-        <dependency>
-          <groupId>com.ibm.db2</groupId>
-          <artifactId>db2</artifactId>
-          <version>4.25.13</version>
+          <artifactId>jcc</artifactId>
+          <version>11.5.9.0</version>
+          <scope>test</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1401,6 +1392,6 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
     <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
-    <tag>trunk</tag>
+    <tag>jackrabbit-oak-1.70.0</tag>
   </scm>
 </project>

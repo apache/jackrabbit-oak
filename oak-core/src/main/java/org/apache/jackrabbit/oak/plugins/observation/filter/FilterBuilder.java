@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -31,6 +30,7 @@ import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,7 +61,7 @@ public final class FilterBuilder {
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
     private final List<String> subTrees = newArrayList();
-    private final Set<String> pathsForMBean = newHashSet();
+    private final Set<String> pathsForMBean = new HashSet<>();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
         

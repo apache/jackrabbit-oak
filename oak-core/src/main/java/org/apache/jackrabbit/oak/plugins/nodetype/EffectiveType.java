@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,8 +32,6 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -259,7 +259,7 @@ class EffectiveType {
 
     @NotNull
     Set<String> getTypeNames() {
-        Set<String> names = newHashSet();
+        Set<String> names = new HashSet<>();
         for (NodeState type : types) {
             names.add(type.getName(JCR_NODETYPENAME));
             addAll(names, type.getNames(REP_SUPERTYPES));
@@ -268,7 +268,7 @@ class EffectiveType {
     }
     
     List<String> getDirectTypeNames() {
-        List<String> names = newArrayListWithCapacity(types.size());
+        List<String> names = new ArrayList<>(types.size());
         for (NodeState type : types) {
             names.add(type.getName(JCR_NODETYPENAME));
         }
@@ -306,7 +306,7 @@ class EffectiveType {
 
     @NotNull
     private Set<String> getNameSet(@NotNull String set) {
-        Set<String> names = newHashSet();
+        Set<String> names = new HashSet<>();
         for (NodeState type : types) {
             addAll(names, type.getNames(set));
         }

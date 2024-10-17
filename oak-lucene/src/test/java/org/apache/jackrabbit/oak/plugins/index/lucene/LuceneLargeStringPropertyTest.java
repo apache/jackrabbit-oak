@@ -62,7 +62,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -199,7 +198,7 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
 
     @Test
     public void truncateStringInCaseStringIsGreaterThanMaxStringPropertyLengthAndOrderbyIsConfigured() throws Exception {
-        Tree idx = createIndex("test1", of("propa"));
+        Tree idx = createIndex("test1", Set.of("propa"));
         Tree tr = idx.addChild(PROP_NODE).addChild("propa");
         tr.setProperty("ordered", true, Type.BOOLEAN); // in case of ordered throws error that it can't index node
         tr.setProperty("analyzed", true, Type.BOOLEAN);
@@ -237,7 +236,7 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
      */
     @Test
     public void truncateLargeUnicodeString() throws Exception {
-        Tree idx = createIndex("test1", of("propa"));
+        Tree idx = createIndex("test1", Set.of("propa"));
         Tree tr = idx.addChild(PROP_NODE).addChild("propa");
         tr.setProperty("ordered", true, Type.BOOLEAN); // in case of ordered throws error that it can't index node
         tr.setProperty("analyzed", true, Type.BOOLEAN);

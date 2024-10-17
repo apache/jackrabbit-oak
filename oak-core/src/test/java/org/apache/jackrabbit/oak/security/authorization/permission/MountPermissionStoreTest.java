@@ -19,11 +19,11 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -87,7 +87,7 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
         root.commit();
 
         String wspName = adminSession.getWorkspaceName();
-        PermissionProvider pp = config.getPermissionProvider(root, wspName, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = config.getPermissionProvider(root, wspName, Set.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof MountPermissionProvider);
         permissionStore = ((MountPermissionProvider) pp).getPermissionStore(root, wspName, RestrictionProvider.EMPTY);
     }

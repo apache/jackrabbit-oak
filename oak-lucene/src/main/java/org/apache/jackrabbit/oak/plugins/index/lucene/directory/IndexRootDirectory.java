@@ -29,13 +29,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -193,7 +193,7 @@ public class IndexRootDirectory {
     static String getIndexFolderBaseName(String indexPath) {
         List<String> elements = Lists.newArrayList(PathUtils.elements(indexPath));
         Collections.reverse(elements);
-        List<String> result = Lists.newArrayListWithCapacity(2);
+        List<String> result = new ArrayList<>(2);
 
         //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
         for (String e : Iterables.limit(elements, 3)) {
@@ -228,7 +228,7 @@ public class IndexRootDirectory {
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);
         }
 
-        Map<String, List<LocalIndexDir>> result = Maps.newTreeMap();
+        Map<String, List<LocalIndexDir>> result = new TreeMap<>();
         for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()){
             List<LocalIndexDir> sortedDirs = new ArrayList<>(e.getValue());
             Collections.sort(sortedDirs, Collections.<LocalIndexDir>reverseOrder());

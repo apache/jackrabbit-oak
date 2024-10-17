@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,7 +39,6 @@ import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -171,8 +171,8 @@ public class UploadStagingCache implements Closeable {
                 .newScheduledThreadPool(2, new NamedThreadFactory("oak-ds-cache-scheduled-thread"));
         }
 
-        this.map = Maps.newConcurrentMap();
-        this.attic = Maps.newConcurrentMap();
+        this.map = new ConcurrentHashMap<>();
+        this.attic = new ConcurrentHashMap<>();
         this.retryQueue = new LinkedBlockingQueue<>();
         this.uploadCacheSpace = new File(dir, "upload");
         this.uploader = uploader;

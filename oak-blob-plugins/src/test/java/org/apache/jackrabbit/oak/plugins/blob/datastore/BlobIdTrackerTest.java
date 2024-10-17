@@ -22,6 +22,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -265,7 +265,7 @@ public class BlobIdTrackerTest {
 
     private static Set<String> read(List<DataRecord> recs)
         throws IOException, DataStoreException {
-        Set<String> ids = newHashSet();
+        Set<String> ids = new HashSet<>();
         for (DataRecord b : recs) {
             ids.addAll(readStringsAsSet(b.getStream(), false));
         }
@@ -273,7 +273,7 @@ public class BlobIdTrackerTest {
     }
 
     private static Set<String> add(BlobTracker tracker, List<String> ints) throws IOException {
-        Set<String> s = newHashSet();
+        Set<String> s = new HashSet<>();
         for (String rec : ints) {
             tracker.add(rec);
             s.add(rec);
@@ -282,7 +282,7 @@ public class BlobIdTrackerTest {
     }
 
     private static Set<String> retrieve(BlobTracker tracker) throws IOException {
-        Set<String> retrieved = newHashSet();
+        Set<String> retrieved = new HashSet<>();
         Iterator<String> iter = tracker.get();
         while(iter.hasNext()) {
             retrieved.add(iter.next());

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNotNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -107,7 +108,7 @@ public class CacheWarmingTest {
 
     private DocumentStore newMongoDocumentStore() throws InterruptedException {
         mongoConnection = connectionFactory.getConnection();
-        assertNotNull(mongoConnection);
+        assumeNotNull(mongoConnection);
         db = new CountingMongoDatabase(mongoConnection.getDatabase());
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()

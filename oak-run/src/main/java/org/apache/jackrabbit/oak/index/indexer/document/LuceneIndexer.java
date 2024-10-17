@@ -89,14 +89,14 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             return false;
         }
 
-        indexerStatisticsTracker.onEntryStart();
-
+        long startEntryNanos = System.nanoTime();
         LuceneDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
         Document doc = maker.makeDocument(entry.getNodeState());
-        indexerStatisticsTracker.onEntryEndMakeDocument();
+        long endEntryMakeDocumentNanos = System.nanoTime();
+
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
-            indexerStatisticsTracker.onEntryEnd(entry.getPath());
+            indexerStatisticsTracker.onEntryEnd(entry.getPath(), startEntryNanos, endEntryMakeDocumentNanos);
             progressReporter.indexUpdate(definition.getIndexPath());
             return true;
         }
@@ -112,6 +112,11 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     @Override
     public Set<String> getRelativeIndexedNodeNames() {
         return definition.getRelativeNodeNames();
+    }
+
+    @Override
+    public String getIndexName() {
+        return definition.getIndexName();
     }
 
     @Override

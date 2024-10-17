@@ -19,11 +19,7 @@
 package org.apache.jackrabbit.oak.explorer;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
@@ -35,17 +31,23 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.json.JsopBuilder.prettyPrint;
 import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 
-import java.awt.*;
+import java.awt.GridLayout;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.JTree;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -271,7 +273,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append("Properties (count: ").append(state.getPropertyCount()).append(")");
         sb.append(newline);
-        Map<String, String> propLines = newTreeMap();
+        Map<String, String> propLines = new TreeMap<>();
         for (PropertyState ps : state.getProperties()) {
             StringBuilder l = new StringBuilder();
             l.append("  - ").append(ps.getName()).append(" = {").append(ps.getType()).append("} ");
@@ -314,7 +316,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append("Child nodes (count: ").append(state.getChildNodeCount(Long.MAX_VALUE)).append(")");
         sb.append(newline);
-        Map<String, String> childLines = newTreeMap();
+        Map<String, String> childLines = new TreeMap<>();
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
             StringBuilder l = new StringBuilder();
             l.append("  + ").append(ce.getName());
@@ -400,7 +402,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         StringBuilder sb = new StringBuilder();
 
-        Set<UUID> uuids = newHashSet();
+        Set<UUID> uuids = new HashSet<>();
         for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getKey().endsWith(file)) {
                 sb.append("SegmentNodeState references to ").append(e.getKey());
@@ -461,7 +463,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
 
         List<String> paths = newArrayList();
-        filterNodeStates(newHashSet(id), paths, backend.getHead(), "/", backend);
+        filterNodeStates(Set.of(id), paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
         Map<UUID, Set<Entry<UUID, String>>> links = new HashMap<>();
@@ -481,7 +483,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
     }
 
     private static void filterNodeStates(Set<UUID> uuids, List<String> paths, NodeState state, String path, ExplorerBackend store) {
-        Set<String> localPaths = newTreeSet();
+        Set<String> localPaths = new TreeSet<>();
         for (PropertyState ps : state.getProperties()) {
             if (store.isPersisted(ps)) {
                 String recordId = store.getRecordId(ps);

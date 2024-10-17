@@ -45,12 +45,11 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
     private final ExtendedIndexHelper extendedIndexHelper;
-    private final DirectoryFactory dirFactory;
     private final LuceneIndexWriterFactory indexWriterFactory;
 
     public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
         this.extendedIndexHelper = extendedIndexHelper;
-        this.dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
+        DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
         this.indexWriterFactory = new DefaultIndexWriterFactory(extendedIndexHelper.getMountInfoProvider(),
                 dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
     }
@@ -74,6 +73,11 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
                 textExtractor,
                 progressReporter
         );
+    }
+
+    @Override
+    public ExtractedTextCache getTextCache() {
+        return textCache;
     }
 
     @Override

@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -450,6 +450,6 @@ public class GlobPatternTest {
 
         assertNotEquals(pattern, GlobPattern.create("/a/b/c", "/*"));
         assertNotEquals(pattern, GlobPattern.create("/a/b/c/d", "*"));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("/a/b/c", "/*")));
+        assertNotEquals(pattern, new PrefixPattern(Set.of("/a/b/c", "/*")));
     }
 }

@@ -102,8 +102,8 @@ public class Multiplexers {
             strategies.add(newStrategy(unique, true, defaultName, defMount));
             return strategies;
         } else {
-            return unique ? ImmutableSet.of(newUniqueStrategy(defaultName))
-                    : ImmutableSet.of(newMirrorStrategy(defaultName));
+            return unique ? Set.of(newUniqueStrategy(defaultName))
+                    : Set.of(newMirrorStrategy(defaultName));
         }
     }
 

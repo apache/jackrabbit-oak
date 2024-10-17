@@ -102,14 +102,14 @@ public class ElasticIndexer implements NodeStateIndexer {
         if (indexingRule == null) {
             return false;
         }
-        indexerStatisticsTracker.onEntryStart();
+        long startEntryNanos = System.nanoTime();
         ElasticDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
 
         ElasticDocument doc = maker.makeDocument(entry.getNodeState());
-        indexerStatisticsTracker.onEntryEndMakeDocument();
+        long endEntryMakeDocumentNanos = System.nanoTime();
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
-            indexerStatisticsTracker.onEntryEnd(entry.getPath());
+            indexerStatisticsTracker.onEntryEnd(entry.getPath(), startEntryNanos, endEntryMakeDocumentNanos);
             progressReporter.indexUpdate(definition.getIndexPath());
             return true;
         }
@@ -124,6 +124,11 @@ public class ElasticIndexer implements NodeStateIndexer {
     @Override
     public Set<String> getRelativeIndexedNodeNames() {
         return definition.getRelativeNodeNames();
+    }
+
+    @Override
+    public String getIndexName() {
+        return definition.getIndexName();
     }
 
     @Override

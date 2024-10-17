@@ -18,9 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +49,7 @@ public class PermissionEntryCacheTest {
     public void before() {
         permissionEntry = new PermissionEntry("/path", true, 0, PrivilegeBits.BUILT_IN.get(PrivilegeBits.JCR_READ), RestrictionPattern.EMPTY);
         ppe = new PrincipalPermissionEntries();
-        ppe.putEntriesByPath("/path", Sets.newHashSet(permissionEntry));
+        ppe.putEntriesByPath("/path", Set.of(permissionEntry));
 
         store = Mockito.mock(PermissionStore.class);
 
@@ -110,10 +111,10 @@ public class PermissionEntryCacheTest {
     public void testLoadNotComplete() throws Exception {
         cache.init("a", Long.MAX_VALUE);
 
-        Collection<PermissionEntry> entries = Sets.newHashSet(permissionEntry);
+        Collection<PermissionEntry> entries = Set.of(permissionEntry);
         when(store.load("a", "/path")).thenReturn(entries);
 
-        Collection<PermissionEntry> result = Sets.newHashSet();
+        Collection<PermissionEntry> result = new HashSet<>();
         cache.load(store, result, "a", "/path");
 
         assertEquals(entries, result);
@@ -134,10 +135,10 @@ public class PermissionEntryCacheTest {
     public void testLoadCompleted() throws Exception {
         cache.init("a", 1);
 
-        Collection<PermissionEntry> entries = Sets.newHashSet(permissionEntry);
+        Collection<PermissionEntry> entries = Set.of(permissionEntry);
         when(store.load("a", "/path")).thenReturn(entries);
 
-        Collection<PermissionEntry> result = Sets.newHashSet();
+        Collection<PermissionEntry> result = new HashSet<>();
         cache.load(store, result, "a", "/path");
 
         assertEquals(entries, result);
@@ -160,7 +161,7 @@ public class PermissionEntryCacheTest {
 
         when(store.load("a", "/path")).thenReturn(null);
 
-        Collection<PermissionEntry> result = Sets.newHashSet();
+        Collection<PermissionEntry> result = new HashSet<>();
         cache.load(store, result, "a", "/path");
 
         assertTrue(result.isEmpty());
@@ -182,7 +183,7 @@ public class PermissionEntryCacheTest {
         cache.init("a", 1);
         when(store.load("a", "/path")).thenReturn(null);
 
-        Collection<PermissionEntry> result = Sets.newHashSet();
+        Collection<PermissionEntry> result = new HashSet<>();
         cache.load(store, result, "a", "/path");
 
         assertTrue(result.isEmpty());
@@ -204,7 +205,7 @@ public class PermissionEntryCacheTest {
         cache.init("a", 0);
         when(store.load("a", "/path")).thenReturn(null);
 
-        Collection<PermissionEntry> result = Sets.newHashSet();
+        Collection<PermissionEntry> result = new HashSet<>();
         cache.load(store, result, "a", "/path");
 
         assertTrue(result.isEmpty());

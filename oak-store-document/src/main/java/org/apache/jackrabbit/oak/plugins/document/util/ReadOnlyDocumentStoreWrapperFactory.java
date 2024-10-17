@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.jetbrains.annotations.NotNull;
 
@@ -26,7 +25,7 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Set;
 public class ReadOnlyDocumentStoreWrapperFactory {
-    private static final Set<String> unsupportedMethods = Sets.newHashSet(
+    private static final Set<String> unsupportedMethods = Set.of(
             "remove", "create", "update", "createOrUpdate", "findAndUpdate");
     public static DocumentStore getInstance(@NotNull final DocumentStore delegate) {
         return (DocumentStore)Proxy.newProxyInstance(DocumentStore.class.getClassLoader(),

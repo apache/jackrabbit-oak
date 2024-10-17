@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -98,7 +99,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         assertFalse(groupAction.onMembersAddedContentIdCalled);
 
         assertTrue(groupAction.onMembersAddedCalled);
-        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
+        assertEquals(Set.of(user1.getID(), user2.getID()), groupAction.memberIds);
     }
 
     @Override
@@ -126,7 +127,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         private boolean onMembersAddedContentIdCalled = false;
 
         Group group;
-        Set<String> memberIds = Sets.newHashSet();
+        Set<String> memberIds = new HashSet<>();
 
         @Override
         public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -36,6 +35,7 @@ import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -118,7 +118,7 @@ public abstract class MembershipBaseTest extends AbstractUserTest implements Use
 
     @NotNull
     Map<String, String> createIdMap(int start, int end) {
-        Map<String, String> memberIds = Maps.newLinkedHashMap();
+        Map<String, String> memberIds = new LinkedHashMap<>();
         for (int i = start; i < end; i++) {
             String memberId = "member" + i;
             memberIds.put(getContentID(memberId), memberId);

@@ -263,7 +263,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
         Set<Principal> dynamicGroupMembership = principalProvider.getMembershipPrincipals(externalGroupPrincipal);
         if (dynamicGroups) {
-            Set<Principal> expected = ImmutableSet.of(groupAutoMembershipGroup.getPrincipal(), configAutoMembershipGroup.getPrincipal());
+            Set<Principal> expected = Set.of(groupAutoMembershipGroup.getPrincipal(), configAutoMembershipGroup.getPrincipal());
             assertEquals(expected, dynamicGroupMembership);        
         } else {
             // dynamic-groups not enabled -> group automembership not resolved.

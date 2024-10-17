@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.progress;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Type;
@@ -31,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
@@ -81,13 +81,13 @@ public class NodeCounterMBeanEstimatorTest {
 
         NodeCountEstimator estimator = new NodeCounterMBeanEstimator(store, counter);
 
-        assertEquals(100, estimator.getEstimatedNodeCount("/", of("/idx-a")));
-        assertEquals(100, estimator.getEstimatedNodeCount("/", of("/idx-a", "/idx-b")));
-        assertEquals(40, estimator.getEstimatedNodeCount("/", of("/idx-b")));
-        assertEquals(70, estimator.getEstimatedNodeCount("/", of("/idx-b", "/idx-c")));
+        assertEquals(100, estimator.getEstimatedNodeCount("/", Set.of("/idx-a")));
+        assertEquals(100, estimator.getEstimatedNodeCount("/", Set.of("/idx-a", "/idx-b")));
+        assertEquals(40, estimator.getEstimatedNodeCount("/", Set.of("/idx-b")));
+        assertEquals(70, estimator.getEstimatedNodeCount("/", Set.of("/idx-b", "/idx-c")));
 
-        assertEquals(50, estimator.getEstimatedNodeCount("/content", of("/content/idx-f")));
-        assertEquals(40, estimator.getEstimatedNodeCount("/content", of("/content/idx-e")));
+        assertEquals(50, estimator.getEstimatedNodeCount("/content", Set.of("/content/idx-f")));
+        assertEquals(40, estimator.getEstimatedNodeCount("/content", Set.of("/content/idx-e")));
     }
 
 }

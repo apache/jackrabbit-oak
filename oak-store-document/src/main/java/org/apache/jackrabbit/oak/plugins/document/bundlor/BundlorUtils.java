@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +29,6 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -81,7 +81,7 @@ public final class BundlorUtils {
     }
 
     public static Set<String> getChildNodeNames(Collection<String> keys, Matcher matcher){
-        Set<String> childNodeNames = Sets.newHashSet();
+        Set<String> childNodeNames = new HashSet<>();
 
         //Immediate child should have depth 1 more than matcher depth
         int expectedDepth = matcher.depth() + 1;

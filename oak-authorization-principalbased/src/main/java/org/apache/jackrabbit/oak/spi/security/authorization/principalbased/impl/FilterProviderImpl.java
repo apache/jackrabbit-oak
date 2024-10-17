@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,6 +45,7 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -74,8 +74,8 @@ public class FilterProviderImpl implements FilterProvider {
 
     private String oakPath;
 
-    private final Map<String, String> validatedPrincipalNamesPathMap = Maps.newConcurrentMap();
-    private final Map<String, String> unsupportedPrincipalNames = Maps.newConcurrentMap();
+    private final Map<String, String> validatedPrincipalNamesPathMap = new ConcurrentHashMap<>();
+    private final Map<String, String> unsupportedPrincipalNames = new ConcurrentHashMap<>();
 
     /**
      * Constructor to use outside OSGi containers

@@ -86,7 +86,7 @@ public class ObservationTest extends AbstractClusterTest {
             @Override
             public void onEvent(EventIterator events) {
                 try {
-                    Set<String> paths = Sets.newHashSet();
+                    Set<String> paths = new HashSet<>();
                     while (events.hasNext()) {
                         Event event = events.nextEvent();
                         String external = "";

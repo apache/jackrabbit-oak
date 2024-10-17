@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.MalformedObjectNameException;
@@ -40,7 +42,6 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 
 import org.osgi.service.component.annotations.Activate;
@@ -101,10 +102,10 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 }, service = {})
 public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean {
     private final AtomicInteger observerCount = new AtomicInteger();
-    private final Map<ObjectName, EventListenerMBean> eventListeners = Maps.newConcurrentMap();
-    private final Map<ObjectName, BackgroundObserverMBean> bgObservers = Maps.newConcurrentMap();
-    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = Maps.newConcurrentMap();
-    private final Map<ObjectName, FilterConfigMBean> filterConfigs = Maps.newConcurrentMap();
+    private final Map<ObjectName, EventListenerMBean> eventListeners = new ConcurrentHashMap<>();
+    private final Map<ObjectName, BackgroundObserverMBean> bgObservers = new ConcurrentHashMap<>();
+    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = new ConcurrentHashMap<>();
+    private final Map<ObjectName, FilterConfigMBean> filterConfigs = new ConcurrentHashMap<>();
 
     private Registration mbeanReg;
 
@@ -203,7 +204,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
      * @return map of EventListenerMBean and corresponding Observer
      */
     private List<ListenerMBeans> getListenerMBeans() {
-        List<ListenerMBeans> mbeans = Lists.newArrayListWithCapacity(eventListeners.size());
+        List<ListenerMBeans> mbeans = new ArrayList<>(eventListeners.size());
         for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
             String listenerId = getListenerId(e.getKey());
             ListenerMBeans m = new ListenerMBeans();

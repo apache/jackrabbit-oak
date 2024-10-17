@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -156,7 +155,7 @@ public class UtilsTest implements Constants {
         NamePathMapper mapper = mock(NamePathMapper.class);
         when(mapper.getJcrName(any())).thenReturn("c");
 
-        Privilege[] privs = Utils.privilegesFromOakNames(Sets.newHashSet("a", "b"), mockPrivilegeManager(), mapper);
+        Privilege[] privs = Utils.privilegesFromOakNames(Set.of("a", "b"), mockPrivilegeManager(), mapper);
         assertEquals(2, privs.length);
         for (Privilege p : privs) {
             assertEquals("c", p.getName());

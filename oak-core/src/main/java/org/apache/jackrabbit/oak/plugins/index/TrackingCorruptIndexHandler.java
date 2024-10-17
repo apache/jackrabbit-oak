@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.openmbean.CompositeDataSupport;
@@ -54,7 +55,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     private long errorWarnIntervalMillis = TimeUnit.MINUTES.toMillis(15);
     private long indexerCycleCount;
     private long corruptIntervalMillis = TimeUnit.MINUTES.toMillis(30);
-    private final Map<String, CorruptIndexInfo> indexes = Maps.newConcurrentMap();
+    private final Map<String, CorruptIndexInfo> indexes = new ConcurrentHashMap<>();
     private MeterStats meter;
 
     void setMeterStats(MeterStats meter) {

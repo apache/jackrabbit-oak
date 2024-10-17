@@ -40,6 +40,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 
@@ -48,7 +49,6 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -80,12 +80,10 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
-import static java.util.stream.StreamSupport.stream;
 
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createUnstarted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
-import static org.apache.jackrabbit.guava.common.util.concurrent.Atomics.newReference;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -121,7 +119,7 @@ public class VersionGarbageCollector {
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = getLogger(VersionGarbageCollector.class);
-    private static final Logger AUDIT_LOG = getLogger(VersionGarbageCollector.class.getName() + ".auditDGC");
+    private static final Logger AUDIT_LOG = getLogger(VersionGarbageCollector.class.getName() + ".auditFGC");
 
     /**
      * Split document types which can be safely garbage collected
@@ -246,7 +244,7 @@ public class VersionGarbageCollector {
     private Set<String> fullGCIncludePaths = Collections.emptySet();
     private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
-    private final AtomicReference<GCJob> collector = newReference();
+    private final AtomicReference<GCJob> collector = new AtomicReference<>();
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
@@ -291,6 +289,7 @@ public class VersionGarbageCollector {
     void setFullGCPaths(@NotNull Set<String> includes, @NotNull Set<String> excludes) {
         this.fullGCIncludePaths = requireNonNull(includes);
         this.fullGCExcludePaths = requireNonNull(excludes);
+        AUDIT_LOG.info("Full GC paths set to include: {} and exclude: {} in mode {}", includes, excludes, fullGcMode);
     }
 
     public void setStatisticsProvider(StatisticsProvider provider) {
@@ -915,6 +914,9 @@ public class VersionGarbageCollector {
                                         // for neither includes nor excludes. If isIncluded returns false here,
                                         // that can only be due to an excluded long path.
                                         // in which case, we can actually honor that and skip this
+                                        if (AUDIT_LOG.isDebugEnabled()){
+                                            AUDIT_LOG.debug("<Skipping> document with excluded path: {}", doc.getPath());
+                                        }
                                     }
                                     phases.stop(GCPhase.FULL_GC_COLLECT_GARBAGE);
                                 }
@@ -931,6 +933,10 @@ public class VersionGarbageCollector {
                             if (gc.hasGarbage() && phases.start(GCPhase.FULL_GC_CLEANUP)) {
                                 gc.removeGarbage(phases.stats);
                                 phases.stop(GCPhase.FULL_GC_CLEANUP);
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("No garbage found to delete from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
+                                }
                             }
                             if (lastDoc != null) {
                                 fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
@@ -1158,6 +1164,9 @@ public class VersionGarbageCollector {
             if (fullGcMode == EMPTYPROPS) {
                 if (!traversedState.exists()) {
                     // doc is an orphan, this mode skips orphans
+                    if (AUDIT_LOG.isDebugEnabled()){
+                        AUDIT_LOG.debug("Skipping orphaned document [{}] for mode [{}]", doc.getId(), fullGcMode);
+                    }
                     return;
                 }
                 collectDeletedProperties(doc, phases, op, traversedState);
@@ -1214,7 +1223,7 @@ public class VersionGarbageCollector {
                 garbageDocsCount++;
                 totalGarbageDocsCount++;
                 monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
-                AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
+                AUDIT_LOG.info("<Collected> [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
                 updateOpList.add(op);
             }
             if (log.isTraceEnabled() && op.hasChanges()) {
@@ -1293,6 +1302,9 @@ public class VersionGarbageCollector {
             // in both of these cases we should now delete it. That's all with above return.
             if (!isOrphan) {
                 // nothing to do here
+                if (AUDIT_LOG.isTraceEnabled()) {
+                    AUDIT_LOG.trace("<Skipping> non-orphaned node [{}]", doc.getId());
+                }
                 phases.stop(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES);
                 return false;
             }
@@ -1307,6 +1319,9 @@ public class VersionGarbageCollector {
                     missingDocsTypes.put(geaChildPath, missingType);
                 }
                 if (!missingType) {
+                    if (AUDIT_LOG.isDebugEnabled()) {
+                        AUDIT_LOG.debug("<Skipping> orphaned node [{}] due to non-gap in ancestor [{}]", doc.getId(), geaChildPath);
+                    }
                     // then it is not a gap orphan
                     // nothing to do here then
                     // (even though somewhere along descendants
@@ -1680,7 +1695,7 @@ public class VersionGarbageCollector {
         private int collectUnusedUserPropertyRevisions(final NodeDocument doc, final UpdateOp updateOp,
                                                        final DocumentNodeState traversedMainNode, final Set<Revision> allKeepRevs) {
             // phase 1 : non bundled nodes only
-            int deletedRevsCount = stream(
+            int deletedRevsCount = StreamSupport.stream(
                     traversedMainNode.getProperties().spliterator(), false)
                             .map(p -> Utils.escapePropertyName(p.getName()))
                             .mapToInt(p -> removeUnusedPropertyEntries(doc,
@@ -1690,7 +1705,7 @@ public class VersionGarbageCollector {
                             .sum();
 
             // phase 2 : bundled nodes only
-            final Map<Path, DocumentNodeState> bundledNodeStates = stream(
+            final Map<Path, DocumentNodeState> bundledNodeStates = StreamSupport.stream(
                     traversedMainNode.getAllBundledNodesStates().spliterator(), false)
                             .collect(toMap(DocumentNodeState::getPath, identity()));
             // remember that getAllBundledProperties returns unescaped keys
@@ -2162,7 +2177,7 @@ public class VersionGarbageCollector {
         private final List<String> resurrectedIds = Lists.newArrayList();
         private final StringSort docIdsToDelete;
         private final StringSort prevDocIdsToDelete;
-        private final Set<String> exclude = Sets.newHashSet();
+        private final Set<String> exclude = new HashSet<>();
         private boolean sorted = false;
         private final Stopwatch timer;
         @SuppressWarnings("unused")
@@ -2376,7 +2391,7 @@ public class VersionGarbageCollector {
             int lastLoggedCount = 0;
             int recreatedCount = 0;
             while (idListItr.hasNext() && !cancel.get()) {
-                Map<String, Long> deletionBatch = Maps.newLinkedHashMap();
+                Map<String, Long> deletionBatch = new LinkedHashMap<>();
                 for (String s : idListItr.next()) {
                     Map.Entry<String, Long> parsed;
                     try {

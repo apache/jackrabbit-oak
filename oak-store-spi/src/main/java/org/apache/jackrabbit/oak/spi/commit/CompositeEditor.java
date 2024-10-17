@@ -25,8 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -102,7 +101,7 @@ public class CompositeEditor implements Editor {
     @Override
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        List<Editor> list = Lists.newArrayListWithCapacity(editors.size());
+        List<Editor> list = new ArrayList<>(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeAdded(name, after);
             if (child != null) {
@@ -116,7 +115,7 @@ public class CompositeEditor implements Editor {
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        List<Editor> list = Lists.newArrayListWithCapacity(editors.size());
+        List<Editor> list = new ArrayList<>(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeChanged(name, before, after);
             if (child != null) {
@@ -129,7 +128,7 @@ public class CompositeEditor implements Editor {
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        List<Editor> list = Lists.newArrayListWithCapacity(editors.size());
+        List<Editor> list = new ArrayList<>(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeDeleted(name, before);
             if (child != null) {

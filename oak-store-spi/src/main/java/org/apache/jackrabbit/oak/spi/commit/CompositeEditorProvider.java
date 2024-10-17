@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -27,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Aggregation of a list of editor providers into a single provider.
@@ -74,7 +73,7 @@ public class CompositeEditorProvider implements EditorProvider {
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder,
             CommitInfo info) throws CommitFailedException {
-        List<Editor> list = Lists.newArrayListWithCapacity(providers.size());
+        List<Editor> list = new ArrayList<>(providers.size());
         for (EditorProvider provider : providers) {
             Editor editor = provider.getRootEditor(before, after, builder, info);
             if (editor != null) {

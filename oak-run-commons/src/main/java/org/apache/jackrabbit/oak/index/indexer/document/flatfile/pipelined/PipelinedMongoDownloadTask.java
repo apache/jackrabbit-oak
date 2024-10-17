@@ -71,8 +71,10 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
@@ -197,7 +199,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private static final BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private static final BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
-    private static final Bson WITH_MODIFIED_FIELD = Filters.gte(NodeDocument.MODIFIED_IN_SECS, 0);
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
@@ -208,6 +209,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final int maxBatchNumberOfDocuments;
     private final BlockingQueue<NodeDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
+    private final ThreadFactory threadFactory;
     private final StatisticsProvider statisticsProvider;
     private final IndexingReporter reporter;
 
@@ -225,6 +227,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final DownloadStageStatistics downloadStageStatistics = new DownloadStageStatistics();
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
+    private final long minModified;
 
     public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
                                       MongoDocumentStore docStore,
@@ -233,7 +236,22 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       BlockingQueue<NodeDocument[]> queue,
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider,
-                                      IndexingReporter reporter) {
+                                      IndexingReporter reporter,
+                                      ThreadFactory threadFactory) {
+        this(mongoClientURI, docStore, maxBatchSizeBytes, maxBatchNumberOfDocuments,
+                queue, pathFilters, statisticsProvider, reporter, threadFactory, 0);
+    }
+
+    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+                                      MongoDocumentStore docStore,
+                                      int maxBatchSizeBytes,
+                                      int maxBatchNumberOfDocuments,
+                                      BlockingQueue<NodeDocument[]> queue,
+                                      List<PathFilter> pathFilters,
+                                      StatisticsProvider statisticsProvider,
+                                      IndexingReporter reporter,
+                                      ThreadFactory threadFactory,
+                                      long minModified) {
         this.mongoClientURI = mongoClientURI;
         this.docStore = docStore;
         this.statisticsProvider = statisticsProvider;
@@ -242,6 +260,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.maxBatchNumberOfDocuments = maxBatchNumberOfDocuments;
         this.mongoDocQueue = queue;
         this.pathFilters = pathFilters;
+        this.threadFactory = threadFactory;
+        this.minModified = minModified;
 
         // Default retries for 5 minutes.
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
@@ -310,6 +330,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             throw new IllegalArgumentException("Invalid paths in " + OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS + " " +
                     " system property: " + invalidPaths + ". Paths must be valid, must be absolute and must not be the root.");
         }
+    }
+
+    private Bson getModifiedFieldFilter() {
+        return Filters.gte(NodeDocument.MODIFIED_IN_SECS, minModified);
     }
 
     @Override
@@ -386,11 +410,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
-
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
-                    .find(WITH_MODIFIED_FIELD) // Download only documents that have _modified set
+                    .find(getModifiedFieldFilter()) // Download only documents that have _modified set
                     .hint(NATURAL_HINT);
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             downloadTask.download(mongoIterable);
@@ -403,7 +426,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             LOG.info("Downloading from Mongo with natural order using filter: {}", mongoFilter);
             FindIterable<NodeDocument> findIterable = dbCollection
-                    .find(Filters.and(WITH_MODIFIED_FIELD, mongoFilter))
+                    .find(Filters.and(getModifiedFieldFilter(), mongoFilter))
                     .hint(NATURAL_HINT);
             downloadTask.download(findIterable);
             downloadTask.reportFinalResults();
@@ -417,6 +440,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
+        mongoFilter = addMinModifiedToMongoFilter(mongoFilter);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository");
         } else {
@@ -435,7 +459,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask ascendingDownloadTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics, parallelDownloadCoordinator);
             DownloadTask descendingDownloadTask = new DownloadTask(DownloadOrder.DESCENDING, downloadStageStatistics, parallelDownloadCoordinator);
 
-            ExecutorService downloadThreadPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder().setDaemon(true).build());
+            ExecutorService downloadThreadPool = Executors.newFixedThreadPool(2, threadFactory);
             ExecutorCompletionService<Void> ecs = new ExecutorCompletionService<>(downloadThreadPool);
             Future<?> ascendingDownloadFuture = submitDownloadTask(ecs, ascendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-ascending");
             Future<?> descendingDownloadFuture = submitDownloadTask(ecs, descendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-descending");
@@ -482,16 +506,24 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // One of the download tasks has completed. Cancel the other one.
                         if (completedTask == ascendingDownloadFuture) {
                             LOG.info("Ascending download task has completed. Cancelling descending download task.");
-                            // If the download thread is blocked on a socket read waiting for a Mongo response, it will
-                            // not immediately respond to the interrupt. It will only check the interrupt status when
-                            // it returns from the socket read. So in addition to interrupting the thread, we have to
-                            // close the Mongo cursor that is executing the query.
-                            descendingDownloadFuture.cancel(true);
+                            // This closes the Mongo cursor, which will cause the download task to abort next time it
+                            // performs an operation on the cursor or if it is blocked on the cursor.
                             descendingDownloadTask.cancelDownload();
+                            // In case the thread is not currently operating on the Mongo cursor, we interrupt the thread
+                            // to ensure that it terminates quickly.
+                            descendingDownloadFuture.cancel(true);
+                            // Notes:
+                            // 1. Calling close() on a Mongo cursor will fail if the cursor was already interrupted. So
+                            //   we cancel the cursor before interrupting the thread. Any exception thrown by calling
+                            //   close() on the cursor will be ignored, but it's better if we avoid them.
+                            // 2. Interrupting the thread is not enough if the thread is blocked waiting on a socket.
+                            //   In that state, the thread does not check for interrupts, it will only check when it
+                            //   finishes the I/O operation, which can take a long time. So we need to close the cursor,
+                            //   which will abort the I/O operation.
                         } else if (completedTask == descendingDownloadFuture) {
                             LOG.info("Descending download task has completed. Cancelling ascending download task.");
-                            ascendingDownloadFuture.cancel(true);
                             ascendingDownloadTask.cancelDownload();
+                            ascendingDownloadFuture.cancel(true);
                         } else {
                             throw new IllegalStateException("Unknown download task completed: " + completedTask);
                         }
@@ -540,6 +572,28 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
+    /**
+     * If minModified is set, add this condition to the MongoDB filter.
+     * If minModified is not set, the old filter is returned.
+     * This method accepts null, and may return null.
+     *
+     * @param mongoFilter the previous filter (may be null)
+     * @return the combined filter (may be null)
+     */
+    private Bson addMinModifiedToMongoFilter(Bson mongoFilter) {
+        if (minModified == 0) {
+            // the is no minModified condition: return the unchanged filter
+            return mongoFilter;
+        }
+        Bson minModifiedFilter = getModifiedFieldFilter();
+        if (mongoFilter == null) {
+            // there is no previous filter: return the minModified filter
+            return minModifiedFilter;
+        }
+        // combine both filters
+        return Filters.and(mongoFilter, minModifiedFilter);
+    }
+
     private Future<?> submitDownloadTask(ExecutorCompletionService<Void> executor, DownloadTask downloadTask, Bson mongoFilter, String name) {
         return executor.submit(() -> {
             String originalName = Thread.currentThread().getName();
@@ -547,15 +601,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 downloadTask.download(mongoFilter);
                 downloadTask.reportFinalResults();
-            } catch (InterruptedException | MongoInterruptedException e) {
-                LOG.info("Thread interrupted: {}", e.toString());
+            } catch (Throwable e) {
+                LOG.warn("Error during download: {}", e.toString());
                 throw new RuntimeException(e);
-            } catch (TimeoutException e) {
-                LOG.warn("Timeout: {}", e.toString());
-                throw new RuntimeException(e);
-            } catch (Throwable t) {
-                LOG.error("Error during download: {}", t.toString());
-                throw t;
             } finally {
                 if (mongoServerSelector != null) {
                     mongoServerSelector.threadFinished();
@@ -620,6 +668,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
         private volatile MongoCursor<NodeDocument> mongoCursor = null;
+        private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
             this(downloadOrder, downloadStatics, null);
@@ -682,15 +731,22 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             downloadRange(nextRange, mongoQueryFilter, downloadOrder);
                         }
                         downloadCompleted = true;
+                    } catch (IllegalStateException | InterruptedException | MongoInterruptedException e) {
+                        if (cancelled.get()) {
+                            LOG.info("Download task was cancelled: {}", e.toString());
+                            return;
+                        } else {
+                            throw e;
+                        }
                     } catch (MongoException e) {
-                        if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
+                        if (e instanceof MongoIncompatibleDriverException) {
                             // Non-recoverable exceptions
                             throw e;
                         }
                         if (failuresStartTimestamp == null) {
                             failuresStartTimestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS);
                         }
-                        LOG.warn("Connection error downloading from MongoDB.", e);
+                        LOG.info("Non-fatal connection interruption downloading from MongoDB: {}", e.toString());
                         long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
                         if (parallelDump && parallelDumpSecondariesOnly && mongoServerSelector.atLeastOneConnectionActive()) {
                             // Special case, the cluster is up because one of the connections is active. This happens when
@@ -742,9 +798,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         public void cancelDownload() {
-            LOG.info("{} Cancelling download, closing Mongo cursor: {}", downloadOrder, mongoCursor);
-            if (mongoCursor != null) {
-                mongoCursor.close();
+            boolean alreadyCancelled = cancelled.getAndSet(true);
+            if (alreadyCancelled) {
+                LOG.info("Download task was already cancelled.");
+            } else {
+                LOG.info("Cancelling download for {} order task, closing Mongo cursor.", downloadOrder);
+                if (mongoCursor != null) {
+                    try {
+                        mongoCursor.close();
+                    } catch (Throwable e) {
+                        LOG.info("Error closing Mongo cursor, the cursor may already be closed: {}", e.toString());
+                    }
+                }
             }
         }
 
@@ -766,7 +831,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 try {
                     while (cursor.hasNext()) {
                         NodeDocument next = cursor.next();
+                        // If the id is not set, then the document was filtered by NodeDocumentFilter and should be ignored
                         String id = next.getId();
+                        if (id == null) {
+                            continue;
+                        }
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
                         this.nextLastModified = next.getModified();
@@ -776,7 +845,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         this.lastIdDownloaded = id;
                         this.documentsDownloadedTotal++;
                         downloadStatics.incrementDocumentsDownloadedTotal();
-                        if (this.documentsDownloadedTotal % 20_000 == 0) {
+                        if (this.documentsDownloadedTotal % 50_000 == 0) {
                             reportProgress(id);
                         }
                         TRAVERSAL_LOG.trace(id);

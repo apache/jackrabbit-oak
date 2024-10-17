@@ -128,7 +128,11 @@ public class IndexStoreUtils {
     }
 
     private static String getCompressionSuffix(File file) {
-        return file.getName().substring(file.getName().lastIndexOf("."));
+        int lastDot = file.getName().lastIndexOf(".");
+        if (lastDot < 0) {
+            return "";
+        }
+        return file.getName().substring(lastDot);
     }
 
     /**

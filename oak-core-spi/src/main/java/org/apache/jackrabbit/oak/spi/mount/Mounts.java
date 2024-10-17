@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -174,7 +173,7 @@ public final class Mounts {
      * Provides a fluent API from creating {@link MountInfoProvider} instances
      */
     public static final class Builder {
-        private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
+        private final List<Mount> mounts = new ArrayList<>(1);
 
         private Builder() {
         }

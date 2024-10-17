@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -32,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -41,6 +41,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -135,7 +136,7 @@ class PropertyIndexEditor implements IndexEditor {
             // OAK-1273: optimize for the common case
             this.propertyNames = singleton(names.getValue(NAME, 0));
         } else {
-            this.propertyNames = newHashSet(names.getValue(NAMES));
+            this.propertyNames = CollectionUtils.toSet(names.getValue(NAMES));
         }
         this.valuePattern = new ValuePattern(definition);
 
@@ -150,7 +151,7 @@ class PropertyIndexEditor implements IndexEditor {
 
         // keep track of modified keys for uniqueness checks
         if (definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
-            this.keysToCheckForUniqueness = newHashSet();
+            this.keysToCheckForUniqueness = new HashSet<>();
         } else {
             this.keysToCheckForUniqueness = null;
         }
@@ -208,7 +209,7 @@ class PropertyIndexEditor implements IndexEditor {
         if (property.getType().tag() != PropertyType.BINARY
                 && property.count() > 0) {
             if (keys == null) {
-                keys = newHashSet();
+                keys = new HashSet<>();
             }
             keys.addAll(encode(PropertyValues.create(property), pattern));
         }
@@ -279,12 +280,12 @@ class PropertyIndexEditor implements IndexEditor {
             // first make sure that both the before and after sets are non-null
             if (beforeKeys == null
                     || (typePredicate != null && !typePredicate.test(before))) {
-                beforeKeys = newHashSet();
+                beforeKeys = new HashSet<>();
             } else if (afterKeys == null) {
-                afterKeys = newHashSet();
+                afterKeys = new HashSet<>();
             } else {
                 // both before and after matches found, remove duplicates
-                Set<String> sharedKeys = newHashSet(beforeKeys);
+                Set<String> sharedKeys = new HashSet<>(beforeKeys);
                 sharedKeys.retainAll(afterKeys);
                 beforeKeys.removeAll(sharedKeys);
                 afterKeys.removeAll(sharedKeys);
@@ -352,7 +353,7 @@ class PropertyIndexEditor implements IndexEditor {
         for (String key : keys) {
             if (s.exists(index, key)) {
                 if (existing == null) {
-                    existing = newHashSet();
+                    existing = new HashSet<>();
                 }
                 existing.add(key);
             }

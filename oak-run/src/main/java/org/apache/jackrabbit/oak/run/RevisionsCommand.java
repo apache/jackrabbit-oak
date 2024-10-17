@@ -103,7 +103,7 @@ public class RevisionsCommand implements Command {
     private static final List<String> LOGGER_NAMES = of(
             "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
             "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper",
-            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditDGC",
+            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.auditFGC",
             "org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport",
             "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
     );
@@ -132,6 +132,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> compact;
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
+        final OptionSpec<Integer> fullGcMode;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -154,6 +155,8 @@ public class RevisionsCommand implements Command {
                             "during dryRun mode i.e. will verify the effect of fullGC operation on each document after " +
                             "applying the changes in memory and will raise flag if it can cause issues")
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
+            fullGcMode = parser.accepts("fullGcMode", "Mode of fullGC")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(0);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
             fullGCOnly = parser
@@ -206,6 +209,10 @@ public class RevisionsCommand implements Command {
 
         boolean isEmbeddedVerificationEnabled() {
             return embeddedVerification.value(options);
+        }
+
+        int fullGcMode() {
+            return fullGcMode.value(options);
         }
 
         long getOlderThan() {
@@ -315,6 +322,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCEnabled(fullGCEnabled);
         builder.setFullGCIncludePaths(options.includePaths());
         builder.setFullGCExcludePaths(options.excludePaths());
+        builder.setFullGCMode(options.fullGcMode());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -342,6 +350,7 @@ public class RevisionsCommand implements Command {
         System.out.println("Compaction is enabled : " + options.doCompaction());
         System.out.println("IncludePaths are : " + Arrays.toString(options.includePaths()));
         System.out.println("ExcludePaths are : " + Arrays.toString(options.excludePaths()));
+        System.out.println("FullGcMode is : " + options.fullGcMode());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
 

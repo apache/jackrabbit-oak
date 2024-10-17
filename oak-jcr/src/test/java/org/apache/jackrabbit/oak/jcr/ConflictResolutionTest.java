@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.jcr.InvalidItemStateException;
@@ -38,7 +39,6 @@ import org.junit.runners.Parameterized;
 
 import ch.qos.logback.classic.Level;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @RunWith(Parameterized.class)
 public class ConflictResolutionTest extends AbstractRepositoryTest {
@@ -76,8 +76,8 @@ public class ConflictResolutionTest extends AbstractRepositoryTest {
             logConflictValidator.starting();
             deleteChangedNodeOps("node1");
         } finally {
-            mnsdLogs = Sets.newHashSet(logMergingNodeStateDiff.getLogs());
-            cvLogs = Sets.newHashSet(logConflictValidator.getLogs());
+            mnsdLogs = new HashSet<>(logMergingNodeStateDiff.getLogs());
+            cvLogs = new HashSet<>(logConflictValidator.getLogs());
             logMergingNodeStateDiff.finished();
             logConflictValidator.finished();
         }

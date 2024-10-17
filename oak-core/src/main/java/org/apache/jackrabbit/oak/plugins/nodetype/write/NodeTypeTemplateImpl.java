@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -99,8 +100,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
         PropertyDefinition[] pds = definition.getDeclaredPropertyDefinitions();
         if (pds != null) {
-            propertyDefinitionTemplates =
-                    Lists.newArrayListWithCapacity(pds.length);
+            propertyDefinitionTemplates = new ArrayList<>(pds.length);
             for (PropertyDefinition pd : pds) {
                 propertyDefinitionTemplates.add(
                         new PropertyDefinitionTemplateImpl(mapper, pd));
@@ -109,8 +109,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
         NodeDefinition[] nds = definition.getDeclaredChildNodeDefinitions();
         if (nds != null) {
-            nodeDefinitionTemplates =
-                    Lists.newArrayListWithCapacity(nds.length);
+            nodeDefinitionTemplates = new ArrayList<>(nds.length);
             for (NodeDefinition nd : nds) {
                 nodeDefinitionTemplates.add(
                         new NodeDefinitionTemplateImpl(mapper, nd));

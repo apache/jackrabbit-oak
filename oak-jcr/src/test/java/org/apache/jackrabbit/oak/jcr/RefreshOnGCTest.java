@@ -36,6 +36,7 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -49,6 +50,7 @@ public class RefreshOnGCTest {
     private Callable<Void> compact;
     private Repository repository;
     private GCMonitorTracker gcMonitor;
+    private FileStore fileStore;
 
     enum Fixture {
         SEGMENT_TAR(false);
@@ -65,8 +67,7 @@ public class RefreshOnGCTest {
     }
 
     private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws Exception {
-        final org.apache.jackrabbit.oak.segment.file.FileStore fileStore =
-                fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
+        fileStore = fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
         compact = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -98,6 +99,7 @@ public class RefreshOnGCTest {
             ((JackrabbitRepository) repository).shutdown();
         }
         gcMonitor.stop();
+        fileStore.close();
     }
 
     @Test

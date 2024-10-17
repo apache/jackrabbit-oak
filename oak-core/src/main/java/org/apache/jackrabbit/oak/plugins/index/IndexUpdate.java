@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -39,6 +36,7 @@ import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
 import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
 import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +50,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -497,7 +496,7 @@ public class IndexUpdate implements Editor, PathSource {
     @Override @NotNull
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        List<Editor> children = newArrayListWithCapacity(1 + editors.size());
+        List<Editor> children = new ArrayList<>(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
             Editor child = editor.childNodeAdded(name, after);
@@ -512,7 +511,7 @@ public class IndexUpdate implements Editor, PathSource {
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        List<Editor> children = newArrayListWithCapacity(1 + editors.size());
+        List<Editor> children = new ArrayList<>(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
             Editor child = editor.childNodeChanged(name, before, after);
@@ -526,7 +525,7 @@ public class IndexUpdate implements Editor, PathSource {
     @Override @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        List<Editor> children = newArrayListWithCapacity(editors.size());
+        List<Editor> children = new ArrayList<>(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeDeleted(name, before);
             if (child != null) {
@@ -577,7 +576,7 @@ public class IndexUpdate implements Editor, PathSource {
         private boolean failOnMissingIndexProvider = Boolean
                 .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
 
-        private final Set<String> ignore = newHashSet("disabled", "ordered");
+        private final Set<String> ignore = Set.of("disabled", "ordered");
 
         public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
                 throws CommitFailedException {
@@ -625,7 +624,7 @@ public class IndexUpdate implements Editor, PathSource {
         final CommitInfo commitInfo;
         final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
-        final Set<IndexCommitCallback> indexCommitCallbacks = newIdentityHashSet();
+        final Set<IndexCommitCallback> indexCommitCallbacks = CollectionUtils.newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
         final IndexingProgressReporter progressReporter;
         private int changedNodeCount;

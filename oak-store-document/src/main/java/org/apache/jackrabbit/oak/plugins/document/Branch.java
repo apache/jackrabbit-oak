@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -33,7 +34,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -330,7 +330,7 @@ class Branch {
      */
     private static class BranchCommitImpl extends BranchCommit {
 
-        private final Set<Path> modifications = Sets.newHashSet();
+        private final Set<Path> modifications = new HashSet<>();
 
         BranchCommitImpl(RevisionVector base, Revision commit) {
             super(base, commit);

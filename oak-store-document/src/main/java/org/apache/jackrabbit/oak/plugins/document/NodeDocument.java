@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -58,7 +59,6 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -668,7 +668,7 @@ public final class NodeDocument extends Document {
     Set<Revision> getConflictsFor(@NotNull Iterable<Revision> changes) {
         requireNonNull(changes);
 
-        Set<Revision> conflicts = Sets.newHashSet();
+        Set<Revision> conflicts = new HashSet<>();
         Map<Revision, String> collisions = getLocalMap(COLLISIONS);
         for (Revision r : changes) {
             String value = collisions.get(r.asTrunkRevision());
@@ -743,7 +743,7 @@ public final class NodeDocument extends Document {
         // the clusterIds to check when walking the changes
         Set<Integer> clusterIds = Collections.emptySet();
         if (!getPreviousRanges().isEmpty()) {
-            clusterIds = Sets.newHashSet();
+            clusterIds = new HashSet<>();
             for (Revision prevRev : getPreviousRanges().keySet()) {
                 if (lower.isRevisionNewer(prevRev) ||
                         Objects.equals(prevRev, lower.getRevision(prevRev.getClusterId()))) {
@@ -1417,7 +1417,7 @@ public final class NodeDocument extends Document {
             return Collections.emptyIterator();
         }
         // create a mutable copy
-        final NavigableMap<Revision, Range> ranges = Maps.newTreeMap(getPreviousRanges());
+        final NavigableMap<Revision, Range> ranges = new TreeMap<>(getPreviousRanges());
         return new AbstractIterator<NodeDocument>() {
             @Override
             protected NodeDocument computeNext() {
@@ -1975,10 +1975,10 @@ public final class NodeDocument extends Document {
         // overlay with unsaved last modified from this instance
         lastRevs.update(pendingLastRev);
         // collect clusterIds
-        SortedSet<Revision> mostRecentChanges = Sets.newTreeSet(REVERSE);
+        SortedSet<Revision> mostRecentChanges = new TreeSet<>(REVERSE);
         mostRecentChanges.addAll(getLocalRevisions().keySet());
         mostRecentChanges.addAll(getLocalCommitRoot().keySet());
-        Set<Integer> clusterIds = Sets.newHashSet();
+        Set<Integer> clusterIds = new HashSet<>();
         for (Revision r : getLocalRevisions().keySet()) {
             clusterIds.add(r.getClusterId());
         }
