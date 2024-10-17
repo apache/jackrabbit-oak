@@ -157,6 +157,11 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
         return true;
     }
 
+    @Override
+    public int getMaxEntryCount() {
+        return RemoteUtilities.MAX_ENTRY_COUNT;
+    }
+
     /**
      * Writes a segment to the remote storage.
      * @param indexEntry, the archive index entry to write

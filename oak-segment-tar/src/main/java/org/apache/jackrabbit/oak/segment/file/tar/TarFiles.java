@@ -645,7 +645,8 @@ public class TarFiles implements Closeable {
                     writer.addBinaryReference(generation, id, reference);
                 }
             }
-            if (size >= maxFileSize) {
+            int entryCount = writer.getEntryCount();
+            if (size >= maxFileSize || entryCount >= writer.getMaxEntryCount()) {
                 internalNewWriter();
             }
         } finally {

@@ -246,6 +246,11 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         return false;
     }
 
+    @Override
+    public int getMaxEntryCount() {
+        return Integer.MAX_VALUE;
+    }
+
     private static byte[] newEntryHeader(String name, int size) {
         byte[] header = new byte[BLOCK_SIZE];
 
