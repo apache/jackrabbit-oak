@@ -123,6 +123,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
     public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 2;
     public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
+    public static final String OAK_INDEXER_PIPELINED_TREE_MIN_MODIFIED = "oak.indexer.pipelined.tree.minModified";
     // 0 means autodetect
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = 0;
     // Between 1 and 100
@@ -179,6 +180,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
     private final int mongoDocBatchMaxNumberOfDocuments;
     private final int nseBuffersCount;
     private final int nseBuffersSizeBytes;
+    private final long minModified;
 
     private long nodeStateEntriesExtracted;
 
@@ -201,9 +203,11 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters,
                              String checkpoint,
+                             long minModified,
                              StatisticsProvider statisticsProvider,
                              IndexingReporter indexingReporter) {
         super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
+        this.minModified = minModified;
         this.mongoClientURI = mongoClientURI;
         this.docStore = documentStore;
         this.documentNodeStore = documentNodeStore;
@@ -361,7 +365,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                 emptyBatchesQueue.add(NodeStateEntryBatch.createNodeStateEntryBatch(nseBuffersSizeBytes, Integer.MAX_VALUE));
             }
 
-            INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:START] Starting to build TreeStore");
+            INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:START] Starting to build TreeStore with minModified {}", minModified);
             Stopwatch start = Stopwatch.createStarted();
 
             @SuppressWarnings("unchecked")
@@ -373,7 +377,9 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                     mongoDocQueue,
                     pathFilters,
                     statisticsProvider,
-                    indexingReporter
+                    indexingReporter,
+                    new ThreadFactoryBuilder().setDaemon(true).build(),
+                    minModified
             ));
 
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);

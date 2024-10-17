@@ -30,6 +30,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.OakInitializer;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -103,6 +105,72 @@ public class TreeStoreTest {
             assertFalse(it.hasNext());
         } finally {
             store.close();
+        }
+    }
+
+    @Test
+    public void updateStoreTest() throws IOException {
+        File testFolder = temporaryFolder.newFolder();
+        TreeStore store = new TreeStore("test", testFolder, null, 1);
+        try {
+            store.getSession().init();
+            store.putNode("/", "{}");
+            store.putNode("/content", "{}");
+            store.putNode("/content", "{\"x\":1}");
+            store.putNode("/toRemove", "{}");
+            store.removeNode("/toRemove");
+            store.removeNode("/toRemoveNotExisting");
+            Iterator<String> it = store.iteratorOverPaths();
+            assertEquals("/", it.next());
+            assertEquals("/content", it.next());
+            assertEquals("{\"x\":1}", store.getSession().get("/content"));
+            assertFalse(it.hasNext());
+        } finally {
+            store.close();
+        }
+    }
+
+    @Test
+    public void tryUpdateReadOnlyPackFile() throws IOException {
+        File testFolder = temporaryFolder.newFolder();
+        TreeStore store = new TreeStore("test", testFolder, null, 1);
+        try {
+            store.getSession().init();
+            store.putNode("/", "{}");
+            store.putNode("/content", "{}");
+            try {
+                store.putNode("/new", null);
+                fail();
+            } catch (IllegalStateException e) {
+                // expected
+            }
+        } finally {
+            store.close();
+        }
+        File packFile = temporaryFolder.newFile();
+        FilePacker.pack(testFolder, TreeSession.getFileNameRegex(), packFile, true);
+        TreeStore readOnly = new TreeStore("test", packFile, null, 1);
+        try {
+            assertEquals("{}", store.getSession().get("/content"));
+            try {
+                readOnly.removeNode("/content");
+                fail();
+            } catch (IllegalStateException e) {
+                // expected
+            }
+            try {
+                readOnly.putNode("/new", "{}");
+                fail();
+            } catch (IllegalStateException e) {
+                // expected
+            }
+            Iterator<String> it = readOnly.iteratorOverPaths();
+            assertEquals("/", it.next());
+            assertEquals("/content", it.next());
+            assertEquals("{}", store.getSession().get("/content"));
+            assertFalse(it.hasNext());
+        } finally {
+            readOnly.close();
         }
     }
 

@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -154,7 +155,7 @@ class UnsavedModifications {
         Map<Path, Revision> pending;
         try {
             snapshot.acquiring(getMostRecentRevision());
-            pending = Maps.newTreeMap(PathComparator.INSTANCE);
+            pending = new TreeMap<>(PathComparator.INSTANCE);
             pending.putAll(map);
             sweepRev = sweepRevision.get();
         } finally {
