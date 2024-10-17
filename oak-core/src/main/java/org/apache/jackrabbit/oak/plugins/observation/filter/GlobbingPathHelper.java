@@ -22,7 +22,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
 public class GlobbingPathHelper {
 
@@ -52,7 +52,7 @@ public class GlobbingPathHelper {
         } else if (!pathWithGlobs.contains("*")) {
             return pathWithGlobs;
         }
-        List<String> elements = Lists.newLinkedList(elements(pathWithGlobs));
+        List<String> elements = CollectionUtils.toLinkedList(elements(pathWithGlobs));
         StringBuffer sb = new StringBuffer();
         sb.append("\\Q");
         if (pathWithGlobs.startsWith("/")) {
