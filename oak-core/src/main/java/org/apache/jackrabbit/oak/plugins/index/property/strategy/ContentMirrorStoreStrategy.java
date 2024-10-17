@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static org.apache.jackrabbit.guava.common.collect.Queues.newArrayDeque;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -131,7 +131,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         if (builder.exists()) {
             ApproximateCounter.adjustCountSync(builder, -1);
             // Collect all builders along the given path
-            Deque<NodeBuilder> builders = newArrayDeque();
+            Deque<NodeBuilder> builders = new ArrayDeque<>();
             builders.addFirst(builder);
 
             // Descend to the correct location in the index tree
@@ -339,8 +339,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
         private final Filter filter;
         private final String indexName;
-        private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
-                Queues.newArrayDeque();
+        private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators = new ArrayDeque<>();
         private int readCount;
         private int intermediateNodeReadCount;
         private boolean init;
