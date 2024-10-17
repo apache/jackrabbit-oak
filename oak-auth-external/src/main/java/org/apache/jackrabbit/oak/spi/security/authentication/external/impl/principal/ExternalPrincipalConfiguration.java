@@ -158,7 +158,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
         if (dynamicMembershipEnabled()) {
             UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-            return new ExternalGroupPrincipalProvider(root, uc.getUserManager(root, namePathMapper), namePathMapper, syncConfigTracker);
+            return new ExternalGroupPrincipalProvider(root, uc, namePathMapper, syncConfigTracker);
         } else {
             return EmptyPrincipalProvider.INSTANCE;
         }
