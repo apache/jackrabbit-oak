@@ -30,6 +30,8 @@ import org.jetbrains.annotations.NotNull;
  * A table to translate record numbers to offsets.
  */
 public interface RecordNumbers extends Iterable<Entry> {
+    /** The memory usage, in bytes, per record number stored. */
+    int MEMORY_USAGE_PER_NUMBER = 5;
 
     /**
      * An always empty {@code RecordNumber} table.
@@ -82,6 +84,22 @@ public interface RecordNumbers extends Iterable<Entry> {
      * no offset is associated to the record number.
      */
     int getOffset(int recordNumber);
+
+
+    /**
+     * Estimates the memory usage, in bytes, of this table.
+     *
+     * <p>
+     * The default implementation iterates over all record numbers for backwards compatibility with all implementations,
+     * but implementations are encouraged to provide a more efficient implementation.
+     */
+    default int estimateMemoryUsage() {
+        int size = 0;
+        for (var number : this) {
+            size += MEMORY_USAGE_PER_NUMBER;
+        }
+        return size;
+    }
 
     /**
      * Represents an entry in the record table.

@@ -30,6 +30,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
  * Represents a list of segment IDs referenced from a segment.
  */
 public interface SegmentReferences extends Iterable<SegmentId> {
+    /** The memory usage, in bytes, per segment reference stored. */
+    int MEMORY_USAGE_PER_REFERENCE = 8;
 
     /** Builds a new instance of {@link SegmentReferences} from the provided {@link SegmentData}. */
     static @NotNull SegmentReferences fromSegmentData(@NotNull SegmentData data, @NotNull SegmentIdProvider idProvider) {
@@ -68,6 +70,11 @@ public interface SegmentReferences extends Iterable<SegmentId> {
                 return id;
             }
 
+            @Override
+            public int estimateMemoryUsage() {
+                return MEMORY_USAGE_PER_REFERENCE * referencedSegmentIdCount;
+            }
+
             @NotNull
             @Override
             public Iterator<SegmentId> iterator() {
@@ -96,4 +103,18 @@ public interface SegmentReferences extends Iterable<SegmentId> {
      */
     SegmentId getSegmentId(int reference);
 
+    /**
+     * Estimates the memory usage, in bytes, of this list.
+     *
+     * <p>
+     * The default implementation iterates over all references for backwards compatibility with all implementations,
+     * but implementations are encouraged to provide a more efficient implementation.
+     */
+    default int estimateMemoryUsage() {
+        int size = 0;
+        for (var number : this) {
+            size += MEMORY_USAGE_PER_REFERENCE;
+        }
+        return size;
+    }
 }

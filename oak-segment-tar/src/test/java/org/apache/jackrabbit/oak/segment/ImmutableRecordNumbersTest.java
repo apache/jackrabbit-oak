@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class ImmutableRecordNumbersTest {
@@ -83,6 +84,12 @@ public class ImmutableRecordNumbersTest {
         }
 
         assertEquals(entries, iterated);
+    }
+
+    @Test
+    public void shouldEstimateMemoryUsage() throws Exception {
+        RecordNumbers recordNumbers = new ImmutableRecordNumbers(new int[3], new byte[3]);
+        assertEquals(5 * 3, recordNumbers.estimateMemoryUsage());
     }
 
     private Map<Integer, RecordEntry> recordEntries(Map<Integer, Integer> offsets) {

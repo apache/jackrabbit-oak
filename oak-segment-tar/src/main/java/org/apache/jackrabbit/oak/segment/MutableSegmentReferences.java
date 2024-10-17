@@ -92,6 +92,11 @@ class MutableSegmentReferences implements SegmentReferences {
         }
     }
 
+    @Override
+    public int estimateMemoryUsage() {
+        return SegmentReferences.MEMORY_USAGE_PER_REFERENCE * size();
+    }
+
     /**
      * Check if a reference exists for a provided segment ID.
      *
