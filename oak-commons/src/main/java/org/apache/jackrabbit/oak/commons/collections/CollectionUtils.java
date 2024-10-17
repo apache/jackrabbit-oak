@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -89,6 +91,23 @@ public class CollectionUtils {
         List<T> result = new ArrayList<>();
         iterator.forEachRemaining(result::add);
         return result;
+    }
+
+    /**
+     * Split a list into partitions of a given size.
+     *
+     * @param list the list to partition
+     * @param n the size of partitions
+     * @return a list of partitions. The resulting partitions aren’t a view of the main List, so any changes happening to the main List won’t affect the partitions.
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<List<T>> partitionList(final List<T> list, final int n) {
+        Objects.requireNonNull(list);
+        return IntStream.range(0, list.size())
+                .filter(i -> i % n == 0)
+                .mapToObj(i -> list.subList(i, Math.min(i + n, list.size())))
+                .collect(Collectors.toList());
     }
 
     /**
