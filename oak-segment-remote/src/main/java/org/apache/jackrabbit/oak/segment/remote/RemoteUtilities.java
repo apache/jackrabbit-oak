@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.remote;
 
 import static java.lang.Boolean.getBoolean;
 
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;

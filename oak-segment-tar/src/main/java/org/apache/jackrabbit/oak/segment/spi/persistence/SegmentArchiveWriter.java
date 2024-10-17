@@ -63,7 +63,8 @@ public interface SegmentArchiveWriter {
      * @param isCompacted the segment compaction property, see {@link SegmentArchiveEntry#isCompacted()}
      * @throws IOException error writing segment
      */
-    void writeSegment(long msb, long lsb, byte @NotNull [] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
+    @NotNull
+    void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
 
     /**
      * Read the segment.
@@ -89,14 +90,14 @@ public interface SegmentArchiveWriter {
      *
      * @param data serialized segment graph data
      */
-    void writeGraph(byte @NotNull [] data) throws IOException;
+    void writeGraph(@NotNull byte[] data) throws IOException;
 
     /**
      * Write the binary references data.
      *
      * @param data serialized binary references data
      */
-    void writeBinaryReferences(byte @NotNull [] data) throws IOException;
+    void writeBinaryReferences(@NotNull byte[] data) throws IOException;
 
     /**
      * Get the current length of the archive.

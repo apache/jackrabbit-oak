@@ -236,7 +236,7 @@ public class FileStoreTest {
                     public SegmentArchiveWriter create(String archiveName) {
                         return new SegmentTarWriter(new File(directory, archiveName), fileStoreMonitor, ioMonitor) {
                             @Override
-                            public void writeGraph(byte @NotNull [] data) throws IOException {
+                            public void writeGraph(byte[] data) throws IOException {
                                 throw new IOException(FAILED_TO_WRITE_ON_CLOSE);
                             }
                         };

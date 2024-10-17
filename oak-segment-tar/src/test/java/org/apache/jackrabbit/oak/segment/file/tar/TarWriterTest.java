@@ -101,7 +101,7 @@ public class TarWriterTest {
             public @NotNull SegmentArchiveWriter create(String archiveName) {
                 return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
                     @Override
-                    public void writeGraph(byte @NotNull [] data) throws IOException {
+                    public void writeGraph(byte[] data) throws IOException {
                         throw new IOException("test");
                     }
                 };
