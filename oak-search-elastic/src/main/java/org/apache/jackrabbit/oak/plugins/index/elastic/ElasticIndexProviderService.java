@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceServiceManager;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -196,6 +197,7 @@ public class ElasticIndexProviderService {
         registerIndexProvider(bundleContext);
         registerIndexEditor(bundleContext);
         registerIndexCleaner(config);
+        registerInferenceServiceManager(bundleContext);
     }
 
     @Deactivate
@@ -247,6 +249,11 @@ public class ElasticIndexProviderService {
 //                editorProvider.getExtractedTextCache().getStatsMBean(),
 //                TextExtractionStatsMBean.TYPE,
 //                "TextExtraction statistics"));
+    }
+
+    private void registerInferenceServiceManager(BundleContext bundleContext) {
+        InferenceServiceManager inferenceServiceMgr = new InferenceServiceManager();
+        regs.add(bundleContext.registerService(InferenceServiceManager.class.getName(), inferenceServiceMgr, null));
     }
 
     private void initializeExtractedTextCache(final Config config, StatisticsProvider statisticsProvider) {
