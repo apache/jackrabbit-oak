@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -299,7 +300,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final int parentDepth = getDepth(parent);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator itr = new LuceneResultRowIterator() {
-            private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
+            private final Deque<LuceneResultRow> queue = new ArrayDeque<>();
             private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;

@@ -61,6 +61,7 @@ import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -1386,7 +1387,7 @@ public final class NodeDocument extends Document {
         //on property that all prevDoc id would starts <depth+2>:p/path/to/node
         return new AbstractIterator<NodeDocument>(){
             private Queue<Map.Entry<Revision, Range>> previousRanges =
-                    Queues.newArrayDeque(getPreviousRanges().entrySet());
+                    CollectionUtils.toArrayDeque(getPreviousRanges().entrySet());
             @Override
             protected NodeDocument computeNext() {
                 if(!previousRanges.isEmpty()){
