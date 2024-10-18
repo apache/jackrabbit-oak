@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
+import org.apache.jackrabbit.oak.segment.data.PartialSegmentState;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -154,6 +155,11 @@ public class DefaultSegmentWriter implements SegmentWriter {
     @Override
     public void flush() throws IOException {
         writeOperationHandler.flush(store);
+    }
+
+    @Override
+    public @Nullable PartialSegmentState readPartialSegmentState(@NotNull SegmentId sid) {
+        return writeOperationHandler.readPartialSegmentState(sid);
     }
 
     @NotNull
