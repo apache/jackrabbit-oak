@@ -81,13 +81,15 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createUnstarted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.BRANCH_COMMITS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
@@ -114,7 +116,6 @@ public class VersionGarbageCollector {
     private static final int DELETE_BATCH_SIZE = 450;
     private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
-    private static final int FULL_GC_BATCH_SIZE = 1000;
     private static final int FULL_GC_MISSING_DOCS_TYPE_CACHE_SIZE = 64;
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
@@ -241,6 +242,9 @@ public class VersionGarbageCollector {
     private final boolean fullGCEnabled;
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
+    private final double fullGCDelayFactor;
+    private final int fullGCBatchSize;
+    private final int fullGCProgressSize;
     private Set<String> fullGCIncludePaths = Collections.emptySet();
     private Set<String> fullGCExcludePaths = Collections.emptySet();
     private final VersionGCSupport versionStore;
@@ -255,8 +259,8 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
-        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
-                DocumentNodeStoreService.DEFAULT_FULL_GC_MODE);
+        this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, DEFAULT_FULL_GC_MODE,
+                0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
     }
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
@@ -264,17 +268,24 @@ public class VersionGarbageCollector {
                             final boolean fullGCEnabled,
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification,
-                            final int fullGCMode) {
+                            final int fullGCMode,
+                            final double fullGCDelayFactor,
+                            final int fullGCBatchSize,
+                            final int fullGCProgressSize) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
         this.fullGCEnabled = fullGCEnabled;
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
+        this.fullGCDelayFactor = fullGCDelayFactor;
+        this.fullGCBatchSize = Math.min(fullGCBatchSize, fullGCProgressSize);
+        this.fullGCProgressSize = fullGCProgressSize;
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
+        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, batchSize: {}, progressSize: {}",
+                fullGcMode, fullGCBatchSize, fullGCProgressSize);
     }
 
     /**
@@ -866,6 +877,7 @@ public class VersionGarbageCollector {
             final long oldestModifiedMs = rec.scopeFullGC.fromMs;
             final long toModifiedMs = rec.scopeFullGC.toMs;
             final String oldestModifiedDocId = rec.fullGCId;
+            final Stopwatch timer = Stopwatch.createUnstarted();
 
             int docsTraversed = 0;
             boolean foundDoc = true;
@@ -882,14 +894,16 @@ public class VersionGarbageCollector {
                 String fromId = ofNullable(oldestModifiedDocId).orElse(MIN_ID_VALUE);
                 NodeDocument lastDoc;
                 if (phases.start(GCPhase.FULL_GC)) {
-                    while (foundDoc && fromModifiedMs < toModifiedMs && docsTraversed < PROGRESS_BATCH_SIZE) {
+                    while (foundDoc && fromModifiedMs < toModifiedMs && docsTraversed < fullGCProgressSize) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
                         lastDoc = null;
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId, fullGCIncludePaths, fullGCExcludePaths);
+                        // start timer to record time taken by each batch
+                        timer.reset().start();
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, fullGCBatchSize, fromId, fullGCIncludePaths, fullGCExcludePaths);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -950,6 +964,7 @@ public class VersionGarbageCollector {
                             if (log.isDebugEnabled()) {
                                 log.debug("Fetched docs till [{}] with Id [{}]", timestampToString(fromModifiedMs), fromId);
                             }
+                            delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel, fullGCDelayFactor);
                         }
                         // if we didn't find any document i.e. either we are already at last document
                         // of current timeStamp or there is no document for this timeStamp
@@ -963,7 +978,7 @@ public class VersionGarbageCollector {
                     phases.stop(GCPhase.FULL_GC);
                 }
             } finally {
-                if (docsTraversed < PROGRESS_BATCH_SIZE) {
+                if (docsTraversed < fullGCProgressSize) {
                     // we have traversed all the docs within given time range and nothing is left
                     // lets set oldModifiedDocTimeStamp to upper limit of this cycle
                     phases.stats.oldestModifiedDocTimeStamp = toModifiedMs;
@@ -1006,7 +1021,7 @@ public class VersionGarbageCollector {
                             // this node has not be revived again in past maxRevisionAge
                             // So deleting it is safe
                             docsTraversed++;
-                            if (docsTraversed % PROGRESS_BATCH_SIZE == 0) {
+                            if (docsTraversed % fullGCProgressSize == 0) {
                                 monitor.info("Iterated through {} documents so far. {} found to be deleted",
                                         docsTraversed, gc.getNumDocuments());
                             }
@@ -1066,7 +1081,6 @@ public class VersionGarbageCollector {
         private final long toModifiedMs;
         private final GCMonitor monitor;
         private final AtomicBoolean cancel;
-        private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
 
         /** contains the list of _ids of orphan or deleted documents to be removed in the current batch **/
@@ -1129,7 +1143,6 @@ public class VersionGarbageCollector {
             this.deletedPropRevsCountMap = new HashMap<>();
             this.deletedInternalPropRevsCountMap = new HashMap<>();
             this.deletedUnmergedBCSet = new HashSet<>();
-            this.timer = createUnstarted();
             // clusterId is not used
             this.revisionForModified = Revision.newRevision(0);
             this.root = nodeStore.getRoot(headRevision);
@@ -1160,7 +1173,7 @@ public class VersionGarbageCollector {
                             greatestExistingAncestorOrSelf, name);
                 }
             }
-
+            
             if (fullGcMode == EMPTYPROPS) {
                 if (!traversedState.exists()) {
                     // doc is an orphan, this mode skips orphans
@@ -1936,7 +1949,6 @@ public class VersionGarbageCollector {
                 return;
             }
 
-            timer.reset().start();
             try {
                 if (embeddedVerification) {
                     // embedded verification is done completely independent of DocumentStore
@@ -2077,7 +2089,6 @@ public class VersionGarbageCollector {
                 deletedInternalPropRevsCountMap.clear();
                 deletedUnmergedBCSet.clear();
                 garbageDocsCount = 0;
-                delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);
             }
         }
 
@@ -2120,8 +2131,8 @@ public class VersionGarbageCollector {
             return !traversedState.exists();
         }
     }
-    private void delayOnModifications(final long durationMs, final AtomicBoolean cancel) {
-        long delayMs = round(durationMs * options.delayFactor);
+    private void delayOnModifications(final long durationMs, final AtomicBoolean cancel, final double delayFactor) {
+        long delayMs = round(durationMs * delayFactor);
         if (!cancel.get() && delayMs > 0) {
             try {
                 Clock clock = nodeStore.getClock();
@@ -2440,7 +2451,7 @@ public class VersionGarbageCollector {
                         monitor.info(msg);
                     }
                 } finally {
-                    delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel);
+                    delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel, options.delayFactor);
                 }
             }
             return deletedCount;
@@ -2473,7 +2484,7 @@ public class VersionGarbageCollector {
                 }
             }
             finally {
-                delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel);
+                delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS), cancel, options.delayFactor);
             }
             return updateCount;
         }
