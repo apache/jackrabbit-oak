@@ -171,22 +171,6 @@ public class CollectionUtils {
         iterator.forEachRemaining(result::add);
         return result;
     }
-
-    /**
-     * Convert an iterable to a {@link java.util.ArrayDeque}.
-     * The returning array deque is mutable and supports all optional operations.
-     *
-     * @param iterable the iterable to convert
-     * @param <T>      the type of the elements
-     * @return the arrayDeque
-     */
-    public static <T> ArrayDeque<T> toArrayDeque(@NotNull Iterable<? extends T> iterable) {
-        Objects.requireNonNull(iterable);
-        ArrayDeque<T> arrayDeque = new ArrayDeque<>();
-        iterable.forEach(arrayDeque::add);
-        return arrayDeque;
-    }
-
     /**
      * Convert a vararg list of items to a set.  The returning set is mutable and supports all optional operations.
      * @param elements elements to convert

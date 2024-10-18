@@ -93,26 +93,6 @@ public class CollectionUtilsTest {
     }
 
     @Test
-    public void toArrayDequeWithNonEmptyIterable() {
-        List<String> list = Arrays.asList("one", "two", "three");
-        ArrayDeque<String> result = CollectionUtils.toArrayDeque(list);
-
-        Assert.assertNotNull(result);
-        Assert.assertEquals(3, result.size());
-        Assert.assertEquals("one", result.peekFirst());
-        Assert.assertEquals("three", result.peekLast());
-    }
-
-    @Test
-    public void toArrayDequeWithEmptyIterable() {
-        List<String> emptyList = Collections.emptyList();
-        ArrayDeque<String> result = CollectionUtils.toArrayDeque(emptyList);
-
-        Assert.assertNotNull(result);
-        Assert.assertTrue(result.isEmpty());
-    }
-
-    @Test
     public void iterableToLinkedSet() {
         // create an iterable
         final Set<String> s = new LinkedHashSet<>(data);
