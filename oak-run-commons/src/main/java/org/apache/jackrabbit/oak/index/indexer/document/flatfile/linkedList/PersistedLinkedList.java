@@ -131,7 +131,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     @Override
     public NodeStateEntry remove() {
-        Preconditions.checkState(!isEmpty(), "Cannot remove item from empty list");
+        Validate.checkState(!isEmpty(), "Cannot remove item from empty list");
         NodeStateEntry ret = get(headIndex);
         map.remove(headIndex);
         cache.remove(headIndex);

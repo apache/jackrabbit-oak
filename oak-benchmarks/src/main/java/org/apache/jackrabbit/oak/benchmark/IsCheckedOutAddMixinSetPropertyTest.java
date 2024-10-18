@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Item;
@@ -26,8 +27,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
     
@@ -80,7 +79,7 @@ public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
     
     private void additionalNodeOperation(@NotNull Node node, Cnt accessCnt) {
         try {
-            checkState(node.isCheckedOut());
+            Validate.checkState(node.isCheckedOut());
             if (node.canAddMixin("mix:language")) {
                 accessCnt.nodeWrites++;
                 node.addMixin("mix:language");

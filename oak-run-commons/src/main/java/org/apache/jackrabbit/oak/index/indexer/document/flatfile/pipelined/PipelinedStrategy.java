@@ -228,7 +228,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         this.pathFilters = pathFilters;
         this.statisticsProvider = statisticsProvider;
         this.indexingReporter = indexingReporter;
-        Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
+        Validate.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
 
         int mongoDocQueueReservedMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
         Validate.checkArgument(mongoDocQueueReservedMemoryMB >= MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB,

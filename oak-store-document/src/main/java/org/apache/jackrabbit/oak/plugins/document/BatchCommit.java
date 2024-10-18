@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
@@ -69,7 +69,7 @@ final class BatchCommit {
                 op.getId(), id);
         Callable<NodeDocument> result;
         synchronized (this) {
-            checkState(!executing, "Cannot enqueue when batch is already executing");
+            Validate.checkState(!executing, "Cannot enqueue when batch is already executing");
             if (ops != null) {
                 ops.add(op);
                 result = new Callable<NodeDocument>() {

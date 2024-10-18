@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static org.apache.jackrabbit.guava.common.collect.Queues.newArrayBlockingQueue;
@@ -32,6 +31,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -254,7 +254,7 @@ public class BackgroundObserver implements Observer, Closeable {
      */
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-        checkState(!stopped);
+        Validate.checkState(!stopped);
         requireNonNull(root);
         requireNonNull(info);
 
