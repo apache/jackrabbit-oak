@@ -25,6 +25,9 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
+/**
+ * Unit cases for {@link Validate}
+ */
 public class ValidateTest {
 
     @Test(expected = IllegalArgumentException.class)
@@ -91,6 +94,75 @@ public class ValidateTest {
             assertEquals("foo 1 bar 2", ex.getMessage());
         }
     }
+
+    // OAK-11209
+
+    @Test(expected = IllegalStateException.class)
+    public void checkStateFalse() {
+        Validate.checkState(false);
+    }
+
+    @Test
+    public void checkStateTrue() {
+        Validate.checkState(true);
+    }
+
+    @Test
+    public void checkStateFalseWithMessage() {
+        try {
+            Validate.checkState(false, "foo%");
+            fail("exception expected");
+        } catch (IllegalStateException ex) {
+            assertEquals("foo%", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void checkStateTrueWithMessage() {
+        Validate.checkState(true, "foo%");
+    }
+
+    @Test
+    public void checkStateFalseWithMessageTemplate() {
+        try {
+            Validate.checkState(false, "foo %s bar %s", "qux1", "qux2");
+            fail("exception expected");
+        } catch (IllegalStateException ex) {
+            assertEquals("foo qux1 bar qux2", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void checkStateFalseWithMessageTemplateNull() {
+        try {
+            Validate.checkState(false, "foo %s bar %s", null, "qux2");
+            fail("exception expected");
+        } catch (IllegalStateException ex) {
+            assertEquals("foo null bar qux2", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void checkStateFalseWithMessageTemplateTooFew() {
+        try {
+            Validate.checkState(false, "foo %s bar %s", "qux2");
+            fail("exception expected");
+        } catch (IllegalArgumentException ex) {
+            // expected, thrown by String.format
+        }
+    }
+
+    @Test
+    public void checkStateFalseWithMessageTemplateTooMany() {
+        try {
+            Validate.checkState(false, "foo %s bar %s", 1, 2, 3);
+            fail("exception expected");
+        } catch (IllegalStateException ex) {
+            assertEquals("foo 1 bar 2", ex.getMessage());
+        }
+    }
+
+    // OAK-11209 END
 
     @Test
     public void countArguments() {
