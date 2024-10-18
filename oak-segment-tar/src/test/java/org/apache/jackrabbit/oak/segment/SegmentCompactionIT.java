@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.getInteger;

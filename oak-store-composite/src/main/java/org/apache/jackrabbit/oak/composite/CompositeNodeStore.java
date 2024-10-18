@@ -54,7 +54,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 
@@ -126,7 +126,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
                 .collect(Collectors.toList());
 
         checkArgument(readWriteMountNames.isEmpty(),
-                "Following partial mounts are write-enabled: ", readWriteMountNames);
+                "Following partial mounts are write-enabled: %s", readWriteMountNames);
     }
 
     @Override

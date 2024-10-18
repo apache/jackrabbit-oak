@@ -206,6 +206,21 @@ public class CollectionUtils {
     }
 
     /**
+     * Convert an iterable to a {@link java.util.ArrayDeque}.
+     * The returning array deque is mutable and supports all optional operations.
+     *
+     * @param iterable the iterable to convert
+     * @param <T>      the type of the elements
+     * @return the arrayDeque
+     */
+    public static <T> ArrayDeque<T> toArrayDeque(@NotNull Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        ArrayDeque<T> arrayDeque = new ArrayDeque<>();
+        iterable.forEach(arrayDeque::add);
+        return arrayDeque;
+    }
+
+    /**
      * Creates a new, empty HashSet with expected capacity.
      * <p>
      * The returned set is large enough to add expected no. of elements without resizing.
