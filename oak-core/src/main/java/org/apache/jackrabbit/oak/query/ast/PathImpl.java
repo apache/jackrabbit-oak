@@ -95,7 +95,10 @@ public class PathImpl extends DynamicOperandImpl {
 
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
-        // optimizations of type "NAME(..) IN(A, B)" are not supported
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictPropertyAsList(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, list);
+        }
     }
 
     @Override
