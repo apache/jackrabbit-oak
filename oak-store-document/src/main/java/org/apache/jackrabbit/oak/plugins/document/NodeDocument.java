@@ -1021,6 +1021,22 @@ public final class NodeDocument extends Document {
             Value value = getLatestValue(nodeStore, local.entrySet(),
                     readRevision, validRevisions, lastRevs);
 
+            if (value == null
+                    && !anyRevisionCommitted(local.keySet(), nodeStore, validRevisions)) {
+                // OAK-11184 : if the locally resolved value is null AND
+                // there are no committed revisions in the local map at all,
+                // then don't scan previous documents as that should not
+                // find anything. The split algorithm always ensures
+                // that at least one committed revision remains in the
+                // local map. From that we can derive that if there's
+                // no committed revision in the local map, there isn't
+                // any in previous documents neither.
+                // This should only occur when a property is being newly
+                // added or was deleted, then fullGC-ed and now re-added.
+                LOG.trace("getNodeAtRevision : skipping as no committed revision locally for key={}", key);
+                continue;
+            }
+
             // check if there may be more recent values in a previous document
             value = requiresCompleteMapCheck(value, local, nodeStore) ? null : value;
 
@@ -1089,6 +1105,37 @@ public final class NodeDocument extends Document {
     }
 
     /**
+     * Checks if any of the provided revisions are committed - given the
+     * RevisionContext. Uses validRevisions as cached earlier
+     * confirmed valid revisions (but chooses not to add to that map, to limit
+     * side-effects of this new-ish method).
+     *
+     * @param revisions      the revisions to check if any of them are committed
+     * @param context        the RevisionContext to use for commit value resolving
+     * @param validRevisions map of revision to commit value considered valid
+     *                       against the given readRevision.
+     * @return true if the provided (local) map of revisions (of a property) has
+     * any revisions that are committed (irrespective of visible or not).
+     */
+    private boolean anyRevisionCommitted(Set<Revision> revisions, @NotNull RevisionContext context,
+            Map<Revision, String> validRevisions) {
+        for (Revision propRev : revisions) {
+            String commitValue = validRevisions.get(propRev);
+            if (commitValue == null) {
+                commitValue = context.getCommitValue(propRev, this);
+            }
+            if (commitValue == null) {
+                // then it's also not visible
+                continue;
+            }
+            if (Utils.isCommitted(commitValue)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+	/**
      * Get the earliest (oldest) revision where the node was alive at or before
      * the provided revision, if the node was alive at the given revision.
      *
