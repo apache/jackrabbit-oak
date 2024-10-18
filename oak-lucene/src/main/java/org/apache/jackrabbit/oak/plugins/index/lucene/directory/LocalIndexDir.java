@@ -23,8 +23,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 
 public final class LocalIndexDir implements Comparable<LocalIndexDir> {
@@ -34,7 +34,7 @@ public final class LocalIndexDir implements Comparable<LocalIndexDir> {
     public LocalIndexDir(File dir) throws IOException {
         this.dir = dir.getCanonicalFile();
         File indexDetails = new File(dir, IndexRootDirectory.INDEX_METADATA_FILE_NAME);
-        checkState(isIndexDir(dir), "No file [%s] found in dir [%s]",
+        Validate.checkState(isIndexDir(dir), "No file [%s] found in dir [%s]",
                 INDEX_METADATA_FILE_NAME, dir.getAbsolutePath());
         this.indexMeta = new IndexMeta(indexDetails);
     }

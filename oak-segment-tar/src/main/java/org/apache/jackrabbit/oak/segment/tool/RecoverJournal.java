@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.parseSegmentInfoTimestamp;
 
@@ -37,6 +36,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -82,7 +82,7 @@ public class RecoverJournal {
         }
 
         public RecoverJournal build() {
-            checkState(path != null, "path not specified");
+            Validate.checkState(path != null, "path not specified");
             return new RecoverJournal(this);
         }
 

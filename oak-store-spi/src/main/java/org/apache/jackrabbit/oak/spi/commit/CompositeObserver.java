@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,11 +34,11 @@ public class CompositeObserver implements Observer {
     private final Set<Observer> observers = CollectionUtils.newIdentityHashSet();
 
     public synchronized void addObserver(@NotNull Observer observer) {
-        checkState(observers.add(requireNonNull(observer)));
+        Validate.checkState(observers.add(requireNonNull(observer)));
     }
 
     public synchronized void removeObserver(@NotNull Observer observer) {
-        checkState(observers.remove(requireNonNull(observer)));
+        Validate.checkState(observers.remove(requireNonNull(observer)));
     }
 
     //----------------------------------------------------------< Observer >--

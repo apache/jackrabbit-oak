@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 import java.util.concurrent.TimeUnit;
@@ -47,25 +47,25 @@ public class MetricsFormatter {
     }
 
     public MetricsFormatter add(String key, String value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public MetricsFormatter add(String key, int value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public MetricsFormatter add(String key, long value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public MetricsFormatter add(String key, boolean value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }

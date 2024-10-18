@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
@@ -266,7 +266,7 @@ class ChangeProcessor implements FilteringAwareObserver {
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(registration == null, "Change processor started already");
+        Validate.checkState(registration == null, "Change processor started already");
         final WhiteboardExecutor executor = new WhiteboardExecutor();
         executor.start(whiteboard);
         final FilteringObserver filteringObserver = createObserver(executor);
@@ -437,7 +437,7 @@ class ChangeProcessor implements FilteringAwareObserver {
      * @throws IllegalStateException if not yet started
      */
     public synchronized boolean stopAndWait(int timeOut, TimeUnit unit) {
-        checkState(registration != null, "Change processor not started");
+        Validate.checkState(registration != null, "Change processor not started");
         if (running.stop()) {
             if (runningMonitor.enter(timeOut, unit)) {
                 registration.unregister();
@@ -460,7 +460,7 @@ class ChangeProcessor implements FilteringAwareObserver {
      * complete.
      */
     public synchronized void stop() {
-        checkState(registration != null, "Change processor not started");
+        Validate.checkState(registration != null, "Change processor not started");
         if (running.stop()) {
             registration.unregister();
             runningMonitor.leave();
@@ -539,7 +539,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         }
 
         public void updateCounters(MeterStats eventCount, TimerStats eventDuration) {
-            checkState(this.eventCount >= 0);
+            Validate.checkState(this.eventCount >= 0);
             eventCount.mark(this.eventCount);
             eventDuration.update(System.nanoTime() - t0 - sysTime, TimeUnit.NANOSECONDS);
             this.eventCount = -1;

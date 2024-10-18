@@ -23,6 +23,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -34,8 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class MongoDocumentTraverser {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentTraverser.class);
@@ -49,7 +48,7 @@ public class MongoDocumentTraverser {
     public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, TraversingRange traversingRange,
                                                                      Predicate<String> filter) {
         if (!disableReadOnlyCheck) {
-            checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
+            Validate.checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
 
         MongoCollection<BasicDBObject> dbCollection = mongoStore.getDBCollection(collection);

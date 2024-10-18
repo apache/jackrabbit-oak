@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,8 +37,6 @@ import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IndexStoreUtils {
     public static final String METADATA_SUFFIX = ".metadata";
@@ -119,7 +118,7 @@ public class IndexStoreUtils {
         } else {
             String fileName = indexStoreFile.getName();
             String compressionSuffix = getCompressionSuffix(indexStoreFile);
-            checkState(algorithm.addSuffix("").equals(compressionSuffix));
+            Validate.checkState(algorithm.addSuffix("").equals(compressionSuffix));
             String fileNameWithoutCompressionSuffix = fileName.substring(0, fileName.lastIndexOf("."));
             metadataFile = new File(algorithm.addSuffix(indexStoreFile.getParent() + "/"
                     + fileNameWithoutCompressionSuffix + METADATA_SUFFIX));
@@ -140,7 +139,7 @@ public class IndexStoreUtils {
      */
     public static void validateFlatFileStoreFileName(File file, @NotNull Compression algorithm) {
         if (!algorithm.equals(Compression.NONE)) {
-            checkState(algorithm.addSuffix("")
+            Validate.checkState(algorithm.addSuffix("")
                             .equals(getCompressionSuffix(file)),
                     "File suffix should be in correspondence with compression algorithm. Filename:{}, Compression suffix:{} ",
                     file.getAbsolutePath(), algorithm.addSuffix(""));

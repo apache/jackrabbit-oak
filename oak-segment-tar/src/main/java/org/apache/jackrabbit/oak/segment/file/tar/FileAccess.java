@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
 
 import java.io.EOFException;
@@ -27,6 +26,7 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 
 /**
  * A wrapper around either memory mapped files or random access files, to allow
@@ -105,7 +105,7 @@ abstract class FileAccess {
         @Override
         public synchronized int length() throws IOException {
             long length = file.length();
-            checkState(length < Integer.MAX_VALUE);
+            Validate.checkState(length < Integer.MAX_VALUE);
             return (int) length;
         }
 

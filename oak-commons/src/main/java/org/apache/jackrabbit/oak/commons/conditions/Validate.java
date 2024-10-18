@@ -119,9 +119,9 @@ public final class Validate {
      * @param errorMessage message to use in exception
      * @throws IllegalStateException if expression is false
      */
-    public static void checkState(final boolean expression, @NotNull final String errorMessage) {
+    public static void checkState(final boolean expression, @NotNull final Object errorMessage) {
         if (!expression) {
-            throw new IllegalStateException(errorMessage);
+            throw new IllegalStateException(String.valueOf(errorMessage));
         }
     }
 

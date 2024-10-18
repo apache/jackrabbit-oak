@@ -27,13 +27,13 @@ import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.size;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static java.util.Collections.emptyIterator;
@@ -97,7 +97,7 @@ class ChildNodeStateProvider {
         }
 
         //Skip past the current find
-        checkState(pitr.hasNext() && path.equals(pitr.next().getPath()),
+        Validate.checkState(pitr.hasNext() && path.equals(pitr.next().getPath()),
                 "Did not found path [%s] in leftover iterator. Possibly node state accessed " +
                         "after main iterator has moved past it", path);
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import javax.jcr.nodetype.NodeDefinition;
@@ -24,6 +23,7 @@ import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
@@ -69,7 +69,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
         }
         for (int i = 0; i < oakNames.length; i++) {
             Tree type = root.getChild(oakNames[i]);
-            checkState(type.exists());
+            Validate.checkState(type.exists());
             types[i] = new NodeTypeImpl(type, mapper);
         }
         return types;
@@ -94,7 +94,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
                 types = types.getParent();
             }
             Tree type = types.getChild(oakName);
-            checkState(type.exists());
+            Validate.checkState(type.exists());
             return new NodeTypeImpl(type, mapper);
         } else {
             return null;

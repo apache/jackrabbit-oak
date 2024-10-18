@@ -40,6 +40,7 @@ import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -48,7 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Represents the root directory on file system used for storing index copy locally.
@@ -99,7 +99,7 @@ public class IndexRootDirectory {
             String version = String.valueOf(definition.getReindexCount());
             File indexDir = new File(baseFolder, version);
             if (!indexDir.exists()){
-                checkState(indexDir.mkdirs(), "Not able to create folder [%s]", indexDir);
+                Validate.checkState(indexDir.mkdirs(), "Not able to create folder [%s]", indexDir);
             }
             return indexDir;
         } else {
@@ -110,7 +110,7 @@ public class IndexRootDirectory {
             //Create a base folder <index node name>-<uid>
             //and add a readme file having index info
             if (!baseFolder.exists()){
-                checkState(baseFolder.mkdir(), "Not able to create folder [%s]", baseFolder);
+                Validate.checkState(baseFolder.mkdir(), "Not able to create folder [%s]", baseFolder);
                 File readMe = new File(baseFolder, INDEX_METADATA_FILE_NAME);
                 IndexMeta meta = new IndexMeta(indexPath, getTime());
                 meta.writeTo(readMe);
@@ -119,7 +119,7 @@ public class IndexRootDirectory {
             //Create index folder under that
             File indexFolder = new File(baseFolder, getFSSafeName(dirName));
             if (!indexFolder.exists()) {
-                checkState(indexFolder.mkdir(), "Not able to create folder [%s]", indexFolder);
+                Validate.checkState(indexFolder.mkdir(), "Not able to create folder [%s]", indexFolder);
             }
 
             return indexFolder;

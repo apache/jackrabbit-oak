@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
@@ -170,7 +170,7 @@ public class ClassicCompactor extends Compactor {
                 // delay property compaction until the end in case compaction is cancelled
                 modifiedProperties.forEach(property -> builder.setProperty(compact(property)));
                 NodeState nodeState = builder.getNodeState();
-                checkState(modCount == 0 || nodeState instanceof ModifiedNodeState);
+                Validate.checkState(modCount == 0 || nodeState instanceof ModifiedNodeState);
                 return writeNodeState(nodeState, CompactorUtils.getStableIdBytes(after), true);
             } else if (hardCanceller.check().isCancelled()) {
                 return null;

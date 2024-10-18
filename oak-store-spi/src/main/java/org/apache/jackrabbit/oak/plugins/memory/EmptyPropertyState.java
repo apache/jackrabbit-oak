@@ -22,10 +22,10 @@ import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Abstract base class for {@link PropertyState} implementations
@@ -85,7 +85,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
     @NotNull
     @Override
     public <T> T getValue(Type<T> type) {
-        checkState(type.isArray(), "Type must be an array type");
+        Validate.checkState(type.isArray(), "Type must be an array type");
         return (T) Collections.emptyList();
     }
 

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +36,6 @@ import org.jetbrains.annotations.NotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
@@ -161,7 +161,7 @@ class OakBufferedIndexFile implements OakIndexFile {
         checkElementIndex(i, data.size());
         if (index != i) {
             flushBlob();
-            checkState(!blobModified);
+            Validate.checkState(!blobModified);
 
             int n = (int) Math.min(blobSize, length - (long)i * blobSize);
             InputStream stream = data.get(i).getNewStream();
@@ -187,7 +187,7 @@ class OakBufferedIndexFile implements OakIndexFile {
             if (index < data.size()) {
                 data.set(index, b);
             } else {
-                checkState(index == data.size());
+                Validate.checkState(index == data.size());
                 data.add(b);
             }
             dataModified = true;

@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -31,6 +29,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadata;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
@@ -312,7 +311,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
      */
     private IndexStoreMetadata mergeIndexStores(IndexStoreMetadata indexStoreMetadata,
                                                 IncrementalIndexStoreMetadata incrementalIndexStoreMetadata) {
-        checkState(indexStoreMetadata.getCheckpoint().equals(incrementalIndexStoreMetadata.getBeforeCheckpoint()));
+        Validate.checkState(indexStoreMetadata.getCheckpoint().equals(incrementalIndexStoreMetadata.getBeforeCheckpoint()));
         return new IndexStoreMetadata(incrementalIndexStoreMetadata.getAfterCheckpoint(), indexStoreMetadata.getStoreType(),
                 getStrategyName(), Collections.emptySet());
     }

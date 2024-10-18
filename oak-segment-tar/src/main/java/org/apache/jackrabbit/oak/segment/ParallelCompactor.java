@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
@@ -46,7 +47,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -141,7 +141,7 @@ public class ParallelCompactor extends CheckpointCompactor {
         }
 
         @Nullable List<Entry<String, CompactionTree>> expand(@NotNull Canceller hardCanceller) {
-            checkState(compactionFuture == null);
+            Validate.checkState(compactionFuture == null);
             CompactedNodeState compactedState = compactor.getPreviouslyCompactedState(after);
             if (compactedState != null) {
                 compactionFuture = CompletableFuture.completedFuture(compactedState);
@@ -207,7 +207,7 @@ public class ParallelCompactor extends CheckpointCompactor {
                     compactionFuture = executorService.submit(() ->
                             compactor.compact(before, after, onto, hardCanceller));
                 } else {
-                    checkState(onto.equals(after));
+                    Validate.checkState(onto.equals(after));
                     compactionFuture = executorService.submit(() ->
                             compactor.compactDown(before, after, hardCanceller, softCanceller));
                 }
@@ -310,7 +310,7 @@ public class ParallelCompactor extends CheckpointCompactor {
 
         @Nullable CompactedNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
             requireNonNull(executorService);
-            checkState(!executorService.isShutdown());
+            Validate.checkState(!executorService.isShutdown());
 
             gcListener.info("compacting with {} threads.", numWorkers + 1);
             gcListener.info("exploring content tree to find subtrees for parallel compaction.");

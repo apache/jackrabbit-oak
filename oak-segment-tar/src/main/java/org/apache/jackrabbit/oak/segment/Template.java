@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -138,7 +138,7 @@ public class Template {
             childName = ZERO_CHILD_NODES;
         } else if (count == 1) {
             childName = state.getChildNodeNames().iterator().next();
-            checkState(childName != null && !childName.equals(MANY_CHILD_NODES));
+            Validate.checkState(childName != null && !childName.equals(MANY_CHILD_NODES));
         } else {
             childName = MANY_CHILD_NODES;
         }
@@ -204,7 +204,7 @@ public class Template {
     }
 
     MapRecord getChildNodeMap(RecordId recordId) {
-        checkState(childName != ZERO_CHILD_NODES);
+        Validate.checkState(childName != ZERO_CHILD_NODES);
         Segment segment = recordId.getSegment();
         RecordId childNodesId = segment.readRecordId(recordId.getRecordNumber(), 2 * RECORD_ID_BYTES);
         return reader.readMap(childNodesId);

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -39,7 +40,6 @@ import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
@@ -160,7 +160,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                          @NotNull String versionablePath)
             throws UnsupportedRepositoryOperationException,
             InvalidItemStateException, RepositoryException {
-        checkState(!workspaceRoot.hasPendingChanges());
+        Validate.checkState(!workspaceRoot.hasPendingChanges());
         checkArgument(PathUtils.isAbsolute(versionablePath));
         Tree versionable = workspaceRoot.getTree(versionablePath);
         if (!isVersionable(versionable)) {

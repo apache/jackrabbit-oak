@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 
 /**
@@ -87,7 +87,7 @@ public class AsyncLaneSwitcher {
 
     public static void revertSwitch(NodeBuilder idxBuilder, String indexPath) {
         PropertyState previousAsync = idxBuilder.getProperty(ASYNC_PREVIOUS);
-        checkState(previousAsync != null, "No previous async state property found for index [%s]", indexPath);
+        Validate.checkState(previousAsync != null, "No previous async state property found for index [%s]", indexPath);
 
         if (isNone(previousAsync)) {
             idxBuilder.removeProperty(IndexConstants.ASYNC_PROPERTY_NAME);

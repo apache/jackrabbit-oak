@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
@@ -34,6 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
@@ -170,7 +170,7 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     private void checkBound() {
-        checkState(head.get() != null, "Revisions not bound to a store");
+        Validate.checkState(head.get() != null, "Revisions not bound to a store");
     }
 
     /**

@@ -29,6 +29,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -40,8 +41,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * The {@code AccessControlAction} allows to setup permissions upon creation
@@ -148,7 +147,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     private void setAC(@NotNull Authorizable authorizable, @NotNull Root root,
                        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-        checkState(securityProvider != null, "Not initialized");
+        Validate.checkState(securityProvider != null, "Not initialized");
         if (omitSetup(authorizable)) {
             return;
         }
