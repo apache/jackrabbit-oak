@@ -32,11 +32,11 @@ public final class Validate {
         // no instances for you
     }
 
-    private static Logger LOG = LoggerFactory.getLogger(Validate.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Validate.class);
 
     // when true, message template are arguments checked even when the condition
     // to check for is true
-    private static boolean CHECKMESSAGETEMPLATE = SystemPropertySupplier
+    private static final boolean CHECKMESSAGETEMPLATE = SystemPropertySupplier
             .create("oak.precondition.checks.CHECKMESSAGETEMPLATE", false).loggingTo(LOG).get();
 
     /**
@@ -100,7 +100,60 @@ public final class Validate {
         }
     }
 
-    protected static boolean checkTemplate(@NotNull String messageTemplate, @Nullable Object... messageArgs) {
+    /**
+     * Checks whether the specified expression is true
+     *
+     * @param expression expression to checks
+     * @throws IllegalStateException if expression is false
+     */
+    public static void checkState(final boolean expression) {
+        if (!expression) {
+            throw new IllegalStateException();
+        }
+    }
+
+    /**
+     * Checks whether the specified expression is true
+     *
+     * @param expression expression to checks
+     * @param errorMessage message to use in exception
+     * @throws IllegalStateException if expression is false
+     */
+    public static void checkState(final boolean expression, @NotNull final String errorMessage) {
+        if (!expression) {
+            throw new IllegalStateException(errorMessage);
+        }
+    }
+
+    /**
+     * Checks whether the specified expression is true
+     *
+     * @param expression expression to checks
+     * @param messageTemplate to use in exception (using {@link String#format} syntax
+     * @param messageArgs arguments to use in messageTemplate
+     * @throws IllegalArgumentException if expression is false
+     */
+    public static void checkState(final boolean expression, @NotNull String messageTemplate, @Nullable Object... messageArgs) {
+
+        Objects.requireNonNull(messageTemplate);
+
+        if (CHECKMESSAGETEMPLATE) {
+            checkTemplate(messageTemplate, messageArgs);
+        }
+
+        if (!expression) {
+            if (!CHECKMESSAGETEMPLATE) {
+                checkTemplate(messageTemplate, messageArgs);
+            }
+
+            String message = String.format(messageTemplate, messageArgs);
+            throw new IllegalStateException(message);
+        }
+    }
+
+    // helper methods
+
+    static boolean checkTemplate(@NotNull String messageTemplate, @Nullable Object... messageArgs) {
         int argsSpecified = messageArgs.length;
         int argsInTemplate = countArguments(messageTemplate);
         boolean result = argsSpecified == argsInTemplate;
@@ -110,7 +163,7 @@ public final class Validate {
         return result;
     }
 
-    protected static int countArguments(String template) {
+    static int countArguments(String template) {
         int count = 0;
         boolean inEscape = false;
 
