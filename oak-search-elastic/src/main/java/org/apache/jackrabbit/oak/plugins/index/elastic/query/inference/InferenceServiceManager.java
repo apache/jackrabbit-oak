@@ -18,5 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 public class InferenceServiceManager {
+
+    private static final String INFERENCE_CACHE_SIZE = "oak.inference.cache.size";
+
+    private static final ConcurrentHashMap<String, InferenceService> SERVICES = new ConcurrentHashMap<>();
+
+    public static InferenceService getInstance(String url) {
+        return SERVICES.computeIfAbsent(url, key -> new InferenceService(key, Integer.getInteger(INFERENCE_CACHE_SIZE, 100)));
+    }
+
 }
