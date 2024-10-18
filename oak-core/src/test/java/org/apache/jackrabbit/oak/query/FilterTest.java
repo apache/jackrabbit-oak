@@ -47,6 +47,39 @@ public class FilterTest {
     }
 
     @Test
+    public void functionBasedIndexOr() throws Exception {
+        String sql2 = "select [jcr:path] from [nt:base] where lower([test]) in('hello', 'world')";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where lower([test]) in('hello', 'world'), " +
+                "path=*, property=[function*lower*@test=[in(hello, world)], " +
+                "test=[is not null]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where upper([test]) in('hello', 'world')";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where upper([test]) in('hello', 'world'), " +
+                "path=*, property=[function*upper*@test=[in(hello, world)], " +
+                "test=[is not null]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where name() in('hello', 'world')";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where name() in('hello', 'world'), " +
+                "path=*, property=[function*@:name=[in(hello, world)]])",
+                createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where localname() in('hello', 'world')";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where localname() in('hello', 'world'), " +
+                "path=*, property=[function*@:localname=[in(hello, world)]])",
+                createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where path() in('/hello', '/world')";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where path() in('/hello', '/world'), " +
+                "path=*, property=[function*@:path=[in(/hello, /world)]])",
+                createFilterSQL(sql2).toString());
+    }
+
+    @Test
     public void functionBasedIndex() throws Exception {
         String sql2 = "select [jcr:path] from [nt:base] where lower([test]) = 'hello'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
