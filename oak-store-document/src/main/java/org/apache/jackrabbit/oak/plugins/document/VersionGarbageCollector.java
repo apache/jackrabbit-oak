@@ -168,7 +168,7 @@ public class VersionGarbageCollector {
      * Ultimately the goal is to clean up all possible garbage. After hardening these modes
      * might no longer be supported.
      */
-    enum FullGCMode {
+    public enum FullGCMode {
         /** no full GC is done at all */
         NONE,
         /** GC only empty properties */
