@@ -357,7 +357,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     @AttributeDefinition(
             name = "Delay factor for a Full GC run",
             description = "A Full GC run has a gap of this delay factor to reduce continuous load on system." +
-                    "It allows the FullGC thread to stop by (fullGC run time * delayFactor) period after each cycle." +
+                    "It allows the FullGC thread to stop by (fullGC batch run time * delayFactor) period after each batch." +
                     "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR)
     double fullGCDelayFactor() default DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
 
