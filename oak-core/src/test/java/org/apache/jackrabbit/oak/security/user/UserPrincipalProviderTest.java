@@ -313,6 +313,18 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
     }
 
     @Test
+    public void testFindPrincipalsQueryFailsNullHint() throws ParseException {
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+
+        Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
+        UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(), NamePathMapper.DEFAULT);
+        Iterator<? extends Principal> it = upp.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
+        assertNotNull(it);
+        assertFalse(it.hasNext());
+    }
+
+    @Test
     public void testCreatePrincipalInvalidType() throws Exception {
         Method m = UserPrincipalProvider.class.getDeclaredMethod("createPrincipal", Tree.class);
         m.setAccessible(true);

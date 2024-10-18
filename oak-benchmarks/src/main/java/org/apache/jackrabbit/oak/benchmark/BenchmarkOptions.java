@@ -20,18 +20,17 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_ITEMS_TD_READ;
+import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_REPEATED_READ;
+
+import java.io.File;
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_ITEMS_TD_READ;
-import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_REPEATED_READ;
-
-import java.io.File;
 
 public class BenchmarkOptions {
 
@@ -103,6 +102,8 @@ public class BenchmarkOptions {
     private final OptionSpec<String> elasticApiKeyId;
     private final OptionSpec<String> elasticApiKeySecret;
     private final OptionSpec<Boolean> throttlingEnabled;
+    private final OptionSpec<Long> cacheExpiration;
+    private final OptionSpec<Integer> numberOfLocalGroups;
 
     public OptionSpec<String> getElasticApiKeyId() {
         return elasticApiKeyId;
@@ -374,6 +375,14 @@ public class BenchmarkOptions {
         return throttlingEnabled;
     }
 
+    public OptionSpec<Long> getCacheExpiration() {
+        return cacheExpiration;
+    }
+
+    public OptionSpec<Integer> getNumberOfLocalGroups() {
+        return numberOfLocalGroups;
+    }
+
 
     public BenchmarkOptions(OptionParser parser) {
         base = parser.accepts("base", "Base directory")
@@ -523,6 +532,15 @@ public class BenchmarkOptions {
                 .accepts("secure", "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+
+        cacheExpiration = parser
+                .accepts("cacheExpiration", "Expiration time for the cache in milliseconds")
+                .withOptionalArg().ofType(Long.class)
+                .defaultsTo(0L);
+        numberOfLocalGroups = parser
+                .accepts("numberOfLocalGroups", "Number of local groups to add dynamic membership groups.")
+                .withOptionalArg().ofType(Integer.class)
+                .defaultsTo(0);
 
         verbose = parser.accepts("verbose", "Enable verbose output");
         nonOption = parser.nonOptions();

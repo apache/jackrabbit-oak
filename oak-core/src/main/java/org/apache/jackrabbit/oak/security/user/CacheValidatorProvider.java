@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static java.util.Objects.requireNonNull;
+
 import java.security.Principal;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
+import org.apache.jackrabbit.oak.security.user.CachedPrincipalMembershipReader.CommitMarker;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -34,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Validator provider to ensure that the principal-cache stored with a given
@@ -59,25 +59,6 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
         TypePredicate cachePredicate = new TypePredicate(after, NT_REP_CACHE);
         boolean isValidCommitInfo = CommitMarker.isValidCommitInfo(info);
         return new CacheValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
-    }
-
-    //--------------------------------------------------------------------------
-
-    static Map<String, Object> asCommitAttributes() {
-        return Collections.singletonMap(CommitMarker.KEY, CommitMarker.INSTANCE);
-    }
-
-    private static final class CommitMarker {
-
-        private static final String KEY = CommitMarker.class.getName();
-
-        private static final CommitMarker INSTANCE = new CommitMarker();
-
-        private static boolean isValidCommitInfo(@NotNull CommitInfo commitInfo) {
-            return CommitMarker.INSTANCE == commitInfo.getInfo().get(CommitMarker.KEY);
-        }
-
-        private CommitMarker() {}
     }
 
     //-----------------------------------------------------< CacheValidator >---
