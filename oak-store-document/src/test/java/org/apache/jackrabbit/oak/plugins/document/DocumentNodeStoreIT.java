@@ -282,15 +282,23 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
         try {
             // start B
-            CountingDocumentStore cds = new CountingDocumentStore(ds);
+            // for MongoDocumentStore (and perhaps others), we can't use the same
+            // instance by the second DocumentNodeStore, as that would mean they
+            // share the cache. And it is also the cache that is part of teh testing.
+            // Hence what we need is a real second MongoDocumentStore that connects
+            // to the same mongo instance (but has its own cache and thus cause
+            // interesting things).
+            // So let's do that here for Mongo (for now - TODO: generalize this concept)
+            DocumentStore ds2 = dsf.createDocumentStore(getBuilder().setClusterId(2 /* likely unnecessary */));
+            CountingDocumentStore cds2 = new CountingDocumentStore(ds2);
             DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0).clock(clock)
-                    .setDocumentStore(cds).build();
+                    .setDocumentStore(cds2).build();
 
             // now simulate any write and count how many times
             // find() had to be invoked (basically to read a previous doc)
-            // if there's more than 495, then that's considered expensive
+            // if there's more than 95, then that's considered expensive
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v0");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v0");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
@@ -299,7 +307,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // while the merge in the other thread isn't done, we can repeat this
             // and it's still slow
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v1");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v1");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
@@ -307,22 +315,15 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
             // and again, you get the point
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v2");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v2");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
             }
 
-            // but as soon as we release the other thread and let it finish
-            // its commit, then our updates here are no longer expensive
-            continueSemaphore.release();
-            // let's make sure that other thread is really done
-            mergeThread.join(5000);
-            assertFalse(mergeThread.isAlive());
-
             // doing just another update without any bg work won't fix anything yet
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v3");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v3");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
@@ -330,23 +331,53 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // neither does doing just an update on ns2
             ns2.runBackgroundOperations();
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v4");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v4");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
             }
+
+            // all of the above asserts are "easy" to avoid, as the
+            // revision was indeed not committed yet, and is newly added.
+            // that's a situaiton that can be caught.
+            // It gets a bit more difficult once the revision is committed
+            // but not yet visible. That is hard to catch, as it legitimate
+            // for a revision to be split away while for another cluster node
+            // the only remaining revision is not yet visible (that fact
+            // might give a hint on how this can be fixed, but it is still hard).
+
+            // so, as soon as we release the other thread and let it finish
+            // its commit, our updates will see the revision being committed
+            // (as side-effect of the merge on root - otherwise there's hardly
+            // a reason to re-resolve the root doc), and subsequently go
+            // into expensive previous document scanning (so the test fails below).
+            continueSemaphore.release();
+            // let's make sure that other thread is really done
+            mergeThread.join(5000);
+            assertFalse(mergeThread.isAlive());
+
+            // let's check behavior after ns1 finished the commit
+            // but before it did a backgroundWrite
+            {
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v5");
+                assertNoPreviousDocsRead(c, 95);
+                // prior to the fix it would have been:
+                // assertPreviousDocsRead(c, 95);
+            }
+
             // neither does just doing an update on ns1
             ns1.runBackgroundOperations();
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v5");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v5");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
             }
+
             // just doing ns1 THEN ns2 will do the trick
             ns2.runBackgroundOperations();
             {
-                int c = getNodesFindCountOfAnUpdate(cds, ns2, "v6");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v6");
                 // this worked irrespective of the fix:
                 assertNoPreviousDocsRead(c, 95);
             }
