@@ -171,6 +171,7 @@ public class CollectionUtils {
         iterator.forEachRemaining(result::add);
         return result;
     }
+
     /**
      * Convert a vararg list of items to a set.  The returning set is mutable and supports all optional operations.
      * @param elements elements to convert
