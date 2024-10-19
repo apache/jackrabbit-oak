@@ -59,6 +59,11 @@ class ImmutableRecordNumbers implements RecordNumbers {
         }
     }
 
+    @Override
+    public int estimateMemoryUsage() {
+        return offsets.length * RecordNumbers.MEMORY_USAGE_PER_NUMBER;
+    }
+
     @NotNull
     @Override
     public Iterator<Entry> iterator() {
