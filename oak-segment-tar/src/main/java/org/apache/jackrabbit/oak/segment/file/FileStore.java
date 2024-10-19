@@ -509,7 +509,7 @@ public class FileStore extends AbstractFileStore {
     @NotNull
     public Segment readSegment(final SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
-            return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));
+            return segmentCache.getSegment(id, () -> getSegmentLoader().loadSegment(tarFiles, id, tracker, getWriter()));
         } catch (ExecutionException | UncheckedExecutionException e) {
             if (e.getCause() instanceof RepositoryNotReachableException) {
                 RepositoryNotReachableException re = (RepositoryNotReachableException) e.getCause();

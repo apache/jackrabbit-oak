@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
-import org.apache.jackrabbit.oak.segment.SegmentBufferMonitor;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
@@ -50,7 +49,6 @@ import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -124,14 +122,14 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     };
 
-    @NotNull
-    private final SegmentBufferMonitor segmentBufferMonitor;
-
     protected final IOMonitor ioMonitor;
 
     protected final RemoteStoreMonitor remoteStoreMonitor;
     
     protected final int binariesInlineThreshold;
+
+    @NotNull
+    private final SegmentLoader segmentLoader;
 
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
@@ -154,8 +152,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.offHeapAccess = builder.getOffHeapAccess();
         this.ioMonitor = builder.getIOMonitor();
         this.remoteStoreMonitor = builder.getRemoteStoreMonitor();
-        this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
         this.binariesInlineThreshold = builder.getBinariesInlineThreshold();
+        this.segmentLoader = builder.getSegmentLoader();
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
@@ -192,7 +190,12 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
-    
+
+    @NotNull
+    public SegmentLoader getSegmentLoader() {
+        return segmentLoader;
+    }
+
     public int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
     }
@@ -290,15 +293,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
                 log.error(ioe.getMessage(), ioe);
             }
         }
-    }
-
-    Segment readSegmentUncached(TarFiles tarFiles, SegmentId id) {
-        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
-        if (buffer == null) {
-            throw new SegmentNotFoundException(id);
-        }
-        segmentBufferMonitor.trackAllocation(buffer);
-        return new Segment(tracker, id, buffer);
     }
 
     /**

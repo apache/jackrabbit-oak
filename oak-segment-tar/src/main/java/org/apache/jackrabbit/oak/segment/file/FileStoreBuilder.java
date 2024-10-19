@@ -35,11 +35,14 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentBufferMonitor;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -142,6 +145,15 @@ public class FileStoreBuilder {
     private boolean eagerSegmentCaching;
 
     private boolean built;
+
+    /**
+     * The segment loader to use.
+     *
+     * <p>
+     * The default value is {@code null}, for which a default implementation is used (see {@link #getSegmentLoader()}.
+     */
+    @Nullable
+    private SegmentLoader segmentLoader;
 
     /**
      * Create a new instance of a {@code FileStoreBuilder} for a file store.
@@ -408,6 +420,17 @@ public class FileStoreBuilder {
         return this;
     }
 
+    /**
+     * Sets the segment loader to use.
+     * @param segmentLoader a segment loader,
+     *                      or {@code null} to use the default implementation (see {@link #getSegmentLoader()}).
+     * @return this builder.
+     */
+    public FileStoreBuilder withSegmentLoader(@Nullable SegmentLoader segmentLoader) {
+        this.segmentLoader = segmentLoader;
+        return this;
+    }
+
     public Backend buildProcBackend(AbstractFileStore fileStore) throws IOException {
         return new FileStoreProcBackend(fileStore, persistence);
     }
@@ -563,6 +586,29 @@ public class FileStoreBuilder {
                     templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
         }
         return cacheManager;
+    }
+
+    /**
+     * Returns the segment loader to use.
+     *
+     * <p>
+     * If not set through {@link #withSegmentLoader(SegmentLoader)}, a default implementation is used, which tracks the
+     * buffers allocated through the {@link StatisticsProvider} given to {@link #withStatisticsProvider(StatisticsProvider)}.
+     */
+    public @NotNull SegmentLoader getSegmentLoader() {
+        if (segmentLoader != null) {
+            return segmentLoader;
+        }
+
+        var segmentBufferMonitor = new SegmentBufferMonitor(statsProvider);
+        return (tarFiles, id, segmentIdProvider, segmentWriter) -> {
+            Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+            if (buffer == null) {
+                throw new SegmentNotFoundException(id);
+            }
+            segmentBufferMonitor.trackAllocation(buffer);
+            return new Segment(segmentIdProvider, id, buffer);
+        };
     }
 
     IOMonitor getIOMonitor() {
