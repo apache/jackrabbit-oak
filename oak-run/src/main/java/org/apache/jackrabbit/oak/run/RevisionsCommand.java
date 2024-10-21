@@ -150,7 +150,7 @@ public class RevisionsCommand implements Command {
             fullGcDelayFactor = parser
                     .accepts("fullGcDelayFactor", "introduce delays after each fullGc batch to reduce load " +
                             "on system")
-                    .withRequiredArg().ofType(Double.class).defaultsTo(0.0);
+                    .withRequiredArg().ofType(Double.class).defaultsTo(2.0);
             timeLimit = parser
                     .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
                     .ofType(Long.class).defaultsTo(-1L);

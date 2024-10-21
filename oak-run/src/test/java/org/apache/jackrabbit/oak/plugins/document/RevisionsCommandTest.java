@@ -196,7 +196,7 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("IncludePaths are : [/]"));
         assertTrue(output.contains("ExcludePaths are : []"));
         assertTrue(output.contains("FullGcMode is : 0"));
-        assertTrue(output.contains("FullGcDelayFactory is : 0.0"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.0"));
         assertTrue(output.contains("FullGcBatchSize is : 1000"));
         assertTrue(output.contains("FullGcProgressSize is : 10000"));
     }
