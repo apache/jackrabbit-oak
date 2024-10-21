@@ -326,7 +326,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setFullGCExcludePaths(@Nullable String[] excludePaths) {
-        if (isNull(excludePaths) || excludePaths.length == 0) {
+        if (isNull(excludePaths) || excludePaths.length == 0 || Arrays.equals(excludePaths, new String[]{""})) {
             this.fullGCExcludePaths = Set.of();
         } else {
             this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
