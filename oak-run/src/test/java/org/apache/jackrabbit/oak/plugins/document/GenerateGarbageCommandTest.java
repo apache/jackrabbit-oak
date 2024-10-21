@@ -143,7 +143,7 @@ public class GenerateGarbageCommandTest {
         cmdClean.run();
         closer = cmdClean.getCloser();
 
-        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH), 0);
+        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH), 0);
         // garbage root node should be either deleted or empty (no children)
         assertTrue(garbageRoot == null || !garbageRoot.hasChildren());
 
@@ -237,14 +237,14 @@ public class GenerateGarbageCommandTest {
         String generateBasePath = generatedBasePaths.get(0);
         for (int i = 0; i < garbageNodesParentCount; i ++) {
             NodeDocument missingDocument = getDocument(cmd, Collection.NODES, Utils.getIdFromPath(
-                    "/" + GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH + "/" + generateBasePath + "/"
+                    "/" + GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH + "/" + generateBasePath + "/"
                     + GenerateGarbageCommand.GEN_PARENT_NODE_PREFIX + i), 0);
 
             assertNull(missingDocument);
 
             for(int j = 0; j < nodesPerParent; j++) {
                 NodeDocument gapOrphanDocument = getDocument(cmd, Collection.NODES, Utils.getIdFromPath(
-                        "/" + GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH + "/" + generateBasePath + "/"
+                        "/" + GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH + "/" + generateBasePath + "/"
                         + GenerateGarbageCommand.GEN_PARENT_NODE_PREFIX + i + "/"
                         + GenerateGarbageCommand.GEN_NODE_PREFIX + j), 0);
                 assertNotNull(gapOrphanDocument);
@@ -258,8 +258,8 @@ public class GenerateGarbageCommandTest {
      * @return
      */
     private static @NotNull NodeState getFullGCRootNode(DocumentNodeStore nodeStore) {
-        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH_BASE).
-                getChildNode(GenerateGarbageCommand.FULLGC_GEN_ROOT_NODE_NAME);
+        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH_BASE).
+                getChildNode(GenerateGarbageCommand.GARBAGE_GEN_ROOT_NODE_NAME);
         return garbageRootNodeState;
     }
 

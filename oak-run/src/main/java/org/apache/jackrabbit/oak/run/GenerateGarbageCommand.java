@@ -20,11 +20,8 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -60,18 +57,18 @@ public class GenerateGarbageCommand implements Command, Closeable {
     /**
      * FullGC garbage should be generated under tmp node.
      */
-    public static String FULLGC_GEN_ROOT_PATH_BASE = "tmp";
+    public static String GARBAGE_GEN_ROOT_PATH_BASE = "tmp";
 
     /**
      * The root node name for fullGC garbage generation, one level under tmp.
      */
-    public static String FULLGC_GEN_ROOT_NODE_NAME = "fullGC_GarbageRoot";
+    public static String GARBAGE_GEN_ROOT_NODE_NAME = "fullGC_GarbageRoot";
 
     /**
      * Root node for fullGC garbage generation.
      * Necessary in order to allow cleanup of all generated garbage nodes by simply removing the root node.
      */
-    public static String FULLGC_GEN_ROOT_PATH = FULLGC_GEN_ROOT_PATH_BASE + "/" + FULLGC_GEN_ROOT_NODE_NAME;
+    public static String GARBAGE_GEN_ROOT_PATH = GARBAGE_GEN_ROOT_PATH_BASE + "/" + GARBAGE_GEN_ROOT_NODE_NAME;
 
     /**
      * Base path for fullGC garbage generation. The timestamp of the run will be appended to this path,
@@ -300,7 +297,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
         //1. Create nodes with properties
         NodeBuilder rootNode = documentNodeStore.getRoot().builder();
-        NodeBuilder garbageRootNode = rootNode.child(FULLGC_GEN_ROOT_PATH_BASE).child(FULLGC_GEN_ROOT_NODE_NAME);
+        NodeBuilder garbageRootNode = rootNode.child(GARBAGE_GEN_ROOT_PATH_BASE).child(GARBAGE_GEN_ROOT_NODE_NAME);
         garbageRootNode.child(generationBasePath).setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, NAME);
 
         int nodesCountUnderParent = options.getCreateGarbageNodesCount() / options.getGarbageNodesParentCount();
@@ -341,7 +338,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
                 sbNodePath.setLength(0);
                 String path = getIdFromPath(
-                        sbNodePath.append("/").append(FULLGC_GEN_ROOT_PATH).append("/").append(generationBasePath).append("/")
+                        sbNodePath.append("/").append(GARBAGE_GEN_ROOT_PATH).append("/").append(generationBasePath).append("/")
                                         .append(GEN_PARENT_NODE_PREFIX).append(i).toString());
                 deleteNodePaths.add(path);
             }
@@ -376,9 +373,9 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
         NodeBuilder rootBuilder = documentNodeStore.getRoot().builder();
 
-        NodeBuilder generatedGarbageRootBuilder = rootBuilder.child(FULLGC_GEN_ROOT_PATH_BASE).child(FULLGC_GEN_ROOT_NODE_NAME);
+        NodeBuilder generatedGarbageRootBuilder = rootBuilder.child(GARBAGE_GEN_ROOT_PATH_BASE).child(GARBAGE_GEN_ROOT_NODE_NAME);
 
-        String garbageRootNodePath = "2:/"+FULLGC_GEN_ROOT_PATH;
+        String garbageRootNodePath = "2:/"+ GARBAGE_GEN_ROOT_PATH;
         List<String> childNodePaths = new ArrayList<>();
         childNodePaths.add(garbageRootNodePath);
 
