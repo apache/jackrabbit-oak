@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
@@ -65,6 +64,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
@@ -773,7 +773,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     mixinIds.add(writeString(mixin));
                 }
                 ids.addAll(mixinIds);
-                checkState(mixinIds.size() < (1 << 10));
+                Validate.checkState(mixinIds.size() < (1 << 10));
                 head |= mixinIds.size() << 18;
             }
 
@@ -809,7 +809,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 ids.add(propNamesId);
             }
 
-            checkState(propertyNames.length < (1 << 18));
+            Validate.checkState(propertyNames.length < (1 << 18));
             head |= propertyNames.length;
 
             RecordId tid = writeOperationHandler.execute(gcGeneration, newWriteOperation(

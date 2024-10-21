@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
@@ -64,6 +63,7 @@ import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
@@ -663,7 +663,7 @@ public class Oak {
         if (this.asyncTasks == null) {
             asyncTasks = new HashMap<String, Long>();
         }
-        checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
+        Validate.checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
         asyncTasks.put(AsyncIndexUpdate.checkValidName(name), delayInSeconds);
         return this;
     }
