@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
-import static org.apache.jackrabbit.guava.common.collect.Queues.newArrayBlockingQueue;
 
 import java.io.Closeable;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -154,7 +154,7 @@ public class BackgroundObserver implements Observer, Closeable {
         this.executor = requireNonNull(executor);
         this.exceptionHandler = requireNonNull(exceptionHandler);
         this.maxQueueLength = queueLength;
-        this.queue = newArrayBlockingQueue(maxQueueLength);
+        this.queue = new ArrayBlockingQueue<>(maxQueueLength);
     }
 
     public BackgroundObserver(
