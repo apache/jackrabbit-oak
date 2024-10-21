@@ -21,8 +21,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.run.GenerateFullGCCommand;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.run.GenerateGarbageCommand;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -35,14 +38,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemOut;
-import static org.apache.jackrabbit.oak.run.GenerateFullGCCommand.EMPTY_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.run.GenerateGarbageCommand.EMPTY_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-public class GenerateFullGCCommandTest {
+public class GenerateGarbageCommandTest {
 
     final String OPTION_GARBAGE_NODES_COUNT = "--garbageNodesCount";
     final String OPTION_GARBAGE_NODES_PARENT_COUNT = "--garbageNodesParentCount";
@@ -115,7 +118,7 @@ public class GenerateFullGCCommandTest {
         }
 
         DocumentNodeStore nodeStore = cmd.getCommand().getDocumentNodeStore();
-        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateFullGCCommand.FULLGC_GEN_ROOT_PATH);
+        NodeState garbageRootNodeState = getFullGCRootNode(nodeStore);
         List<String> garbageRootNodeChildNames = getChildNodeNames(garbageRootNodeState);
 
         assertEquals(garbageRootNodeChildNames.size(), 1);
@@ -136,12 +139,11 @@ public class GenerateFullGCCommandTest {
         Closer cmd1Closer = cmdGenerateGarbage.getCloser();
 
         // cleanup garbage
-        String mongoDBConnString = "mongodb://cm-p107053-e251100-username:3fUEP9UHPD9yP4H@cmp107053e251100r355e01-shard-00-00.wxmqq.mongodb.net:27017,cmp107053e251100r355e01-shard-00-01.wxmqq.mongodb.net:27017,cmp107053e251100r355e01-shard-00-02.wxmqq.mongodb.net:27017/cm-p107053-e251100-database?ssl=true&authSource=admin&replicaSet=atlas-4x602o-shard-0&retryWrites=true&readPreference=primaryPreferred&readConcernLevel=majority&w=majority";
-        GenerateFullGCCmd cmdClean = new GenerateFullGCCmd(mongoDBConnString, "clean");
+        GenerateFullGCCmd cmdClean = new GenerateFullGCCmd("clean");
         cmdClean.run();
         closer = cmdClean.getCloser();
 
-        NodeDocument garbageRoot = cmdClean.getCommand().getDocument(Collection.NODES, "1:/" + GenerateFullGCCommand.FULLGC_GEN_ROOT_PATH, 0);
+        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH), 0);
         // garbage root node should be either deleted or empty (no children)
         assertTrue(garbageRoot == null || !garbageRoot.hasChildren());
 
@@ -164,7 +166,7 @@ public class GenerateFullGCCommandTest {
         List<String> generatedBasePaths = cmd.getGeneratedBasePaths();
 
         DocumentNodeStore nodeStore = cmd.getCommand().getDocumentNodeStore();
-        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateFullGCCommand.FULLGC_GEN_ROOT_PATH);
+        NodeState garbageRootNodeState = getFullGCRootNode(nodeStore);
         List<String> garbageRootNodeChildNames = getChildNodeNames(garbageRootNodeState);
 
         assertEquals(garbageRootNodeChildNames.size(), 1);
@@ -224,7 +226,7 @@ public class GenerateFullGCCommandTest {
         List<String> generatedBasePaths = cmd.getGeneratedBasePaths();
 
         DocumentNodeStore nodeStore = cmd.getCommand().getDocumentNodeStore();
-        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateFullGCCommand.FULLGC_GEN_ROOT_PATH);
+        NodeState garbageRootNodeState = getFullGCRootNode(nodeStore);
         List<String> garbageRootNodeChildNames = getChildNodeNames(garbageRootNodeState);
 
         assertEquals(garbageRootNodeChildNames.size(), 1);
@@ -234,26 +236,53 @@ public class GenerateFullGCCommandTest {
 
         String generateBasePath = generatedBasePaths.get(0);
         for (int i = 0; i < garbageNodesParentCount; i ++) {
-            NodeDocument missingDocument = cmd.getCommand().getDocument(Collection.NODES, "3:/"
-                    + GenerateFullGCCommand.FULLGC_GEN_ROOT_PATH + "/" + generateBasePath + "/"
-                    + GenerateFullGCCommand.FULLGC_GEN_PARENT_NODE_PREFIX + i, 0);
+            NodeDocument missingDocument = getDocument(cmd, Collection.NODES, Utils.getIdFromPath(
+                    "/" + GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH + "/" + generateBasePath + "/"
+                    + GenerateGarbageCommand.GEN_PARENT_NODE_PREFIX + i), 0);
 
             assertNull(missingDocument);
 
             for(int j = 0; j < nodesPerParent; j++) {
-                NodeDocument gapOrphanDocument = cmd.getCommand().getDocument(Collection.NODES, "4:/"
-                        + GenerateFullGCCommand.FULLGC_GEN_ROOT_PATH + "/" + generateBasePath + "/"
-                        + GenerateFullGCCommand.FULLGC_GEN_PARENT_NODE_PREFIX + i + "/"
-                        + GenerateFullGCCommand.FULLGC_GEN_NODE_PREFIX + j, 0);
+                NodeDocument gapOrphanDocument = getDocument(cmd, Collection.NODES, Utils.getIdFromPath(
+                        "/" + GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH + "/" + generateBasePath + "/"
+                        + GenerateGarbageCommand.GEN_PARENT_NODE_PREFIX + i + "/"
+                        + GenerateGarbageCommand.GEN_NODE_PREFIX + j), 0);
                 assertNotNull(gapOrphanDocument);
             }
         }
     }
 
+    /**
+     * Utility method that returns the root node of the full gc generated garbage nodes.
+     * @param nodeStore
+     * @return
+     */
+    private static @NotNull NodeState getFullGCRootNode(DocumentNodeStore nodeStore) {
+        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateGarbageCommand.FULLGC_GEN_ROOT_PATH_BASE).
+                getChildNode(GenerateGarbageCommand.FULLGC_GEN_ROOT_NODE_NAME);
+        return garbageRootNodeState;
+    }
+
+    /**
+     * Used in unit tests for retrieving a document by path from the document store using the documentNodeStore
+     * of this class.
+     * @param collection
+     * @param key
+     * @param maxCacheAge
+     * @return
+     * @param <T>
+     * @throws DocumentStoreException
+     */
+    @Nullable
+    private  <T extends Document> T getDocument(GenerateFullGCCmd cmd, Collection<T> collection, String key, int maxCacheAge)
+            throws DocumentStoreException {
+        return cmd.getCommand().getDocumentNodeStore().getDocumentStore().find(collection, key, maxCacheAge);
+    }
+
     private static class GenerateFullGCCmd implements Runnable {
 
         private final ImmutableList<String> args;
-        private GenerateFullGCCommand command;
+        private GenerateGarbageCommand command;
         private Closer closer;
         private List<String> generatedBasePaths;
 
@@ -271,7 +300,7 @@ public class GenerateFullGCCommandTest {
         public void run() {
             try {
                 closer = Closer.create();
-                command = new GenerateFullGCCommand();
+                command = new GenerateGarbageCommand();
                 generatedBasePaths = command.execute(closer, args.toArray(new String[0]));
             } catch (Throwable e) {
                 String str = e.getMessage();
@@ -286,7 +315,7 @@ public class GenerateFullGCCommandTest {
             return generatedBasePaths;
         }
 
-        public GenerateFullGCCommand getCommand() {
+        public GenerateGarbageCommand getCommand() {
             return command;
         }
     }
