@@ -132,7 +132,8 @@ class ElasticIndexHelper {
                                                 b3 -> b3.text(b4 -> b4.analyzer("oak_analyzer"))
                                         )
                         )
-                );
+                )
+                .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")

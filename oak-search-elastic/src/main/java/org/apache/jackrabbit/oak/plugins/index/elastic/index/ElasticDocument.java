@@ -59,6 +59,8 @@ public class ElasticDocument {
     private final Map<String, Object> properties;
     @JsonProperty(ElasticIndexDefinition.DYNAMIC_PROPERTIES)
     private final List<Map<String, Object>> dynamicProperties;
+    @JsonProperty(ElasticIndexDefinition.LAST_UPDATED)
+    private long lastUpdated;
 
     ElasticDocument(String path) {
         this(path, 0);
@@ -166,6 +168,10 @@ public class ElasticDocument {
 
     void addSimilarityTag(String value) {
         similarityTags.add(value);
+    }
+
+    void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
     }
 
     @JsonAnyGetter
