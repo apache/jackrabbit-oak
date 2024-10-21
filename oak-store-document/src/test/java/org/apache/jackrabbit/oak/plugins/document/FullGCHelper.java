@@ -70,6 +70,14 @@ public class FullGCHelper {
         return result;
     }
 
+    public static boolean includesEmptyProps(int fullGCMode) {
+        return fullGCMode == 1;
+    }
+
+    public static boolean includesGapOrphans(int fullGCMode) {
+        return fullGCMode == 2;
+    }
+
     public static void assertBranchRevisionRemovedFromAllDocuments(
             final DocumentNodeStore store, final RevisionVector br,
             final String... exceptIds) {

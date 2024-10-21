@@ -22,6 +22,7 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.GenerateGarbageHelper;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -289,8 +290,8 @@ public class GenerateGarbageCommand implements Command, Closeable {
         System.out.println("Generating fullGC on the document: " + generationBasePath);
         documentNodeStore = builder.build();
 
-        VersionGarbageCollector.FullGCMode fullGCMode = getFullGCMode(options);
-        if (fullGCMode == VersionGarbageCollector.FullGCMode.NONE) {
+        //VersionGarbageCollector.FullGCMode fullGCMode = getFullGCMode(options);
+        if (GenerateGarbageHelper.isInvalidGarbageGenerationMode(options.getGarbageType())) {
             LOG.error("Invalid fullGCMode specified: " + options.getGarbageType() + " in: " + getClass().getName());
             System.exit(1);
         }
@@ -308,7 +309,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
                 garbageRootNode.child(generationBasePath).child(GEN_PARENT_NODE_PREFIX + i).child(GEN_NODE_PREFIX + j).
                         setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, NAME);
 
-                if (fullGCMode == VersionGarbageCollector.FullGCMode.EMPTYPROPS || fullGCMode == VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
+                if (GenerateGarbageHelper.includesEmptyProps(options.getGarbageType())) {
                     garbageRootNode.child(generationBasePath).child(GEN_PARENT_NODE_PREFIX + i).child(GEN_NODE_PREFIX + j).
                             setProperty(EMPTY_PROPERTY_NAME, "bar", STRING);
                 }
@@ -319,7 +320,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
 
         //2. Generate garbage nodes - EMPTY_PROPERTIES
-        if (fullGCMode == VersionGarbageCollector.FullGCMode.EMPTYPROPS) {
+        if (GenerateGarbageHelper.includesEmptyProps(options.getGarbageType())) {
             for (int i = 0; i < options.getGarbageNodesParentCount(); i++) {
                 for (int j = 0; j < nodesCountUnderParent; j++) {
                     garbageRootNode.child(generationBasePath).child(GEN_PARENT_NODE_PREFIX + i).child(GEN_NODE_PREFIX + j).
@@ -331,7 +332,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
         documentNodeStore.runBackgroundOperations();
 
         //3.1. Generate garbage nodes - GAP_ORPHANS - remove parent nodes
-        if (fullGCMode == VersionGarbageCollector.FullGCMode.GAP_ORPHANS) {
+        if (GenerateGarbageHelper.includesGapOrphans(options.getGarbageType())) {
             StringBuilder sbNodePath = new StringBuilder();
             List<String> deleteNodePaths = new ArrayList<>();
             for (int i = 0; i < options.getGarbageNodesParentCount(); i++) {
@@ -404,23 +405,23 @@ public class GenerateGarbageCommand implements Command, Closeable {
         }
     }
 
-    /**
-     * Get the fullGC mode based on the garbageType specified in the options.
-     * There is no need to support GAP_ORPHANS_EMPTYPROPS as 2 separate runs of the tool can be done
-     * for GAP_ORPHANS and EMPTYPROPS in order to generate both kinds of garbage.
-     * @param options
-     * @return
-     */
-    private VersionGarbageCollector.FullGCMode getFullGCMode(GenerateFullGCOptions options) {
-        VersionGarbageCollector.FullGCMode fullGCMode = VersionGarbageCollector.FullGCMode.NONE;
-        int garbageType = options.getGarbageType();
-
-        if (garbageType == 1) {
-            fullGCMode = VersionGarbageCollector.FullGCMode.EMPTYPROPS;
-        } else if (garbageType == 2) {
-            fullGCMode = VersionGarbageCollector.FullGCMode.GAP_ORPHANS;
-        }
-        return fullGCMode;
-    }
+//    /**
+//     * Get the fullGC mode based on the garbageType specified in the options.
+//     * There is no need to support GAP_ORPHANS_EMPTYPROPS as 2 separate runs of the tool can be done
+//     * for GAP_ORPHANS and EMPTYPROPS in order to generate both kinds of garbage.
+//     * @param options
+//     * @return
+//     */
+//    private VersionGarbageCollector.FullGCMode getFullGCMode(GenerateFullGCOptions options) {
+//        VersionGarbageCollector.FullGCMode fullGCMode = VersionGarbageCollector.FullGCMode.NONE;
+//        int garbageType = options.getGarbageType();
+//
+//        if (garbageType == 1) {
+//            fullGCMode = VersionGarbageCollector.FullGCMode.EMPTYPROPS;
+//        } else if (garbageType == 2) {
+//            fullGCMode = VersionGarbageCollector.FullGCMode.GAP_ORPHANS;
+//        }
+//        return fullGCMode;
+//    }
 }
 
