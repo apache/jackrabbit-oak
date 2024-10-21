@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -146,7 +147,7 @@ public class DebugStore {
         System.out.println(analyser.toString());
 
         Set<SegmentId> garbage = new HashSet<>(idmap.keySet());
-        Queue<SegmentId> queue = Queues.newArrayDeque();
+        Queue<SegmentId> queue = new ArrayDeque<>();
         queue.add(store.getRevisions().getHead().getSegmentId());
         while (!queue.isEmpty()) {
             SegmentId id = queue.remove();

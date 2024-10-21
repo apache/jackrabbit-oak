@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -271,7 +272,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
-            private final Deque<FulltextResultRow> queue = Queues.newArrayDeque();
+            private final Deque<FulltextResultRow> queue = new ArrayDeque<>();
             private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
