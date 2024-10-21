@@ -284,8 +284,8 @@ public class VersionGarbageCollector {
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, batchSize: {}, progressSize: {}",
-                fullGcMode, fullGCBatchSize, fullGCProgressSize);
+        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, batchSize: {}, progressSize: {}, delayFactor: {}",
+                fullGcMode, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor);
     }
 
     /**
