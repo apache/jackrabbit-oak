@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 
@@ -48,8 +49,7 @@ class TraversingCursor extends AbstractCursor {
 
     private final Filter filter;
 
-    private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
-            Queues.newArrayDeque();
+    private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators = new ArrayDeque<>();
 
     private String parentPath;
 
