@@ -498,6 +498,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                 downloadStageStatistics.getDocumentsDownloadedTotal(), ascTaskDownloadTotal, descTaskDownloadTotal,
                                 formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
                     } else {
+                        // If the task failed with an exception, the exception will be thrown by get()
                         completedTask.get();
                         // One of the download tasks has completed. Cancel the other one.
                         if (completedTask == ascendingDownloadFuture) {
@@ -597,9 +598,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 downloadTask.download(mongoFilter);
                 downloadTask.reportFinalResults();
-            } catch (Throwable e) {
-                LOG.warn("Error during download: {}", e.toString());
-                throw new RuntimeException(e);
             } finally {
                 if (mongoServerSelector != null) {
                     mongoServerSelector.threadFinished();
