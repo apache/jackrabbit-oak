@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.tool.check;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -26,10 +26,14 @@ import org.apache.jackrabbit.oak.segment.tool.Check;
 
 import java.io.PrintWriter;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Set;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Objects;
+import java.util.Date;
 
 import static java.text.DateFormat.getDateTimeInstance;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 public class CheckHelper {
     /**
@@ -225,7 +229,7 @@ public class CheckHelper {
         Set<String> checkpoints = requestedCheckpoints;
 
         if (requestedCheckpoints.contains("all")) {
-            checkpoints = Sets.newLinkedHashSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
+            checkpoints = CollectionUtils.toLinkedSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
         }
 
         ConsistencyChecker.ConsistencyCheckResult result = newConsistencyChecker().checkConsistency(

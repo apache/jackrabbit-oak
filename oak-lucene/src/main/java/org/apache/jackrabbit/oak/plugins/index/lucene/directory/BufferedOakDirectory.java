@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -127,7 +128,7 @@ public final class BufferedOakDirectory extends Directory {
     @Override
     public String[] listAll() throws IOException {
         LOG.debug("[{}]listAll()", definition.getIndexPath());
-        Set<String> all = Sets.newTreeSet();
+        Set<String> all = new TreeSet<>();
         all.addAll(asList(base.listAll()));
         all.addAll(asList(buffered.listAll()));
         all.removeAll(bufferedForDelete);

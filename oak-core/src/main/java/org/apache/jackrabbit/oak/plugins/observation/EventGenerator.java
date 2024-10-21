@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -73,7 +72,7 @@ public class EventGenerator {
      */
     private static final int MAX_QUEUED_CONTINUATIONS = 1000;
 
-    private final LinkedList<Continuation> continuations = newLinkedList();
+    private final LinkedList<Continuation> continuations = new LinkedList<>();
 
     /**
      * Creates a new generator instance. Changes to process need to be added

@@ -100,6 +100,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String DYNAMIC_BOOST_FULLTEXT = ":dynamic-boost-ft";
 
     /**
+     * Precomputed random value based on the path of the document
+     */
+    public static final String PATH_RANDOM_VALUE = ":path-random-value";
+
+    /**
      * Dynamic properties are fields that are not explicitly defined in the index mapping and are added on the fly when a document is indexed.
      * Examples: aggregations with relative nodes, regex properties (to be supported), etc.
      */

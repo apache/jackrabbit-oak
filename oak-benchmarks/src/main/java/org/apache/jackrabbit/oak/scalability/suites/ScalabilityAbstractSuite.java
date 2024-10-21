@@ -19,15 +19,15 @@
 package org.apache.jackrabbit.oak.scalability.suites;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 
 import java.io.PrintStream;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,7 +37,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
@@ -45,6 +44,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.commons.Profiler;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
@@ -135,7 +135,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     private RepositoryFixture fixture;
 
     protected ScalabilityAbstractSuite() {
-        this.benchmarks = newLinkedHashMap();
+        this.benchmarks = new LinkedHashMap<>();
     }
 
     @Override
@@ -321,7 +321,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      * @throws Exception 
      */
     private void runIteration(ExecutionContext context) throws Exception {
-        Preconditions.checkArgument(benchmarks != null && !benchmarks.isEmpty(),
+        Validate.checkArgument(benchmarks != null && !benchmarks.isEmpty(),
                 "No Benchmarks configured");
 
         for (String key : benchmarks.keySet()) {
@@ -429,7 +429,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         private final Map<ScalabilityBenchmark, DescriptiveStatistics> stats;
 
         public Result() {
-            this.stats = newLinkedHashMap();
+            this.stats = new LinkedHashMap<>();
         }
 
         public void addBenchmarkStatistics(ScalabilityBenchmark benchmark,
@@ -514,7 +514,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     public static class ExecutionContext {
         private Profiler profiler;
         private final AtomicLong iteration = new AtomicLong();
-        private Map<Object, Object> map = newConcurrentMap();
+        private Map<Object, Object> map = new ConcurrentHashMap<>();
 
         protected void setIncrement(int increment) {
             iteration.getAndSet(increment);

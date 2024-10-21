@@ -368,9 +368,35 @@ public class TreeStore implements ParallelIndexStore {
         return parentPath + "\t" + childName;
     }
 
+    /**
+     * Remove a node if it exists.
+     *
+     * @param path the path
+     */
+    public void removeNode(String path) {
+        if (readOnly) {
+            throw new IllegalStateException("Read only store");
+        }
+        session.put(path, null);
+        if (!path.equals("/")) {
+            String nodeName = PathUtils.getName(path);
+            String parentPath = PathUtils.getParentPath(path);
+            session.put(parentPath + "\t" + nodeName, null);
+        }
+    }
+
+    /**
+     * Add or update a node.
+     *
+     * @param path the path
+     * @param json the property data
+     */
     public void putNode(String path, String json) {
         if (readOnly) {
             throw new IllegalStateException("Read only store");
+        }
+        if (json == null) {
+            throw new IllegalStateException("Value is null");
         }
         session.put(path, json);
         if (!path.equals("/")) {

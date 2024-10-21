@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -32,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -101,7 +101,7 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testThreadAffinity() throws IOException, ExecutionException, InterruptedException {
         GCGeneration gen = pool.getGCGeneration();
-        ConcurrentMap<String, SegmentBufferWriter> map1 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map1 = new ConcurrentHashMap<>();
         Future<RecordId> res1 = execute(gen, createOp("a", map1), 0);
         Future<RecordId> res2 = execute(gen, createOp("b", map1), 1);
         Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
@@ -114,7 +114,7 @@ public class SegmentBufferWriterPoolTest {
         assertEquals(rootId, res3.get());
         assertEquals(3, map1.size());
 
-        ConcurrentMap<String, SegmentBufferWriter> map2 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map2 = new ConcurrentHashMap<>();
         Future<RecordId> res4 = execute(gen, createOp("a", map2), 0);
         Future<RecordId> res5 = execute(gen, createOp("b", map2), 1);
         Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
@@ -132,7 +132,7 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testFlush() throws ExecutionException, InterruptedException, IOException {
         GCGeneration gen = pool.getGCGeneration();
-        ConcurrentMap<String, SegmentBufferWriter> map1 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map1 = new ConcurrentHashMap<>();
         Future<RecordId> res1 = execute(gen, createOp("a", map1), 0);
         Future<RecordId> res2 = execute(gen, createOp("b", map1), 1);
         Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
@@ -147,7 +147,7 @@ public class SegmentBufferWriterPoolTest {
 
         pool.flush(store);
 
-        ConcurrentMap<String, SegmentBufferWriter> map2 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map2 = new ConcurrentHashMap<>();
         Future<RecordId> res4 = execute(gen, createOp("a", map2), 0);
         Future<RecordId> res5 = execute(gen, createOp("b", map2), 1);
         Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
@@ -165,7 +165,7 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testCompaction() throws ExecutionException, InterruptedException, IOException {
         GCGeneration gen = pool.getGCGeneration();
-        ConcurrentMap<String, SegmentBufferWriter> map1 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map1 = new ConcurrentHashMap<>();
         Future<RecordId> res1 = execute(gen, createOp("a", map1), 0);
         Future<RecordId> res2 = execute(gen, createOp("b", map1), 1);
         Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
@@ -182,7 +182,7 @@ public class SegmentBufferWriterPoolTest {
         gcGeneration = gcGeneration.nextFull();
 
         // Write using previous generation
-        ConcurrentMap<String, SegmentBufferWriter> map2 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map2 = new ConcurrentHashMap<>();
         Future<RecordId> res4 = execute(gen, createOp("a", map2), 0);
         Future<RecordId> res5 = execute(gen, createOp("b", map2), 1);
         Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
@@ -197,7 +197,7 @@ public class SegmentBufferWriterPoolTest {
         assertEquals(map1, map2);
 
         // Write using current generation
-        ConcurrentMap<String, SegmentBufferWriter> map3 = newConcurrentMap();
+        ConcurrentMap<String, SegmentBufferWriter> map3 = new ConcurrentHashMap<>();
         Future<RecordId> res7 = execute(gen.nextFull(), createOp("a", map3), 0);
         Future<RecordId> res8 = execute(gen.nextFull(), createOp("b", map3), 1);
         Future<RecordId> res9 = execute(gen.nextFull(), createOp("c", map3), 2);

@@ -18,10 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
@@ -63,7 +61,7 @@ public class OrImpl extends ConstraintImpl {
     public ConstraintImpl simplify() {
         // Use LinkedHashSet to eliminate duplicate constraints while keeping
         // the ordering for test cases (and clients?) that depend on it
-        LinkedHashSet<ConstraintImpl> simplified = newLinkedHashSet();
+        LinkedHashSet<ConstraintImpl> simplified = new LinkedHashSet<>();
         boolean changed = false; // keep track of changes in simplification
 
         for (ConstraintImpl constraint : constraints) {
@@ -81,8 +79,7 @@ public class OrImpl extends ConstraintImpl {
             }
         }
 
-        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in =
-                newLinkedHashMap();
+        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in = new LinkedHashMap<>();
         Iterator<ConstraintImpl> iterator = simplified.iterator();
         while (iterator.hasNext()) {
             ConstraintImpl simple = iterator.next();
@@ -91,7 +88,7 @@ public class OrImpl extends ConstraintImpl {
                 DynamicOperandImpl o = ((ComparisonImpl) simple).getOperand1();
                 LinkedHashSet<StaticOperandImpl> values = in.get(o);
                 if (values == null) {
-                    values = newLinkedHashSet();
+                    values = new LinkedHashSet<>();
                     in.put(o, values);
                 }
                 values.add(((ComparisonImpl) simple).getOperand2());
@@ -101,7 +98,7 @@ public class OrImpl extends ConstraintImpl {
                 DynamicOperandImpl o = ((InImpl) simple).getOperand1();
                 LinkedHashSet<StaticOperandImpl> values = in.get(o);
                 if (values == null) {
-                    values = newLinkedHashSet();
+                    values = new LinkedHashSet<>();
                     in.put(o, values);
                 }
                 values.addAll(((InImpl) simple).getOperand2());
@@ -246,7 +243,7 @@ public class OrImpl extends ConstraintImpl {
      */
     private void restrictPushDownInList(SelectorImpl s) {
         DynamicOperandImpl operand = null;
-        LinkedHashSet<StaticOperandImpl> values = newLinkedHashSet();
+        LinkedHashSet<StaticOperandImpl> values = new LinkedHashSet<>();
  
         boolean multiPropertyOr = false;
         List<AndImpl> ands = newArrayList();

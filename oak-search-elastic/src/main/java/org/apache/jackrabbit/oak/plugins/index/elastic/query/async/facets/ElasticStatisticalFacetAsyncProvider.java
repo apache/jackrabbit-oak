@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -74,17 +74,19 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
 
-        BoolQuery.Builder builder = elasticRequestHandler.baseQueryBuilder();
-        builder.should(sb -> sb.functionScore(fsb ->
-                fsb.functions(f -> f.randomScore(rsb -> rsb.seed("" + randomSeed).field(FieldNames.PATH)))
-        ));
-
         SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
                 .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
-                .query(Query.of(qb -> qb.bool(builder.build())))
+                .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
                 .aggregations(elasticRequestHandler.aggregations())
                 .size(sampleSize)
+                .sort(s ->
+                        s.field(fs -> fs.field(
+                                ElasticIndexDefinition.PATH_RANDOM_VALUE)
+                                // this will handle the case when the field is not present in the index
+                                .unmappedType(FieldType.Integer)
+                        )
+                )
         );
 
         LOG.trace("Kicking search query with random sampling {}", searchRequest);

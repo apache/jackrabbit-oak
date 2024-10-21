@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
@@ -52,12 +52,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -70,7 +73,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
@@ -305,8 +307,7 @@ public final class DocumentNodeStore
      * by {@link #updateClusterState()}.
      * Key: clusterId, value: ClusterNodeInfoDocument
      */
-    private final ConcurrentMap<Integer, ClusterNodeInfoDocument> clusterNodes
-            = Maps.newConcurrentMap();
+    private final ConcurrentMap<Integer, ClusterNodeInfoDocument> clusterNodes = new ConcurrentHashMap<>();
 
     /**
      * Unmerged branches of this DocumentNodeStore instance.
@@ -327,7 +328,7 @@ public final class DocumentNodeStore
     /**
      * Set of IDs for documents that may need to be split.
      */
-    private final Map<String, String> splitCandidates = Maps.newConcurrentMap();
+    private final Map<String, String> splitCandidates = new ConcurrentHashMap<>();
 
     /**
      * Summary of changes done by this cluster node to persist by the background
@@ -652,7 +653,8 @@ public final class DocumentNodeStore
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
-                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
+                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
@@ -1680,7 +1682,7 @@ public final class DocumentNodeStore
                 }
             } else {
                 DocumentNodeState.Children c = new DocumentNodeState.Children();
-                Set<String> set = Sets.newTreeSet();
+                Set<String> set = new TreeSet<>();
                 for (Path p : added) {
                     set.add(p.getName());
                 }
@@ -1729,7 +1731,7 @@ public final class DocumentNodeStore
                     nodeChildrenCache.put(afterKey, children);
                 } else if (!children.hasMore){
                     // list is complete. use before children as basis
-                    Set<String> afterChildren = Sets.newTreeSet(children.children);
+                    Set<String> afterChildren = new TreeSet<>(children.children);
                     for (Path p : added) {
                         afterChildren.add(p.getName());
                     }
@@ -1748,7 +1750,7 @@ public final class DocumentNodeStore
                 } else if (added.isEmpty()) {
                     // incomplete list, but we only removed nodes
                     // use linked hash set to retain order
-                    Set<String> afterChildren = Sets.newLinkedHashSet(children.children);
+                    Set<String> afterChildren = new LinkedHashSet<>(children.children);
                     for (Path p : removed) {
                         afterChildren.remove(p.getName());
                     }
@@ -2974,7 +2976,7 @@ public final class DocumentNodeStore
 
         // are there in-doubt commit revisions that are older than
         // the current head revision?
-        SortedSet<Revision> garbage = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
+        SortedSet<Revision> garbage = new TreeSet<>(StableRevisionComparator.INSTANCE);
         for (Revision r : inDoubtTrunkCommits) {
             if (r.compareRevisionTime(head) < 0) {
                 garbage.add(r);

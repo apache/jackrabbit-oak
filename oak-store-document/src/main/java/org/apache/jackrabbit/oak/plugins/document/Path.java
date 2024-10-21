@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
 
@@ -80,7 +80,7 @@ public final class Path implements CacheValue, Comparable<Path> {
     public Path(@NotNull String name) {
         this(null, requireNonNull(name), -1);
         checkArgument(!name.isEmpty(), "name cannot be the empty String");
-        checkArgument(name.indexOf('/') == -1, "name must not contain path separator: {}", name);
+        checkArgument(name.indexOf('/') == -1, "name must not contain path separator: %s", name);
     }
 
     /**

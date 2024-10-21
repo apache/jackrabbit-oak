@@ -24,6 +24,7 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.ValidationEntry;
@@ -43,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -74,7 +74,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
         nodeName = PermissionUtil.getEntryName(accessControlledPath);
 
-        Set<String> orderedChildNames = newLinkedHashSet(node.getNames(OAK_CHILD_ORDER));
+        Set<String> orderedChildNames = CollectionUtils.toLinkedSet(node.getNames(OAK_CHILD_ORDER));
         long n = orderedChildNames.size();
         if (node.getChildNodeCount(n + 1) > n) {
             addAll(orderedChildNames, node.getChildNodeNames());

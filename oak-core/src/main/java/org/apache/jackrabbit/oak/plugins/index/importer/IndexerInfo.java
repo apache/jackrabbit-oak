@@ -28,7 +28,7 @@ import java.util.Properties;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 /**

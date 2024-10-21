@@ -25,7 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -59,8 +59,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVer
  * Utility for dumping contents from {@link RDBDocumentStore}'s tables.
  */
 public class RDBExport {
-
-    private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private enum Format {
         JSON, JSONARRAY, CSV
@@ -98,7 +96,7 @@ public class RDBExport {
                     query = args[++i];
                 } else if ("-o".equals(param) || "--out".equals(param)) {
                     OutputStream os = new FileOutputStream(args[++i]);
-                    out = new PrintStream(os, true, "UTF-8");
+                    out = new PrintStream(os, true, StandardCharsets.UTF_8);
                 } else if ("--from-db2-dump".equals(param)) {
                     dumpfile = args[++i];
                 } else if ("--lobdir".equals(param)) {
@@ -180,7 +178,7 @@ public class RDBExport {
         }
 
         FileInputStream fis = new FileInputStream(f);
-        InputStreamReader ir = new InputStreamReader(fis, UTF8);
+        InputStreamReader ir = new InputStreamReader(fis, StandardCharsets.UTF_8);
         BufferedReader br = new BufferedReader(ir);
 
         if (format == Format.JSONARRAY) {
@@ -326,7 +324,7 @@ public class RDBExport {
                 rsm = rs.getMetaData();
                 idIsAscii = !isBinaryType(rsm.getColumnType(1));
             }
-            String id = idIsAscii ? rs.getString("ID") : new String(rs.getBytes("ID"), UTF8);
+            String id = idIsAscii ? rs.getString("ID") : new String(rs.getBytes("ID"), StandardCharsets.UTF_8);
             long modified = rs.getLong("MODIFIED");
             long modcount = rs.getLong("MODCOUNT");
             long cmodcount = rs.getLong("CMODCOUNT");
@@ -398,6 +396,7 @@ public class RDBExport {
         if (fieldNames.isEmpty()) {
             return fulljson;
         } else {
+            @SuppressWarnings("unchecked")
             Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
             StringBuilder buf = new StringBuilder();
             buf.append('{');
@@ -418,6 +417,7 @@ public class RDBExport {
 
     @NotNull
     private static StringBuilder asCSV(List<String> csvFieldNames, StringBuilder fulljson) {
+        @SuppressWarnings("unchecked")
         Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
         StringBuilder buf = new StringBuilder();
         String delim = "";
@@ -430,6 +430,7 @@ public class RDBExport {
                 Object o = doc.get(fn[0]);
                 if (checkMember) {
                     if (o instanceof Map) {
+                        @SuppressWarnings("unchecked")
                         Map<String, Object> m = (Map<String, Object>) o;
                         if (m.containsKey(fn[1])) {
                             dumpJsonValuetoCsv(buf, m.get(fn[1]));

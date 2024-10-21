@@ -20,12 +20,14 @@ import java.lang.ref.ReferenceQueue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
@@ -46,8 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -315,7 +315,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeUncommittedRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -336,7 +336,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeUncommittedRevisionsWithLaterRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -361,7 +361,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeUncommittedRevisionsWithOlderRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -386,7 +386,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkers() {
 
-        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> collisions = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -405,7 +405,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkersWithLaterRevisions() {
 
-        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> collisions = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -428,7 +428,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkersWithOlderRevisions() {
 
-        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> collisions = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -978,7 +978,7 @@ public class NodeDocumentTest {
     @Test
     public void tooManyReadsOnGetVisibleChangesWithLongRunningBranchCommit() throws Exception {
         int numChanges = 843;
-        final Map<String, Document> prevDocCalls = newLinkedHashMap();
+        final Map<String, Document> prevDocCalls = new LinkedHashMap<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
@@ -1045,7 +1045,7 @@ public class NodeDocumentTest {
 
     @Test
     public void readsWithOverlappingPreviousDocuments() throws Exception {
-        final Map<String, Document> prevDocCalls = newLinkedHashMap();
+        final Map<String, Document> prevDocCalls = new LinkedHashMap<>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
