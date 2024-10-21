@@ -35,9 +35,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -57,7 +57,7 @@ public class BranchNodeStore implements NodeStore, Observable {
     public BranchNodeStore(NodeStore nodeStore) throws CommitFailedException {
         this.nodeStore = nodeStore;
         this.inheritedCheckpoints = newArrayList(nodeStore.checkpoints());
-        this.checkpointMapping = newConcurrentMap();
+        this.checkpointMapping = new ConcurrentHashMap<>();
 
         String cp = nodeStore.checkpoint(CHECKPOINT_LIFETIME, singletonMap("type", "copy-on-write"));
         memoryNodeStore = new MemoryNodeStore(nodeStore.retrieve(cp));

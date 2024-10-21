@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertEquals;
@@ -29,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -112,7 +112,7 @@ public class RecordCacheTest {
     @Test
     public void invalidate() {
         RecordCache<String> cache = newRecordCache(100);
-        Map<String, RecordId> keys = newLinkedHashMap();
+        Map<String, RecordId> keys = new LinkedHashMap<>();
         for (int k = 0; k < 100; k ++) {
             String key = "key-" + k;
             RecordId value = newRecordId(idProvider, rnd);

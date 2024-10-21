@@ -18,17 +18,25 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -59,6 +67,20 @@ public class CollectionUtils {
     }
 
     /**
+     * Convert an iterable to a {@link java.util.LinkedList}. The returning LinkedList is mutable and supports all optional operations.
+     * @param iterable the iterator to convert
+     * @return the LinkedList
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<T> toLinkedList(final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
+        List<T> result = new LinkedList<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
      * Convert an iterator to a list. The returning list is mutable and supports all optional operations.
      * @param iterator the iterator to convert
      * @return the list
@@ -73,6 +95,23 @@ public class CollectionUtils {
     }
 
     /**
+     * Split a list into partitions of a given size.
+     *
+     * @param list the list to partition
+     * @param n the size of partitions
+     * @return a list of partitions. The resulting partitions aren’t a view of the main List, so any changes happening to the main List won’t affect the partitions.
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<List<T>> partitionList(final List<T> list, final int n) {
+        Objects.requireNonNull(list);
+        return IntStream.range(0, list.size())
+                .filter(i -> i % n == 0)
+                .mapToObj(i -> list.subList(i, Math.min(i + n, list.size())))
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Convert an iterable to a set. The returning set is mutable and supports all optional operations.
      * @param iterable the iterable to convert
      * @return the set
@@ -82,6 +121,39 @@ public class CollectionUtils {
     public static <T> Set<T> toSet(@NotNull  final Iterable<T> iterable) {
         Objects.requireNonNull(iterable);
         final Set<T> result = new HashSet<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
+     * Convert an iterable to a {@link LinkedHashSet}. The returning set is mutable and supports all optional operations.
+     * @param iterable the iterable to convert
+     * @return the linkedHashSet
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> Set<T> toLinkedSet(@NotNull  final Iterable<T> iterable) {
+        Objects.requireNonNull(iterable);
+        final Set<T> result = new LinkedHashSet<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    /**
+     * Convert an iterable to a {@link java.util.TreeSet}. The returning set is mutable and supports all optional operations.
+     * @param iterable the iterable to convert
+     * @return the treeSet
+     * @param <T> the type of the elements
+     * @throws ClassCastException if the specified object cannot be compared
+     *         with the elements currently in this set
+     * @throws NullPointerException if the specified element is null
+     *         and this set uses natural ordering, or its comparator
+     *         does not permit null elements
+     */
+    @NotNull
+    public static <T extends Comparable> TreeSet<T> toTreeSet(@NotNull  final Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        final TreeSet<T> result = new TreeSet<>();
         iterable.forEach(result::add);
         return result;
     }
@@ -119,6 +191,61 @@ public class CollectionUtils {
     }
 
     /**
+     * Convert an iterable to a {@link java.util.ArrayDeque}.
+     * The returning array deque is mutable and supports all optional operations.
+     *
+     * @param iterable the iterable to convert
+     * @param <T>      the type of the elements
+     * @return the arrayDeque
+     */
+    public static <T> ArrayDeque<T> toArrayDeque(@NotNull Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        ArrayDeque<T> arrayDeque = new ArrayDeque<>();
+        iterable.forEach(arrayDeque::add);
+        return arrayDeque;
+    }
+
+    /**
+     * Creates a new, empty HashSet with expected capacity.
+     * <p>
+     * The returned set is large enough to add expected no. of elements without resizing.
+     *
+     * @param capacity the expected number of elements
+     * @throws IllegalArgumentException if capacity is negative
+     * @see CollectionUtils#newHashMap(int)
+     * @see CollectionUtils#newLinkedHashSet(int)
+     */
+    @NotNull
+    public static <K> Set<K> newHashSet(final int capacity) {
+        // make sure the set does not need to be resized given the initial content
+        return new HashSet<>(ensureCapacity(capacity));
+    }
+
+    /**
+     * Creates a new, empty LinkedHashSet with expected capacity.
+     * <p>
+     * The returned set is large enough to add expected no. of elements without resizing.
+     *
+     * @param capacity the expected number of elements
+     * @throws IllegalArgumentException if capacity is negative
+     * @see CollectionUtils#newHashMap(int)
+     * @see CollectionUtils#newHashSet(int)
+     */
+    @NotNull
+    public static <K> Set<K> newLinkedHashSet(final int capacity) {
+        // make sure the set does not need to be resized given the initial content
+        return new LinkedHashSet<>(ensureCapacity(capacity));
+    }
+
+    /**
+     * Creates a new, empty IdentityHashSet with default size.
+     */
+    @NotNull
+    public static <E> Set<E> newIdentityHashSet() {
+        return Collections.newSetFromMap(Maps.newIdentityHashMap());
+    }
+
+    /**
      * Creates a new, empty HashMap with expected capacity.
      * <p>
      * The returned map uses the default load factor of 0.75, and its capacity is
@@ -126,10 +253,12 @@ public class CollectionUtils {
      *
      * @param capacity the expected number of elements
      * @throws IllegalArgumentException if capacity is negative
+     * @see CollectionUtils#newHashSet(int)
+     * @see CollectionUtils#newLinkedHashSet(int)
      */
     @NotNull
     public static <K, V> Map<K, V> newHashMap(final int capacity) {
-        // make sure the set does not need to be resized given the initial content
+        // make sure the Map does not need to be resized given the initial content
         return new HashMap<>(ensureCapacity(capacity));
     }
 

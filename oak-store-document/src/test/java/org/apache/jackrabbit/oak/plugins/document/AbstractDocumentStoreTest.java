@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -44,8 +43,6 @@ public abstract class AbstractDocumentStoreTest {
     protected List<String> removeMeClusterNodes = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
-
-    private static final boolean SKIP_MONGO = SystemPropertySupplier.create("oak.skipMongo", false).loggingTo(LOG).get();
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
         this.dsf = dsf;
@@ -88,9 +85,7 @@ public abstract class AbstractDocumentStoreTest {
                 DocumentStoreFixture.RDB_MSSQL };
 
         for (DocumentStoreFixture dsf : candidates) {
-            if (SKIP_MONGO && dsf instanceof DocumentStoreFixture.MongoFixture) {
-                LOG.info("Mongo fixture '{}' skipped.", dsf.getName());
-            } else if (dsf.isAvailable()) {
+            if (dsf.isAvailable()) {
                 if (!multi || dsf.hasSinglePersistence()) {
                     result.add(new DocumentStoreFixture[] { dsf });
                     names.add(dsf.getName());

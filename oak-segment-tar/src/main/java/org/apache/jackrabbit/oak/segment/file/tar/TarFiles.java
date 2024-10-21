@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -645,7 +645,8 @@ public class TarFiles implements Closeable {
                     writer.addBinaryReference(generation, id, reference);
                 }
             }
-            if (size >= maxFileSize) {
+            int entryCount = writer.getEntryCount();
+            if (size >= maxFileSize || entryCount >= writer.getMaxEntryCount()) {
                 internalNewWriter();
             }
         } finally {

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -46,7 +45,7 @@ class EventQueue implements EventIterator {
 
     private final EventGenerator generator;
 
-    private final LinkedList<Event> queue = newLinkedList();
+    private final LinkedList<Event> queue = new LinkedList<>();
 
     private long position = 0;
 

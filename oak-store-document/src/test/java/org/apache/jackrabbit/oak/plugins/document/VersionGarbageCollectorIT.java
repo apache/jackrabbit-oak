@@ -63,6 +63,9 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
@@ -104,7 +107,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.util.concurrent.Atomics;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.InitialContent;
@@ -1618,7 +1620,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1701,7 +1703,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1717,7 +1719,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -3621,7 +3623,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
@@ -3654,7 +3656,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {

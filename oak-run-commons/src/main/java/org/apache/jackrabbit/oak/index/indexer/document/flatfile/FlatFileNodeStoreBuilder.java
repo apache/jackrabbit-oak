@@ -110,6 +110,7 @@ public class FlatFileNodeStoreBuilder {
     private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
+    private long minModified;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
     private MongoClientURI mongoClientURI;
@@ -188,6 +189,18 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withCheckpoint(String checkpoint) {
         this.checkpoint = checkpoint;
+        return this;
+    }
+
+    /**
+     * Use the given lower bound of the "_modified" property, when using the document node
+     * store.
+     *
+     * @param minModified the minimum value of the "_modified" property
+     * @return this
+     */
+    public FlatFileNodeStoreBuilder withMinModified(long minModified) {
+        this.minModified = minModified;
         return this;
     }
 
@@ -409,7 +422,7 @@ public class FlatFileNodeStoreBuilder {
                 indexingReporter.setIndexNames(indexNames);
                 return new PipelinedTreeStoreStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
-                        statisticsProvider, indexingReporter);
+                        minModified, statisticsProvider, indexingReporter);
             }
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
@@ -436,4 +449,5 @@ public class FlatFileNodeStoreBuilder {
     public File getFlatFileStoreDir() {
         return flatFileStoreDir;
     }
+
 }

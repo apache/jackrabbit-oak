@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
@@ -51,6 +49,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -365,7 +364,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private Map<String, NodeId> createNodes(NodePropBundle bundle) {
-        Map<String, NodeId> children = newLinkedHashMap();
+        Map<String, NodeId> children = new LinkedHashMap<>();
         for (ChildNodeEntry entry : bundle.getChildNodeEntries()) {
             String base = createName(entry.getName());
             String name = base;
@@ -409,7 +408,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
         }
 
-        Set<String> mixins = newLinkedHashSet();
+        Set<String> mixins = new LinkedHashSet<>();
         if (bundle.getMixinTypeNames() != null) {
             for (Name mixin : bundle.getMixinTypeNames()) {
                 mixins.add(createName(mixin));

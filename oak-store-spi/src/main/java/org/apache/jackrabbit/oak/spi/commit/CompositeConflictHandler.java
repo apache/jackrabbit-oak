@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution.IGNORED;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
@@ -35,6 +34,7 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PR
 import java.util.LinkedList;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -57,7 +57,7 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
      * @param handlers  the backing handlers
      */
     public CompositeConflictHandler(@NotNull Iterable<ThreeWayConflictHandler> handlers) {
-        this.handlers = newLinkedList(requireNonNull(handlers));
+        this.handlers = (LinkedList<ThreeWayConflictHandler>) CollectionUtils.toLinkedList(requireNonNull(handlers));
     }
 
     /**
@@ -65,7 +65,7 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
      * backing handler. Use {@link #addHandler(ThreeWayConflictHandler)} to add handlers.
      */
     public CompositeConflictHandler() {
-        this.handlers = newLinkedList();
+        this.handlers = new LinkedList<>();
     }
 
     /**

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.upgrade.blob;
 
 import java.io.BufferedWriter;
@@ -32,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -89,7 +89,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //this might consume lots of memory. For such case we would need to switch to
     //some off heap map
     private Map<String, Long> existingMappings = Collections.emptyMap();
-    private Map<String, Long> newMappings = Maps.newConcurrentMap();
+    private Map<String, Long> newMappings = new ConcurrentHashMap<>();
 
     private String mappingFilePath = "datastore-list.txt";
     private String delegateClass;

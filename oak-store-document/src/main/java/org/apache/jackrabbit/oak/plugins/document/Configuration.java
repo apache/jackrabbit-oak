@@ -353,4 +353,24 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled " +
                     "is set to true, the fullGCMode will be ignored.")
     int fullGCMode() default DEFAULT_FULL_GC_MODE;
+
+    @AttributeDefinition(
+            name = "Delay factor for a Full GC run",
+            description = "A Full GC run has a gap of this delay factor to reduce continuous load on system." +
+                    "It allows the FullGC thread to stop by (fullGC batch run time * delayFactor) period after each batch." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR)
+    double fullGCDelayFactor() default DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+
+    @AttributeDefinition(
+            name = "Batch Size to fetch data for each FullGC cycle",
+            description = "Integer value indicating the number of documents to fetch from database in a single query to check for Full GC." +
+                    "It should be a factor of fullGCProgressSize for better performance " +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE)
+    int fullGCBatchSize() default DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+
+    @AttributeDefinition(
+            name = "Progress Size for FullGC cycle",
+            description = "Integer value indicating the number of documents to check for garbage in each Full GC cycle." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE)
+    int fullGCProgressSize() default DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 }
