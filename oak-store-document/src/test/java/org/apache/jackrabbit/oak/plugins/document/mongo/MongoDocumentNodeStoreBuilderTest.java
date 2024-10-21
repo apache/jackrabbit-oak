@@ -80,7 +80,7 @@ public class MongoDocumentNodeStoreBuilderTest {
 
     @Test
     // OAK-11218
-    public void fullGCExludePathsEmptyString() {
+    public void fullGCExcludePathsEmptyString() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         builder.setFullGCExcludePaths(new String[] {""});
         assertTrue(builder.getFullGCExcludePaths().isEmpty());
