@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 import static java.lang.String.join;
 
 import java.io.File;
@@ -53,7 +52,7 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
     private final Lock ioLock = new ReentrantLock();
 
     @NotNull
-    private final ConcurrentLinkedQueue<IOEvent> ioEvents = newConcurrentLinkedQueue();
+    private final ConcurrentLinkedQueue<IOEvent> ioEvents = new ConcurrentLinkedQueue<>();
 
     /**
      * Create a new instance writing to {@code traceWriter} with additional context fields.
