@@ -95,7 +95,7 @@ public class PathImpl extends DynamicOperandImpl {
 
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
-        if (!f.getQueryLimits().getOptimizeFunctionInList()) {
+        if (!f.getQueryLimits().getOptimizeInRestrictionsForFunctions()) {
             return;
         }
         String fn = getFunction(f.getSelector());

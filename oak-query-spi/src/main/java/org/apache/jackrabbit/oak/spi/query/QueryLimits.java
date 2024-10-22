@@ -45,7 +45,7 @@ public interface QueryLimits {
      *
      * @return true, except when backward compatibility for OAK-11214 is enabled
      */
-    default public boolean getOptimizeFunctionInList() {
+    default public boolean getOptimizeInRestrictionsForFunctions() {
         return true;
     }
 

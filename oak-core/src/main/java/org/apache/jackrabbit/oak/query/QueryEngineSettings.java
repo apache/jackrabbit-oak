@@ -65,7 +65,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_NAME_IMPROVED_IS_NULL_COST = "FT_OAK-10532";
 
-    public static final String FT_OPTIMIZE_FUNCTION_IN_LIST = "FT_OAK-11214";
+    public static final String FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS = "FT_OAK-11214";
 
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
@@ -116,7 +116,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private Feature prefetchFeature;
     private Feature improvedIsNullCostFeature;
-    private Feature optimizeFunctionInList;
+    private Feature optimizeInRestrictionsForFunctions;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -221,14 +221,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         return improvedIsNullCostFeature == null || improvedIsNullCostFeature.isEnabled();
     }
 
-    public void setOptimizeFunctionInList(@Nullable Feature feature) {
-        this.optimizeFunctionInList = feature;
+    public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
+        this.optimizeInRestrictionsForFunctions = feature;
     }
 
     @Override
-    public boolean getOptimizeFunctionInList() {
+    public boolean getOptimizeInRestrictionsForFunctions() {
         // enabled if the feature toggle is not used
-        return optimizeFunctionInList == null || optimizeFunctionInList.isEnabled();
+        return optimizeInRestrictionsForFunctions == null || optimizeInRestrictionsForFunctions.isEnabled();
     }
 
     public String getStrictPathRestriction() {

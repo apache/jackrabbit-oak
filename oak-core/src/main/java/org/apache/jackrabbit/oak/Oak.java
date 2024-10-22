@@ -588,10 +588,10 @@ public class Oak {
             LOG.info("Registered improved cost feature: " + QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST);
             closer.register(improvedIsNullCostFeature);
             queryEngineSettings.setImprovedIsNullCostFeature(improvedIsNullCostFeature);
-            Feature optimizeFunctionInListFeature = newFeature(QueryEngineSettings.FT_OPTIMIZE_FUNCTION_IN_LIST, whiteboard);
-            LOG.info("Registered optimize function in list feature: " + QueryEngineSettings.FT_OPTIMIZE_FUNCTION_IN_LIST);
-            closer.register(optimizeFunctionInListFeature);
-            queryEngineSettings.setOptimizeFunctionInList(optimizeFunctionInListFeature);
+            Feature optimizeInRestrictionsForFunctions = newFeature(QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS, whiteboard);
+            LOG.info("Registered optimize in restrictions for functions feature: " + QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS);
+            closer.register(optimizeInRestrictionsForFunctions);
+            queryEngineSettings.setOptimizeInRestrictionsForFunctions(optimizeInRestrictionsForFunctions);
         }
 
         return this;
@@ -991,8 +991,8 @@ public class Oak {
             settings.setImprovedIsNullCostFeature(feature);
         }
 
-        public void setOptimizeFunctionInList(@Nullable Feature feature) {
-            settings.setOptimizeFunctionInList(feature);
+        public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
+            settings.setOptimizeInRestrictionsForFunctions(feature);
         }
 
         @Override
