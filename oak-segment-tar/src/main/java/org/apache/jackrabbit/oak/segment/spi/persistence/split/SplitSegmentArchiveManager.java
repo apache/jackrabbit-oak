@@ -64,7 +64,7 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public @Nullable SegmentArchiveReader open(@NotNull String archiveName) throws IOException {
-        if (roArchiveList.contains(archiveName)) {
+        if (isReadOnly(archiveName)) {
             SegmentArchiveReader reader = null;
             try {
                 reader = roArchiveManager.open(archiveName);
@@ -82,7 +82,7 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public @Nullable SegmentArchiveReader forceOpen(String archiveName) throws IOException {
-        if (roArchiveList.contains(archiveName)) {
+        if (isReadOnly(archiveName)) {
             return roArchiveManager.forceOpen(archiveName);
         } else {
             return rwArchiveManager.forceOpen(archiveName);
@@ -96,7 +96,7 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public boolean delete(@NotNull String archiveName) {
-        if (roArchiveList.contains(archiveName)) {
+        if (isReadOnly(archiveName)) {
             return false;
         } else {
             return rwArchiveManager.delete(archiveName);
@@ -105,7 +105,7 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public boolean renameTo(@NotNull String from, @NotNull String to) {
-        if (roArchiveList.contains(from) || roArchiveList.contains(to)) {
+        if (isReadOnly(from) || isReadOnly(to)) {
             return false;
         } else {
             return rwArchiveManager.renameTo(from, to);
@@ -114,9 +114,9 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void copyFile(@NotNull String from, @NotNull String to) throws IOException {
-        if (roArchiveList.contains(to)) {
+        if (isReadOnly(to)) {
             throw new IOException("Can't overwrite the read-only " + to);
-        } else if (roArchiveList.contains(from)) {
+        } else if (isReadOnly(from)) {
             throw new IOException("Can't copy the archive between persistence " + from + " -> " + to);
         } else {
             rwArchiveManager.copyFile(from, to);
@@ -125,12 +125,12 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public boolean exists(@NotNull String archiveName) {
-        return roArchiveList.contains(archiveName) || rwArchiveManager.exists(archiveName);
+        return isReadOnly(archiveName) || rwArchiveManager.exists(archiveName);
     }
 
     @Override
     public void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException {
-        if (roArchiveList.contains(archiveName)) {
+        if (isReadOnly(archiveName)) {
             roArchiveManager.recoverEntries(archiveName, entries);
         } else {
             rwArchiveManager.recoverEntries(archiveName, entries);
@@ -139,11 +139,13 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
-        if (roArchiveList.contains(archiveName)) {
-            // archive is in read only part
-            return;
-        } else {
+        if (!isReadOnly(archiveName)) {
             rwArchiveManager.backup(archiveName, backupArchiveName, recoveredEntries);
         }
+    }
+
+    @Override
+    public boolean isReadOnly(String archiveName) {
+        return roArchiveList.contains(archiveName);
     }
 }
