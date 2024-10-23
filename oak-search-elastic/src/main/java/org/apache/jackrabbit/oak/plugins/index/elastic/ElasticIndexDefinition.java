@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -105,6 +106,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String PATH_RANDOM_VALUE = ":path-random-value";
 
     /**
+     * Hidden property to store the last updated timestamp
+     */
+    public static final String LAST_UPDATED = ":lastUpdated";
+
+    /**
      * Dynamic properties are fields that are not explicitly defined in the index mapping and are added on the fly when a document is indexed.
      * Examples: aggregations with relative nodes, regex properties (to be supported), etc.
      */
@@ -134,6 +140,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
+
+    protected static final String INFERENCE_CONFIG = "inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
 
@@ -176,6 +184,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final String dynamicMapping;
     public final boolean failOnError;
     public final long indexNameSeed;
+    public final InferenceDefinition inferenceDefinition;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
@@ -239,6 +248,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsProperties = propertiesByName.values().stream()
                 .flatMap(List::stream)
                 .filter(pd -> pd.similarityTags).collect(Collectors.toList());
+
+        if (defn.hasChildNode(INFERENCE_CONFIG)) {
+            this.inferenceDefinition = new InferenceDefinition(defn.getChildNode(INFERENCE_CONFIG));
+        } else {
+            this.inferenceDefinition = null;
+        }
     }
 
     @Nullable
@@ -379,6 +394,66 @@ public class ElasticIndexDefinition extends IndexDefinition {
         @Override
         protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new ElasticIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
+        }
+    }
+
+    public static class InferenceDefinition {
+
+        public List<Property> properties;
+
+        public InferenceDefinition() { }
+
+        public InferenceDefinition(NodeState inferenceNode) {
+            this.properties = StreamSupport.stream(inferenceNode.getChildNodeEntries().spliterator(), false)
+                    .map(cne -> new Property(cne.getName(), cne.getNodeState()))
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            InferenceDefinition that = (InferenceDefinition) o;
+            return Objects.equals(properties, that.properties);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(properties);
+        }
+
+        public static class Property {
+            public String name;
+            public String serviceUrl;
+            public List<String> fields;
+            public int dims;
+            public String similarity;
+
+            public Property() {}
+
+            public Property(String name, NodeState inferenceNode) {
+                this.name = name;
+                this.serviceUrl = getOptionalValue(inferenceNode, "serviceUrl", null);
+                this.fields = Arrays.asList(getOptionalValues(inferenceNode, "fields", Type.STRINGS, String.class, new String[0]));
+                this.dims = getOptionalValue(inferenceNode, "dims", 1024);
+                this.similarity = getOptionalValue(inferenceNode, "similarity", "cosine");
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Property property = (Property) o;
+                return dims == property.dims && Objects.equals(name, property.name) &&
+                        Objects.equals(serviceUrl, property.serviceUrl) &&
+                        Objects.equals(fields, property.fields) &&
+                        Objects.equals(similarity, property.similarity);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(name, serviceUrl, fields, dims, similarity);
+            }
         }
     }
 }

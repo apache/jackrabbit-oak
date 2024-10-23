@@ -53,6 +53,8 @@ class ElasticIndexHelper {
 
     private static final String OAK_WORD_DELIMITER_GRAPH_FILTER = "oak_word_delimiter_graph_filter";
 
+    private static final String INFERENCE_FIELD = ":inference";
+
     protected static final String SUGGEST_NESTED_VALUE = "value";
 
     protected static final String DYNAMIC_BOOST_NESTED_VALUE = "value";
@@ -90,6 +92,9 @@ class ElasticIndexHelper {
         );
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
+        if (indexDefinition.inferenceDefinition != null) {
+            mapInferenceDefinition(builder, indexDefinition.inferenceDefinition);
+        }
         return builder;
     }
 
@@ -127,7 +132,8 @@ class ElasticIndexHelper {
                                                 b3 -> b3.text(b4 -> b4.analyzer("oak_analyzer"))
                                         )
                         )
-                );
+                )
+                .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")
@@ -135,6 +141,25 @@ class ElasticIndexHelper {
         // mappingBuilder.startObject(FieldNames.NULL_PROPS)
         // .field("type", "keyword")
         // .endObject();
+    }
+
+    private static void mapInferenceDefinition(@NotNull TypeMapping.Builder builder, @NotNull ElasticIndexDefinition.InferenceDefinition inferenceDefinition) {
+        // Store the inference configuration in the index metadata so that it can be used by the inference service
+        builder.meta("inference", JsonData.of(inferenceDefinition));
+
+        inferenceDefinition.properties.forEach(p -> {
+            builder.properties(INFERENCE_FIELD + "." + p.name,
+                    b -> b.object(bo -> bo
+                            .properties("value", pb -> pb.denseVector(dv ->
+                                    dv.index(true)
+                                            .dims(p.dims)
+                                            .similarity(p.similarity)
+                                    )
+                            )
+                            .properties("metadata", pb -> pb.flattened(b1 -> b1))
+                    )
+            );
+        });
     }
 
     /**
