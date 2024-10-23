@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -37,7 +38,8 @@ public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
             cacheSize(DEFAULT_CHILDREN_CACHE_PERCENTAGE) -
             cacheSize(DEFAULT_DIFF_CACHE_PERCENTAGE) -
             cacheSize(DEFAULT_NODE_CACHE_PERCENTAGE) -
-            cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE);
+            cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE) -
+            cacheSize(DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE);
 
     @Override
     protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
