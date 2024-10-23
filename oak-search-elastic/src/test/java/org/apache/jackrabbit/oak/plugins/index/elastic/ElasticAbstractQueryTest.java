@@ -258,6 +258,18 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         }
     }
 
+    protected void updateDocument(Tree index, String id, ObjectNode doc) {
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
+        try {
+            esConnection.getClient().update(b -> b
+                    .index(esIdxDef.getIndexAlias())
+                    .id(id)
+                    .doc(doc), ObjectNode.class);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public IndexMappingRecord getMapping(Tree index) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
         try {
