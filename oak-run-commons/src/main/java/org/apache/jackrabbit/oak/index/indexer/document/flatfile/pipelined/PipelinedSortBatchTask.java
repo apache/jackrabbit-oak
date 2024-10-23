@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
@@ -195,9 +196,15 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
+        String[] prevPathElements = new String[0];
+        int equalEntries = 0;
         try (OutputStream os = IndexStoreUtils.createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
+                if (Arrays.equals(prevPathElements, entry.getPathElements())) {
+                    equalEntries++;
+                }
+                prevPathElements = entry.getPathElements();
                 // Retrieve the entry from the buffer
                 int posInBuffer = entry.getBufferPos();
                 buffer.position(posInBuffer);
@@ -219,6 +226,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 sortBuffer.size(), saveClock,
                 PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis())
         );
+        LOG.info("Equal entries: {}", equalEntries);
         // Free the memory taken by the entries in the buffer
         sortBuffer.clear();
         sortedFilesQueue.put(newtmpfile);
