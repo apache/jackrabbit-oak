@@ -31,6 +31,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemErr;
+import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemOut;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
@@ -403,34 +405,6 @@ public class RevisionsCommandTest {
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setFullGCEnabled(fullGCEnabled)
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
-    }
-
-    private String captureSystemOut(Runnable r) {
-        PrintStream old = System.out;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-            System.setOut(ps);
-            r.run();
-            System.out.flush();
-            return baos.toString();
-        } finally {
-            System.setOut(old);
-        }
-    }
-
-    private String captureSystemErr(Runnable r) {
-        PrintStream old = System.err;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-            System.setErr(ps);
-            r.run();
-            System.err.flush();
-            return baos.toString();
-        } finally {
-            System.setErr(old);
-        }
     }
 
     private static class RevisionsCmd implements Runnable {
