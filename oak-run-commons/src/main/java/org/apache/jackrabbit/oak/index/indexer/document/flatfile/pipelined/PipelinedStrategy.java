@@ -459,7 +459,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             } catch (Exception e) {
                                 LOG.warn("Error while logging queue sizes", e);
                             }
-                            LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {} filteredRenditionsTotal (top 10): {}",
+                            LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {}, filteredRenditionsTotal (top 10): {}",
                                     documentFilter.getSkippedFields(), documentFilter.getLongPathSkipped(), documentFilter.formatTopK(10));
                         }
                     } else {
@@ -530,7 +530,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 // Unique heading to make it easier to find in the logs
                 threadMonitor.printStatistics("Final Thread/Memory report");
 
-                LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {} filteredRenditionsTotal (top 10): {}",
+                LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {}, filteredRenditionsTotal (top 10): {}",
                         documentFilter.getSkippedFields(), documentFilter.getLongPathSkipped(), documentFilter.formatTopK(10));
 
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
