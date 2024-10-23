@@ -40,6 +40,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.primaryTypeOf;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
 
@@ -55,7 +56,6 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -187,7 +187,7 @@ class VersionableState {
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = Lists.newArrayList(node.getNames(JCR_MIXINTYPES));
+            mixinTypes = toList(node.getNames(JCR_MIXINTYPES));
         } else {
             mixinTypes = Collections.emptyList();
         }

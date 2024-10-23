@@ -96,7 +96,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
         PropertyBuilder<String> pb = getHiddenPropertyBuilder(ps);
         if (ps != null) {
-            List<String> moveToNestedCug = Lists.newArrayList();
+            List<String> moveToNestedCug = new ArrayList<>();
             for (String p : ps.getValue(Type.STRINGS)) {
                 if (Text.isDescendant(pathWithNewCug, p)) {
                     pb.removeValue(p);

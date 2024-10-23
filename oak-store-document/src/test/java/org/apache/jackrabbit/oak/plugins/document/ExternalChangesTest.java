@@ -239,7 +239,7 @@ public class ExternalChangesTest {
     }
 
     private static class CommitInfoCollector implements Observer {
-        List<CommitInfo> infos = Lists.newArrayList();
+        List<CommitInfo> infos = new ArrayList<>();
 
         @Override
         public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
@@ -247,7 +247,7 @@ public class ExternalChangesTest {
         }
 
         public CommitInfo getExternalChange(){
-            List<CommitInfo> result = Lists.newArrayList();
+            List<CommitInfo> result = new ArrayList<>();
             for (CommitInfo info : infos){
                 if (info.isExternal()) {
                     result.add(info);

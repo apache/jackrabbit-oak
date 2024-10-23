@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -166,7 +166,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         }
 
         // recreate paths created in this run
-        searchPaths = newArrayList();
+        searchPaths = new ArrayList<>();
         readPaths = new ArrayList<>(READERS);
 
         // create the blob load for this iteration
@@ -283,7 +283,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
                 while (count < maxAssets) {
                     session.refresh(false);
 
-                    List<String> levels = Lists.newArrayList();
+                    List<String> levels = new ArrayList<>();
                     getParentLevels(count, maxAssets, levels);
 
                     String fileNamePrefix = getFileNamePrefix(levels);

@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -36,19 +34,19 @@ public class OrderedPropertyIndexProvider implements QueryIndexProvider {
     private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexProvider.class);
     private static int hits;
     private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
-    
+
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         if (getHits() % threshold == 0) {
             LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);            
         }
-        return newArrayList();
+        return new ArrayList<>();
     }
-    
+
     private synchronized int getHits() {
         return hits++;
     }
-    
+
     /**
      * used only for testing purposes. Not thread safe.
      * 

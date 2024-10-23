@@ -78,7 +78,7 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, "Fail" },
                 new Object[] { false, "Only Warn" });
     }

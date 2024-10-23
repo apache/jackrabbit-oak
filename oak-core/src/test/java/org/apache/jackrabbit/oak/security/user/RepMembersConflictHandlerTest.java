@@ -57,7 +57,7 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
 
     @Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { 0, "Empty Group" },
                 new Object[] { 5, "Tiny Group" },
                 new Object[] { MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD - 1, "Border Group" },

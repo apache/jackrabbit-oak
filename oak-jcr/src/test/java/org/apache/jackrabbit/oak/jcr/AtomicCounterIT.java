@@ -78,7 +78,7 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
             // ensuring initial state
             assertEquals(expected.get(), counter.getProperty(PROP_COUNTER).getLong());
             
-            List<ListenableFutureTask<Void>> tasks = Lists.newArrayList();
+            List<ListenableFutureTask<Void>> tasks = new ArrayList<>();
             for (int t = 0; t < 100; t++) {
                 tasks.add(updateCounter(counterPath, rnd.nextInt(10) + 1, expected));
             }

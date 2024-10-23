@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -30,7 +32,6 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
@@ -164,8 +165,8 @@ abstract class ACL extends AbstractAccessControlList {
     private boolean internalAddEntry(@NotNull ACE entry) throws RepositoryException {
         final String principalName = entry.getPrincipal().getName();
         final Set<Restriction> restrictions = entry.getRestrictions();
-        List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, ace ->
-                principalName.equals(requireNonNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
+        List<ACE> subList = entries.stream().filter(ace -> principalName.equals(requireNonNull(ace).getPrincipal().getName())
+                && restrictions.equals(ace.getRestrictions())).collect(Collectors.toList());
 
         boolean addEntry = true;
         for (ACE existing : subList) {

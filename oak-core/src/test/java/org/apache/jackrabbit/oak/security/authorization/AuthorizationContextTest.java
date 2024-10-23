@@ -76,7 +76,7 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
      */
     @Test
     public void testItemDefinitionsDefinesContextRoot() {
-        List<String> paths = Lists.newArrayList(
+        List<String> paths = List.of(
                 "/jcr:system/jcr:nodeTypes/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy",
                 "/jcr:system/jcr:nodeTypes/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy");
 

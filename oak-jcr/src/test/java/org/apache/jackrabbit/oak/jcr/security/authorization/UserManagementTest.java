@@ -54,7 +54,7 @@ public class UserManagementTest extends AbstractEvaluationTest {
     private final String userId = "testUser2";
     private final String groupId = "testGroup2";
 
-    private List<String> authorizablesToRemove = Lists.newArrayList(userId, groupId);
+    private List<String> authorizablesToRemove = List.of(userId, groupId);
 
     @Override
     protected void setUp() throws Exception {

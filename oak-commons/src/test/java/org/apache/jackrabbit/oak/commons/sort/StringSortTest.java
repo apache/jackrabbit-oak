@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons.sort;
 
 import java.io.IOException;
@@ -32,7 +31,6 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -69,7 +67,7 @@ public class StringSortTest {
 
     @Test
     public void sortWithEntriesHavingLineBreaks() throws Exception{
-        List<String> paths = Lists.newArrayList("/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
+        List<String> paths = new ArrayList<>(List.of("/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c"));
 
         collector = new StringSort(0, comparator);
         addPathsToCollector(paths);
@@ -92,7 +90,7 @@ public class StringSortTest {
      */
     @Test
     public void sortWithEntriesHavingLineBreaks2() throws Exception{
-        List<String> paths = Lists.newArrayList("/a", "/a/a\nc", "/a/a\rd", "/a/a\r\ne", "/a/a\\");
+        List<String> paths = new ArrayList<>(List.of("/a", "/a/a\nc", "/a/a\rd", "/a/a\r\ne", "/a/a\\"));
 
         collector = new StringSort(0, comparator);
         addPathsToCollector(paths);

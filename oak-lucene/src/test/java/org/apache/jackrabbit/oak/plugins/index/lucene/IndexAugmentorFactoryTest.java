@@ -179,7 +179,7 @@ public class IndexAugmentorFactoryTest {
         @NotNull
         @Override
         public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
-            return Lists.newArrayList(id);
+            return List.of(id);
         }
 
         @NotNull

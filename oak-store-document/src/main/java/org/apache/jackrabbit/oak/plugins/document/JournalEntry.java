@@ -604,7 +604,7 @@ public final class JournalEntry extends Document {
     }
 
     private Iterable<JournalEntry> getLinkedEntries(final String name) {
-        final List<String> ids = Lists.newArrayList();
+        final List<String> ids = new ArrayList<>();
         String bc = (String) get(name);
         if (bc != null) {
             for (String id : bc.split(",")) {

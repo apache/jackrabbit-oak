@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
@@ -377,7 +377,7 @@ public class DocumentNodeStoreService {
             loggingGCMonitor = new LoggingGCMonitor(vgcLogger);
         }
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
-                newArrayList(gcMonitor, loggingGCMonitor)));
+                NAL(gcMonitor, loggingGCMonitor)));
         mkBuilder.setRevisionGCMaxAge(TimeUnit.SECONDS.toMillis(config.versionGcMaxAgeInSecs()));
 
         nodeStore = mkBuilder.build();

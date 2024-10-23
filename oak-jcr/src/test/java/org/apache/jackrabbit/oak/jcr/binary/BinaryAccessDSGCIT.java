@@ -241,12 +241,12 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         Map<String, Content> binaryContent = Maps.newHashMap();
         Map<String, Binary> binaries = Maps.newHashMap();
 
-        for (String key : Lists.newArrayList(TRADITIONAL_UPLOAD_1, TRADITIONAL_UPLOAD_2)) {
+        for (String key : List.of(TRADITIONAL_UPLOAD_1, TRADITIONAL_UPLOAD_2)) {
             Content content = Content.createRandom(BINARY_SIZE);
             binaryContent.put(key, content);
             binaries.put(key, storeBinaryAndRetrieve(session, toAbsolutePath(key), content));
         }
-        for (String key : Lists.newArrayList(DIRECT_UPLOAD_1, DIRECT_UPLOAD_2)) {
+        for (String key : List.of(DIRECT_UPLOAD_1, DIRECT_UPLOAD_2)) {
             Content content = Content.createRandom(BINARY_SIZE);
             binaryContent.put(key, content);
             binaries.put(key, createDirectBinary(toAbsolutePath(key), content));
@@ -262,7 +262,7 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
         // Delete one of the binaries uploaded via repo and one uploaded directly
         Node testRoot = session.getNode("/" + TEST_ROOT);
-        List<String> deletedBinaryPaths = Lists.newArrayList(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2);
+        List<String> deletedBinaryPaths = List.of(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2);
         for (String path : deletedBinaryPaths) {
             Node toRemove = testRoot.getNode(path);
             toRemove.remove();
@@ -288,7 +288,7 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
         // Verify that the two binaries remaining can still be accessed
         Map<String, Binary> deletedBinaries = Maps.newHashMap();
-        for (String deletedPath : Lists.newArrayList(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2)) {
+        for (String deletedPath : List.of(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2)) {
             deletedBinaries.put(deletedPath, binaries.get(deletedPath));
             binaries.remove(deletedPath);
             binaryContent.remove(deletedPath);

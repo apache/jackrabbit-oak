@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
@@ -59,7 +58,7 @@ public class IndexDefinitionPrinterTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        when(pathService.getIndexPaths()).thenReturn(Lists.newArrayList("/a", "/b"));
+        when(pathService.getIndexPaths()).thenReturn(List.of("/a", "/b"));
 
         String json = getJSON();
 
@@ -81,7 +80,7 @@ public class IndexDefinitionPrinterTest {
         builder.child("a").setProperty("foo", new ArrayBasedBlob("hello".getBytes()));
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        when(pathService.getIndexPaths()).thenReturn(Lists.newArrayList("/a"));
+        when(pathService.getIndexPaths()).thenReturn(List.of("/a"));
 
         String json = getJSON();
 

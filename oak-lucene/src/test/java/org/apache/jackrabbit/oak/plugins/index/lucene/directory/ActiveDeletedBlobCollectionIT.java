@@ -90,7 +90,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
-        List<Object[]> result = Lists.newArrayList();
+        List<Object[]> result = new ArrayList<>();
         result.add(new Object[]{DataStoreType.WITHOUT_FDS});
         result.add(new Object[]{DataStoreType.WITH_FDS});
         return result;

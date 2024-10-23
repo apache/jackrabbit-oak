@@ -31,7 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -73,7 +73,7 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     @Test
     public void recoveryBy() throws Exception {
         MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock());
-        List<ClusterNodeInfoDocument> infoDocs = newArrayList(seeker.getAllClusters());
+        List<ClusterNodeInfoDocument> infoDocs = toList(seeker.getAllClusters());
         assertEquals(1, infoDocs.size());
         int clusterId = infoDocs.get(0).getClusterId();
         int otherClusterId = clusterId + 1;

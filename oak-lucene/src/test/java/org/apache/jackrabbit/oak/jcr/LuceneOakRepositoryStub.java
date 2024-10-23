@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
@@ -64,7 +64,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
-            .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
+            .newRuleWithName(NT_FILE, NAL(JCR_CONTENT, JCR_CONTENT + "/*"));
     }
 
     private static class LuceneCompatModeInitializer extends LuceneInitializerHelper {

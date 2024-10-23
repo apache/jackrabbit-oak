@@ -82,7 +82,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
         Utils.addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs);
 
         // create additional ACEs according to benchmark configuration
-        allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        allPrivileges = List.of(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         createForEachPrincipal(principal, acMgr, allPrivileges);
 
         adminSession.save();

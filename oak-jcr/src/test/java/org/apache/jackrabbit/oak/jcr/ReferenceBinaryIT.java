@@ -146,7 +146,7 @@ public class ReferenceBinaryIT {
         
         SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(fileStore).build();
         
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         SegmentTarFixture segmentTarFixture = new SegmentTarFixture(sns);
         
         if (segmentTarFixture.isAvailable()) {

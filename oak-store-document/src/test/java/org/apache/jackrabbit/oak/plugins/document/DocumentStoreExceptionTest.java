@@ -129,7 +129,7 @@ public class DocumentStoreExceptionTest {
     @Test
     public void convertIOExceptionWithIDs() {
         String msg = "foo";
-        List<String> ids = Lists.newArrayList("one", "two", "three");
+        List<String> ids = List.of("one", "two", "three");
         Exception cause = new IOException(msg);
         DocumentStoreException dse = DocumentStoreException.convert(cause, ids);
         assertTrue(dse.getMessage().contains(msg));
@@ -145,7 +145,7 @@ public class DocumentStoreExceptionTest {
         String msg = "foo";
         Exception cause = new IOException();
         Type type = TRANSIENT;
-        List<String> ids = Lists.newArrayList("one", "two", "three");
+        List<String> ids = List.of("one", "two", "three");
         DocumentStoreException dse = DocumentStoreException.asDocumentStoreException(msg, cause, type, ids);
         assertTrue(dse.getMessage().contains(msg));
         for (String id : ids) {

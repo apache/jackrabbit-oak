@@ -63,7 +63,7 @@ public class VersionDelegate extends NodeDelegate {
             throw new RepositoryException("Inconsistent version storage. " +
                     "Version does not have a " + JCR_PREDECESSORS + " property.");
         }
-        List<VersionDelegate> predecessors = Lists.newArrayList();
+        List<VersionDelegate> predecessors = new ArrayList<>();
         VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
         for (String id : p.getMultiState().getValue(Type.REFERENCES)) {
             predecessors.add(vMgr.getVersionByIdentifier(id));

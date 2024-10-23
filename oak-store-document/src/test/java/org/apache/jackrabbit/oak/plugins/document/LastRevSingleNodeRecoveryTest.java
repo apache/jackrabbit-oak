@@ -56,7 +56,7 @@ public class LastRevSingleNodeRecoveryTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
             fixtures.add(new Object[] {mongo});

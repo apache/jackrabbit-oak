@@ -70,7 +70,7 @@ public class BlobReferenceIteratorTest {
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
@@ -122,7 +122,7 @@ public class BlobReferenceIteratorTest {
 
     @Test
     public void testBlobIterator() throws Exception {
-        List<ReferencedBlob> blobs = Lists.newArrayList();
+        List<ReferencedBlob> blobs = new ArrayList<>();
 
         // 1. Set some single value Binary property
         for (int i = 0; i < 10; i++) {

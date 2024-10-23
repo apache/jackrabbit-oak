@@ -63,7 +63,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, "Dynamic-Groups = false" },
                 new Object[] { true, "Dynamic-Groups = true" });
     }

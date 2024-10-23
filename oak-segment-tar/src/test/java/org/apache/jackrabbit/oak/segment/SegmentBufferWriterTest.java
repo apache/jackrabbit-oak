@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -56,7 +56,7 @@ public class SegmentBufferWriterTest {
             // init
         }
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            before = newArrayList(store.getSegmentIds());
+            before = NAL(store.getSegmentIds());
         }
 
         try (FileStore store = openFileStore()) {
@@ -66,7 +66,7 @@ public class SegmentBufferWriterTest {
         List<SegmentId> after;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            after = newArrayList(store.getSegmentIds());
+            after = NAL(store.getSegmentIds());
         }
 
         assertEquals(before, after);
@@ -80,7 +80,7 @@ public class SegmentBufferWriterTest {
             // init
         }
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            before = newArrayList(store.getSegmentIds());
+            before = NAL(store.getSegmentIds());
         }
 
         try (FileStore store = openFileStore()) {
@@ -92,7 +92,7 @@ public class SegmentBufferWriterTest {
         List<SegmentId> after;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            after = newArrayList(store.getSegmentIds());
+            after = NAL(store.getSegmentIds());
         }
 
         assertNotEquals(before, after);

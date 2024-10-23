@@ -79,7 +79,7 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").setProperty("prop", System.currentTimeMillis());
         store.merge(builder, HOOK, CommitInfo.EMPTY);
-        List<Callable<Object>> tasks = Lists.newArrayList();
+        List<Callable<Object>> tasks = new ArrayList<>();
         for (int i = 0; i < NUM_THREADS; i++) {
             tasks.add(new Callable<Object>() {
                 @Override

@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -212,7 +212,7 @@ public class AsyncIndexerService {
     }
 
     static List<AsyncConfig> getAsyncConfig(String[] configs) {
-        List<AsyncConfig> result = Lists.newArrayList();
+        List<AsyncConfig> result = new ArrayList<>();
         for (String config : configs) {
             int idOfEq = config.indexOf(CONFIG_SEP);
             checkArgument(idOfEq > 0, "Invalid config provided [%s]", Arrays.toString(configs));

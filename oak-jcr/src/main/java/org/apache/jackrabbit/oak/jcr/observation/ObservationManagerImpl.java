@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -138,7 +138,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         List<ChangeProcessor> toBeStopped;
 
         synchronized (this) {
-            toBeStopped = newArrayList(processors.values());
+            toBeStopped = NAL(processors.values());
             processors.clear();
         }
 
@@ -254,7 +254,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
         FilterBuilder filterBuilder = new FilterBuilder();
         String depthPattern = isDeep ? STAR + '/' + STAR_STAR : STAR;
-        List<Condition> includeConditions = newArrayList();
+        List<Condition> includeConditions = new ArrayList<>();
         filterBuilder.addPathsForMBean(includePaths);
         for (String path : includePaths) {
             final String deepenedPath;
@@ -381,7 +381,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     }
 
     private static List<Condition> createExclusions(FilterBuilder filterBuilder, Iterable<String> excludedPaths) {
-        List<Condition> conditions = newArrayList();
+        List<Condition> conditions = new ArrayList<>();
         for (String path : excludedPaths) {
             conditions.add(filterBuilder.not(filterBuilder.path(path + '/' + STAR_STAR)));
         }

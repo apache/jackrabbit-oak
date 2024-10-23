@@ -375,7 +375,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
         private final NodeStore globalStore;
 
-        private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        private final List<MountedNodeStore> nonDefaultStores = new ArrayList<>();
 
         private CompositeNodeStoreMonitor nodeStateMonitor = CompositeNodeStoreMonitor.EMPTY_INSTANCE;
 

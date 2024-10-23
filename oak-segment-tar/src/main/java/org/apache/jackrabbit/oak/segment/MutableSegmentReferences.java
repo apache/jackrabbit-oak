@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,7 +32,7 @@ class MutableSegmentReferences implements SegmentReferences {
 
     private final Object lock = new Object();
 
-    private final List<SegmentId> ids = newArrayList();
+    private final List<SegmentId> ids = new ArrayList<>();
 
     private final Map<SegmentId, Integer> numbers = new HashMap<>();
 

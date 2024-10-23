@@ -141,7 +141,7 @@ public class NodeStoreDiffTest {
                 //rebase was performed
 
                 // remember paths accessed so far
-                List<String> paths = Lists.newArrayList(tds.paths);
+                List<String> paths = List.of(tds.paths);
 
                 //This is not to be done in actual cases as CommitHooks are invoked in critical sections
                 //and creating nodes from within CommitHooks would cause deadlock. This is done here to ensure

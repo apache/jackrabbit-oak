@@ -30,7 +30,7 @@ public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, false, false, "False False" },
                 new Object[] { false, true, false, "False True" },
                 new Object[] { true, false, false, "True False"},

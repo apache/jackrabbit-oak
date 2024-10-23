@@ -85,7 +85,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { 100, "BatchSize 100" },
                 new Object[] { 1, "BatchSize 1" },
                 new Object[] { 2, "BatchSize 2" });

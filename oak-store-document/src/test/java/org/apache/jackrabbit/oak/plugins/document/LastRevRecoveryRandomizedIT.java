@@ -70,7 +70,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private int counter = 0;
 
-    private List<String> ops = Lists.newArrayList();
+    private List<String> ops = new ArrayList<>();
 
     private Clock clock;
 
@@ -189,7 +189,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private void addNode() {
         String p = choosePath();
-        List<String> elements = Lists.newArrayList(PathUtils.elements(p));
+        List<String> elements = List.of(PathUtils.elements(p));
         if (elements.size() > 2) {
             elements = elements.subList(1, elements.size() - 1);
             elements = elements.subList(0, random.nextInt(elements.size() + 1));

@@ -2131,7 +2131,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
                        @NotNull RestrictionProvider restrictionProvider,
                        @NotNull NamePathMapper namePathMapper,
                        @NotNull JackrabbitAccessControlEntry... entry) {
-            this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
+            this(jcrPath, restrictionProvider, namePathMapper, List.of(entry));
         }
 
         @Override

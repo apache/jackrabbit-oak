@@ -123,7 +123,7 @@ public class ExternalBlobIT {
         cb.setProperty("anotherBlob3", createBlob(Segment.MEDIUM_LIMIT + 1));
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        final List<String> references = Lists.newArrayList();
+        final List<String> references = new ArrayList<>();
         store.collectBlobReferences(reference -> {
                 assertNotNull(reference);
                 references.add(reference);

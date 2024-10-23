@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.json;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
@@ -225,7 +225,7 @@ public class JsonSerializer {
                             @NotNull
                             @Override
                             public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-                                return Collections.EMPTY_LIST;
+                                return Collections.emptyList();
                             }
 
                             @NotNull
@@ -300,13 +300,13 @@ public class JsonSerializer {
 
         private static final Pattern EVERYTHING = Pattern.compile(".*");
 
-        private final List<Pattern> nodeIncludes = newArrayList(EVERYTHING);
+        private final List<Pattern> nodeIncludes = new ArrayList<>(List.of(EVERYTHING));
 
-        private final List<Pattern> nodeExcludes = newArrayList();
+        private final List<Pattern> nodeExcludes = new ArrayList<>();
 
-        private final List<Pattern> propertyIncludes = newArrayList(EVERYTHING);
+        private final List<Pattern> propertyIncludes = new ArrayList<>(List.of(EVERYTHING));
 
-        private final List<Pattern> propertyExcludes = newArrayList();
+        private final List<Pattern> propertyExcludes = new ArrayList<>();
 
         JsonFilter(String filter) {
             JsopTokenizer tokenizer = new JsopTokenizer(filter);
@@ -318,8 +318,8 @@ public class JsonSerializer {
                 String key = tokenizer.readString();
                 tokenizer.read(':');
 
-                List<Pattern> includes = newArrayList();
-                List<Pattern> excludes = newArrayList();
+                List<Pattern> includes = new ArrayList<>();
+                List<Pattern> excludes = new ArrayList<>();
                 readPatterns(tokenizer, includes, excludes);
 
                 if (key.equals("nodes")) {

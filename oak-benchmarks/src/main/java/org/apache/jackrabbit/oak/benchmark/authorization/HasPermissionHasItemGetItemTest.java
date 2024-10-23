@@ -28,7 +28,7 @@ import java.util.List;
 
 public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
-    private static final List<String> PERMISSIONS = Lists.newArrayList(Permissions.PERMISSION_NAMES.values());
+    private static final List<String> PERMISSIONS = List.of(Permissions.PERMISSION_NAMES.values());
 
     public HasPermissionHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -37,28 +38,26 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 public class ValuePatternTest {
-    
+
     @Test
     public void getStringsBuilder() {
         NodeBuilder b = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         assertNull(ValuePattern.getStrings(b, "x"));
-        
+
         b.setProperty("x", "");
         assertEquals("[]", ValuePattern.getStrings(b, "x").toString());
-        
+
         b.setProperty("x", "test");
         assertEquals("[test]", ValuePattern.getStrings(b, "x").toString());
-        
+
         PropertyState ps = PropertyStates.createProperty(
                 "x",
                 Arrays.asList("hello"),
                 Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[hello]", ValuePattern.getStrings(b, "x").toString());
-        
+
         ps = PropertyStates.createProperty(
                 "x",
                 Arrays.asList(),
@@ -73,25 +72,25 @@ public class ValuePatternTest {
         b.setProperty(ps);
         assertEquals("[a, b]", ValuePattern.getStrings(b, "x").toString());
     }
-    
+
     @Test
     public void getStringsState() {
         NodeBuilder b = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         assertNull(ValuePattern.getStrings(b.getNodeState(), "x"));
-        
+
         b.setProperty("x", "");
         assertEquals("[]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
-        
+
         b.setProperty("x", "test");
         assertEquals("[test]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
-        
+
         PropertyState ps = PropertyStates.createProperty(
                 "x",
                 Arrays.asList("hello"),
                 Type.STRINGS);
         b.setProperty(ps);
         assertEquals("[hello]", ValuePattern.getStrings(b.getNodeState(), "x").toString());
-        
+
         ps = PropertyStates.createProperty(
                 "x",
                 Arrays.asList(),
@@ -140,10 +139,10 @@ public class ValuePatternTest {
         // unkown, as we don't do regular expression analysis
         assertFalse(vp.matchesPrefix("x"));
     }
-    
+
     @Test
     public void included() {
-        ValuePattern vp = new ValuePattern(null, Lists.newArrayList("abc", "bcd"), null);
+        ValuePattern vp = new ValuePattern(null, List.of("abc", "bcd"), null);
         assertTrue(vp.matches(null));
         assertTrue(vp.matches("abc1"));
         assertTrue(vp.matches("bcd"));
@@ -161,10 +160,10 @@ public class ValuePatternTest {
         assertTrue(vp.matchesPrefix("abcdef"));
         assertFalse(vp.matchesPrefix("a"));
     }
-    
+
     @Test
     public void excluded() {
-        ValuePattern vp = new ValuePattern(null, null, Lists.newArrayList("abc", "bcd"));
+        ValuePattern vp = new ValuePattern(null, null, List.of("abc", "bcd"));
         assertTrue(vp.matches(null));
         assertFalse(vp.matches("abc1"));
         assertFalse(vp.matches("bcd"));
@@ -182,11 +181,11 @@ public class ValuePatternTest {
         assertFalse(vp.matchesPrefix("abcdef"));
         assertFalse(vp.matchesPrefix("a"));
     }
-    
+
     @Test
     public void longestPrefix() {
         FilterImpl filter;
-        
+
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.EQUAL, 
                 PropertyValues.newString("hello"));
@@ -300,8 +299,7 @@ public class ValuePatternTest {
         filter.restrictProperty("x", Operator.LESS_THAN,
                 PropertyValues.newString(Arrays.asList("a3", "a4")));
         assertNull(getLongestPrefix(filter, "x"));
-        
+
     }
-    
-    
+
 }

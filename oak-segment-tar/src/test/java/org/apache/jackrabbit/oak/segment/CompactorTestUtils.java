@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState.binaryPropertyFromBlob;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -107,7 +107,7 @@ public class CompactorTestUtils {
     }
 
     public static List<Blob> createBlobs(NodeStore nodeStore, int... sizes) throws IOException {
-        List<Blob> blobs = newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         for (int size : sizes) {
             blobs.add(createBlob(nodeStore, size));
         }

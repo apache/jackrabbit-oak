@@ -39,6 +39,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -52,7 +53,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -96,7 +96,7 @@ public class BlobGCTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
-    
+
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
@@ -440,7 +440,7 @@ public class BlobGCTest {
         log.info("after setup time {}", afterSetupTime);
 
         cluster.blobStore
-            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
+            .countDeleteChunks(List.of(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
                 0);
         MarkSweepGarbageCollector collector = cluster.getCollector(0);
         long missing = collector.checkConsistency();
@@ -482,7 +482,7 @@ public class BlobGCTest {
         closer.register(secondCluster);
 
         cluster.blobStore
-            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
+            .countDeleteChunks(List.of(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
                 0);
 
         // Execute mark on the default cluster
@@ -507,7 +507,7 @@ public class BlobGCTest {
         closer.register(secondCluster);
 
         secondCluster.blobStore
-            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(secondCluster.blobStoreState.blobsPresent.iterator())),
+            .countDeleteChunks(List.of(Iterators.getLast(secondCluster.blobStoreState.blobsPresent.iterator())),
                 0);
 
         // Execute mark on the default cluster
@@ -639,7 +639,7 @@ public class BlobGCTest {
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = deletions;
         int numBlobs = count;
-        List<Integer> toBeDeleted = Lists.newArrayList();
+        List<Integer> toBeDeleted = new ArrayList<>();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(numBlobs);

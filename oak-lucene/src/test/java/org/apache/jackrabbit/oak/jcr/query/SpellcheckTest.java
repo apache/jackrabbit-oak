@@ -90,7 +90,7 @@ public class SpellcheckTest extends AbstractQueryTest {
     }
 
     static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();

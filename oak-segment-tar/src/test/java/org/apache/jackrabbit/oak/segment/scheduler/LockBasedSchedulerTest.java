@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.junit.Assert.assertNotNull;
 
@@ -92,7 +92,7 @@ public class LockBasedSchedulerTest {
                 }
             };
 
-            List<Future<?>> results = newArrayList();
+            List<Future<?>> results = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
                 results.add(executorService.submit(commitTask));
                 executorService.submit(parallelTask);

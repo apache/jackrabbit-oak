@@ -48,7 +48,7 @@ public class RevisionVectorTest {
         rv = new RevisionVector(Set.of(rev1, rev2));
         assertEquals(Set.of(rev1, rev2), CollectionUtils.toSet(rv));
 
-        rv = new RevisionVector(Lists.newArrayList(rev1, rev2));
+        rv = new RevisionVector(List.of(rev1, rev2));
         assertEquals(Set.of(rev1, rev2), CollectionUtils.toSet(rv));
     }
 

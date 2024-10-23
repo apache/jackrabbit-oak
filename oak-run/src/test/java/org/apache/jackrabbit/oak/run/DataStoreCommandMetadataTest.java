@@ -165,7 +165,7 @@ public class DataStoreCommandMetadataTest {
         setupDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             REFERENCES.getNameFromIdPrefix(rep2Id, sessionId));
 
-        List<String> expectations = Lists.newArrayList();
+        List<String> expectations = new ArrayList<>();
         expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
             MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()), "-"));
         expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),
@@ -184,7 +184,7 @@ public class DataStoreCommandMetadataTest {
         File dump = temporaryFolder.newFolder();
 
         List<String> argsList = Lists
-            .newArrayList("--get-metadata", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+            .NAL("--get-metadata", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
 

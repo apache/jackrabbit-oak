@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -222,7 +221,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = toList((Iterable<ResultRow>)result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
@@ -247,7 +246,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, Optional.empty(), Optional.empty(),
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = toList((Iterable<ResultRow>)result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
@@ -302,7 +301,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = toList((Iterable<ResultRow>)result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;
@@ -353,7 +352,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = toList((Iterable<ResultRow>)result.getRows());
         assertEquals(expected.length, rows.size());
 
         int i = 0;

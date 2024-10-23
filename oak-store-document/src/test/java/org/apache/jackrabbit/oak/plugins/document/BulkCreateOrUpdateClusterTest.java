@@ -231,7 +231,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 UpdateOp op3a = new UpdateOp(id3, true);
                 op3a.set("foo", 1);
 
-                List<NodeDocument> resulta = ds1.createOrUpdate(Collection.NODES, Lists.newArrayList(op1a, op2a, op3a));
+                List<NodeDocument> resulta = ds1.createOrUpdate(Collection.NODES, List.of(op1a, op2a, op3a));
                 assertEquals(3, resulta.size());
             }
 
@@ -251,7 +251,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 UpdateOp op3c = new UpdateOp(id3, true);
                 op3c.increment("foo", 1);
 
-                List<NodeDocument> resultc = ds1.createOrUpdate(Collection.NODES, Lists.newArrayList(op1c, op2c, op3c));
+                List<NodeDocument> resultc = ds1.createOrUpdate(Collection.NODES, List.of(op1c, op2c, op3c));
                 assertEquals(3, resultc.size());
                 for (NodeDocument d : resultc) {
                     Long fooval = (Long) d.get("foo");

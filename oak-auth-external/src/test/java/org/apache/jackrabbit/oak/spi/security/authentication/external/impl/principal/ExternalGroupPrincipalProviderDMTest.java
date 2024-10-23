@@ -79,7 +79,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, "Dynamic Groups Enabled, Membership-Nesting-Depth=1" },
                 new Object[] { true, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, "Dynamic Groups Enabled, Membership-Nesting-Depth=2" },
                 new Object[] { false, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, "Dynamic Groups NOT Enabled" });

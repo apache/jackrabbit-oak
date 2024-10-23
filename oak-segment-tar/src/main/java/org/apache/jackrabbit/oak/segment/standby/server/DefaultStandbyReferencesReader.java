@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -45,7 +45,7 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
         if (store.containsSegment(segmentId)) {
             Segment segment = store.readSegment(segmentId);
 
-            List<String> references = newArrayList();
+            List<String> references = new ArrayList<>();
 
             for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
                 references.add(segment.getReferencedSegmentId(i).toString());

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -34,9 +33,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-public class JcrAllUtilTest implements PrivilegeConstants {
+import java.util.List;
 
-    private static final Long ALL = Long.MAX_VALUE;
+public class JcrAllUtilTest implements PrivilegeConstants {
 
     private static final PropertyState ALL_PROPERTY = PropertyStates.createProperty(REP_BITS, Longs.asList(Long.MAX_VALUE), Type.LONGS);
     private final PrivilegeBits ALL_BITS = PrivilegeBits.getInstance(ALL_PROPERTY);
@@ -120,13 +119,13 @@ public class JcrAllUtilTest implements PrivilegeConstants {
     @Test
     public void testDenotesDynamicAllNotLongsPropertyState() {
         assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", "String")));
-        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any",  Lists.newArrayList("mv", "strings"), Type.STRINGS)));
+        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any",  List.of("mv", "strings"), Type.STRINGS)));
         assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", "-1")));
     }
 
     @Test
     public void testDenotesDynamicAllMVLongPropertyState() {
-        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", Lists.newArrayList(-1, 2, 3), Type.LONGS)));
+        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", List.of(-1, 2, 3), Type.LONGS)));
     }
 
     @Test
@@ -136,6 +135,6 @@ public class JcrAllUtilTest implements PrivilegeConstants {
 
     @Test
     public void testDenotesDynamicAll() {
-        assertTrue(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", Lists.newArrayList(DYNAMIC_JCR_ALL_VALUE), Type.LONGS)));
+        assertTrue(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", List.of(DYNAMIC_JCR_ALL_VALUE), Type.LONGS)));
     }
 }

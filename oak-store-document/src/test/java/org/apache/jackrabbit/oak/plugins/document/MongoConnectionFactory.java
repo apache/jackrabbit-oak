@@ -33,7 +33,7 @@ public class MongoConnectionFactory extends ExternalResource {
 
     private final MongoDockerRule mongo = new MongoDockerRule();
 
-    private final List<MongoConnection> connections = Lists.newArrayList();
+    private final List<MongoConnection> connections = new ArrayList<>();
 
     @Override
     public Statement apply(Statement base, Description description) {

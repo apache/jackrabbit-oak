@@ -47,7 +47,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[]{true, "DynamicSync=true"},
                 new Object[]{false, "DynamicSync=false"});
     }

@@ -1008,7 +1008,7 @@ public final class NodeDocument extends Document {
             return null;
         }
         Path path = getPath();
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -1527,7 +1527,7 @@ public final class NodeDocument extends Document {
     Iterable<Revision> getChanges(@NotNull final String property,
                                   @NotNull final RevisionVector min) {
         Predicate<Revision> p = input -> min.isRevisionNewer(input);
-        List<Iterable<Revision>> changes = Lists.newArrayList();
+        List<Iterable<Revision>> changes = new ArrayList<>();
         changes.add(abortingIterable(getLocalMap(property).keySet(), p));
         for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
             if (min.isRevisionNewer(e.getKey())) {
@@ -1558,7 +1558,7 @@ public final class NodeDocument extends Document {
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
                                                             @NotNull final RevisionVector readRevision) {
         Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
-        List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
+        List<Iterable<Map.Entry<Revision, String>>> changes = new ArrayList<>();
         Map<Revision, String> localChanges = getLocalMap(property);
         if (!localChanges.isEmpty()) {
             changes.add(filter(localChanges.entrySet(), p::test));
@@ -1589,7 +1589,7 @@ public final class NodeDocument extends Document {
     private void collectVisiblePreviousChanges(@NotNull final String property,
                                                @NotNull final Revision readRevision,
                                                @NotNull final List<Iterable<Entry<Revision, String>>> changes) {
-        List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
+        List<Iterable<Map.Entry<Revision, String>>> revs = new ArrayList<>();
 
         RevisionVector readRV = new RevisionVector(readRevision);
         List<Range> ranges = new ArrayList<>();

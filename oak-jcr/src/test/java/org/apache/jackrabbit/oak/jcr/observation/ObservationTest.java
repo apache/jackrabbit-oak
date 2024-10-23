@@ -1355,7 +1355,7 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
-            List<Expectation> missing = Lists.newArrayList();
+            List<Expectation> missing = new ArrayList<>();
             long t0 = System.nanoTime();
             try {
                 Futures.allAsList(expected).get(time, timeUnit);
@@ -1371,7 +1371,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }
 
         public List<Event> getUnexpected() {
-            return Lists.newArrayList(unexpected);
+            return List.of(unexpected);
         }
 
         @Override

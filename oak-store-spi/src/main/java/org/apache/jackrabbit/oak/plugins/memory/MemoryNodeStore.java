@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
@@ -224,7 +223,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public synchronized Iterable<String> checkpoints() {
-        return Lists.newArrayList(checkpoints.keySet());
+        return checkpoints.keySet();
     }
 
     @Override @Nullable

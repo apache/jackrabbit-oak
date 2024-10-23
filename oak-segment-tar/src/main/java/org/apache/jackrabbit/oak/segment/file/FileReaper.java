@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import java.util.HashSet;
 import java.util.List;
@@ -71,7 +71,7 @@ public class FileReaper {
         }
 
         Set<String> redo = new HashSet<>();
-        List<String> removed = newArrayList();
+        List<String> removed = new ArrayList<>();
         for (String file : reap) {
             if (archiveManager.delete(file)) {
                 removed.add(file);

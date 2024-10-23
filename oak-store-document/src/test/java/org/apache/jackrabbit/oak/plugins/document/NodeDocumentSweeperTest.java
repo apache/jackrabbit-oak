@@ -84,7 +84,7 @@ public class NodeDocumentSweeperTest {
         setModified(op, uncommitted);
         assertNotNull(store.findAndUpdate(NODES, op));
 
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         Revision nextSweepStart = sweep(ops);
 
         assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
@@ -114,7 +114,7 @@ public class NodeDocumentSweeperTest {
         setModified(op, uncommitted);
         assertNotNull(store.findAndUpdate(NODES, op));
 
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         Revision nextSweepStart = sweep(ops);
 
         assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
@@ -137,7 +137,7 @@ public class NodeDocumentSweeperTest {
         merge(ns, b);
         ns.runBackgroundUpdateOperations();
 
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         Revision nextSweepStart = sweep(ops);
 
         // must not touch branch
@@ -154,7 +154,7 @@ public class NodeDocumentSweeperTest {
         mk.merge(branchRev, null);
         ns.runBackgroundUpdateOperations();
 
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         Revision nextSweepStart = sweep(ops);
 
         assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
@@ -178,7 +178,7 @@ public class NodeDocumentSweeperTest {
         }
         assertNotNull(store.findAndUpdate(NODES, op));
 
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         Revision nextSweepStart = sweep(ops);
 
         assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);

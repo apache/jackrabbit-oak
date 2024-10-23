@@ -101,7 +101,7 @@ public class TextPopulatorTest {
     }
 
     private List<Field> createLuceneDocument(@NotNull String path, String ... values) {
-        List<Field> fields = Lists.newArrayList();
+        List<Field> fields = new ArrayList<>();
         for (String value : values) {
             if (value != null) {
                 fields.add(FieldFactory.newFulltextField(value, true));
@@ -269,7 +269,7 @@ public class TextPopulatorTest {
     }
 
     private static class FakeBinaryResourceProvider implements BinaryResourceProvider {
-        private List<BinaryResource> binaries = Lists.newArrayList();
+        private List<BinaryResource> binaries = new ArrayList<>();
 
         FakeBinaryResourceProvider(String ... paths) {
             for (String path : paths) {

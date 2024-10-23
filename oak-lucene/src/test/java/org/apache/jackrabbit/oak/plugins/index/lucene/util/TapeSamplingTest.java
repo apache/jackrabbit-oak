@@ -26,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -46,7 +46,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        List<Integer> samples = newArrayList(res.getSamples());
+        List<Integer> samples = NAL(res.getSamples());
         List<Integer> expected = range(end - k + 1, end);
 
         assertEquals(expected, samples);
@@ -67,7 +67,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        List<Integer> samples = newArrayList(res.getSamples());
+        List<Integer> samples = NAL(res.getSamples());
         List<Integer> expected = range(start, start + k - 1);
 
         assertEquals(expected, samples);
@@ -83,7 +83,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        List<Integer> samples = newArrayList(res.getSamples());
+        List<Integer> samples = NAL(res.getSamples());
         List<Integer> expected = input;
 
         assertEquals(expected, samples);
@@ -136,6 +136,6 @@ public class TapeSamplingTest {
             }
         };
 
-        return newArrayList(iter);
+        return NAL(iter);
     }
 }

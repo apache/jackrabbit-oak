@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.lang.Math.min;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
@@ -79,7 +79,7 @@ public class CommitsTrackerTest {
         final int OTHER_WRITERS_LIMIT = 10;
         CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, OTHER_WRITERS_LIMIT);
 
-        List<CommitTask> queued = newArrayList();
+        List<CommitTask> queued = new ArrayList<>();
         for (int k = 0; k < 20; k++) {
             CommitTask commitTask = new CommitTask(commitsTracker, newGCGeneration(k, k, false));
             queued.add(commitTask);
@@ -90,7 +90,7 @@ public class CommitsTrackerTest {
             assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
 
-        List<CommitTask> executed = newArrayList();
+        List<CommitTask> executed = new ArrayList<>();
         for (int k = 0; k < OTHER_WRITERS_LIMIT + 3; k++) {
             CommitTask commitTask = queued.remove(0);
             executed.add(commitTask);

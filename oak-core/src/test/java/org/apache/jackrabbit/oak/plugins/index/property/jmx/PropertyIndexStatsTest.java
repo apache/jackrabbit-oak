@@ -116,7 +116,7 @@ public class PropertyIndexStatsTest {
 
     private static void assertArray(CompositeData cd, String prop, List<String> values){
         String[] a = (String[])cd.get(prop);
-        assertEquals(new HashSet<String>(values), new HashSet<String>(Lists.newArrayList(a)));
+        assertEquals(new HashSet<String>(values), new HashSet<String>(List.of(a)));
     }
 
     private static void setProperty(NodeBuilder builder, String path, String name, String value){

@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertFalse;
@@ -104,11 +104,11 @@ public class IndexlaneRepositoryTraversalTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(NAL(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )));
-        asyncIndexUpdateFulltext = new AsyncIndexUpdate("fulltext-async", nodeStore, compose(newArrayList(
+        asyncIndexUpdateFulltext = new AsyncIndexUpdate("fulltext-async", nodeStore, compose(NAL(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )));

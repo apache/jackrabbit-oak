@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
@@ -86,7 +86,7 @@ public class TarReader implements Closeable {
         SortedMap<Character, String> sorted = new TreeMap<>();
         sorted.putAll(files);
 
-        List<String> list = newArrayList(sorted.values());
+        List<String> list = NAL(sorted.values());
         Collections.reverse(list);
 
         TarReader reader = openFirstFileWithValidIndex(list, archiveManager);

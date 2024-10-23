@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
@@ -43,6 +42,8 @@ import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toLinkedSet;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_DECLARING_NODE_TYPE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
@@ -70,7 +71,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -314,7 +314,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
     private void mergeNameList(
             NodeBuilder builder, NodeState state, String listName) {
-        Set<String> nameList = CollectionUtils.toLinkedSet(getNames(builder, listName));
+        Set<String> nameList = toLinkedSet(getNames(builder, listName));
         Iterables.addAll(nameList, state.getProperty(listName).getValue(NAMES));
         builder.setProperty(listName, nameList, NAMES);
     }
@@ -385,8 +385,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
     }
 
     private void addNameToList(NodeBuilder type, String name, String value) {
-        List<String> values;
-        values = newArrayList(getNames(type, name));
+        List<String> values = toList(getNames(type, name));
         if (!values.contains(value)) {
             values.add(value);
         }

@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static org.junit.Assert.*;
 
 import java.util.Calendar;
+import java.util.List;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -34,13 +35,11 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 public class PropertyStatesTest {
 
     private final NamePathMapper namePathMapper = Mockito.mock(NamePathMapper.class);
     private final PartialValueFactory valueFactory = new PartialValueFactory(namePathMapper);
-    
+
     @Test
     public void emptyPropertyStateTest() {
         PropertyState s = EmptyPropertyState.emptyProperty("test", Type.STRINGS);
@@ -49,19 +48,19 @@ public class PropertyStatesTest {
         assertTrue(s.isArray());
         assertEquals(Type.STRINGS, s.getType());
         assertEquals(0, s.count());
-        try {        
+        try {
             s.getValue(Type.STRING, 0);
             fail();
         } catch (IndexOutOfBoundsException e) {
             // expected
         }
-        try {        
+        try {
             s.size();
             fail();
         } catch (IllegalStateException e) {
             // expected
         }
-        try {        
+        try {
             s.size(0);
             fail();
         } catch (IndexOutOfBoundsException e) {
@@ -74,15 +73,15 @@ public class PropertyStatesTest {
             // expected
         }
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void emptyPropertyStateNotArrayTest() {
         EmptyPropertyState.emptyProperty("test", Type.STRING);
     }
-    
+
     @Test
     public void multiPropertyStateTest() {
-        MultiStringPropertyState s = new MultiStringPropertyState("test", Lists.newArrayList("hello", "world"));
+        MultiStringPropertyState s = new MultiStringPropertyState("test", List.of("hello", "world"));
         assertEquals(Type.STRINGS, s.getType());
         assertEquals("test", s.getName());
         assertTrue(s.getValue(Type.STRINGS).iterator().hasNext());
@@ -97,12 +96,12 @@ public class PropertyStatesTest {
         } catch (IllegalStateException e) {
             // expected
         } 
-        try {        
+        try {
             s.size();
             fail();
         } catch (IllegalStateException e) {
             // expected
-        }        
+        }
     }
 
     @Test

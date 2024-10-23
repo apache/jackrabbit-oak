@@ -42,7 +42,7 @@ public class GetURITest extends AbstractTest {
 
     private Node root;
 
-    private List<Binary> binariesAdded = Lists.newArrayList();
+    private List<Binary> binariesAdded = new ArrayList<>();
 
     private Random random = new Random(29);
 

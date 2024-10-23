@@ -41,7 +41,7 @@ public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProvider
     
     @Parameterized.Parameters(name = "LdapConfiguration with {2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] {false, false, null, "useSSL=false, useTLS=false, enabled_protocols=NA"},
                 new Object[] {true, false, null, "useSSL=true, useTLS=false, enabled_protocols=NA"},
                 new Object[] {true, false, new String[] {PROTOCOL}, "useSSL=true, useTLS=false, enabled_protocols=["+PROTOCOL+"]"},

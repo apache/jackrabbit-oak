@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
@@ -182,7 +182,7 @@ public class DefaultSegmentWriterTest {
 
     @Test
     public void testListWithLotsOfReferences() throws IOException { // OAK-1184
-        List<RecordId> list = newArrayList();
+        List<RecordId> list = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             list.add(new RecordId(store.fileStore().getSegmentIdProvider().newBulkSegmentId(), 0));
         }

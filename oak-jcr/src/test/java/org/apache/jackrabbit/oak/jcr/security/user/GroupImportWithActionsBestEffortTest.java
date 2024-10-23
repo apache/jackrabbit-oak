@@ -155,7 +155,7 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
 
     private final class TestActionProvider implements AuthorizableActionProvider {
 
-        private final List<AuthorizableAction> actions = Lists.newArrayList();
+        private final List<AuthorizableAction> actions = new ArrayList<>();
 
         private void addAction(AuthorizableAction action) {
             actions.add(action);

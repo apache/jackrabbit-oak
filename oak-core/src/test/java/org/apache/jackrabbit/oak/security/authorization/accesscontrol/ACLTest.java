@@ -203,7 +203,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testGetRestrictionNames() {
         String[] restrNames = acl.getRestrictionNames();
         assertNotNull(restrNames);
-        List<String> names = Lists.newArrayList(restrNames);
+        List<String> names = List.of(restrNames);
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(TEST_PATH)) {
             assertTrue(names.remove(getNamePathMapper().getJcrName(def.getName())));
         }

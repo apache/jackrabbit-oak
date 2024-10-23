@@ -273,7 +273,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
                                     lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp, blobDeletionTimestamp);
 
-                                    List<String> chunkIds = Lists.newArrayList(blobStore.resolveChunks(deletedBlobId));
+                                    List<String> chunkIds = List.of(blobStore.resolveChunks(deletedBlobId));
                                     if (chunkIds.size() > 0) {
                                         long deleted = blobStore.countDeleteChunks(chunkIds, 0);
                                         if (deleted < 1) {

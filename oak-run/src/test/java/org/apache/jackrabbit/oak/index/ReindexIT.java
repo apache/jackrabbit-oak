@@ -361,7 +361,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         assertThat(explain, containsString("/oak:index/barIndex"));
 
         IndexPathService idxPathService = new IndexPathServiceImpl(fixture2.getNodeStore());
-        List<String> indexPaths = Lists.newArrayList(idxPathService.getIndexPaths());
+        List<String> indexPaths = List.of(idxPathService.getIndexPaths());
 
         assertThat(indexPaths, hasItem("/oak:index/nodetype"));
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
@@ -419,7 +419,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();

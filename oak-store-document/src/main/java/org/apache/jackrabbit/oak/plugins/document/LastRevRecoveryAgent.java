@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
@@ -308,7 +308,7 @@ public class LastRevRecoveryAgent {
                     entry.invalidate(Collections.singleton(r));
                     Revision jRev = context.newRevision();
                     UpdateOp jOp = entry.asUpdateOp(jRev);
-                    if (!store.create(JOURNAL, newArrayList(invOp, jOp))) {
+                    if (!store.create(JOURNAL, NAL(invOp, jOp))) {
                         String msg = "Unable to create journal entries for " +
                                 "document invalidation.";
                         throw new DocumentStoreException(msg);
@@ -316,7 +316,7 @@ public class LastRevRecoveryAgent {
                     sweepRev.set(Utils.max(sweepRev.get(), jRev));
                     // now that journal entry is in place, perform the actual
                     // updates on the documents
-                    store.createOrUpdate(NODES, newArrayList(updates.values()));
+                    store.createOrUpdate(NODES, NAL(updates.values()));
                     log.info("Sweeper updated {}", updates.keySet());
                 }
             });

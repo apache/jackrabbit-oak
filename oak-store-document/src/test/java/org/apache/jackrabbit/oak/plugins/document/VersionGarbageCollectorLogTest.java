@@ -149,7 +149,7 @@ public class VersionGarbageCollectorLogTest {
     }
 
     private List<String> getDeleteMessages() {
-        List<String> messages = Lists.newArrayList();
+        List<String> messages = new ArrayList<>();
         for (String msg : logCustomizer.getLogs()) {
             if (msg.startsWith("Proceeding to delete [")) {
                 messages.add(msg);

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.tree;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -401,7 +400,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         TreeUtil.addMixin(child, MIX_LOCKABLE, typeRoot, "userId");
 
         verify(child, times(1)).getProperty(JcrConstants.JCR_MIXINTYPES);
-        verify(child, never()).setProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
+        verify(child, never()).setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
     }
 
     @Test
@@ -412,7 +411,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         TreeUtil.addMixin(child, MIX_LOCKABLE, typeRoot, "userId");
 
         verify(child, times(1)).getProperty(JcrConstants.JCR_MIXINTYPES);
-        verify(child, never()).setProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
+        verify(child, never()).setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
     }
 
     @Test
@@ -451,7 +450,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         TreeUtil.addMixin(child, MIX_CREATED, typeRoot, "userId");
 
         verify(child, times(1)).getProperty(JcrConstants.JCR_MIXINTYPES);
-        verify(child, times(1)).setProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
+        verify(child, times(1)).setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
     }
 
     @Test
@@ -800,7 +799,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         PropertyState supertypes = PropertyStates.createProperty(REP_SUPERTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
         when(ntDef.getProperty(REP_SUPERTYPES)).thenReturn(supertypes);
 
-        PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(JcrConstants.MIX_VERSIONABLE), Type.NAMES);
+        PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, List.of(JcrConstants.MIX_VERSIONABLE), Type.NAMES);
         Tree tree = when(mockTree(CHILD_PATH, z, true).getProperty(JCR_MIXINTYPES)).thenReturn(mixinNames).getMock();
         assertTrue(TreeUtil.isNodeType(tree, MIX_REFERENCEABLE, typeRoot));
         assertFalse(TreeUtil.isNodeType(child, MIX_LASTMODIFIED, typeRoot));

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -86,7 +86,7 @@ public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
                 parentPath = getParentPath(parentPath);
                 if (isNodeType(root, parentPath, primaryType)) {
                     parents.add(parentPath);
-                    parents.addAll(newArrayList(getParents(root, parentPath,
+                    parents.addAll(toList(getParents(root, parentPath,
                             false)));
                     return parents.iterator();
                 }

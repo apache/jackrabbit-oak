@@ -183,8 +183,8 @@ public class DataRecordDownloadOptionsTest {
 
     @Test
     public void testGetContentTypeHeader() {
-        for (String mediaType : Lists.newArrayList(MEDIA_TYPE_TEXT_PLAIN, MEDIA_TYPE_IMAGE_PNG)) {
-            for (String characterEncoding : Lists.newArrayList(CHARACTER_ENCODING_UTF_8, CHARACTER_ENCODING_ISO_8859_1)) {
+        for (String mediaType : List.of(MEDIA_TYPE_TEXT_PLAIN, MEDIA_TYPE_IMAGE_PNG)) {
+            for (String characterEncoding : List.of(CHARACTER_ENCODING_UTF_8, CHARACTER_ENCODING_ISO_8859_1)) {
                 verifyContentTypeHeader(
                         getOptions(mediaType, characterEncoding, null, null),
                         getContentTypeHeader(mediaType, characterEncoding)
@@ -219,8 +219,8 @@ public class DataRecordDownloadOptionsTest {
 
     @Test
     public void testGetContentDisposition() {
-        for (String fileName : Lists.newArrayList(FILE_NAME_IMAGE, FILE_NAME_TEXT)) {
-            for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
+        for (String fileName : List.of(FILE_NAME_IMAGE, FILE_NAME_TEXT)) {
+            for (String dispositionType : List.of(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
                 verifyContentDispositionHeader(
                         getOptions(null, null, fileName, dispositionType),
                         getContentDispositionHeader(fileName,
@@ -267,7 +267,7 @@ public class DataRecordDownloadOptionsTest {
                 StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
                 StandardCharsets.ISO_8859_1
         );
-        List<String> filenames = Lists.newArrayList(
+        List<String> filenames = List.of(
                 "image.png",
                 "text.txt",
                 "filename with spaces.jpg",
@@ -275,7 +275,7 @@ public class DataRecordDownloadOptionsTest {
                 "filename-with-one\"double-quote.jpg",
                 umlautFilename
         );
-        List<String> iso_8859_1_filenames = Lists.newArrayList(
+        List<String> iso_8859_1_filenames = List.of(
                 "image.png",
                 "text.txt",
                 "filename with spaces.jpg",
@@ -283,7 +283,7 @@ public class DataRecordDownloadOptionsTest {
                 "filename-with-one\\\"double-quote.jpg",
                 umlautFilename_ISO_8859_1
         );
-        List<String> rfc8187_filenames = Lists.newArrayList(
+        List<String> rfc8187_filenames = List.of(
                 "image.png",
                 "text.txt",
                 "filename%20with%20spaces.jpg",
@@ -292,7 +292,7 @@ public class DataRecordDownloadOptionsTest {
                 "Uml%C3%A4utfile.jpg"
         );
 
-        for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
+        for (String dispositionType : List.of(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
             for (int i=0; i<filenames.size(); i++) {
                 String fileName = filenames.get(i);
                 String iso_8859_1_fileName = iso_8859_1_filenames.get(i);

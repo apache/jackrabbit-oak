@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -34,6 +33,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -89,7 +89,7 @@ public class IndexInfoServiceImplTest {
 
     @Test
     public void allIndexInfo() throws Exception{
-        pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
+        pathService.paths = List.of("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("a"); //Index with no type
@@ -113,7 +113,7 @@ public class IndexInfoServiceImplTest {
         service.bindInfoProviders(type_c);
         service.bindInfoProviders(type_d);
 
-        List<IndexInfo> infos = Lists.newArrayList(service.getAllIndexInfo());
+        List<IndexInfo> infos = toList(service.getAllIndexInfo());
 
         //Result would only have 2 entries. One throwing exception would be ignored
         assertEquals(2, infos.size());

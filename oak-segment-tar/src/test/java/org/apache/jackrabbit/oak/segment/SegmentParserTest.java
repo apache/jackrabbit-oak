@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
@@ -77,7 +77,7 @@ public class SegmentParserTest {
         BlobStore longIdBlobStore = mock(BlobStore.class);
         when(longIdBlobStore.writeBlob(any())).thenReturn("shortId".repeat(1000));
 
-        return newArrayList(
+        return NAL(
                 new Object[]{null, "No BlobStore"},
                 new Object[]{shortIdBlobStore, "Short Id BlobStore"},
                 new Object[]{longIdBlobStore, "Long Id BlobStore"});

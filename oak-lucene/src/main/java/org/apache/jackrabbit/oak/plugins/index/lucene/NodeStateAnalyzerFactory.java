@@ -60,7 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 /**
  * Constructs a Lucene Analyzer from nodes (based on NodeState content).
@@ -107,7 +107,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenFilterFactory[] loadTokenFilterFactories(NodeState tokenFiltersState) {
-        List<TokenFilterFactory> result = newArrayList();
+        List<TokenFilterFactory> result = new ArrayList<>();
 
         Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
         for (Tree t : tree.getChildren()){
@@ -124,7 +124,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private CharFilterFactory[] loadCharFilterFactories(NodeState charFiltersState) {
-        List<CharFilterFactory> result = newArrayList();
+        List<CharFilterFactory> result = new ArrayList<>();
 
         //Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);

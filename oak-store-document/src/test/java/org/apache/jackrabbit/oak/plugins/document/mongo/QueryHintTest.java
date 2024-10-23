@@ -94,7 +94,7 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
     }
 
     private static class TestHandler extends Handler {
-        final List<String> records = Lists.newArrayList();
+        final List<String> records = new ArrayList<>();
 
         @Override
         public void publish(LogRecord record) {

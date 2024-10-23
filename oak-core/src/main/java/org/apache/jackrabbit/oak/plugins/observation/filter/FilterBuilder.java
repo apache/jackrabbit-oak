@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -29,6 +29,8 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -60,11 +62,11 @@ public final class FilterBuilder {
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
-    private final List<String> subTrees = newArrayList();
+    private final List<String> subTrees = new ArrayList<>();
     private final Set<String> pathsForMBean = new HashSet<>();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
-        
+
         @Override
         public boolean excludes(ChangeSet changeSet) {
             return false;
@@ -341,7 +343,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Condition... conditions) {
-        return new AnyCondition(newArrayList(requireNonNull(conditions)));
+        return new AnyCondition(Arrays.asList(requireNonNull(conditions)));
     }
 
     /**
@@ -351,7 +353,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull Condition... conditions) {
-        return new AllCondition(newArrayList(requireNonNull(conditions)));
+        return new AllCondition(Arrays.asList(requireNonNull(conditions)));
     }
 
     /**
@@ -601,13 +603,9 @@ public final class FilterBuilder {
             this.conditions = conditions;
         }
 
-        public AnyCondition(Condition... conditions) {
-            this(newArrayList(conditions));
-        }
-
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
@@ -628,13 +626,9 @@ public final class FilterBuilder {
             this.conditions = conditions;
         }
 
-        public AllCondition(Condition... conditions) {
-            this(newArrayList(conditions));
-        }
-
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;

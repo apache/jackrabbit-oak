@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.json;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -62,10 +61,10 @@ public class JsonDeserializerTest {
         builder.child("a").setProperty("foo4", false);
         builder.child("a").setProperty("foo5", 1.1);
         builder.child("a").setProperty("foo6", "nt:base", Type.NAME);
-        builder.child("a").child("b").setProperty("foo", Lists.newArrayList(1L,2L,3L), Type.LONGS);
-        builder.child("a").child("b").setProperty("foo2", Lists.newArrayList("x", "y", "z"), Type.STRINGS);
-        builder.child("a").child("b").setProperty("foo3", Lists.newArrayList(true, false), Type.BOOLEANS);
-        builder.child("a").child("b").setProperty("foo4", Lists.newArrayList(1.1, 1.2), Type.DOUBLES);
+        builder.child("a").child("b").setProperty("foo", List.of(1L,2L,3L), Type.LONGS);
+        builder.child("a").child("b").setProperty("foo2", List.of("x", "y", "z"), Type.STRINGS);
+        builder.child("a").child("b").setProperty("foo3", List.of(true, false), Type.BOOLEANS);
+        builder.child("a").child("b").setProperty("foo4", List.of(1.1, 1.2), Type.DOUBLES);
         builder.child("a").child(":c").setProperty("foo", "bar");
 
         assertDeserialization(builder);
@@ -82,7 +81,7 @@ public class JsonDeserializerTest {
     public void binaryProperty() throws Exception{
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").setProperty("foo", createBlob(100));
-        builder.child("b").setProperty("foo", Lists.newArrayList(createBlob(200), createBlob(300)), Type.BINARIES);
+        builder.child("b").setProperty("foo", List.of(createBlob(200), createBlob(300)), Type.BINARIES);
         assertDeserialization(builder);
     }
 

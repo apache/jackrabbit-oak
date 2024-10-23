@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_OURS;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
@@ -136,7 +136,7 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
     }
 
     private static NodeBuilder addConflictMarker(@NotNull NodeBuilder parent) {
-        List<String> mixins = newArrayList(parent.getNames(JCR_MIXINTYPES));
+        List<String> mixins = toList(parent.getNames(JCR_MIXINTYPES));
         if (mixins.add(MIX_REP_MERGE_CONFLICT)) {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }

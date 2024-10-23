@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,7 +41,7 @@ public class PropertyBuilder<T> {
 
     private String name;
     private boolean isArray;
-    private List<T> values = Lists.newArrayList();
+    private List<T> values = new ArrayList<>();
 
     /**
      * Create a new instance for building {@code PropertyState} instances
@@ -132,7 +133,7 @@ public class PropertyBuilder<T> {
 
     @NotNull
     public List<T> getValues() {
-        return Lists.newArrayList(values);
+        return new ArrayList<>(values);
     }
 
     public T getValue(int index) {
@@ -262,7 +263,7 @@ public class PropertyBuilder<T> {
 
     @NotNull
     public PropertyBuilder<T> setValues(Iterable<T> values) {
-        this.values = Lists.newArrayList(values);
+        this.values = toList(values);
         return this;
     }
 

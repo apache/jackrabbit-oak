@@ -236,13 +236,13 @@ public class ActiveDeletedBlobCollectorTest {
         // So, we'd push "MARKER*" blob ids and purge until some marker blob
         // gets purged. BUT, we'd time-out this activity in 3 seconds
         long until = Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(3);
-        List<String> markerChunks = Lists.newArrayList();
+        List<String> markerChunks = new ArrayList<>();
         int i = 0;
         while (Clock.SIMPLE.getTime() < until) {
             // Push commit with a marker blob-id and wait for it to be purged
             BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
             String markerBlobId = "MARKER-" + (i++);
-            bdc.deleted(markerBlobId, Lists.newArrayList(markerBlobId));
+            bdc.deleted(markerBlobId, List.of(markerBlobId));
             bdc.commitProgress(COMMIT_SUCCEDED);
 
             Iterators.addAll(markerChunks, blobStore.resolveChunks(markerBlobId));
@@ -377,7 +377,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.deleted("blobId3", Collections.singleton("/c"));
         bdc.commitProgress(COMMIT_SUCCEDED);
 
-        List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+        List<String> externallyDeletedChunks = List.of(blobStore.resolveChunks("blobId2"));
         blobStore.countDeleteChunks(externallyDeletedChunks, 0);
 
         warnLogCustomizer.starting();
@@ -395,7 +395,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+        blobStore.failWithDSEForChunkIds.addAll(List.of(blobStore.resolveChunks("blobId4")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -411,7 +411,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithExceptionForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId6")));
+        blobStore.failWithExceptionForChunkIds.addAll(List.of(blobStore.resolveChunks("blobId6")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -435,7 +435,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.deleted("blobId3", Collections.singleton("/c"));
         bdc.commitProgress(COMMIT_SUCCEDED);
 
-        List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+        List<String> externallyDeletedChunks = List.of(blobStore.resolveChunks("blobId2"));
         blobStore.countDeleteChunks(externallyDeletedChunks, 0);
 
         warnLogCustomizer.starting();
@@ -453,7 +453,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+        blobStore.failWithDSEForChunkIds.addAll(List.of(blobStore.resolveChunks("blobId4")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -498,7 +498,7 @@ public class ActiveDeletedBlobCollectorTest {
     private void verifyBlobsDeleted(String ... blobIds) throws IOException {
         List<String> chunkIds = new ArrayList<>();
         for (String blobId : blobIds) {
-            chunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks(blobId)));
+            chunkIds.addAll(List.of(blobStore.resolveChunks(blobId)));
         }
 
         assertThat(blobStore.deletedChunkIds, containsInAnyOrder(chunkIds.toArray()));

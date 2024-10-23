@@ -67,7 +67,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         List<? extends ValidatorProvider> validators = configuration.getValidators(adminSession.getWorkspaceName(), Collections.<Principal>emptySet(), new MoveTracker());
         assertEquals(2, validators.size());
 
-        List<String> clNames = Lists.newArrayList(
+        List<String> clNames = List.of(
                 UserValidatorProvider.class.getName(),
                 CacheValidatorProvider.class.getName());
 

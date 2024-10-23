@@ -53,7 +53,7 @@ class SpringBootSupport {
 
     public static List<BundleDescriptor> processDescriptors(List<BundleDescriptor> descriptors)
             throws IOException {
-        List<BundleDescriptor> processed = Lists.newArrayList();
+        List<BundleDescriptor> processed = new ArrayList<>();
         for (BundleDescriptor desc : descriptors) {
             if (desc.getRevision() == null) {
                 URL u = new URL(desc.getUrl());

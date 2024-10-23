@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -30,6 +29,8 @@ import org.mockito.Mockito;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
+
+import java.util.List;
 
 public abstract class AbstractTreeTest {
 
@@ -60,11 +61,11 @@ public abstract class AbstractTreeTest {
         when(child.hasProperty("p")).thenReturn(true);
         when(child.getProperty("p")).thenReturn(PropertyStates.createProperty("p", STRING_VALUE));
         when(child.hasProperty("pp")).thenReturn(true);
-        PropertyState pp = PropertyStates.createProperty("pp", Lists.newArrayList("v1", "v2"), Type.STRINGS);
+        PropertyState pp = PropertyStates.createProperty("pp", List.of("v1", "v2"), Type.STRINGS);
         when(child.getProperty("pp")).thenReturn(pp);
         when(child.hasProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(true);
         when(child.hasProperty(JcrConstants.JCR_MIXINTYPES)).thenReturn(true);
-        PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(JcrConstants.MIX_LOCKABLE, JcrConstants.MIX_VERSIONABLE), Type.NAMES);
+        PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, List.of(JcrConstants.MIX_LOCKABLE, JcrConstants.MIX_VERSIONABLE), Type.NAMES);
         when(child.getProperty(JcrConstants.JCR_MIXINTYPES)).thenReturn(mixinNames);
 
         when(z.getChild("child")).thenReturn(child);

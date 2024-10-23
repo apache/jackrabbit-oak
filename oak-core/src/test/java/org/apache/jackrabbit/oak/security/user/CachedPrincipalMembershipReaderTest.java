@@ -66,7 +66,7 @@ public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipRead
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { 10000L, "Cache Max Stale = 10000" },
                 new Object[] { UserPrincipalProvider.NO_STALE_CACHE, "Cache Max Stale = 0" });
     }

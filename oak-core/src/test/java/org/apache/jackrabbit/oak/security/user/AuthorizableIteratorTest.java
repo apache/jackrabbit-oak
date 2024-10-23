@@ -110,7 +110,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testFilterDuplicatesHandlesNull() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser(), null, getTestUser());
+        List<User> l = List.of(getTestUser(), null, getTestUser());
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
     }
 
@@ -124,7 +124,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testGetSize3() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser());
+        List<User> l = List.of(getTestUser());
 
         // size cannot be computed from regular iterators
         assertEquals(-1, AuthorizableIterator.create(false, l.iterator(), l.iterator()).getSize());

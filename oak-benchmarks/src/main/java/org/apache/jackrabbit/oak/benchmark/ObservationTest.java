@@ -119,10 +119,10 @@ public class ObservationTest extends Benchmark {
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger nodeCount = new AtomicInteger();
 
-        List<Session> sessions = Lists.newArrayList();
-        List<EventListener> listeners = Lists.newArrayList();
+        List<Session> sessions = new ArrayList<>();
+        List<EventListener> listeners = new ArrayList<>();
 
-        List<String> testPaths = Lists.newArrayList();
+        List<String> testPaths = new ArrayList<>();
         Session s = createSession(repository);
         String path = "/path/to/observation/benchmark-" + AbstractTest.TEST_ID;
         try {
@@ -148,7 +148,7 @@ public class ObservationTest extends Benchmark {
             // also add a listener on the root node
             addRootListener(repository, sessions, listeners);
 
-            List<Future<Object>> createNodes = Lists.newArrayList();
+            List<Future<Object>> createNodes = new ArrayList<>();
             for (final String p : testPaths) {
                 createNodes.add(service.submit(new Callable<Object>() {
                     private final Session session = createSession(repository);

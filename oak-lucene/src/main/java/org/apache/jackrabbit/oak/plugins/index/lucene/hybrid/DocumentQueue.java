@@ -232,7 +232,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     }
 
     List<LuceneDoc> getQueuedDocs(){
-        List<LuceneDoc> docs = Lists.newArrayList();
+        List<LuceneDoc> docs = new ArrayList<>();
         docs.addAll(docsQueue);
         return docs;
     }

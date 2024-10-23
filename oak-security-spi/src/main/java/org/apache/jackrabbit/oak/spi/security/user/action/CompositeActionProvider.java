@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 
@@ -43,7 +43,7 @@ public class CompositeActionProvider implements AuthorizableActionProvider {
     @NotNull
     @Override
     public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-        List<AuthorizableAction> actions = Lists.newArrayList();
+        List<AuthorizableAction> actions = new ArrayList<>();
         for (AuthorizableActionProvider p : providers) {
             actions.addAll(p.getAuthorizableActions(securityProvider));
         }

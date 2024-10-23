@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
@@ -385,7 +385,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      */
     protected void initBackgroundJobs() {
         this.running = true;
-        threads = newArrayList();
+        threads = new ArrayList<>();
     }
     
     /**

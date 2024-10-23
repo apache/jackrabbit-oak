@@ -27,7 +27,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -73,6 +72,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toList;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
@@ -382,7 +382,7 @@ public class RepositorySidegrade {
             if (temp == null) {
                 continue;
             }
-            List<String> tempValues = Lists.newArrayList(temp.getValue(Type.STRINGS));
+            List<String> tempValues = toList(temp.getValue(Type.STRINGS));
             for (Map.Entry<String, String> sToD : checkpointSegmentToDoc.entrySet()) {
                 if (tempValues.contains(sToD.getKey())) {
                     tempValues.set(tempValues.indexOf(sToD.getKey()), sToD.getValue());

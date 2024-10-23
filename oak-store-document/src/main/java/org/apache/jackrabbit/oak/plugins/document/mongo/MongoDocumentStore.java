@@ -778,7 +778,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         if (ex != null) {
-            throw handleException(ex, collection, Lists.newArrayList(fromKey, toKey));
+            throw handleException(ex, collection, List.of(fromKey, toKey));
         } else {
             // impossible to get here
             throw new IllegalStateException();
@@ -961,8 +961,8 @@ public class MongoDocumentStore implements DocumentStore {
         MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
-            List<String> batchIds = Lists.newArrayList();
-            List<Bson> batch = Lists.newArrayList();
+            List<String> batchIds = new ArrayList<>();
+            List<Bson> batch = new ArrayList<>();
             Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, Long> entry = it.next();
@@ -1346,7 +1346,7 @@ public class MongoDocumentStore implements DocumentStore {
                     // in bulk mode wouldn't result in any performance gain
                     break;
                 }
-                for (List<UpdateOp> partition : CollectionUtils.partitionList(Lists.newArrayList(operationsToCover.values()), bulkSize)) {
+                for (List<UpdateOp> partition : CollectionUtils.partitionList(List.of(operationsToCover.values()), bulkSize)) {
                     Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs);
                     results.putAll(successfulUpdates);
                     operationsToCover.values().removeAll(successfulUpdates.keySet());

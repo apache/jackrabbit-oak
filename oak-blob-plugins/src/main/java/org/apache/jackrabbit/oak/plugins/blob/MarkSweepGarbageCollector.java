@@ -20,7 +20,7 @@ import static java.io.File.createTempFile;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.copyFile;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -38,6 +38,7 @@ import java.io.LineNumberReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -257,7 +258,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     @Override
     public List<GarbageCollectionRepoStats> getStats() throws Exception {
-        List<GarbageCollectionRepoStats> stats = newArrayList();
+        List<GarbageCollectionRepoStats> stats = new ArrayList<>();
         if (SharedDataStoreUtils.isShared(blobStore)) {
             // Get all the references available
             List<DataRecord> refFiles =
@@ -521,7 +522,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 count += ids.size();
                 deleted += BlobCollectionType.get(blobStore)
                     .sweepInternal(blobStore, ids, removesQueue, maxModifiedTime);
-                saveBatchToFile(newArrayList(removesQueue), removesWriter);
+                saveBatchToFile(new ArrayList<>(removesQueue), removesWriter);
 
                 for(String deletedId : removesQueue) {
                     // Estimate the size of the blob
@@ -718,7 +719,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     copyFile(fs.getMarkedRefs(), temp);
 
                     // List of files to be merged
-                    List<File> files = newArrayList();
+                    List<File> files = new ArrayList<>();
                     files.add(temp);
                     for (DataRecord refFile : refFiles) {
                         File file = copy(refFile.getStream());
@@ -730,7 +731,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             // Get size
             getBlobReferencesSize(fs, consistencyStats);
-            
+
             if (!markOnly) {
                 // Find all blobs available in the blob store
                 ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
@@ -884,7 +885,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);
                 LOG.info("Repositories with unavailable references {}", unAvailRepos);
 
-                Set<String> notOldRefs = Collections.EMPTY_SET;
+                Set<String> notOldRefs = Collections.emptySet();
                 long retentionTime = clock.getTime() - maxLastModifiedInterval;
                 LOG.info("Retention time calculated [{}]", retentionTime);
 
@@ -896,7 +897,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 if (unAvailRepos.isEmpty() && notOldRefs.isEmpty()) {
                     // List of files to be merged
-                    List<File> files = newArrayList();
+                    List<File> files = new ArrayList<>();
                     for (DataRecord refFile : refFiles) {
                         File file = copy(refFile.getStream());
                         files.add(file);
@@ -1057,7 +1058,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.trace("Blob ids to be deleted {}", ids);
             for (String id : ids) {
                 try {
-                    long deleted = blobStore.countDeleteChunks(newArrayList(id), maxModified);
+                    long deleted = blobStore.countDeleteChunks(List.of(id), maxModified);
                     if (deleted != 1) {
                         LOG.debug("Blob [{}] not deleted", id);
                     } else {
@@ -1153,7 +1154,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     stats.getCollector().finishFailure();
                     stats.getCollector().updateNumDeleted(candidates);
                 }
-                
+
                 // Update the size of the referenced blobs
                 getBlobReferencesSize(fs, stats);
             } finally {
@@ -1198,7 +1199,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         static final String NUM_BLOBS_DELETED = "NUM_BLOBS_DELETED";
         static final String TOTAL_SIZE_DELETED = "TOTAL_SIZE_DELETED";
         static final String NUM_CANDIDATES = "NUM_CANDIDATES";
-        
+
         static final String NUM_BLOB_REFERENCES = "NUM_BLOB_REFERENCES";
 
         static final String BLOB_REFERENCES_SIZE = "BLOB_REFERENCES_SIZE";
@@ -1266,7 +1267,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 public void updateBlobReferencesSize(long size) {
                     blobReferencesSizeCounter.inc(size);
                 }
-                
+
                 @Override
                 public void updateDuration(long time, TimeUnit timeUnit) {
                     duration.update(time, timeUnit);

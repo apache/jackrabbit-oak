@@ -48,7 +48,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, "DynamicGroups=false" },
                 new Object[] { true, "DynamicGroups=true" });
     }

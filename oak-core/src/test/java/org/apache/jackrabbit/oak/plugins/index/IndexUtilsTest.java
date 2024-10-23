@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -27,24 +27,23 @@ import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Calendar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-
 public class IndexUtilsTest {
-    
+
     // all relevant package TLDs
     private static final String[] ALL_CLASSES_IGNORED = new String[] {"org", "com", "sun", "jdk", "java"};
-    
+
     // all packages used with Oak
     private static final String[] OAK_CLASSES_IGNORED = new String[] {"org.apache.jackrabbit", "java.lang", "sun.reflect", "jdk"};
 
@@ -57,10 +56,10 @@ public class IndexUtilsTest {
         assertNull(IndexUtils.getAsyncLaneName(EMPTY_NODE, "/fooIndex"));
 
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("async", newArrayList("async2", "sync"), Type.STRINGS);
+        builder.setProperty("async", List.of("async2", "sync"), Type.STRINGS);
         assertEquals("async2", IndexUtils.getAsyncLaneName(builder.getNodeState(), "/fooIndex"));
 
-        builder.setProperty("async", newArrayList("async3"), Type.STRINGS);
+        builder.setProperty("async", List.of("async3"), Type.STRINGS);
         assertEquals("async3", IndexUtils.getAsyncLaneName(builder.getNodeState(), "/fooIndex"));
     }
 
@@ -68,9 +67,9 @@ public class IndexUtilsTest {
     public void getCaller() {
         assertNotNull(IndexUtils.getCaller(null));
         assertNotNull(IndexUtils.getCaller(new String[0]));
-        
+
         assertEquals("(internal)",IndexUtils.getCaller(ALL_CLASSES_IGNORED));
-        
+
         String caller = IndexUtils.getCaller(OAK_CLASSES_IGNORED);
         assertTrue(caller.startsWith("org.junit.runners"));
     }

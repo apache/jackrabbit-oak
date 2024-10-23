@@ -86,7 +86,7 @@ public class SimpleTest {
         UpdateOp op = n.asOperation(rev.getRevision(ns.getClusterId()));
         // mark as commit root
         NodeDocument.setRevision(op, rev.getRevision(ns.getClusterId()), "c");
-        assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
+        assertTrue(s.create(Collection.NODES, List.of(op)));
         DocumentNodeState n2 = ns.getNode(Path.fromString("/test"), rev);
         assertNotNull(n2);
         PropertyState p = n2.getProperty("name");

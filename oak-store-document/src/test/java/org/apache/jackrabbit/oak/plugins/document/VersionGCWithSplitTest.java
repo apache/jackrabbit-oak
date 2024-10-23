@@ -73,7 +73,7 @@ public class VersionGCWithSplitTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();

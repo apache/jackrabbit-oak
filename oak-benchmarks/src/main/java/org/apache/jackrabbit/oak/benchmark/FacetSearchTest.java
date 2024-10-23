@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -142,7 +142,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
     }
 
     protected String getQuery() {
-        List<String> samples = newArrayList(propVals);
+        List<String> samples = NAL(propVals);
         return "SELECT [rep:facet(foo)], [rep:facet(bar)] FROM [nt:base] WHERE [cons] = '" + samples.get(rgen.nextInt(samples.size())) + "'";
     }
 

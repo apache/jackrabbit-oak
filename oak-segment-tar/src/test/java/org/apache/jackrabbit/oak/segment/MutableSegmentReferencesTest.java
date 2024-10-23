@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -100,7 +100,7 @@ public class MutableSegmentReferencesTest {
         MemoryStore store = new MemoryStore();
         SegmentId first = store.getSegmentIdProvider().newDataSegmentId();
         SegmentId second = store.getSegmentIdProvider().newDataSegmentId();
-        List<SegmentId> ids = newArrayList(first, second);
+        List<SegmentId> ids = NAL(first, second);
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         table.addOrReference(first);

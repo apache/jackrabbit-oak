@@ -1459,7 +1459,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testCreateValuesSkipsNull() throws Exception {
-        List<String> strings = Lists.newArrayList("s", null, null, "t");
+        List<String> strings = List.of("s", null, null, "t");
         Value[] vs = syncCtx.createValues(strings);
         assertNotNull(vs);
         assertEquals(2, vs.length);

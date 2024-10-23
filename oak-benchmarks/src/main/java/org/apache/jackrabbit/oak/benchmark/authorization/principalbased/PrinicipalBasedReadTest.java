@@ -111,7 +111,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         }
 
         // create additional ACEs according to benchmark configuration
-        List<Privilege> allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        List<Privilege> allPrivileges = List.of(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         if (!entriesForEachPrincipal) {
             createForRotatingPrincipal(acMgr, allPrivileges);
         } else {

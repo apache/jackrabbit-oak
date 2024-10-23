@@ -32,7 +32,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.closeIfCloseable;
 import static org.hamcrest.Matchers.lessThan;
@@ -63,7 +63,7 @@ public class GetChildNodeCountTest {
         Root root = session.getLatestRoot();
         Tree idx = root.getTree("/").addChild("oak:index").addChild("p");
         idx.setProperty("type", "property");
-        idx.setProperty("propertyNames", newArrayList("p"), Type.NAMES);
+        idx.setProperty("propertyNames", NAL("p"), Type.NAMES);
         root.commit();
     }
 

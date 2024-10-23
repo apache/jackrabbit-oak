@@ -269,7 +269,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
 
         Tree groupTree = r.getTree(localGroup.getPath());
         Tree userTree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        List<String> members = Lists.newArrayList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
+        List<String> members = List.of(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
         members.add(userTree.getProperty(JCR_UUID).getValue(Type.STRING));
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         r.commit();
@@ -301,7 +301,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
         r.commit();
         
         Tree groupTree = r.getTree(localGroup.getPath());
-        List<String> members = Lists.newArrayList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
+        List<String> members = List.of(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
         members.remove(1);
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         r.commit();
@@ -319,7 +319,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
 
         Tree groupTree = r.getTree(localGroup.getPath());
         Tree userTree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        List<String> members = Lists.newArrayList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
+        List<String> members = List.of(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
         members.add(userTree.getProperty(JCR_UUID).getValue(Type.STRING));
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         try {

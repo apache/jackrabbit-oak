@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.principal;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -28,6 +27,7 @@ import org.junit.runners.Parameterized;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -36,20 +36,20 @@ public class EveryoneFilterTest {
 
     @Parameterized.Parameters(name = "searchType={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { PrincipalManager.SEARCH_TYPE_GROUP , "Group"},
                 new Object[] { PrincipalManager.SEARCH_TYPE_ALL , "All"},
                 new Object[] { PrincipalManager.SEARCH_TYPE_NOT_GROUP , "Not_Group"}
                 );
     }
-    
+
     private final int searchType;
     private final Principal anotherPrincipal = new PrincipalImpl("another");
-    
+
     public EveryoneFilterTest(int searchType, String name) {
         this.searchType = searchType;
     }
-    
+
     private static int adjustExpectedSize (int searchType, int expectedSize) {
         // for search-type 'users only' everyone will not get injected if missing
         return (searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP) ? expectedSize+1 : expectedSize;
@@ -59,7 +59,7 @@ public class EveryoneFilterTest {
     public void testEveryoneAlreadyIncluded() {
         Iterator<Principal> principals = Iterators.forArray(EveryonePrincipal.getInstance(), anotherPrincipal);
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
-        
+
         assertEquals(2, Iterators.size(result));
     }
 
@@ -96,7 +96,7 @@ public class EveryoneFilterTest {
 
         assertEquals(0, Iterators.size(result));
     }
-    
+
     @Test
     public void testResultContainsNull() {
         Iterator<Principal> principals = Iterators.forArray(anotherPrincipal, null, EveryonePrincipal.getInstance());

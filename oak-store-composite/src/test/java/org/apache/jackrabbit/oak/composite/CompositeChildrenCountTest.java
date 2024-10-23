@@ -72,7 +72,7 @@ public class CompositeChildrenCountTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -123,7 +123,7 @@ public class CompositeChildrenCountTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 

@@ -483,7 +483,7 @@ public class EntryTest extends AbstractAccessControlTest {
         JackrabbitAccessControlEntry ace = createEntry(PrivilegeConstants.JCR_ALL);
         Privilege[] declaredAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getDeclaredAggregatePrivileges();
         Privilege[] aggregateAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getAggregatePrivileges();
-        List<Privilege> l = Lists.newArrayList(aggregateAllPrivs);
+        List<Privilege> l = List.of(aggregateAllPrivs);
         l.add(l.remove(0));
         Privilege[] reordered = l.toArray(new Privilege[0]);
 

@@ -348,7 +348,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 bundleFilter = REPOSITORY_BUNDLE_FILTER_DEFAULT;
             }
             List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles(bundleFilter);
-            descriptors = Lists.newArrayList(descriptors);
+            descriptors = List.of(descriptors);
             if (PropertiesUtil.toBoolean(config.get(REPOSITORY_ENV_SPRING_BOOT), false)){
                 descriptors = SpringBootSupport.processDescriptors(descriptors);
             }

@@ -356,7 +356,7 @@ public class VersionGCDeletionTest {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
 
-        List<String> expected = Lists.newArrayList();
+        List<String> expected = new ArrayList<>();
         // fill caches
         NodeState n = store.getRoot().getChildNode("node");
         for (ChildNodeEntry entry : n.getChildNodeEntries()) {
@@ -371,7 +371,7 @@ public class VersionGCDeletionTest {
                 new Callable<List<String>>() {
             @Override
             public List<String> call() {
-                List<String> names = Lists.newArrayList();
+                List<String> names = new ArrayList<>();
                 NodeState n = store.getRoot().getChildNode("node");
                 for (ChildNodeEntry entry : n.getChildNodeEntries()) {
                     names.add(entry.getName());

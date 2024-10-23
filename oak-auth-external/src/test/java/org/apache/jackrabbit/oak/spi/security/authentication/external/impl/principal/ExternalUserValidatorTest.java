@@ -87,7 +87,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { IdentityProtectionType.NONE, false, "None, Default Sync" },
                 new Object[] { IdentityProtectionType.WARN, true, "Warn, Dynamic Sync" },
                 new Object[] { IdentityProtectionType.WARN, false, "Warn, Default Sync" },

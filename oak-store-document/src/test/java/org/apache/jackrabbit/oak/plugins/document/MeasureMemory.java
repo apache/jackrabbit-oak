@@ -339,7 +339,7 @@ public class MeasureMemory {
     }
 
     static DocumentNodeState generateNode(int propertyCount, List<PropertyState> extraProps) {
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         props.addAll(extraProps);
         for (int i = 0; i < propertyCount; i++) {
             String key = "property" + i;
@@ -350,7 +350,7 @@ public class MeasureMemory {
     }
 
     static DocumentNodeState generateNodeWithBinaryProperties(int propertyCount) {
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         for (int i = 0; i < propertyCount; i++) {
             props.add(STORE.createPropertyState("binary" + i, new String(BLOB_VALUE)));
         }
