@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
@@ -66,12 +65,12 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_UUID;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -315,10 +314,8 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
     private void mergeNameList(
             NodeBuilder builder, NodeState state, String listName) {
-        LinkedHashSet<String> nameList =
-                newLinkedHashSet(getNames(builder, listName));
-        Iterables.addAll(
-                nameList, state.getProperty(listName).getValue(NAMES));
+        Set<String> nameList = CollectionUtils.toLinkedSet(getNames(builder, listName));
+        Iterables.addAll(nameList, state.getProperty(listName).getValue(NAMES));
         builder.setProperty(listName, nameList, NAMES);
     }
 

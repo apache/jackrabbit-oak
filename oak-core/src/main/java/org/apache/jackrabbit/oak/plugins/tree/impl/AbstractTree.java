@@ -18,12 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
@@ -38,6 +35,8 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -127,7 +126,7 @@ public abstract class AbstractTree implements Tree {
         NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
-            Set<String> names = newLinkedHashSet(nodeBuilder.getChildNodeNames());
+            Set<String> names = CollectionUtils.toLinkedSet(nodeBuilder.getChildNodeNames());
             List<String> ordered = new ArrayList<>(names.size());
             for (String name : order.getValue(NAMES)) {
                 // only include names of child nodes that actually exist
@@ -226,7 +225,7 @@ public abstract class AbstractTree implements Tree {
     @NotNull
     public AbstractTree getParent() {
         AbstractTree parent = getParentOrNull();
-        checkState(parent != null, "root tree does not have a parent");
+        Validate.checkState(parent != null, "root tree does not have a parent");
         return parent;
     }
 

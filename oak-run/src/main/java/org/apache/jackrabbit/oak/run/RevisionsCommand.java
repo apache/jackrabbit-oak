@@ -73,8 +73,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
@@ -118,9 +116,12 @@ public class RevisionsCommand implements Command {
 
         final OptionSpec<?> once;
         final OptionSpec<Integer> limit;
+        final OptionSpec<Integer> fullGcBatchSize;
+        final OptionSpec<Integer> fullGcProgressSize;
         final OptionSpec<Long> timeLimit;
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
+        final OptionSpec<Double> fullGcDelayFactor;
         final OptionSpec<?> continuous;
         final OptionSpec<?> fullGCOnly;
         final OptionSpec<Boolean> resetFullGC;
@@ -146,6 +147,10 @@ public class RevisionsCommand implements Command {
             delay = parser
                     .accepts("delay", "introduce delays to reduce impact on system").withRequiredArg()
                     .ofType(Double.class).defaultsTo(0.0);
+            fullGcDelayFactor = parser
+                    .accepts("fullGcDelayFactor", "introduce delays after each fullGc batch to reduce load " +
+                            "on system")
+                    .withRequiredArg().ofType(Double.class).defaultsTo(2.0);
             timeLimit = parser
                     .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
                     .ofType(Long.class).defaultsTo(-1L);
@@ -180,6 +185,12 @@ public class RevisionsCommand implements Command {
             resetFullGC = parser
                     .accepts("resetFullGC", "reset fullGC after running FullGC")
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
+            fullGcBatchSize = parser.accepts("fullGcBatchSize", "The number of documents to fetch from database " +
+                            "in a single query to check for Full GC.")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
+            fullGcProgressSize = parser.accepts("fullGcProgressSize", "The number of documents to check for " +
+                            "garbage in each Full GC cycle")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(10000);
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -211,8 +222,20 @@ public class RevisionsCommand implements Command {
             return embeddedVerification.value(options);
         }
 
-        int fullGcMode() {
+        int getFullGcMode() {
             return fullGcMode.value(options);
+        }
+
+        int getFullGcBatchSize() {
+            return fullGcBatchSize.value(options);
+        }
+
+        int getFullGcProgressSize() {
+            return fullGcProgressSize.value(options);
+        }
+
+        double getFullGcDelayFactor() {
+            return fullGcDelayFactor.value(options);
         }
 
         long getOlderThan() {
@@ -235,11 +258,11 @@ public class RevisionsCommand implements Command {
             return path.value(options);
         }
 
-        String[] includePaths() {
+        String[] getIncludePaths() {
             return includePaths.value(options).split("::");
         }
 
-        String[] excludePaths() {
+        String[] getExcludePaths() {
             return excludePaths.value(options).split("::");
         }
 
@@ -247,7 +270,7 @@ public class RevisionsCommand implements Command {
             return options.has(fullGCOnly);
         }
 
-        boolean resetFullGC() {
+        boolean isResetFullGC() {
             return resetFullGC.value(options);
         }
 
@@ -320,9 +343,12 @@ public class RevisionsCommand implements Command {
         }
         // set fullGC
         builder.setFullGCEnabled(fullGCEnabled);
-        builder.setFullGCIncludePaths(options.includePaths());
-        builder.setFullGCExcludePaths(options.excludePaths());
-        builder.setFullGCMode(options.fullGcMode());
+        builder.setFullGCIncludePaths(options.getIncludePaths());
+        builder.setFullGCExcludePaths(options.getExcludePaths());
+        builder.setFullGCMode(options.getFullGcMode());
+        builder.setFullGCDelayFactor(options.getFullGcDelayFactor());
+        builder.setFullGCBatchSize(options.getFullGcBatchSize());
+        builder.setFullGCProgressSize(options.getFullGcProgressSize());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -346,13 +372,15 @@ public class RevisionsCommand implements Command {
         // and a GC support with a writable DocumentStore
         System.out.println("DryRun is enabled : " + options.isDryRun());
         System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
-        System.out.println("ResetFullGC is enabled : " + options.resetFullGC());
+        System.out.println("ResetFullGC is enabled : " + options.isResetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
-        System.out.println("IncludePaths are : " + Arrays.toString(options.includePaths()));
-        System.out.println("ExcludePaths are : " + Arrays.toString(options.excludePaths()));
-        System.out.println("FullGcMode is : " + options.fullGcMode());
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isFullGCEnabled(builder), options.isDryRun(),
-                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode());
+        System.out.println("IncludePaths are : " + Arrays.toString(options.getIncludePaths()));
+        System.out.println("ExcludePaths are : " + Arrays.toString(options.getExcludePaths()));
+        System.out.println("FullGcMode is : " + options.getFullGcMode());
+        System.out.println("FullGcDelayFactory is : " + options.getFullGcDelayFactor());
+        System.out.println("FullGcBatchSize is : " + options.getFullGcBatchSize());
+        System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -430,7 +458,7 @@ public class RevisionsCommand implements Command {
             if (options.isDryRun()) {
                 gc.resetDryRun();
             }
-            if (options.resetFullGC()) {
+            if (options.isResetFullGC()) {
                 gc.resetFullGC();
             }
             if (options.doCompaction()) {

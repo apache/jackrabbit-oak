@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -44,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
@@ -701,7 +702,7 @@ public final class JournalEntry extends Document {
 
         TreeNode(MapFactory mapFactory, TreeNode parent, String name) {
             checkArgument(!name.contains("/"),
-                    "name must not contain '/': {}", name);
+                    "name must not contain '/': %s", name);
 
             this.mapFactory = mapFactory;
             this.parent = parent;
@@ -824,7 +825,7 @@ public final class JournalEntry extends Document {
         MapFactory CONCURRENT = new MapFactory() {
             @Override
             public Map<String, TreeNode> newMap() {
-                return Maps.newConcurrentMap();
+                return new ConcurrentHashMap<>();
             }
         };
 

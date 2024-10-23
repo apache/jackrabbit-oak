@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -209,12 +209,12 @@ public class TarFiles implements Closeable {
         }
 
         public TarFiles build() throws IOException {
-            checkState(directory != null, "Directory not specified");
-            checkState(tarRecovery != null, "TAR recovery strategy not specified");
-            checkState(ioMonitor != null, "I/O monitor not specified");
-            checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
-            checkState(remoteStoreMonitor != null, "Remote store statistics not specified");
-            checkState(readOnly || maxFileSize != 0, "Max file size not specified");
+            Validate.checkState(directory != null, "Directory not specified");
+            Validate.checkState(tarRecovery != null, "TAR recovery strategy not specified");
+            Validate.checkState(ioMonitor != null, "I/O monitor not specified");
+            Validate.checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
+            Validate.checkState(remoteStoreMonitor != null, "Remote store statistics not specified");
+            Validate.checkState(readOnly || maxFileSize != 0, "Max file size not specified");
             if (persistence == null) {
                 persistence = new TarPersistence(directory);
             }
@@ -322,7 +322,7 @@ public class TarFiles implements Closeable {
                 if (matcher.group(4) != null) {
                     generation = matcher.group(4).charAt(0);
                 }
-                checkState(files.put(generation, file) == null);
+                Validate.checkState(files.put(generation, file) == null);
             }
         }
         return dataFiles;
@@ -645,7 +645,8 @@ public class TarFiles implements Closeable {
                     writer.addBinaryReference(generation, id, reference);
                 }
             }
-            if (size >= maxFileSize) {
+            int entryCount = writer.getEntryCount();
+            if (size >= maxFileSize || entryCount >= writer.getMaxEntryCount()) {
                 internalNewWriter();
             }
         } finally {

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateHolder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.PathElementComparator;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SimpleNodeStateHolder;
@@ -40,9 +41,6 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 
 public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
 
@@ -88,9 +86,9 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
 
     private void basicFileValidation(Compression algorithm, File... files) {
         for (File file : files) {
-            checkState(file.isFile(), "File doesn't exist {}", file.getAbsolutePath());
+            Validate.checkState(file.isFile(), "File doesn't exist {}", file.getAbsolutePath());
             IndexStoreUtils.validateFlatFileStoreFileName(file, algorithm);
-            checkState(IndexStoreUtils.getMetadataFile(file, algorithm).exists(),
+            Validate.checkState(IndexStoreUtils.getMetadataFile(file, algorithm).exists(),
                     "metadata file is not present in same directory as indexStore. indexStoreFile:{}, metadataFile should be available at:{}",
                     file.getAbsolutePath(), IndexStoreUtils.getMetadataFile(file, algorithm));
         }
@@ -112,7 +110,6 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
              BufferedReader incrementalFFSBufferedReader = IndexStoreUtils.createReader(incrementalFFS, algorithm)) {
             String baseFFSLine = baseFFSBufferedReader.readLine();
             String incrementalFFSLine = incrementalFFSBufferedReader.readLine();
-
 
             int compared;
             while (baseFFSLine != null || incrementalFFSLine != null) {
@@ -190,7 +187,7 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                 incrementalFFSLine = incrementalFFSBufferedReader.readLine();
                 break;
             default:
-                log.error("Wrong operand in incremental ffs: operand:{}, line:{}", operand, incrementalFFSLine);
+                log.error("Unsupported operand in incremental ffs: operand:{}, line:{}", operand, incrementalFFSLine);
                 throw new RuntimeException("wrong operand in incremental ffs: operand:" + operand + ", line:" + incrementalFFSLine);
         }
         return incrementalFFSLine;
@@ -227,8 +224,8 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
      */
     private IndexStoreMetadata mergeIndexStores(IndexStoreMetadata indexStoreMetadata,
                                                 IncrementalIndexStoreMetadata incrementalIndexStoreMetadata) {
-        checkState(indexStoreMetadata.getCheckpoint().equals(incrementalIndexStoreMetadata.getBeforeCheckpoint()));
-        checkState(indexStoreMetadata.getPreferredPaths().equals(incrementalIndexStoreMetadata.getPreferredPaths()));
+        Validate.checkState(indexStoreMetadata.getCheckpoint().equals(incrementalIndexStoreMetadata.getBeforeCheckpoint()));
+        Validate.checkState(indexStoreMetadata.getPreferredPaths().equals(incrementalIndexStoreMetadata.getPreferredPaths()));
         return new IndexStoreMetadata(incrementalIndexStoreMetadata.getAfterCheckpoint(), indexStoreMetadata.getStoreType(),
                 getStrategyName(), indexStoreMetadata.getPreferredPaths());
     }

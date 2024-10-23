@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeS
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -62,7 +62,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Implements (most) DB interactions used in {@link RDBDocumentStore}.
@@ -84,7 +83,7 @@ public class RDBDocumentStoreJDBC {
     private final int queryHitsLimit, queryTimeLimit;
 
     private static final Long INITIALMODCOUNT = Long.valueOf(1);
-    
+
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -140,7 +139,7 @@ public class RDBDocumentStoreJDBC {
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> allIds) throws SQLException {
         int count = 0;
 
-        for (List<String> ids : Lists.partition(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> ids : CollectionUtils.partitionList(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
             PreparedStatement stmt;
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
             String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
@@ -665,6 +664,7 @@ public class RDBDocumentStoreJDBC {
             internalClose();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void finalize() throws Throwable {
             try {
@@ -1056,12 +1056,7 @@ public class RDBDocumentStoreJDBC {
 
     private static String getIdFromRS(RDBTableMetaData tmd, ResultSet rs, int idx) throws SQLException {
         if (tmd.isIdBinary()) {
-            try {
-                return new String(rs.getBytes(idx), "UTF-8");
-            } catch (UnsupportedEncodingException ex) {
-                LOG.error("UTF-8 not supported", ex);
-                throw asDocumentStoreException(ex, "UTF-8 not supported");
-            }
+            return new String(rs.getBytes(idx), StandardCharsets.UTF_8);
         } else {
             return rs.getString(idx);
         }
@@ -1073,7 +1068,7 @@ public class RDBDocumentStoreJDBC {
                 stmt.setBytes(idx, UTF8Encoder.encodeAsByteArray(id));
             } else {
                 if (!UTF8Encoder.canEncode(id)) {
-                    throw new IOException("can not encode as UTF-8");
+                    throw new IOException("can not encode as valid UTF-8");
                 }
                 stmt.setString(idx, id);
             }

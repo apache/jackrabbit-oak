@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
@@ -94,7 +95,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     @Override
     public void add(@NotNull NodeStateEntry item) {
-        Preconditions.checkArgument(item != null, "Can't add null to the list");
+        Validate.checkArgument(item != null, "Can't add null to the list");
         String s = writer.toString(item);
         long index = tailIndex++;
         map.put(index, s);
@@ -130,7 +131,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     @Override
     public NodeStateEntry remove() {
-        Preconditions.checkState(!isEmpty(), "Cannot remove item from empty list");
+        Validate.checkState(!isEmpty(), "Cannot remove item from empty list");
         NodeStateEntry ret = get(headIndex);
         map.remove(headIndex);
         cache.remove(headIndex);

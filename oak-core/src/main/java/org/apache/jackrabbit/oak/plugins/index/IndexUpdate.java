@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -51,6 +50,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -624,7 +624,7 @@ public class IndexUpdate implements Editor, PathSource {
         final CommitInfo commitInfo;
         final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
-        final Set<IndexCommitCallback> indexCommitCallbacks = newIdentityHashSet();
+        final Set<IndexCommitCallback> indexCommitCallbacks = CollectionUtils.newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
         final IndexingProgressReporter progressReporter;
         private int changedNodeCount;

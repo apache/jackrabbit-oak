@@ -24,12 +24,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Writes nodes in CND format
@@ -81,7 +80,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public JsopWriter array() {
-        checkState(arrayState == State.NONE);
+        Validate.checkState(arrayState == State.NONE);
         optionalKey();
         arrayState = State.BEGIN;
         w.append('[');
@@ -90,7 +89,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public JsopWriter endArray() {
-        checkState(arrayState == State.BEGIN || arrayState == State.STARTED);
+        Validate.checkState(arrayState == State.BEGIN || arrayState == State.STARTED);
         arrayState = State.END;
         w.append(']');
         return this;
@@ -130,7 +129,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public void close() throws IOException {
-        checkState(depth == 0);
+        Validate.checkState(depth == 0);
     }
 
     private void optionalComma() {
@@ -165,7 +164,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     private void optionalResetArrayState() {
         //Check that not within array
-        checkState(arrayState == State.END || arrayState == State.NONE);
+        Validate.checkState(arrayState == State.END || arrayState == State.NONE);
         if (arrayState == State.END) {
             arrayState = State.NONE;
         }

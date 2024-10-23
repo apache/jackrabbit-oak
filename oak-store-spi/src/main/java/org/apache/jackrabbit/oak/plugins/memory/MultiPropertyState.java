@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.util.List;
 
@@ -28,6 +27,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
@@ -95,7 +95,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     @NotNull
     @Override
     public <S> S getValue(Type<S> type) {
-        checkState(type.isArray(), "Type must be an array type");
+        Validate.checkState(type.isArray(), "Type must be an array type");
         if (getType() == type) {
             return (S) values;
         }

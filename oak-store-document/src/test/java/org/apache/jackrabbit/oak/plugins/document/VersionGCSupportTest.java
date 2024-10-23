@@ -26,15 +26,12 @@ import java.util.stream.StreamSupport;
 
 import com.mongodb.ReadPreference;
 
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,9 +44,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.guava.common.collect.Comparators.isInOrder;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MEMORY;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MONGO;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDB_H2;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
@@ -61,47 +55,31 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
-public class VersionGCSupportTest {
+public class VersionGCSupportTest extends AbstractDocumentStoreTest {
 
     private static final Set<String> EMPTY_STRING_SET = Collections.emptySet();
-
-    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
 
     private final DocumentStoreFixture fixture;
     private final DocumentStore store;
     private final VersionGCSupport gcSupport;
-    private final List<String> ids = new ArrayList<>();
+    private final List<String> ids;
 
-    @Parameterized.Parameters(name="{0}")
-    public static java.util.Collection<DocumentStoreFixture> fixtures() {
-        List<DocumentStoreFixture> fixtures = new ArrayList<>();
-        if (RDB_H2.isAvailable()) {
-            fixtures.add(RDB_H2);
-        }
-        if (MONGO.isAvailable()) {
-            fixtures.add(MONGO);
-        }
-        if (MEMORY.isAvailable()) {
-            fixtures.add(MEMORY);
-        }
-        return fixtures;
-    }
+    public VersionGCSupportTest(DocumentStoreFixture dsf) {
+        super(dsf);
 
-    public VersionGCSupportTest(DocumentStoreFixture fixture) {
-        this.fixture = fixture;
-        if (fixture instanceof RDBFixture) {
-            ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
-        }
-        this.store = fixture.createDocumentStore();
+        this.fixture = super.dsf;
+        this.store = super.ds;
+        this.ids = super.removeMe;
+
         if (this.store instanceof MongoDocumentStore) {
             // Enforce primary read preference, otherwise tests may fail on a
             // replica set with a read preference configured to secondary.
-            // Revision GC usually runs with a modified range way in the past,
-            // which means changes made it to the secondary, but not in this
-            // test using a virtual clock
+            // Revision GC usually runs with a modified range way in the
+            // past, which means changes made it to the secondary, but not in
+            // this using a virtual clock
             MongoTestUtils.setReadPreference(store, ReadPreference.primary());
         }
+
         if (this.store instanceof MongoDocumentStore) {
             this.gcSupport = new MongoVersionGCSupport((MongoDocumentStore) store);
         } else if (this.store instanceof RDBDocumentStore) {
@@ -109,12 +87,6 @@ public class VersionGCSupportTest {
         } else {
             this.gcSupport = new VersionGCSupport(store);
         }
-    }
-
-    @After
-    public void after() throws Exception {
-        store.remove(Collection.NODES, ids);
-        fixture.dispose();
     }
 
     @Test
@@ -270,10 +242,23 @@ public class VersionGCSupportTest {
     public void findModifiedDocsWhenModifiedIsDifferent() {
         long secs = 42;
         long offset = SECONDS.toMillis(secs);
-        List<UpdateOp> updateOps = new ArrayList<>(5_000);
+        int dsTimeRes = 5;
+        long offsetForOthers = offset + SECONDS.toMillis(1 + dsTimeRes);
+
+        List<UpdateOp> updateOps = new ArrayList<>();
+        List<String> idsOfOldestDocs = new ArrayList<>();
+
         for (int i = 0; i < 5_000; i++) {
-            Revision r = new Revision(offset + (i * 5), 0, 1);
+            Revision r = new Revision(offsetForOthers + (i * 5), 0, 1);
             String id = getIdFromPath("/x" + i);
+
+            // make sure the oldest doc is "in between" with respect to IDS
+            if (i >= 2000 && i < 2500) {
+                r = new Revision(offset, 0, 1);
+                id = getIdFromPath("/y" + i);
+                idsOfOldestDocs.add(id);
+            }
+
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             setModified(op, r);
@@ -282,14 +267,17 @@ public class VersionGCSupportTest {
         // create 5_000 nodes
         store.create(NODES, updateOps);
 
+        idsOfOldestDocs.sort(null);
+        String minimalIdOfOldestDocs = idsOfOldestDocs.get(0);
+
         NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE).orElse(NULL);
         String oldestModifiedDocId = oldestModifiedDoc.getId();
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
-        assertEquals(40L, oldestModifiedDocTs);
-        assertEquals("1:/x0", oldestModifiedDocId);
+        assertEquals("unexpected modified ts (" + fixture + ")", 40L, oldestModifiedDocTs);
+        assertEquals("unexpected oldest id (" + fixture + ")", minimalIdOfOldestDocs, oldestModifiedDocId);
         oldestModifiedDocId = MIN_ID_VALUE;
 
-        for(int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = StreamSupport.stream(modifiedDocs.spliterator(), false).count();

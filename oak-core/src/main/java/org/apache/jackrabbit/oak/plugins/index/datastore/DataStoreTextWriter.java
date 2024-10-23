@@ -32,6 +32,7 @@ import java.util.concurrent.Callable;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
@@ -42,9 +43,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * TextWriter implementation which just stores the extracted text
@@ -211,7 +211,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private void checkIfReadOnlyModeEnabled() {
-        checkState(!readOnlyMode, "Read only mode enabled");
+        Validate.checkState(!readOnlyMode, "Read only mode enabled");
     }
 
     private Callable<Set<String>> createLoader(final String fileName) {

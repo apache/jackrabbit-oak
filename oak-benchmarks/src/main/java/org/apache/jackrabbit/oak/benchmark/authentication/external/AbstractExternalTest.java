@@ -31,12 +31,12 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.AbstractTest;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -72,8 +72,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Base benchmark test for external authentication.
@@ -144,7 +142,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     }
 
     protected ContentRepository getContentRepository() {
-        checkState(contentRepository != null);
+        Validate.checkState(contentRepository != null);
         return contentRepository;
     }
 
@@ -153,12 +151,12 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     }
 
     protected String getRandomUserId() {
-        int index = random.nextInt(((TestIdentityProvider) idp).numberOfUsers);
+        int index = random.nextInt(idp.numberOfUsers);
         return "u" + index;
     }
 
     protected String getRandomGroupId() {
-        int index = random.nextInt(((TestIdentityProvider) idp).membershipSize);
+        int index = random.nextInt(idp.membershipSize);
         return "g" + index;
     }
 
@@ -406,7 +404,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
-            return ((TestIdentityProvider) idp).getDeclaredGroupRefs(userId);
+            return idp.getDeclaredGroupRefs(userId);
         }
 
         @NotNull

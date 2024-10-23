@@ -132,4 +132,30 @@ public class TarWriterTest {
         }
     }
 
+    @Test
+    public void testTarWriterFailOnExcessiveEntryCount() throws Exception {
+        final int ENTRY_LIMIT = 8;
+        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
+        File segmentstoreDir = folder.newFolder();
+        SegmentArchiveManager archiveManager = new SegmentTarManager(
+                segmentstoreDir, monitor, ioMonitor, false, false
+        ) {
+            @Override
+            public @NotNull SegmentArchiveWriter create(String archiveName) {
+                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
+                    @Override
+                    public int getMaxEntryCount() {
+                        return ENTRY_LIMIT;
+                    }
+                };
+            }
+        };
+
+        TarWriter tarWriter = new TarWriter(archiveManager, 0, NoopStats.INSTANCE);
+        for (int i = 0; i < ENTRY_LIMIT; i++) {
+            writeEntry(tarWriter);
+        }
+        assertThrows(IllegalStateException.class, () -> writeEntry(tarWriter));
+        tarWriter.close();
+    }
 }

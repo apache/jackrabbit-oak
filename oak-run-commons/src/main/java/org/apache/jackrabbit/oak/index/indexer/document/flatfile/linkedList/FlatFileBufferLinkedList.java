@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,10 +50,10 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
     }
 
     public void add(@NotNull NodeStateEntry item) {
-        Preconditions.checkArgument(item != null, "Can't add null to the list");
+        Validate.checkArgument(item != null, "Can't add null to the list");
         long incomingSize = item.estimatedMemUsage();
         long memUsage = estimatedMemoryUsage();
-        Preconditions.checkState(memUsage + incomingSize <= memLimit,
+        Validate.checkState(memUsage + incomingSize <= memLimit,
                 "Adding item (%s) estimated with %s bytes would increase mem usage beyond upper limit (%s)." +
                         " Current estimated mem usage is %s bytes", item.getPath(), incomingSize, memLimit, memUsage);
         tail.next = new ListNode(item);
@@ -62,7 +63,7 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
     }
 
     public NodeStateEntry remove() {
-        Preconditions.checkState(!isEmpty(), "Cannot remove item from empty list");
+        Validate.checkState(!isEmpty(), "Cannot remove item from empty list");
         NodeStateEntry ret = head.next.data;
         head.next.isValid = false;
         head.next = head.next.next;
@@ -139,9 +140,9 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
 
         @Override
         public NodeStateEntry next() {
-            Preconditions.checkState(hasNext(), "No next");
+            Validate.checkState(hasNext(), "No next");
             current = current.next;
-            Preconditions.checkState(current.isValid, "Can't call next from a removed node");
+            Validate.checkState(current.isValid, "Can't call next from a removed node");
             return current.data;
         }
     }

@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
@@ -51,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IndexerSupport {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -77,9 +77,23 @@ public class IndexerSupport {
     private final String checkpoint;
     private File existingDataDumpDir;
 
+    /**
+     * The lower bound of the "_modified" property, when using the document node
+     * store.
+     */
+    private long minModified;
+
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
         this.indexHelper = indexHelper;
         this.checkpoint = checkpoint;
+    }
+
+    public long getMinModified() {
+        return minModified;
+    }
+
+    public void setMinModified(long minModified) {
+        this.minModified = minModified;
     }
 
     public IndexerSupport withExistingDataDumpDir(File existingDataDumpDir) {
@@ -148,7 +162,7 @@ public class IndexerSupport {
         for (String indexPath : indexHelper.getIndexPaths()) {
             //TODO Do it only for lucene indexes for now
             NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
-            checkState(idxBuilder.exists(), "No index definition found at path [%s]", indexPath);
+            Validate.checkState(idxBuilder.exists(), "No index definition found at path [%s]", indexPath);
 
             idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
             AsyncLaneSwitcher.switchLane(idxBuilder, REINDEX_LANE);

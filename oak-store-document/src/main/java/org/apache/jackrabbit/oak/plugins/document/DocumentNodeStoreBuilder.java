@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
@@ -177,6 +177,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+    private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+    private int fullGCProgressSize = DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+    private double fullGCDelayFactor = DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -323,7 +326,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T setFullGCExcludePaths(@Nullable String[] excludePaths) {
-        if (isNull(excludePaths) || excludePaths.length == 0) {
+        if (isNull(excludePaths) || excludePaths.length == 0 || Arrays.equals(excludePaths, new String[]{""})) {
             this.fullGCExcludePaths = Set.of();
         } else {
             this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
@@ -351,6 +354,33 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getFullGCMode() {
         return this.fullGCMode;
+    }
+
+    public T setFullGCBatchSize(int v) {
+        this.fullGCBatchSize = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCBatchSize() {
+        return this.fullGCBatchSize;
+    }
+
+    public T setFullGCProgressSize(int v) {
+        this.fullGCProgressSize = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCProgressSize() {
+        return this.fullGCProgressSize;
+    }
+
+    public T setFullGCDelayFactor(double v) {
+        this.fullGCDelayFactor = v;
+        return thisBuilder();
+    }
+
+    public double getFullGCDelayFactor() {
+        return this.fullGCDelayFactor;
     }
 
     public T setReadOnlyMode() {

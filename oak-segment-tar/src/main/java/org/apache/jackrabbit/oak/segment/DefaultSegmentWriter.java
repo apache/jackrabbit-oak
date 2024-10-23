@@ -25,15 +25,13 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -65,6 +63,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
@@ -458,8 +458,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
                 List<RecordId> nextLevel = newArrayList();
-                for (List<RecordId> bucket :
-                        partition(thisLevel, ListRecord.LEVEL_SIZE)) {
+                for (List<RecordId> bucket : CollectionUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
                     if (bucket.size() > 1) {
                         nextLevel.add(writeListBucket(bucket));
                     } else {
@@ -774,7 +773,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     mixinIds.add(writeString(mixin));
                 }
                 ids.addAll(mixinIds);
-                checkState(mixinIds.size() < (1 << 10));
+                Validate.checkState(mixinIds.size() < (1 << 10));
                 head |= mixinIds.size() << 18;
             }
 
@@ -810,7 +809,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 ids.add(propNamesId);
             }
 
-            checkState(propertyNames.length < (1 << 18));
+            Validate.checkState(propertyNames.length < (1 << 18));
             head |= propertyNames.length;
 
             RecordId tid = writeOperationHandler.execute(gcGeneration, newWriteOperation(

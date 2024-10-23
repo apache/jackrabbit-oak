@@ -19,13 +19,13 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -117,7 +117,7 @@ class MapEntry extends AbstractChildNodeEntry
 
     @Override @NotNull
     public SegmentNodeState getNodeState() {
-        checkState(value != null);
+        Validate.checkState(value != null);
         return reader.readNode(value);
     }
 
@@ -136,7 +136,7 @@ class MapEntry extends AbstractChildNodeEntry
     @NotNull
     @Override
     public RecordId getValue() {
-        checkState(value != null);
+        Validate.checkState(value != null);
         return value;
     }
 

@@ -24,6 +24,7 @@ import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
@@ -64,7 +65,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 
@@ -110,6 +110,7 @@ public class FlatFileNodeStoreBuilder {
     private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
+    private long minModified;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
     private MongoClientURI mongoClientURI;
@@ -188,6 +189,18 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withCheckpoint(String checkpoint) {
         this.checkpoint = checkpoint;
+        return this;
+    }
+
+    /**
+     * Use the given lower bound of the "_modified" property, when using the document node
+     * store.
+     *
+     * @param minModified the minimum value of the "_modified" property
+     * @return this
+     */
+    public FlatFileNodeStoreBuilder withMinModified(long minModified) {
+        this.minModified = minModified;
         return this;
     }
 
@@ -369,7 +382,7 @@ public class FlatFileNodeStoreBuilder {
                     log.info("No metadata file found in directory: {}", sortedDir.getAbsolutePath());
                     return new IndexStoreFiles(Arrays.asList(storeFiles), null);
                 } else {
-                    checkState(metadataFiles.length == 1, "Multiple metadata files available at path: {}, metadataFiles: {}", sortedDir.getAbsolutePath(),
+                    Validate.checkState(metadataFiles.length == 1, "Multiple metadata files available at path: {}, metadataFiles: {}", sortedDir.getAbsolutePath(),
                             Arrays.asList(metadataFiles));
                     return new IndexStoreFiles(Arrays.asList(storeFiles), metadataFiles[0]);
                 }
@@ -409,7 +422,7 @@ public class FlatFileNodeStoreBuilder {
                 indexingReporter.setIndexNames(indexNames);
                 return new PipelinedTreeStoreStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
-                        statisticsProvider, indexingReporter);
+                        minModified, statisticsProvider, indexingReporter);
             }
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
@@ -436,4 +449,5 @@ public class FlatFileNodeStoreBuilder {
     public File getFlatFileStoreDir() {
         return flatFileStoreDir;
     }
+
 }

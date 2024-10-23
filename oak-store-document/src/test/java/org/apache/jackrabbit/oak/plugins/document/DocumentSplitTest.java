@@ -528,7 +528,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // some fake previous doc references to trigger UpdateOp
         // for an intermediate document
-        TreeSet<Revision> prev = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
+        TreeSet<Revision> prev = new TreeSet<>(StableRevisionComparator.INSTANCE);
         for (int i = 0; i < PREV_SPLIT_FACTOR; i++) {
             Revision low = Revision.newRevision(clusterId);
             Revision high = Revision.newRevision(clusterId);

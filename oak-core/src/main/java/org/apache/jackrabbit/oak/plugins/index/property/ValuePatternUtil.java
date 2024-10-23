@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 public final class ValuePatternUtil {
     /**
@@ -136,7 +136,7 @@ public final class ValuePatternUtil {
             return read(restriction.first, pattern);
         } else if (restriction.list != null) {
             // "[property] IN (...)
-            Set<String> values = newLinkedHashSet(); // keep order for testing
+            Set<String> values = new LinkedHashSet<>(); // keep order for testing
             for (PropertyValue value : restriction.list) {
                 values.addAll(read(value, pattern));
             }

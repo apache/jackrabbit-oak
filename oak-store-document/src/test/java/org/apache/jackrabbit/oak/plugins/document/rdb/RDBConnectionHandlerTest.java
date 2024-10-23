@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
 
@@ -30,25 +31,29 @@ public class RDBConnectionHandlerTest {
 
     @Test
     public void logging() throws Exception {
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBConnectionHandler.class.getName()).enable(Level.TRACE)
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBConnectionHandler.class).enable(Level.TRACE)
                 .contains("while obtaining new").create();
         DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:", "", "");
         Connection c1 = null, c2 = null, c3 = null;
 
         try (RDBConnectionHandler ch = new RDBConnectionHandler(ds)) {
+            // warmup
+            ch.getROConnection().close();
+            // test
             customLogs.starting();
+            long ts1 = System.currentTimeMillis();
             c1 = ch.getROConnection();
-            long ts = System.currentTimeMillis();
-            assertEquals(0, customLogs.getLogs().size());
+            assertTrue("There should be no log message yet, but got: " + customLogs.getLogs(), customLogs.getLogs().isEmpty());
+            long ts2 = System.currentTimeMillis();
+            assertTrue("unexpected elapsed time between two fetches of connections: " + (ts2 - ts1), ts2 - ts1 <= 20);
             c2 = ch.getROConnection();
             // age threshold not reached
-            assertEquals(0, customLogs.getLogs().size());
-            while (System.currentTimeMillis() - ts < 21) {
-                // busy wait for LOGTHRESHOLD to pass
+            assertTrue("There should be no log message yet, but got: " + customLogs.getLogs(), customLogs.getLogs().isEmpty());
+            while (System.currentTimeMillis() - ts2 < 101) {
+                // busy wait for RDBConnectionHandler.LOGTHRESHOLD to pass
             }
             c3 = ch.getROConnection();
-            assertEquals(1, customLogs.getLogs().size());
-            // System.out.println(customLogs.getLogs());
+            assertEquals("There should be exacly one log message, but got: " + customLogs.getLogs(), 1, customLogs.getLogs().size());
         } finally {
             close(c1);
             close(c2);

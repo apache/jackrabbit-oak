@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler.createJcrConflictHandler;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -70,13 +70,13 @@ public class Jcr {
 
     private final Oak oak;
 
-    private final Set<RepositoryInitializer> repositoryInitializers = newLinkedHashSet();
-    private final Set<QueryIndexProvider> queryIndexProviders = newLinkedHashSet();
-    private final Set<CommitHook> commitHooks = newLinkedHashSet();
-    private final Set<IndexEditorProvider> indexEditorProviders = newLinkedHashSet();
-    private final Set<EditorProvider> editorProviders = newLinkedHashSet();
-    private final Set<Editor> editors = newLinkedHashSet();
-    private final Set<Observer> observers = newLinkedHashSet();
+    private final Set<RepositoryInitializer> repositoryInitializers = new LinkedHashSet<>();
+    private final Set<QueryIndexProvider> queryIndexProviders = new LinkedHashSet<>();
+    private final Set<CommitHook> commitHooks = new LinkedHashSet<>();
+    private final Set<IndexEditorProvider> indexEditorProviders = new LinkedHashSet<>();
+    private final Set<EditorProvider> editorProviders = new LinkedHashSet<>();
+    private final Set<Editor> editors = new LinkedHashSet<>();
+    private final Set<Observer> observers = new LinkedHashSet<>();
 
     private final CompositeConflictHandler conflictHandler = createJcrConflictHandler();
     private SecurityProvider securityProvider;
@@ -152,7 +152,7 @@ public class Jcr {
     }
 
     private void ensureRepositoryIsNotCreated() {
-        checkState(repository == null && contentRepository == null,
+        Validate.checkState(repository == null && contentRepository == null,
                 "Repository was already created");
     }
 

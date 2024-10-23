@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
 import java.io.EOFException;
@@ -37,6 +36,7 @@ import java.util.zip.CRC32;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.index.SimpleIndexEntry;
@@ -138,7 +138,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         if (indexEntry == null) {
             return null;
         }
-        checkState(channel != null); // implied by entry != null
+        Validate.checkState(channel != null); // implied by entry != null
         Buffer data = Buffer.allocate(indexEntry.getLength());
         if (data.readFully(channel, indexEntry.getPosition()) < indexEntry.getLength()) {
             throw new EOFException();
@@ -244,6 +244,11 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     @Override
     public boolean isRemote() {
         return false;
+    }
+
+    @Override
+    public int getMaxEntryCount() {
+        return Integer.MAX_VALUE;
     }
 
     private static byte[] newEntryHeader(String name, int size) {

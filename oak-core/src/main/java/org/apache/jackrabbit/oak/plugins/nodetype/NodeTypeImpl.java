@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -50,9 +48,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
@@ -75,6 +75,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -186,7 +187,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      */
     @Override @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        Map<Integer, PropertyDefinition> definitions = newTreeMap();
+        Map<Integer, PropertyDefinition> definitions = new TreeMap<>();
         for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
         }
@@ -200,7 +201,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      */
     @Override @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        Map<Integer, NodeDefinition> definitions = newTreeMap();
+        Map<Integer, NodeDefinition> definitions = new TreeMap<>();
         for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
         }
@@ -209,7 +210,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public NodeType[] getSupertypes() {
-        Map<String, NodeType> supertypes = Maps.newLinkedHashMap();
+        Map<String, NodeType> supertypes = new LinkedHashMap<>();
         addSupertypes(definition, supertypes);
         return supertypes.values().toArray(NO_NODE_TYPES);
     }
@@ -221,7 +222,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             for (String oakName : property.getValue(Type.NAMES)) {
                 if (!supertypes.containsKey(oakName)) {
                     Tree supertype = root.getChild(oakName);
-                    checkState(supertype.exists());
+                    Validate.checkState(supertype.exists());
                     supertypes.put(
                             oakName, new NodeTypeImpl(supertype, mapper));
                     addSupertypes(supertype, supertypes);
@@ -239,7 +240,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             Tree root = definition.getParent();
             for (int i = 0; i < oakNames.length; i++) {
                 Tree type = root.getChild(oakNames[i]);
-                checkState(type.exists());
+                Validate.checkState(type.exists());
                 supertypes[i] = new NodeTypeImpl(type, mapper);
             }
         }
