@@ -9,11 +9,11 @@ public class GenerateGarbageHelper {
         return fullGCMode == 0;
     }
 
-    public static boolean includesEmptyProps(int fullGCMode) {
+    public static boolean isEmptyProps(int fullGCMode) {
         return fullGCMode == 1;
     }
 
-    public static boolean includesGapOrphans(int fullGCMode) {
+    public static boolean isGapOrphans(int fullGCMode) {
         return fullGCMode == 2;
     }
 }
