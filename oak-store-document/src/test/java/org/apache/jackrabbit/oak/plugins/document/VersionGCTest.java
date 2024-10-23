@@ -51,7 +51,10 @@ import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.commons.lang3.reflect.FieldUtils.readDeclaredField;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
@@ -531,10 +534,33 @@ public class VersionGCTest {
 
     // OAK-10370 END
 
+    // OAK-10745
+    @Test
+    public void testVGCWithBatchSizeSmallerThanProgressSize() throws IllegalAccessException {
+        VersionGarbageCollector vgc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                0, 0, 1000, 5000);
+
+        assertEquals(1000, readDeclaredField(vgc, "fullGCBatchSize", true));
+        assertEquals(5000, readDeclaredField(vgc, "fullGCProgressSize", true));
+    }
+
+    @Test
+    public void testVGCWithBatchSizeGreaterThanProgressSize() throws IllegalAccessException {
+        VersionGarbageCollector vgc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                0, 0, 20000, 15000);
+
+        assertEquals(15000, readDeclaredField(vgc, "fullGCBatchSize", true));
+        assertEquals(15000, readDeclaredField(vgc, "fullGCProgressSize", true));
+    }
+
+    // OAK-10745 END
+
     // OAK-10896
 
     @Test
-    public void testVersionGCLoadGCModeConfigurationNotApplicable() throws Exception {
+    public void testVersionGCLoadGCModeConfigurationNotApplicable() {
         int fullGcModeNotAllowedValue = 5;
         int fullGcModeGapOrphans = 2;
 
@@ -544,40 +570,40 @@ public class VersionGCTest {
         // reinitialize VersionGarbageCollector with not allowed value
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeNotAllowedValue);
+                fullGcModeNotAllowedValue, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
         assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
-                "will set fullGcMode to default NONE", VersionGarbageCollector.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+                "will set fullGcMode to default NONE", VersionGarbageCollector.FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
     }
 
     @Test
-    public void testVersionGCLoadGCModeConfigurationNone() throws Exception {
+    public void testVersionGCLoadGCModeConfigurationNone() {
         int fullGcModeNone = 0;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeNone);
+                fullGcModeNone, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
-        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.NONE);
+        assertEquals(VersionGarbageCollector.FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
     }
 
     @Test
-    public void testVersionGCLoadGCModeConfigurationGapOrphans() throws Exception {
+    public void testVersionGCLoadGCModeConfigurationGapOrphans() {
         int fullGcModeGapOrphans = 2;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeGapOrphans);
+                fullGcModeGapOrphans, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
-        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS);
+        assertEquals(VersionGarbageCollector.FullGCMode.GAP_ORPHANS, VersionGarbageCollector.getFullGcMode());
     }
 
     @Test
-    public void testVersionGCLoadGCModeConfigurationGapOrphansEmptyProperties() throws Exception {
+    public void testVersionGCLoadGCModeConfigurationGapOrphansEmptyProperties() {
         int fullGcModeGapOrphansEmptyProperties = 3;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeGapOrphansEmptyProperties);
+                fullGcModeGapOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
-        assertEquals(gc.getFullGcMode(), VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS);
+        assertEquals(VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS, VersionGarbageCollector.getFullGcMode());
     }
 
     // OAK-10896 END

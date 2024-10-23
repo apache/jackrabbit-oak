@@ -34,7 +34,7 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Iterator;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * This implementation of {@code UserManager} delegates back to a

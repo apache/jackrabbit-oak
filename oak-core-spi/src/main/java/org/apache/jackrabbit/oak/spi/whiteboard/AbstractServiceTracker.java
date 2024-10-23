@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -74,7 +74,7 @@ public abstract class AbstractServiceTracker<T> {
     }
 
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(tracker == stopped);
+        Validate.checkState(tracker == stopped);
         tracker = (filterProperties == null) ? whiteboard.track(type) : whiteboard.track(type, filterProperties);
     }
 

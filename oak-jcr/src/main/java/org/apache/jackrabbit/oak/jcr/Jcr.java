@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler.createJcrConflictHandler;
 
 import java.util.LinkedHashSet;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -152,7 +152,7 @@ public class Jcr {
     }
 
     private void ensureRepositoryIsNotCreated() {
-        checkState(repository == null && contentRepository == null,
+        Validate.checkState(repository == null && contentRepository == null,
                 "Repository was already created");
     }
 

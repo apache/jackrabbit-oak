@@ -45,6 +45,9 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
+
 /**
  * Helper class to access package private method of DocumentNodeStore and other
  * classes in this package.
@@ -68,11 +71,11 @@ public class DocumentNodeStoreHelper {
         System.out.println("Collected in " + sw.stop());
     }
 
-    public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
-                                                          boolean fullGCEnabled, boolean isFullGCDryRun,
-                                                          boolean embeddedVerification, int fullGCMode) {
-        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
-                fullGCMode);
+    public static VersionGarbageCollector createVersionGC(final DocumentNodeStore nodeStore, final VersionGCSupport gcSupport,
+                                                          boolean isFullGCDryRun, final DocumentNodeStoreBuilder<?> builder) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, isFullGCEnabled(builder), isFullGCDryRun,
+                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize());
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {

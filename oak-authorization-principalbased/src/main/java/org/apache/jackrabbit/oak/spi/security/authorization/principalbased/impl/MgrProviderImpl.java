@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -30,8 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 final class MgrProviderImpl implements MgrProvider {
 
@@ -149,6 +148,6 @@ final class MgrProviderImpl implements MgrProvider {
     }
 
     private void checkRootInitialized() {
-        checkState(root != null);
+        Validate.checkState(root != null);
     }
 }

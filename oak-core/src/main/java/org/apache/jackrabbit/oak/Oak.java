@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
@@ -64,6 +63,7 @@ import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
@@ -588,6 +588,10 @@ public class Oak {
             LOG.info("Registered improved cost feature: " + QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST);
             closer.register(improvedIsNullCostFeature);
             queryEngineSettings.setImprovedIsNullCostFeature(improvedIsNullCostFeature);
+            Feature optimizeInRestrictionsForFunctions = newFeature(QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS, whiteboard);
+            LOG.info("Registered optimize in restrictions for functions feature: " + QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS);
+            closer.register(optimizeInRestrictionsForFunctions);
+            queryEngineSettings.setOptimizeInRestrictionsForFunctions(optimizeInRestrictionsForFunctions);
         }
 
         return this;
@@ -663,7 +667,7 @@ public class Oak {
         if (this.asyncTasks == null) {
             asyncTasks = new HashMap<String, Long>();
         }
-        checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
+        Validate.checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
         asyncTasks.put(AsyncIndexUpdate.checkValidName(name), delayInSeconds);
         return this;
     }
@@ -985,6 +989,10 @@ public class Oak {
 
         public void setImprovedIsNullCostFeature(@Nullable Feature feature) {
             settings.setImprovedIsNullCostFeature(feature);
+        }
+
+        public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
+            settings.setOptimizeInRestrictionsForFunctions(feature);
         }
 
         @Override

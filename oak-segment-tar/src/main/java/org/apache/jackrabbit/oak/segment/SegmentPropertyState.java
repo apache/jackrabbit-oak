@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -49,6 +48,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
@@ -143,7 +143,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     public <T> T getValue(Type<T> type) {
         Segment segment = getSegment();
         if (isArray()) {
-            checkState(type.isArray());
+            Validate.checkState(type.isArray());
             ListRecord values = getValueList(segment);
             if (values.size() == 0) {
                 return (T) emptyList();

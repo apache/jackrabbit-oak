@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +31,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -89,6 +92,23 @@ public class CollectionUtils {
         List<T> result = new ArrayList<>();
         iterator.forEachRemaining(result::add);
         return result;
+    }
+
+    /**
+     * Split a list into partitions of a given size.
+     *
+     * @param list the list to partition
+     * @param n the size of partitions
+     * @return a list of partitions. The resulting partitions aren’t a view of the main List, so any changes happening to the main List won’t affect the partitions.
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<List<T>> partitionList(final List<T> list, final int n) {
+        Objects.requireNonNull(list);
+        return IntStream.range(0, list.size())
+                .filter(i -> i % n == 0)
+                .mapToObj(i -> list.subList(i, Math.min(i + n, list.size())))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -168,6 +188,21 @@ public class CollectionUtils {
             result.add(element);
         }
         return result;
+    }
+
+    /**
+     * Convert an iterable to a {@link java.util.ArrayDeque}.
+     * The returning array deque is mutable and supports all optional operations.
+     *
+     * @param iterable the iterable to convert
+     * @param <T>      the type of the elements
+     * @return the arrayDeque
+     */
+    public static <T> ArrayDeque<T> toArrayDeque(@NotNull Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        ArrayDeque<T> arrayDeque = new ArrayDeque<>();
+        iterable.forEach(arrayDeque::add);
+        return arrayDeque;
     }
 
     /**

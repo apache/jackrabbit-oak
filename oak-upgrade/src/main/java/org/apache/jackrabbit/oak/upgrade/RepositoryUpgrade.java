@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
@@ -81,6 +80,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -713,7 +713,7 @@ public class RepositoryUpgrade {
             } else {
                 prefix = addCustomMapping(namespaces, uri, prefixHint);
             }
-            checkState(uriToPrefix.put(uri, prefix) == null);
+            Validate.checkState(uriToPrefix.put(uri, prefix) == null);
         }
 
         Namespaces.buildIndexNode(namespaces);

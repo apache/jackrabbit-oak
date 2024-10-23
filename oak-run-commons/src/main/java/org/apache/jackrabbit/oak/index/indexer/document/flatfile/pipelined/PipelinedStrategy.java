@@ -26,6 +26,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -227,35 +228,35 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         this.pathFilters = pathFilters;
         this.statisticsProvider = statisticsProvider;
         this.indexingReporter = indexingReporter;
-        Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
+        Validate.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
 
         int mongoDocQueueReservedMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
-        Preconditions.checkArgument(mongoDocQueueReservedMemoryMB >= MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB,
+        Validate.checkArgument(mongoDocQueueReservedMemoryMB >= MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB + ": " + mongoDocQueueReservedMemoryMB + ". Must be >= " + MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
         this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, String.valueOf(mongoDocQueueReservedMemoryMB));
 
         this.mongoDocBatchMaxSizeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB);
-        Preconditions.checkArgument(mongoDocBatchMaxSizeMB > 0,
+        Validate.checkArgument(mongoDocBatchMaxSizeMB > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB + ": " + mongoDocBatchMaxSizeMB + ". Must be > 0");
         this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, String.valueOf(mongoDocBatchMaxSizeMB));
 
         this.mongoDocBatchMaxNumberOfDocuments = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS);
-        Preconditions.checkArgument(mongoDocBatchMaxNumberOfDocuments > 0,
+        Validate.checkArgument(mongoDocBatchMaxNumberOfDocuments > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS + ": " + mongoDocBatchMaxNumberOfDocuments + ". Must be > 0");
         this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, String.valueOf(mongoDocBatchMaxNumberOfDocuments));
 
         this.numberOfTransformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
-        Preconditions.checkArgument(numberOfTransformThreads > 0,
+        Validate.checkArgument(numberOfTransformThreads > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": " + numberOfTransformThreads + ". Must be > 0");
         this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, String.valueOf(numberOfTransformThreads));
 
         int sortBufferMemoryPercentage = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE, DEFAULT_OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE);
-        Preconditions.checkArgument(sortBufferMemoryPercentage > 0 && sortBufferMemoryPercentage <= 100,
+        Validate.checkArgument(sortBufferMemoryPercentage > 0 && sortBufferMemoryPercentage <= 100,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE + ": " + numberOfTransformThreads + ". Must be between 1 and 100");
         this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE, String.valueOf(sortBufferMemoryPercentage));
 
         // mongo-dump  <-> transform threads
-        Preconditions.checkArgument(mongoDocQueueReservedMemoryMB >= 8 * mongoDocBatchMaxSizeMB,
+        Validate.checkArgument(mongoDocQueueReservedMemoryMB >= 8 * mongoDocBatchMaxSizeMB,
                 "Invalid values for properties " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB + " and " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB +
                         ": " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB + " must be at least 8x " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB +
                         ", but are " + mongoDocQueueReservedMemoryMB + " and " + mongoDocBatchMaxSizeMB + ", respectively"
@@ -307,7 +308,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
     private int readNSEBuffersReservedMemory() {
         int workingMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB);
-        Preconditions.checkArgument(workingMemoryMB >= 0,
+        Validate.checkArgument(workingMemoryMB >= 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": " + workingMemoryMB + ". Must be >= 0");
         indexingReporter.addConfig(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, workingMemoryMB);
         if (workingMemoryMB == 0) {

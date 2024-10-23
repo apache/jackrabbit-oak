@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
@@ -284,7 +284,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
      */
     @Override
     public String getString() throws RepositoryException {
-        checkState(getType() != PropertyType.BINARY || stream == null,
+        Validate.checkState(getType() != PropertyType.BINARY || stream == null,
                 "getStream has previously been called on this Value instance. " +
                 "In this case a new Value instance must be acquired in order to successfully call this method.");
 

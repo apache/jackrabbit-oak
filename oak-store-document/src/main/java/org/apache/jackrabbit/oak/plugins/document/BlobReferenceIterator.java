@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
 
@@ -37,7 +38,7 @@ public class BlobReferenceIterator extends AbstractIterator<ReferencedBlob> impl
 
     private final DocumentStore documentStore;
     private final BlobCollector blobCollector;
-    private final Queue<ReferencedBlob> blobs = Queues.newArrayDeque();
+    private final Queue<ReferencedBlob> blobs = new ArrayDeque<>();
 
     private Iterator<NodeDocument> iterator;
 

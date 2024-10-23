@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyList;

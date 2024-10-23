@@ -22,8 +22,7 @@ import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
@@ -43,6 +42,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.HexDump;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
@@ -153,7 +153,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public RecordId execute(@NotNull GCGeneration gcGeneration,
                             @NotNull WriteOperation writeOperation)
     throws IOException {
-        checkState(gcGeneration.equals(this.gcGeneration));
+        Validate.checkState(gcGeneration.equals(this.gcGeneration));
         return writeOperation.execute(this);
     }
 
@@ -247,7 +247,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     public void writeRecordId(RecordId recordId) {
         requireNonNull(recordId);
-        checkState(segmentReferences.size() + 1 < 0xffff,
+        Validate.checkState(segmentReferences.size() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");
 
         writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));

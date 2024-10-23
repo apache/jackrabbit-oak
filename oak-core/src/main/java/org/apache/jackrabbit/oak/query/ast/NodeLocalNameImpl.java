@@ -109,7 +109,13 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
 
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
-        // optimizations of type "LOCALNAME(..) IN(A, B)" are not supported
+        if (!f.getQueryLimits().getOptimizeInRestrictionsForFunctions()) {
+            return;
+        }
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictPropertyAsList(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, list);
+        }
     }
 
     @Override

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
@@ -40,6 +39,7 @@ import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.data.RecordIdData;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
@@ -182,7 +182,7 @@ public class Segment {
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(requireNonNull(data).slice());
             byte segmentVersion = this.data.getVersion();
-            checkState(this.data.getSignature().equals("0aK") && isValid(segmentVersion), new Object() {
+            Validate.checkState(this.data.getSignature().equals("0aK") && isValid(segmentVersion), new Object() {
 
                     @Override
                     public String toString() {
