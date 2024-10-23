@@ -85,7 +85,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBuilder.class);
 
     public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
-    public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 35;
+    public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 34;
+    public static final int DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE = 1;
     public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
     public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 15;
     public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 30;
@@ -138,6 +139,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
     private int prevDocCachePercentage = DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+    private int prevNoPropCachePercentage = DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
     private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
     private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
     private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
@@ -578,13 +580,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return memoryCacheSize * prevDocCachePercentage / 100;
     }
 
+    public long getPrevNoPropCacheSize() {
+        return memoryCacheSize * prevNoPropCachePercentage / 100;
+    }
+
     public long getChildrenCacheSize() {
         return memoryCacheSize * childrenCachePercentage / 100;
     }
 
     public long getDocumentCacheSize() {
         return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize() - getChildrenCacheSize()
-                - getDiffCacheSize();
+                - getDiffCacheSize() - getPrevNoPropCacheSize();
     }
 
     public long getDiffCacheSize() {
@@ -866,6 +872,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
 
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+    }
+
+    public Cache<StringValue, StringValue> buildPrevNoPropCache(DocumentNodeStore store) {
+        // no persistent cache for now as this is only a tiny cache
+        return buildCache("PREV_NOPROP", getPrevNoPropCacheSize(), new CopyOnWriteArraySet<>());
     }
 
     /**

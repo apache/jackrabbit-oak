@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -211,7 +210,6 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
      * The test reproduces only part one of the above (expensiveness of reading
      * not-yet-visible property of a document with many previous documents).
      */
-    @Ignore
     @Test
     public void unmergedCommitOnRoot() throws Exception {
         Clock clock = new Clock.Virtual();
@@ -289,7 +287,14 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // to the same mongo instance (but has its own cache and thus cause
             // interesting things).
             // So let's do that here for Mongo (for now - TODO: generalize this concept)
-            DocumentStore ds2 = dsf.createDocumentStore(getBuilder().setClusterId(2 /* likely unnecessary */));
+            DocumentStore ds2;
+            if (dsf.hasSinglePersistence()) {
+                ds2 = dsf.createDocumentStore(getBuilder().setClusterId(2 /* likely unnecessary */));
+            } else {
+                // for Memory fixture we need to fall back to single DocumentStore
+                // (in which case the caching aspect of DocumentStore gets a bit lost)
+                ds2 = ds;
+            }
             CountingDocumentStore cds2 = new CountingDocumentStore(ds2);
             DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0).clock(clock)
                     .setDocumentStore(cds2).build();
@@ -360,6 +365,17 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // but before it did a backgroundWrite
             {
                 int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v5");
+                // with a prevdoc_noprop cache (on root) there will
+                // still be one expensive round of previous document
+                // scans - only thereafter that is cached.
+                // to account for that : we now expect many previous
+                // docs were read:
+                assertPreviousDocsRead(c, 95);
+            }
+
+            // repeating it again should now make use of the prevdoc_noprop cache
+            {
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v6");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
@@ -368,7 +384,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // neither does just doing an update on ns1
             ns1.runBackgroundOperations();
             {
-                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v5");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v7");
                 assertNoPreviousDocsRead(c, 95);
                 // prior to the fix it would have been:
                 // assertPreviousDocsRead(c, 95);
@@ -377,7 +393,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // just doing ns1 THEN ns2 will do the trick
             ns2.runBackgroundOperations();
             {
-                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v6");
+                int c = getNodesFindCountOfAnUpdate(cds2, ns2, "v8");
                 // this worked irrespective of the fix:
                 assertNoPreviousDocsRead(c, 95);
             }

@@ -965,7 +965,7 @@ public class NodeDocumentTest {
 
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
-            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i), null).iterator().next().getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents: " + prevDocCalls,
                     prevDocCalls.size() <= 3);
@@ -1032,7 +1032,7 @@ public class NodeDocumentTest {
 
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
-            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i), null).iterator().next().getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents ("
                             + prevDocCalls.size() + "): " + prevDocCalls,
@@ -1114,7 +1114,7 @@ public class NodeDocumentTest {
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
             Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
-            Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r));
+            Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r), null);
             assertEquals(idx, numChanges - Iterables.size(revs));
         }
         ns.dispose();
@@ -1135,8 +1135,8 @@ public class NodeDocumentTest {
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
             RevisionVector r = headRevisions.get(idx);
-            Iterable<Map.Entry<Revision, String>> revs1 = doc.getVisibleChanges("p", r);
-            Iterable<Map.Entry<Revision, String>> revs2 = doc.getVisibleChanges("p", r);
+            Iterable<Map.Entry<Revision, String>> revs1 = doc.getVisibleChanges("p", r, null);
+            Iterable<Map.Entry<Revision, String>> revs2 = doc.getVisibleChanges("p", r, null);
             assertEquals(Iterables.size(revs1), Iterables.size(revs2));
             assertEquals(idx, numChanges - Iterables.size(revs1));
         }
@@ -1177,7 +1177,7 @@ public class NodeDocumentTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev)) {
+        for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev, null)) {
             assertFalse(readRev.isRevisionNewer(change.getKey()));
         }
     }

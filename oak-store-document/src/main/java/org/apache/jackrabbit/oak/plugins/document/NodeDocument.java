@@ -48,10 +48,12 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -67,6 +69,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1033,7 +1036,7 @@ public final class NodeDocument extends Document {
                 // any in previous documents neither.
                 // This should only occur when a property is being newly
                 // added or was deleted, then fullGC-ed and now re-added.
-                LOG.trace("getNodeAtRevision : skipping as no committed revision locally for key={}", key);
+                LOG.trace("getNodeAtRevision : skipping as no committed revision locally for path={}, key={}", path, key);
                 continue;
             }
 
@@ -1042,7 +1045,8 @@ public final class NodeDocument extends Document {
 
             if (value == null && !getPreviousRanges().isEmpty()) {
                 // check revision history
-                value = getLatestValue(nodeStore, getVisibleChanges(key, readRevision),
+                final Cache<StringValue, StringValue> prevNoPropCache = nodeStore.getPrevNoPropCache();
+                value = getLatestValue(nodeStore, getVisibleChanges(key, readRevision, prevNoPropCache),
                         readRevision, validRevisions, lastRevs);
             }
             String propertyName = Utils.unescapePropertyName(key);
@@ -1135,7 +1139,7 @@ public final class NodeDocument extends Document {
         return false;
     }
 
-	/**
+    /**
      * Get the earliest (oldest) revision where the node was alive at or before
      * the provided revision, if the node was alive at the given revision.
      *
@@ -1495,10 +1499,13 @@ public final class NodeDocument extends Document {
         };
     }
 
+    private String getPreviousDocId(Revision rev, Range range) {
+        return Utils.getPreviousIdFor(getMainPath(), rev, range.height);
+    }
+
     @Nullable
     private NodeDocument getPreviousDoc(Revision rev, Range range){
-        int h = range.height;
-        String prevId = Utils.getPreviousIdFor(getMainPath(), rev, h);
+        String prevId = getPreviousDocId(rev, range);
         NodeDocument prev = getPreviousDocument(prevId);
         if (prev != null) {
             return prev;
@@ -1598,21 +1605,39 @@ public final class NodeDocument extends Document {
      *
      * @param property the name of the property.
      * @param readRevision the read revision vector.
+     * @param prevNoPropCache optional cache for remembering non existence
+     * of any property revisions in previous documents (by their id)
      * @return property changes visible from the given read revision vector.
      */
     @NotNull
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
-                                                            @NotNull final RevisionVector readRevision) {
+                                                            @NotNull final RevisionVector readRevision,
+                                                            @Nullable final Cache<StringValue, StringValue> prevNoPropCache) {
+        return getVisibleChanges(property, readRevision, prevNoPropCache, null);
+    }
+
+    /**
+     * Variation of getVisibleChanges that allows to provide a non-null propRevFound.
+     * The latter is used to detect whether previous documents had any property revisions at all.
+     */
+    @NotNull
+    Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
+                                                            @NotNull final RevisionVector readRevision,
+                                                            @Nullable final Cache<StringValue, StringValue> prevNoPropCache,
+                                                            @Nullable final AtomicBoolean propRevFound) {
         Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
         List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
         Map<Revision, String> localChanges = getLocalMap(property);
         if (!localChanges.isEmpty()) {
+            if (propRevFound != null) {
+                propRevFound.set(true);
+            }
             changes.add(filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
             // collect changes per clusterId
-            collectVisiblePreviousChanges(property, r, changes);
+            collectVisiblePreviousChanges(property, r, changes, prevNoPropCache, propRevFound);
         }
 
         if (changes.size() == 1) {
@@ -1621,7 +1646,6 @@ public final class NodeDocument extends Document {
             return mergeSorted(changes, ValueComparator.REVERSE);
         }
     }
-
     /**
      * Collect changes in previous documents into {@code changes} visible from
      * the given {@code readRevision} and for the given {@code property}. The
@@ -1634,7 +1658,9 @@ public final class NodeDocument extends Document {
      */
     private void collectVisiblePreviousChanges(@NotNull final String property,
                                                @NotNull final Revision readRevision,
-                                               @NotNull final List<Iterable<Entry<Revision, String>>> changes) {
+                                               @NotNull final List<Iterable<Entry<Revision, String>>> changes,
+                                               @Nullable final Cache<StringValue, StringValue> prevNoPropCache,
+                                               @Nullable final AtomicBoolean propRevFound) {
         List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
 
         RevisionVector readRV = new RevisionVector(readRevision);
@@ -1660,7 +1686,7 @@ public final class NodeDocument extends Document {
                     previous = r;
                 }
             }
-            revs.add(changesFor(batch, readRV, property));
+            revs.add(changesFor(batch, readRV, property, prevNoPropCache, propRevFound));
             batch.clear();
         }
 
@@ -1685,18 +1711,80 @@ public final class NodeDocument extends Document {
      */
     private Iterable<Map.Entry<Revision, String>> changesFor(final List<Range> ranges,
                                                              final RevisionVector readRev,
-                                                             final String property) {
+                                                             final String property,
+                                                             @Nullable final Cache<StringValue, StringValue> prevNoPropCache,
+                                                             @Nullable final AtomicBoolean parentPropRevFound) {
         if (ranges.isEmpty()) {
             return Collections.emptyList();
         }
 
-        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges = input -> {
+        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges;
+        if (prevNoPropCache != null && parentPropRevFound == null) {
+            // then we are in the main doc. at this point we thus need to
+            // check the cache, if miss then scan prev docs and cache the result
+            rangeToChanges = input -> {
+                    final String prevDocId = getPreviousDocId(input.high, input);
+                    final StringValue cacheKey = new StringValue(property + "@" + prevDocId);
+                    if (prevNoPropCache.getIfPresent(cacheKey) != null) {
+                        // cache hit, awesome!
+                        // (we're not interested in the actual cache value btw, as finding 
+                        // a cache value actually indicates "the property does not exist 
+                        // in any previous document whatsoever" - no need for value check)
+                        LOG.trace("changesFor : empty changes cache hit for cacheKey={}", cacheKey);
+                        return Collections.emptyList();
+                    }
+                    // cache miss - let's do the heavy lifting then
+                    NodeDocument doc = getPreviousDoc(input.high, input);
+                    if (doc == null) {
+                        // this could be a candidate for caching probably.
+                        // but might also indicate some race-condition.
+                        // so let's not cache for now.
+                        return Collections.emptyList();
+                    }
+                    // initiate counting
+                    final AtomicBoolean childrenPropRevFound = new AtomicBoolean(false);
+                    // create that Iterable - but wrap it so that we know how many
+                    // property revisions were actually found in the scan.
+                    // (we're mostly interested if that's zero ro non-zero though)
+                    final Iterable<Entry<Revision, String>> vc = doc.getVisibleChanges(property, readRev, null, childrenPropRevFound);
+                    // wrap that Iterable to intercept the call to hasNext().
+                    // at that point if the counter is non-null it means
+                    // that any previous documents scanned does indeed have
+                    // the property we're interested in. It might not be visible
+                    // or committed, but at least it does have it.
+                    // In which case we'd skip that. But if it does not exist
+                    // at all, then we cache that fact.
+                    return new Iterable<Entry<Revision, String>>() {
+                        @Override
+                        public Iterator<Entry<Revision, String>> iterator() {
+                            // grab the iterator - this typically triggers previous doc scan
+                            final Iterator<Entry<Revision, String>> wrappee = vc.iterator();
+                            // but let's invoke hasNext here explicitly still. to ensure
+                            // we do indeed scan - without a scan hasNext can't work
+                            wrappee.hasNext();
+                            if (!childrenPropRevFound.get()) {
+                                // then let's cache that
+                                LOG.trace("changesFor : caching empty changes for cacheKey={}", cacheKey);
+                                prevNoPropCache.put(cacheKey, StringValue.EMPTY);
+                            }
+                            return wrappee;
+                        }
+                    };
+                };
+        } else {
+            // without a cache either the caller is not interested at caching,
+            // or we are within a previous doc reading n+1 level previous docs.
+            // in both cases nothing much to do other than passing along the
+            // counter (propRevCount).
+            // also no caching other than in the main doc
+            rangeToChanges = input -> {
                 NodeDocument doc = getPreviousDoc(input.high, input);
                 if (doc == null) {
                     return Collections.emptyList();
                 }
-                return doc.getVisibleChanges(property, readRev);
+                return doc.getVisibleChanges(property, readRev, null, parentPropRevFound);
             };
+        }
 
         Iterable<Map.Entry<Revision, String>> changes;
         if (ranges.size() == 1) {
