@@ -39,12 +39,22 @@ public interface QueryLimits {
         return true;
     }
 
+    /**
+     * See OAK-11214. This method is used for backward compatibility
+     * (bug compatibility) only.
+     *
+     * @return true, except when backward compatibility for OAK-11214 is enabled
+     */
+    default public boolean getOptimizeInRestrictionsForFunctions() {
+        return true;
+    }
+
     boolean getFailTraversal();
 
     default String getStrictPathRestriction() {
         return StrictPathRestriction.DISABLE.name();
     }
-    
+
     /**
      * Retrieve the java package names / full qualified class names which should be
      * ignored when finding the class starting a query
