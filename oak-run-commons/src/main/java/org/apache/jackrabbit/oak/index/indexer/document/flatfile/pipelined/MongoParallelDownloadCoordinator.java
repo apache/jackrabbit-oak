@@ -37,8 +37,10 @@ class MongoParallelDownloadCoordinator {
         return lowerRangeTop;
     }
 
-    public synchronized boolean extendLowerRange(long modified) {
-        lowerRangeTop = modified;
+    public synchronized boolean increaseLowerRange(long modified) {
+        if (modified > lowerRangeTop) {
+            lowerRangeTop = modified;
+        }
         return downloadsCrossed();
     }
 
@@ -46,8 +48,10 @@ class MongoParallelDownloadCoordinator {
         return lowerRangeTop > upperRangeBottom;
     }
 
-    public synchronized boolean extendUpperRange(long modified) {
-        upperRangeBottom = modified;
+    public synchronized boolean decreaseUpperRange(long modified) {
+        if (modified < upperRangeBottom) {
+            upperRangeBottom = modified;
+        }
         return downloadsCrossed();
     }
 

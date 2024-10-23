@@ -34,13 +34,11 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoParallelDownloadCoordinator.RawBsonDocumentWrapper;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -657,7 +655,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private final MongoParallelDownloadCoordinator parallelDownloadCoordinator;
         private long documentsDownloadedTotalBytes;
         private long documentsDownloadedTotal;
-        private long nextLastModified = -1;
+        private long nextLastModified;
         //        private String lastIdDownloaded;
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
@@ -861,8 +859,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             }
                             if (parallelDownloadCoordinator != null) {
                                 boolean crossedDownloads = downloadOrder == DownloadOrder.ASCENDING ?
-                                        parallelDownloadCoordinator.extendLowerRange(modified) :
-                                        parallelDownloadCoordinator.extendUpperRange(modified);
+                                        parallelDownloadCoordinator.increaseLowerRange(modified) :
+                                        parallelDownloadCoordinator.decreaseUpperRange(modified);
                                 if (crossedDownloads) {
                                     LOG.info("Download complete, reached already seen document: {}", modified);
                                     tryEnqueueCopy(batch, nextIndex);
