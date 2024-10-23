@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoParallelDownloadCoordinator.RawBsonDocumentWrapper;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -49,10 +50,13 @@ import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.bson.BsonBinaryReader;
 import org.bson.BsonDocument;
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.BsonType;
+import org.bson.ByteBuf;
+import org.bson.RawBsonDocument;
 import org.bson.conversions.Bson;
+import org.bson.io.ByteBufferBsonInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +87,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
 
     private static final Logger TRAVERSAL_LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
-    public static final NodeDocument[] SENTINEL_MONGO_DOCUMENT = new NodeDocument[0];
+    public static final RawBsonDocument[] SENTINEL_MONGO_DOCUMENT = new RawBsonDocument[0];
 
     public static class Result {
         private final long documentsDownloaded;
@@ -202,12 +206,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
-
     private final MongoClientURI mongoClientURI;
     private final MongoDocumentStore docStore;
     private final int maxBatchSizeBytes;
     private final int maxBatchNumberOfDocuments;
-    private final BlockingQueue<NodeDocument[]> mongoDocQueue;
+    private final BlockingQueue<RawBsonDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
     private final ThreadFactory threadFactory;
     private final StatisticsProvider statisticsProvider;
@@ -222,7 +225,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final boolean parallelDumpSecondariesOnly;
     private final MongoRegexPathFilterFactory regexPathFilterFactory;
 
-    private MongoCollection<NodeDocument> dbCollection;
+    private MongoCollection<RawBsonDocument> dbCollection;
     private PipelinedMongoServerSelector mongoServerSelector;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final DownloadStageStatistics downloadStageStatistics = new DownloadStageStatistics();
@@ -233,7 +236,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
-                                      BlockingQueue<NodeDocument[]> queue,
+                                      BlockingQueue<RawBsonDocument[]> queue,
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider,
                                       IndexingReporter reporter,
@@ -246,7 +249,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
-                                      BlockingQueue<NodeDocument[]> queue,
+                                      BlockingQueue<RawBsonDocument[]> queue,
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider,
                                       IndexingReporter reporter,
@@ -344,12 +347,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             // When downloading in parallel, we must create the connection to Mongo using a custom instance of ServerSelector
             // instead of using the default policy defined by readPreference configuration setting.
             // Here we create the configuration that is common to the two cases (parallelDump true or false).
-            NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(docStore, Collection.NODES);
-            CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
-                    CodecRegistries.fromProviders(nodeDocumentCodecProvider),
-                    MongoClientSettings.getDefaultCodecRegistry()
-            );
-
             MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder()
                     .applyConnectionString(new ConnectionString(mongoClientURI.getURI()))
                     .readPreference(ReadPreference.secondaryPreferred());
@@ -370,9 +367,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             String mongoDatabaseName = MongoDocumentStoreHelper.getMongoDatabaseName(docStore);
             try (MongoClient client = MongoClients.create(settingsBuilder.build())) {
                 MongoDatabase mongoDatabase = client.getDatabase(mongoDatabaseName);
-                this.dbCollection = mongoDatabase
-                        .withCodecRegistry(nodeDocumentCodecRegistry)
-                        .getCollection(Collection.NODES.toString(), NodeDocument.class);
+                this.dbCollection = mongoDatabase.getCollection(Collection.NODES.toString(), RawBsonDocument.class);
 
                 INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
                 try {
@@ -412,7 +407,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         Bson mongoFilter = MongoDownloaderRegexUtils.computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
-            FindIterable<NodeDocument> mongoIterable = dbCollection
+            FindIterable<RawBsonDocument> mongoIterable = dbCollection
                     .find(getModifiedFieldFilter()) // Download only documents that have _modified set
                     .hint(NATURAL_HINT);
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
@@ -425,7 +420,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             LOG.info("Downloading from Mongo with natural order using filter: {}", mongoFilter);
-            FindIterable<NodeDocument> findIterable = dbCollection
+            FindIterable<RawBsonDocument> findIterable = dbCollection
                     .find(Filters.and(getModifiedFieldFilter(), mongoFilter))
                     .hint(NATURAL_HINT);
             downloadTask.download(findIterable);
@@ -666,7 +661,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private String lastIdDownloaded;
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
-        private volatile MongoCursor<NodeDocument> mongoCursor = null;
+        private volatile MongoCursor<RawBsonDocument> mongoCursor = null;
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
@@ -788,7 +783,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     Sorts.ascending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID) :
                     Sorts.descending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID);
 
-            FindIterable<NodeDocument> mongoIterable = dbCollection
+            FindIterable<RawBsonDocument> mongoIterable = dbCollection
                     .find(findQuery)
                     .sort(sortOrder);
 
@@ -812,14 +807,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
         }
 
-        void download(FindIterable<NodeDocument> mongoIterable) throws InterruptedException, TimeoutException {
+        void download(FindIterable<RawBsonDocument> mongoIterable) throws InterruptedException, TimeoutException {
             if (mongoBatchSize != -1) {
                 LOG.info("Setting Mongo batch size to {}", mongoBatchSize);
                 mongoIterable.batchSize(mongoBatchSize);
             }
-            try (MongoCursor<NodeDocument> cursor = mongoIterable.iterator()) {
+            try (MongoCursor<RawBsonDocument> cursor = mongoIterable.iterator()) {
                 this.mongoCursor = cursor;
-                NodeDocument[] batch = new NodeDocument[maxBatchNumberOfDocuments];
+                RawBsonDocumentWrapper[] batch = new RawBsonDocumentWrapper[maxBatchNumberOfDocuments];
                 int nextIndex = 0;
                 int batchSize = 0;
                 if (cursor.hasNext()) {
@@ -829,33 +824,57 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 }
                 try {
                     while (cursor.hasNext()) {
-                        NodeDocument next = cursor.next();
-                        // If the id is not set, then the document was filtered by NodeDocumentFilter and should be ignored
-                        String id = next.getId();
-                        if (id == null) {
-                            continue;
+                        RawBsonDocument rawBsonDocument = cursor.next();
+                        ByteBuf byteBuffer = rawBsonDocument.getByteBuffer();
+                        int docSize = byteBuffer.remaining();
+
+                        documentsDownloadedTotalBytes += docSize;
+                        documentsDownloadedTotal++;
+                        downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
+                        downloadStatics.incrementDocumentsDownloadedTotal();
+
+                        // Extract _id and _modified fields, they are necessary to keep track of progress so that we can
+                        // resume the download in case of connection failure
+                        String id = null;
+                        long modified = -1;
+                        try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
+                            bsonReader.readStartDocument();
+                            while (bsonReader.readBsonType() != BsonType.END_OF_DOCUMENT) {
+                                String fieldName = bsonReader.readName();
+                                switch (fieldName) {
+                                    case NodeDocument.ID:
+                                        id = bsonReader.readString();
+                                        break;
+                                    case NodeDocument.MODIFIED_IN_SECS:
+                                        modified = bsonReader.readInt64();
+                                        break;
+                                    default:
+                                        bsonReader.skipValue();
+                                }
+                                if (id != null && modified != -1) {
+                                    break;
+                                }
+                            }
                         }
+                        if (id == null || modified == -1) {
+                            throw new IllegalStateException("Document does not have _id or _modified field: " + rawBsonDocument);
+                        }
+
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
-                        this.nextLastModified = next.getModified();
+                        this.nextLastModified = modified;
                         if (this.firstModifiedValueSeen == -1) {
                             this.firstModifiedValueSeen = this.nextLastModified;
                         }
                         this.lastIdDownloaded = id;
-                        this.documentsDownloadedTotal++;
-                        downloadStatics.incrementDocumentsDownloadedTotal();
                         if (this.documentsDownloadedTotal % 50_000 == 0) {
                             reportProgress(id);
                         }
                         TRAVERSAL_LOG.trace(id);
 
-                        batch[nextIndex] = next;
+                        batch[nextIndex] = new RawBsonDocumentWrapper(rawBsonDocument, modified, id);
                         nextIndex++;
-                        // The NodeDocumentCodec always adds this field.
-                        int docSize = (int) next.get(NodeDocumentCodec.SIZE_FIELD);
                         batchSize += docSize;
-                        documentsDownloadedTotalBytes += docSize;
-                        downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
                         if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                             LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                             boolean downloadCompleted = tryEnqueueCopy(batch, nextIndex);
@@ -902,14 +921,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
             Bson ancestorQuery = MongoDownloaderRegexUtils.ancestorsFilter(basePath);
             LOG.info("Downloading ancestors of: {}, Query: {}.", basePath, ancestorQuery);
-            FindIterable<NodeDocument> ancestorsIterable = dbCollection
+            FindIterable<RawBsonDocument> ancestorsIterable = dbCollection
                     .find(ancestorQuery)
                     // Use the index on _id: this query returns very few documents and the filter condition is on _id.
                     .hint(ID_INDEX_HINT);
             download(ancestorsIterable);
         }
 
-        private boolean tryEnqueueCopy(NodeDocument[] batch, int sizeOfBatch) throws TimeoutException, InterruptedException {
+        private boolean tryEnqueueCopy(RawBsonDocumentWrapper[] batch, int sizeOfBatch) throws TimeoutException, InterruptedException {
             // Find the first element that was not yet added
             boolean completedDownload = false;
             int effectiveSize = sizeOfBatch;
@@ -920,14 +939,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 if (sizeOfRangeNotAdded != sizeOfBatch) {
                     completedDownload = true;
                     effectiveSize = sizeOfRangeNotAdded;
-                    NodeDocument firstAlreadySeen = batch[sizeOfRangeNotAdded];
-                    LOG.info("Download complete, reached already seen document: {}: {}", firstAlreadySeen.getModified(), firstAlreadySeen.getId());
+                    RawBsonDocumentWrapper firstAlreadySeen = batch[sizeOfRangeNotAdded];
+                    LOG.info("Download complete, reached already seen document: {}: {}", firstAlreadySeen.modified, firstAlreadySeen.id);
                 }
             }
             if (effectiveSize == 0) {
                 LOG.info("Batch is empty, not enqueuing.");
             } else {
-                NodeDocument[] copyOfBatch = Arrays.copyOfRange(batch, 0, effectiveSize);
+                RawBsonDocument[] copyOfBatch = new RawBsonDocument[effectiveSize];
+                for (int i = 0; i < effectiveSize; i++) {
+                    copyOfBatch[i] = batch[i].rawBsonDocument;
+                }
                 Stopwatch enqueueDelayStopwatch = Stopwatch.createStarted();
                 if (!mongoDocQueue.offer(copyOfBatch, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
                     throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);
@@ -957,7 +979,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr, %s/s",
                         docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
             }
-            LOG.info("Finished download task. Dumped {} documents. Rate: {}. Elapsed {}.",
+            LOG.info("Finished download task. Dumped {} documents. Rate: {}. Elapsed {}",
                     this.documentsDownloadedTotal, formattedRate, FormattingUtils.formatToSeconds(downloadTaskStart));
         }
 
