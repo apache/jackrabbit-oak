@@ -16,10 +16,28 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.getIdpName;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isSameIDP;
+
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.Function;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.query.Query;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -27,6 +45,9 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -41,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -53,28 +75,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.query.Query;
-import java.security.Principal;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.getIdpName;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isSameIDP;
 
 /**
  * Implementation of the {@code PrincipalProvider} interface that exposes
@@ -102,7 +102,7 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
 class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdentityConstants, DynamicMembershipProvider {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalGroupPrincipalProvider.class);
-    static final String CACHE_PRINCIPAL_NAMES = "rep:externalCachedPrincipalNames";
+    static final String CACHE_PRINCIPAL_NAMES = "rep:externalLocalPrincipalNames";
 
     private static final String BINDING_PRINCIPAL_NAMES = "principalNames";
 
@@ -147,7 +147,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
 
         cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root,
-                (principalName) -> createExternalGroupPrincipal(principalName, idpName),
+                (principalName) -> new CachedGroupPrincipal(principalName, userManager),
                 CACHE_PRINCIPAL_NAMES);
     }
 
@@ -407,13 +407,24 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         if (UserUtil.isType(tree, AuthorizableType.USER)) {
             PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
-                // we have an 'external' user that has been synchronized with the dynamic-membership option
+                Set<Principal> externalGroups = new HashSet<>();
+                for (String principalName : ps.getValue(Type.STRINGS)) {
+                    externalGroups.add(createExternalGroupPrincipal(principalName, idpName));
+                }
+
+                Set<Principal> groupPrincipals = new HashSet<>(externalGroups);
+                // Caching the inherited group principals is only required for dynamic groups
                 CachedMembershipReader membershipReader = cacheReaderFactory.apply(idpName);
                 if (membershipReader != null) {
-                    return membershipReader.readMembership(tree, (userTree)-> readPrincipals(authorizable, ps, idpName));
+                    groupPrincipals.addAll(membershipReader.readMembership(tree, (userTree) -> getInheritedPrincipals(externalGroups, idpName)));
                 } else {
-                    return readPrincipals(authorizable, ps, idpName);
+                    groupPrincipals.addAll(getInheritedPrincipals(groupPrincipals, idpName));
                 }
+
+                // add existing group principals as defined with the _autoMembership_ option.
+                groupPrincipals.addAll(getAutomembershipPrincipals(idpName, authorizable));
+
+                return groupPrincipals;
             } else {
                 return Collections.emptySet();
             }
@@ -422,21 +433,6 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             // NOTE: no need to resolve inherited local principals as this is covered by the default principal provider
             return getAutomembershipPrincipals(idpName, authorizable);
         }
-    }
-
-    private @NotNull Set<Principal> readPrincipals(@NotNull Authorizable authorizable, PropertyState ps,
-            String idpName) {
-        Set<Principal> groupPrincipals = new HashSet<>();
-        for (String principalName : ps.getValue(Type.STRINGS)) {
-            groupPrincipals.add(createExternalGroupPrincipal(principalName, idpName));
-        }
-
-        // add inherited local groups (crossing IDP boundary)
-        groupPrincipals.addAll(getInheritedPrincipals(groupPrincipals, idpName));
-
-        // add existing group principals as defined with the _autoMembership_ option.
-        groupPrincipals.addAll(getAutomembershipPrincipals(idpName, authorizable));
-        return groupPrincipals;
     }
 
     /**
@@ -742,4 +738,86 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
         abstract T get(@NotNull Authorizable authorizable) throws RepositoryException;
     }
+
+    private class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal, ItemBasedPrincipal {
+
+        private Group group;
+        private UserManager userManager;
+
+        public CachedGroupPrincipal(@NotNull String principalName, @NotNull UserManager userManager) {
+            super(principalName);
+            this.userManager = userManager;
+        }
+
+        @Override
+        public boolean isMember(@NotNull Principal principal) {
+            boolean isMember = false;
+            try {
+                // shortcut for everyone group -> avoid collecting all members
+                // as all users and groups are member of everyone.
+                if (isEveryone()) {
+                    isMember = !EveryonePrincipal.NAME.equals(principal.getName());
+                } else {
+                    Authorizable a = userManager.getAuthorizable(principal);
+                    if (a != null) {
+                        Group g = getGroup();
+                        return g != null && g.isMember(a);
+                    }
+                }
+            } catch (RepositoryException e) {
+                log.warn("Failed to determine group membership: {}", e.getMessage());
+            }
+
+            // principal doesn't represent a known authorizable or an error occurred.
+            return isMember;
+        }
+
+        @Override
+        public @NotNull Enumeration<? extends Principal> members() {
+            final Iterator<Authorizable> members;
+            try {
+                Group g = getGroup();
+                members = (g == null) ? Collections.emptyIterator() : g.getMembers();
+            } catch (RepositoryException e) {
+                // should not occur.
+                String msg = "Unable to retrieve Group members: " + e.getMessage();
+                log.error(msg);
+                throw new IllegalStateException(msg, e);
+            }
+
+            Iterator<Principal> principals = Iterators.transform(members, authorizable -> {
+                if (authorizable == null) {
+                    return null;
+                }
+                try {
+                    return authorizable.getPrincipal();
+                } catch (RepositoryException e) {
+                    String msg = "Internal error while retrieving principal: " + e.getMessage();
+                    log.error(msg);
+                    throw new IllegalStateException(msg, e);
+                }
+            });
+            return Iterators.asEnumeration(Iterators.filter(principals, Objects::nonNull));
+        }
+
+        private boolean isEveryone() {
+            return EveryonePrincipal.NAME.equals(getName());
+        }
+
+        private Group getGroup() throws RepositoryException {
+            if (group == null) {
+                Authorizable authorizable = userManager.getAuthorizable(new PrincipalImpl(getName()));
+                if (authorizable != null && authorizable.isGroup()) {
+                    group = (Group) authorizable;
+                }
+            }
+            return group;
+        }
+
+        @Override
+        public @NotNull String getPath() throws RepositoryException {
+            return getGroup().getPath();
+        }
+    }
+
 }

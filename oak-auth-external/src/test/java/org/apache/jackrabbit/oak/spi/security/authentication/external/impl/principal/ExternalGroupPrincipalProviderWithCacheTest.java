@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.R
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalGroupPrincipalProvider.CACHE_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -34,6 +35,7 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,6 +49,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -57,6 +60,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdenti
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +75,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
     @Parameterized.Parameters
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[]{"testIdp"},
+                new Object[]{"test"},
                 new Object[]{""});
     }
 
@@ -105,12 +110,12 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        CacheConstants.PARAM_CACHE_EXPIRATION, 10000,
-                        CacheConstants.PARAM_CACHE_MAX_STALE, 10000
-                )
-        );
+                UserConfiguration.NAME, ConfigurationParameters.of(Map.of(
+                                CacheConstants.PARAM_CACHE_EXPIRATION, 10000,
+                                CacheConstants.PARAM_CACHE_MAX_STALE, 10000,
+                                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT
+                        )
+                ));
     }
 
     @NotNull
@@ -146,23 +151,6 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
     }
 
     @Test
-    public void testGetGroupMembershipLocalPrincipal() throws Exception {
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(getTestUser().getPrincipal());
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetGroupMembershipLocalGroupPrincipal() throws Exception {
-        Group gr = createTestGroup();
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(gr.getPrincipal());
-        assertTrue(principals.isEmpty());
-
-        // same if the principal is not marked as 'GroupPrincipal' and not tree-based-principal
-        principals = principalProvider.getMembershipPrincipals(new PrincipalImpl(gr.getPrincipal().getName()));
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
     public void testGetGroupMembershipExternalUser() throws Exception {
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
@@ -173,20 +161,23 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
 
         root.refresh();
 
+        //Check cache values, as only local groups are cached the cache should be empty
         Tree cacheTree = root.getTree(user.getPath()).getChild(REP_CACHE);
         assertNotNull(cacheTree);
         assertTrue(cacheTree.hasProperty(CACHE_PRINCIPAL_NAMES));
-
-        Set<Principal> readFromCache = principalProvider.getMembershipPrincipals(user.getPrincipal());
-        assertEquals(expected, readFromCache);
+        assertTrue(cacheTree.getProperty(CACHE_PRINCIPAL_NAMES).getValue(Type.STRING).isEmpty());
     }
 
     @Test
-    public void testGetGroupMembershipExternalUser2() throws Exception {
+    public void testGetGroupMembershipExternalUserAndLocal() throws Exception {
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
 
         Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
+        Group gr = createTestGroup(root);
+        Set<String> addedMembers = gr.addMembers(expected.stream().map(Principal::getName).toArray(String[]::new));
+        assertTrue(addedMembers.isEmpty());
+        root.commit();
 
         // same as in test before even if the principal is not a tree-based-principal
         Principal notTreeBased = new PrincipalImpl(user.getPrincipal().getName());
@@ -198,6 +189,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
         Tree cacheTree = root.getTree(user.getPath()).getChild(REP_CACHE);
         assertNotNull(cacheTree);
         assertTrue(cacheTree.hasProperty(CACHE_PRINCIPAL_NAMES));
+        assertFalse(cacheTree.getProperty(CACHE_PRINCIPAL_NAMES).getValue(Type.STRING).isEmpty());
 
         Set<Principal> readFromCache = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertEquals(expected, readFromCache);
@@ -295,6 +287,9 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
     public void testGetPrincipalsExternalUser() throws Exception {
         Set<? extends Principal> principals = principalProvider.getPrincipals(USER_ID);
         assertEquals(getExpectedGroupPrincipals(USER_ID), principals);
+
+        Set<? extends Principal> cachedPrincipals = principalProvider.getPrincipals(USER_ID);
+        assertEquals(getExpectedGroupPrincipals(USER_ID), cachedPrincipals);
     }
 
     @Test
