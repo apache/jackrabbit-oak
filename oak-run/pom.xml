@@ -323,6 +323,15 @@
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
     </dependency>
+    <!-- OAK-10957: commons-logging is needed at runtime by com.amazonaws.AmazonWebServiceClient.
+         It used to be a compile dependency of Tika (so it was included by the assembly plugin as
+         a transitive dependency), but since Tike 1.28.5 it no longer is and needs to be added
+         here explicitly. -->
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.3.4</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
