@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -61,8 +62,7 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
             merged.setName(CacheConstants.REP_EXPIRATION);
 
             //if base is bigger than ours and theirs, then use base. This should never happens
-            if (base != null &&
-                    base.getValue(Type.LONG) > ours.getValue(Type.LONG)  &&
+            if (base.getValue(Type.LONG) > ours.getValue(Type.LONG)  &&
                     base.getValue(Type.LONG) > theirs.getValue(Type.LONG)){
                 merged.setValue(base.getValue(Type.LONG));
                 LOG.warn("base is bigger than ours and theirs. This was supposed to never happens");
@@ -85,6 +85,7 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
     }
 
     @Override
+    @NotNull
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
                                             @NotNull PropertyState base) {
 
