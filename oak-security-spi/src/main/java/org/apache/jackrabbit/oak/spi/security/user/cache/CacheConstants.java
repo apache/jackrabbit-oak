@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user;
+package org.apache.jackrabbit.oak.spi.security.user.cache;
 
 /**
  * Constants for persisted user management related caches. Currently this only
@@ -22,11 +22,12 @@ package org.apache.jackrabbit.oak.security.user;
  * the set of {@link java.security.Principal}s as present on the
  * {@link javax.security.auth.Subject} in the commit phase of the authentication.
  */
-interface CacheConstants {
+public interface CacheConstants {
 
     String NT_REP_CACHE = "rep:Cache";
     String REP_CACHE = "rep:cache";
     String REP_EXPIRATION = "rep:expiration";
-    String REP_GROUP_PRINCIPAL_NAMES = "rep:groupPrincipalNames";
 
+    String PARAM_CACHE_EXPIRATION = "cacheExpiration";
+    String PARAM_CACHE_MAX_STALE = "cacheMaxStale";
 }

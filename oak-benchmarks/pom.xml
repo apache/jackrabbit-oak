@@ -187,6 +187,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.osgi-mock.core</artifactId>
+            <version>3.4.2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
