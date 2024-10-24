@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +33,6 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -103,7 +103,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     @Override
     public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
-        List<AccessControlPolicyIterator> l = Lists.newArrayList();
+        List<AccessControlPolicyIterator> l = new ArrayList<>();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof PolicyOwner) {
                 l.add(acMgr.getApplicablePolicies(absPath));

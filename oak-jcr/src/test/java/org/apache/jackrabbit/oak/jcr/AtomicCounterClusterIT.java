@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,26 +56,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 
 public class AtomicCounterClusterIT  extends DocumentClusterIT {
+
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
     private static final Logger LOG = LoggerFactory.getLogger(AtomicCounterClusterIT.class);
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
-    private List<CustomScheduledExecutor> executors = Lists.newArrayList();
-    
+    private List<CustomScheduledExecutor> executors = new ArrayList<>();
+
     @BeforeClass
     public static void assumtions() {
         assumeTrue(FIXTURES.contains(Fixture.DOCUMENT_NS));
         assumeTrue(OakMongoNSRepositoryStub.isMongoDBAvailable());
     }
-    
+
     @Override
     public void before() throws Exception {
         super.before();
-        executors = Lists.newArrayList();
+        executors = new ArrayList<>();
     }
 
     @Override
@@ -90,7 +91,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         setUpCluster(this.getClass(), mks, repos, NOT_PROVIDED);
 
         assertEquals("repositories and executors should match", repos.size(), executors.size());
-        
+
         final String counterPath;
         final Random rnd = new Random(14);
         final AtomicLong expected = new AtomicLong(0);
@@ -101,24 +102,24 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         Repository repo = repos.get(0);
         Session session = repo.login(ADMIN);
         Node counter;
-        
+
         try {
             counter = session.getRootNode().addNode("counter");
             counter.addMixin(MIX_ATOMIC_COUNTER);
             session.save();
-            
+
             counterPath = counter.getPath();
         } finally {
             session.logout();
         }
-        
+
         // allow the cluster to align
         alignCluster(mks);
 
         // asserting the initial state
         assertFalse("Path to the counter node should be set", Strings.isNullOrEmpty(counterPath));
         for (Repository r : repos) {
-            
+
             try {
                 session = r.login(ADMIN);
                 counter = session.getNode(counterPath);
@@ -130,19 +131,19 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
             } finally {
                 session.logout();
             }
-            
+
         }
-        
+
         // number of threads per cluster node
         final int numIncrements = Integer.getInteger("oak.test.it.atomiccounter.threads", 100);
-        
+
         LOG.debug(
             "pushing {} increments per each of the {} cluster nodes for a total of {} concurrent updates",
             numIncrements, repos.size(), numIncrements * repos.size());
-        
+
         // for each cluster node, `numIncrements` sessions pushing random increments
         long start = LOG_PERF.start("Firing the threads");
-        List<ListenableFutureTask<Void>> tasks = Lists.newArrayList();
+        List<ListenableFutureTask<Void>> tasks = new ArrayList<>();
         for (Repository rep : repos) {
             final Repository r = rep;
             for (int i = 0; i < numIncrements; i++) {
@@ -174,15 +175,15 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         LOG_PERF.end(start, -1, "Firing threads completed", "");
         Futures.allAsList(tasks).get();
         LOG_PERF.end(start, -1, "Futures completed", "");
-        
+
         waitForTaskCompletion();
         LOG_PERF.end(start, -1, "All tasks completed", "");
-        
+
         // let the time for the async process to kick in and run.
         Thread.sleep(5000);
-        
+
         raiseExceptions(exceptions, LOG);
-        
+
         // assert the final situation
         for (int i = 0; i < repos.size(); i++) {
             Repository r = repos.get(i);
@@ -198,10 +199,10 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
             } finally {
                 session.logout();
             }
-            
+
         }
     }
-    
+
     private void waitForTaskCompletion() throws InterruptedException {
         int remainingTasks;
         do {
@@ -216,17 +217,17 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
             }
         } while (remainingTasks > 0);
     }
-    
+
     private class CustomScheduledExecutor extends ScheduledThreadPoolExecutor {
         private volatile AtomicInteger total = new AtomicInteger();
-        
+
         private class CustomTask<V> implements RunnableScheduledFuture<V> {
             private final RunnableScheduledFuture<V> task;
-            
+
             public CustomTask(Callable<V> callable, RunnableScheduledFuture<V> task) {
                 this.task = task;
             }
-            
+
             @Override
             public void run() {
                 task.run();
@@ -274,7 +275,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
                 return task.isPeriodic();
             }
         }
-        
+
         public CustomScheduledExecutor(int corePoolSize) {
             super(corePoolSize);
             total.set(0);
@@ -290,7 +291,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
                 return super.decorateTask(callable, task);
             }
         }
-        
+
         /**
          * return the approximate amount of tasks to be completed
          * @return

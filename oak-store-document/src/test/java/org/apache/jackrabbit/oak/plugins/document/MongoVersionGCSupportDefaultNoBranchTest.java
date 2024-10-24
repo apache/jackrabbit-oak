@@ -30,6 +30,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +55,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,7 +62,6 @@ import org.junit.runners.Parameterized;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.ReadPreference;
 
 @RunWith(Parameterized.class)
@@ -118,14 +117,14 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     protected DocumentNodeStore ds2;
     private VersionGCSupport gcSupport1;
     private CountingMongoDatabase db;
-    private List<String> ids = Lists.newArrayList();
+    private List<String> ids = new ArrayList<>();
 
     private Clock clock;
     private AtomicInteger offset = new AtomicInteger(0);
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
-        List<DocumentStoreFixture> fixtures = Lists.newArrayList();
+        List<DocumentStoreFixture> fixtures = new ArrayList<>();
         if (MONGO.isAvailable()) {
             fixtures.add(new MongoFixture() {
                 @Override

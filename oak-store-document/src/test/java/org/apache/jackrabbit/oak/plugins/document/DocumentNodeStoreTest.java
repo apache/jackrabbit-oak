@@ -1118,7 +1118,7 @@ public class DocumentNodeStoreTest {
         int numReaders = 10;
         final CountDownLatch ready = new CountDownLatch(numReaders);
         final CountDownLatch go = new CountDownLatch(1);
-        List<Thread> readers = Lists.newArrayList();
+        List<Thread> readers = new ArrayList<>();
         for (int i = 0; i < numReaders; i++) {
             Thread t = new Thread(new Runnable() {
                 @Override
@@ -2443,7 +2443,7 @@ public class DocumentNodeStoreTest {
         DocumentNodeState after = ns.getRoot();
 
         numQueries.set(0);
-        final List<String> added = Lists.newArrayList();
+        final List<String> added = new ArrayList<>();
         ns.compare(asDocumentNodeState(after.getChildNode("foo").getChildNode("child")),
                 asDocumentNodeState(before.getChildNode("foo").getChildNode("child")),
                 new DefaultNodeStateDiff() {
@@ -2471,7 +2471,7 @@ public class DocumentNodeStoreTest {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
-        final List<Long> startValues = Lists.newArrayList();
+        final List<Long> startValues = new ArrayList<>();
         MemoryDocumentStore ds = new MemoryDocumentStore() {
             @NotNull
             @Override
@@ -2538,7 +2538,7 @@ public class DocumentNodeStoreTest {
     // OAK-2620
     @Test
     public void nonBlockingReset() throws Exception {
-        final List<String> failure = Lists.newArrayList();
+        final List<String> failure = new ArrayList<>();
         final AtomicReference<ReentrantReadWriteLock> mergeLock
                 = new AtomicReference<ReentrantReadWriteLock>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
@@ -3310,7 +3310,7 @@ public class DocumentNodeStoreTest {
             }
         };
 
-        List<Thread> threads = Lists.newArrayList();
+        List<Thread> threads = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             threads.add(new Thread(task));
         }
@@ -3530,7 +3530,7 @@ public class DocumentNodeStoreTest {
             // expected
         }
         // next attempt must succeed
-        List<String> names = Lists.newArrayList();
+        List<String> names = new ArrayList<>();
         for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {
             names.add(entry.getName());
         }

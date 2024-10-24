@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -44,7 +43,7 @@ public class ClusterRevisionComparisonTest {
     private MemoryDocumentStore ds = new MemoryDocumentStore();
     private MemoryBlobStore bs = new MemoryBlobStore();
     private Clock clock = new Clock.Virtual();
-    private List<DocumentNodeStore> stores = Lists.newArrayList();
+    private List<DocumentNodeStore> stores = new ArrayList<>();
 
     @Before
     public void setUp(){

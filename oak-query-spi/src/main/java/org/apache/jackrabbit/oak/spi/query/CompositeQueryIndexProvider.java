@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -24,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * This {@code QueryIndexProvider} aggregates a list of query index providers
@@ -62,16 +62,15 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
 
     @Override @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        List<QueryIndex> indexes = Lists.newArrayList();
+        List<QueryIndex> indexes = new ArrayList<>();
         for (QueryIndexProvider provider : providers) {
             indexes.addAll(provider.getQueryIndexes(nodeState));
         }
         return indexes;
     }
-    
+
     @Override
     public String toString() {
         return getClass().getName() + ": " + providers.toString();
     }
-
 }

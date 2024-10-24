@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -99,7 +99,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         Tree nodetype = root.getTree("/oak:index/nodetype");
         assertTrue(nodetype.exists());
 
-        List<String> nodetypes = Lists.newArrayList();
+        List<String> nodetypes = new ArrayList<>();
         if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
             nodetypes = Lists.newArrayList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
         }

@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +34,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -433,8 +433,8 @@ public class SharedDataStoreUtilsTest {
     }
 
     class Data {
-        List<String> suffixes = Lists.newArrayList();
-        List<String> repoIds = Lists.newArrayList();
+        List<String> suffixes = new ArrayList<>();
+        List<String> repoIds = new ArrayList<>();
         Set<String> refs = new HashSet<>();
     }
 

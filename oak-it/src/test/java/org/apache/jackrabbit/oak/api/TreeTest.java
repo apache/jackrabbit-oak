@@ -23,12 +23,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -439,7 +439,7 @@ public class TreeTest extends OakBaseTest {
                 r1.commit();
 
                 // get current sequence of child names
-                List<String> names = Lists.newArrayList();
+                List<String> names = new ArrayList<>();
                 for (Tree t : r1.getTree("/").getChildren()) {
                     names.add(t.getName());
                 }

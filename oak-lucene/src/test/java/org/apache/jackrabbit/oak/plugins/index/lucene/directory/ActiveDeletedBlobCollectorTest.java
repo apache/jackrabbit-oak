@@ -236,7 +236,7 @@ public class ActiveDeletedBlobCollectorTest {
         // So, we'd push "MARKER*" blob ids and purge until some marker blob
         // gets purged. BUT, we'd time-out this activity in 3 seconds
         long until = Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(3);
-        List<String> markerChunks = Lists.newArrayList();
+        List<String> markerChunks = new ArrayList<>();
         int i = 0;
         while (Clock.SIMPLE.getTime() < until) {
             // Push commit with a marker blob-id and wait for it to be purged

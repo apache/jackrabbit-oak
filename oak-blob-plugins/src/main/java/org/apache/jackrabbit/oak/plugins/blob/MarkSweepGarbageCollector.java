@@ -38,6 +38,7 @@ import java.io.LineNumberReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -257,7 +258,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     @Override
     public List<GarbageCollectionRepoStats> getStats() throws Exception {
-        List<GarbageCollectionRepoStats> stats = newArrayList();
+        List<GarbageCollectionRepoStats> stats = new ArrayList<>();
         if (SharedDataStoreUtils.isShared(blobStore)) {
             // Get all the references available
             List<DataRecord> refFiles =
@@ -718,7 +719,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     copyFile(fs.getMarkedRefs(), temp);
 
                     // List of files to be merged
-                    List<File> files = newArrayList();
+                    List<File> files = new ArrayList<>();
                     files.add(temp);
                     for (DataRecord refFile : refFiles) {
                         File file = copy(refFile.getStream());
@@ -896,7 +897,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 if (unAvailRepos.isEmpty() && notOldRefs.isEmpty()) {
                     // List of files to be merged
-                    List<File> files = newArrayList();
+                    List<File> files = new ArrayList<>();
                     for (DataRecord refFile : refFiles) {
                         File file = copy(refFile.getStream());
                         files.add(file);

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,8 +38,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
@@ -388,7 +387,7 @@ public class DocumentMK {
     }
 
     private void parseAddNode(CommitBuilder commit, JsopReader t, String path) {
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         if (!t.matches('}')) {
             do {
                 String key = t.readString();

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.PropertyType;
@@ -40,7 +41,7 @@ public class PropertyBuilder<T> {
 
     private String name;
     private boolean isArray;
-    private List<T> values = Lists.newArrayList();
+    private List<T> values = new ArrayList<>();
 
     /**
      * Create a new instance for building {@code PropertyState} instances

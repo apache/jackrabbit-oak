@@ -91,7 +91,7 @@ public class AndImpl extends ConstraintImpl {
     @Override
     ConstraintImpl not() {
         // not (X and Y) == (not X) or (not Y)
-        List<ConstraintImpl> list = newArrayList();
+        List<ConstraintImpl> list = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             list.add(new NotImpl(constraint));
         }
@@ -109,7 +109,7 @@ public class AndImpl extends ConstraintImpl {
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        List<FullTextExpression> list = newArrayList();
+        List<FullTextExpression> list = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             FullTextExpression expression = constraint.getFullTextConstraint(s);
             if (expression != null) {

@@ -173,7 +173,7 @@ public class SelectorImpl extends SourceImpl {
      * other part of the condition can't be evaluated until b is available.
      * These constraints are collected during the prepare phase.
      */
-    private final List<ConstraintImpl> selectorConstraints = newArrayList();
+    private final List<ConstraintImpl> selectorConstraints = new ArrayList<>();
     
     private Cursor cursor;
     private IndexRow currentRow;

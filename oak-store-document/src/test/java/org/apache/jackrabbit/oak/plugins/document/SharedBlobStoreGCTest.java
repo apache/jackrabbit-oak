@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -356,7 +356,7 @@ public class SharedBlobStoreGCTest {
 
             int number = 10;
             // track the number of the assets to be deleted
-            List<Integer> deletes = Lists.newArrayList();
+            List<Integer> deletes = new ArrayList<>();
             Random rand = new Random(47);
             for (int i = 0; i < 5; i++) {
                 int n = rand.nextInt(number);

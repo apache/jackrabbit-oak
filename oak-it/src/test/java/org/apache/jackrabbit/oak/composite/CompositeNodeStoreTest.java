@@ -35,6 +35,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -91,7 +91,7 @@ public class CompositeNodeStoreTest {
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
 
-    private final List<NodeStoreRegistration> registrations = newArrayList();
+    private final List<NodeStoreRegistration> registrations = new ArrayList<>();
 
     private CompositeNodeStore store;
     private NodeStore globalStore;
@@ -179,7 +179,7 @@ public class CompositeNodeStoreTest {
 
         // don't use the builder since it would fail due to too many read-write stores
         // but for the purposes of testing the general correctness it's fine
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("temp"), mountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("deep"), deepMountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("empty"), emptyStore));

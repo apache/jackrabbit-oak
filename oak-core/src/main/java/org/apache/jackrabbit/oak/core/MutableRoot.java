@@ -281,7 +281,7 @@ class MutableRoot implements Root, PermissionAware {
      *         defined with the security modules and the padded {@code hooks}.
      */
     private CommitHook getCommitHook() {
-        List<CommitHook> hooks = newArrayList();
+        List<CommitHook> hooks = new ArrayList<>();
         hooks.add(ResetCommitAttributeHook.INSTANCE);
         hooks.add(hook);
 

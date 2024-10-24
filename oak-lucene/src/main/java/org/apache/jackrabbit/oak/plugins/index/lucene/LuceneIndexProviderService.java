@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -34,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -106,12 +106,13 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleW
 @SuppressWarnings("UnusedDeclaration")
 @Component(metatype = true, label = "Apache Jackrabbit Oak LuceneIndexProvider")
 public class LuceneIndexProviderService {
+
     public static final String REPOSITORY_HOME = "repository.home";
 
     private LuceneIndexProvider indexProvider;
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
-    private final List<Registration> oakRegs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();
+    private final List<Registration> oakRegs = new ArrayList<>();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 

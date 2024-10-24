@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -52,7 +52,7 @@ public class SolrQueryIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();
 
     @Reference
     private SolrServerProvider solrServerProvider;

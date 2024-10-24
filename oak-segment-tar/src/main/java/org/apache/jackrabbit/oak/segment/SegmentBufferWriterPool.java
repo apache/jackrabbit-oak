@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static java.lang.Thread.currentThread;
 
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -210,8 +210,8 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
 
         @Override
         public void flush(@NotNull SegmentStore store) throws IOException {
-            List<SegmentBufferWriter> toFlush = newArrayList();
-            List<SegmentBufferWriter> toReturn = newArrayList();
+            List<SegmentBufferWriter> toFlush = new ArrayList<>();
+            List<SegmentBufferWriter> toReturn = new ArrayList<>();
 
             poolMonitor.enter();
             try {

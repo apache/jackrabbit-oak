@@ -73,10 +73,10 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         JournalFile journal = getJournal();
 
         if (!journal.exists()) {
-            return newArrayList();
+            return new ArrayList<>();
         }
 
-        List<String> revs = newArrayList();
+        List<String> revs = new ArrayList<>();
         JournalReader journalReader = null;
 
         try {

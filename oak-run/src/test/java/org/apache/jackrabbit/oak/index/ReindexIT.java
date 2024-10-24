@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -53,6 +52,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -419,7 +419,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();

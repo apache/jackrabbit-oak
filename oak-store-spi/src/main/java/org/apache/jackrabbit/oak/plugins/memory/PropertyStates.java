@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -27,7 +28,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -101,43 +101,43 @@ public final class PropertyStates {
             throws RepositoryException {
         switch (type) {
             case PropertyType.STRING:
-                List<String> strings = Lists.newArrayList();
+                List<String> strings = new ArrayList<>();
                 for (Value value : values) {
                     strings.add(getString(value, type));
                 }
                 return MultiStringPropertyState.stringProperty(name, strings);
             case PropertyType.BINARY:
-                List<Blob> blobs = Lists.newArrayList();
+                List<Blob> blobs = new ArrayList<>();
                 for (Value value : values) {
                     blobs.add(AbstractPropertyState.getBlob(value));
                 }
                 return MultiBinaryPropertyState.binaryPropertyFromBlob(name, blobs);
             case PropertyType.LONG:
-                List<Long> longs = Lists.newArrayList();
+                List<Long> longs = new ArrayList<>();
                 for (Value value : values) {
                     longs.add(value.getLong());
                 }
                 return MultiLongPropertyState.createLongProperty(name, longs);
             case PropertyType.DOUBLE:
-                List<Double> doubles = Lists.newArrayList();
+                List<Double> doubles = new ArrayList<>();
                 for (Value value : values) {
                     doubles.add(value.getDouble());
                 }
                 return MultiDoublePropertyState.doubleProperty(name, doubles);
             case PropertyType.BOOLEAN:
-                List<Boolean> booleans = Lists.newArrayList();
+                List<Boolean> booleans = new ArrayList<>();
                 for (Value value : values) {
                     booleans.add(value.getBoolean());
                 }
                 return MultiBooleanPropertyState.booleanProperty(name, booleans);
             case PropertyType.DECIMAL:
-                List<BigDecimal> decimals = Lists.newArrayList();
+                List<BigDecimal> decimals = new ArrayList<>();
                 for (Value value : values) {
                     decimals.add(value.getDecimal());
                 }
                 return MultiDecimalPropertyState.decimalProperty(name, decimals);
             default:
-                List<String> vals = Lists.newArrayList();
+                List<String> vals = new ArrayList<>();
                 for (Value value : values) {
                     vals.add(getString(value, type));
                 }

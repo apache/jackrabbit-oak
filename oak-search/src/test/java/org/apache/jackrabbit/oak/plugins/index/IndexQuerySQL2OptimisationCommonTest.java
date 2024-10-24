@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -25,6 +24,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -95,7 +95,7 @@ public abstract class IndexQuerySQL2OptimisationCommonTest extends AbstractQuery
         root.commit();
 
         // creating the dataset
-        List<String> expected = Lists.newArrayList();
+        List<String> expected = new ArrayList<>();
         Tree content = root.getTree("/").addChild("content");
         t = content.addChild("test1");
         t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);

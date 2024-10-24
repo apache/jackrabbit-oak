@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -27,7 +28,6 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -122,7 +122,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
         assumeTrue(isS3Configured());
     }
 
-    private static List<String> createdBucketNames = Lists.newArrayList();
+    private static List<String> createdBucketNames = new ArrayList<>();
 
     @Override
     @Before

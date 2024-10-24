@@ -825,7 +825,7 @@ public class QueryImpl implements Query {
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
             this.query = query;
             this.delegate = delegate;
-            results = Lists.newArrayList();
+            results = new ArrayList<>();
         }
 
         @Override
@@ -1542,7 +1542,7 @@ public class QueryImpl implements Query {
             throw new IllegalStateException("QueryImpl cannot be cloned once initialised.");
         }
         
-        List<ColumnImpl> cols = newArrayList();
+        List<ColumnImpl> cols = new ArrayList<>();
         for (ColumnImpl c : columns) {
             cols.add((ColumnImpl) copyElementAndCheckReference(c));
         }

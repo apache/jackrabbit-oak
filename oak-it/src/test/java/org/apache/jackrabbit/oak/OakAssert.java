@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Tree;
@@ -31,7 +32,7 @@ public final class OakAssert {
 
     public static void assertSequence(Iterable<Tree> trees, String... names) {
         List<String> expected = Lists.newArrayList(names);
-        List<String> actual = Lists.newArrayList();
+        List<String> actual = new ArrayList<>();
         for (Tree t : trees) {
             actual.add(t.getName());
         }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.benchmark;
 
 import static javax.jcr.observation.Event.NODE_ADDED;
@@ -28,6 +27,7 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getServices;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -46,8 +46,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
@@ -119,10 +117,10 @@ public class ObservationTest extends Benchmark {
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger nodeCount = new AtomicInteger();
 
-        List<Session> sessions = Lists.newArrayList();
-        List<EventListener> listeners = Lists.newArrayList();
+        List<Session> sessions = new ArrayList<>();
+        List<EventListener> listeners = new ArrayList<>();
 
-        List<String> testPaths = Lists.newArrayList();
+        List<String> testPaths = new ArrayList<>();
         Session s = createSession(repository);
         String path = "/path/to/observation/benchmark-" + AbstractTest.TEST_ID;
         try {
@@ -148,7 +146,7 @@ public class ObservationTest extends Benchmark {
             // also add a listener on the root node
             addRootListener(repository, sessions, listeners);
 
-            List<Future<Object>> createNodes = Lists.newArrayList();
+            List<Future<Object>> createNodes = new ArrayList<>();
             for (final String p : testPaths) {
                 createNodes.add(service.submit(new Callable<Object>() {
                     private final Session session = createSession(repository);

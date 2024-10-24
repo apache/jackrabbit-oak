@@ -20,11 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -156,8 +156,8 @@ public class SecondaryStoreCacheTest {
     public void binarySearch() throws Exception{
         SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
-        List<AbstractDocumentNodeState> roots = Lists.newArrayList();
-        List<RevisionVector> revs = Lists.newArrayList();
+        List<AbstractDocumentNodeState> roots = new ArrayList<>();
+        List<RevisionVector> revs = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
             NodeBuilder nb = primary.getRoot().builder();
             create(nb, "/a/b"+i);

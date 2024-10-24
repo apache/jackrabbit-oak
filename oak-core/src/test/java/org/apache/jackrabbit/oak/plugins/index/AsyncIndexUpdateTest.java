@@ -1759,7 +1759,7 @@ public class AsyncIndexUpdateTest {
     public void checkpointLostEventualConsistent() throws Exception {
 
         MemoryNodeStore store = new MemoryNodeStore();
-        final List<NodeState> rootStates = Lists.newArrayList();
+        final List<NodeState> rootStates = new ArrayList<>();
         store.addObserver(new Observer() {
             @Override
             public void contentChanged(@NotNull NodeState root, @Nullable CommitInfo info) {
@@ -2295,7 +2295,7 @@ public class AsyncIndexUpdateTest {
     }
 
     static class CommitInfoCollector implements Observer {
-        List<CommitInfo> infos = Lists.newArrayList();
+        List<CommitInfo> infos = new ArrayList<>();
 
         @Override
         public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {

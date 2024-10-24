@@ -201,7 +201,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
         if (ds instanceof RDBDocumentStore) {
             final int NUM_DOCS = 200;
             // populate the store
-            List<UpdateOp> ops = Lists.newArrayList();
+            List<UpdateOp> ops = new ArrayList<>();
             for (int i = 0; i < NUM_DOCS; i++) {
                 UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-" + i), true);
                 NodeDocument.setModified(op, new Revision(i * 5000, 0, 1));

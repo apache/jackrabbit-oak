@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -36,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -68,7 +68,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
     private IndexCopier copier;
 
     private Directory firstCoR = null;
-    private List<Future<String>> leechingCoRFutures = Lists.newArrayList();
+    private List<Future<String>> leechingCoRFutures = new ArrayList<>();
     private List<Directory> leechingCoRs = Collections.synchronizedList(Lists.newArrayList());
 
     private CountDownLatch firstCoRBlocker;

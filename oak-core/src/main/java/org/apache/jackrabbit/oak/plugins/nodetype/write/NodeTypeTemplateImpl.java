@@ -298,7 +298,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     @Override
     public List<? extends PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
         if (propertyDefinitionTemplates == null) {
-            propertyDefinitionTemplates = Lists.newArrayList();
+            propertyDefinitionTemplates = new ArrayList<>();
         }
         return propertyDefinitionTemplates;
     }
@@ -316,7 +316,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     @Override
     public List<? extends NodeDefinitionTemplate> getNodeDefinitionTemplates() {
         if (nodeDefinitionTemplates == null) {
-            nodeDefinitionTemplates = Lists.newArrayList();
+            nodeDefinitionTemplates = new ArrayList<>();
         }
         return nodeDefinitionTemplates;
     }

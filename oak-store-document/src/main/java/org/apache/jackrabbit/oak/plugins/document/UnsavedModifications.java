@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
@@ -162,7 +162,7 @@ class UnsavedModifications {
             lock.unlock();
         }
         stats.num = pending.size();
-        List<UpdateOp> updates = Lists.newArrayList();
+        List<UpdateOp> updates = new ArrayList<>();
         Map<Path, Revision> pathToRevision = Maps.newHashMap();
         for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
                 pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {

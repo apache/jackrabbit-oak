@@ -60,6 +60,7 @@ import java.security.DigestOutputStream;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -387,7 +388,7 @@ public class AzureDataStoreTest {
     @Test
     public void testBackendGetAllIdentifiers() throws DataStoreException, IOException, NoSuchAlgorithmException {
         for (int expectedRecCount : Lists.newArrayList(1, 2, 5)) {
-            final List<DataIdentifier> ids = Lists.newArrayList();
+            final List<DataIdentifier> ids = new ArrayList<>();
             for (int i=0; i<expectedRecCount; i++) {
                 File testfile = folder.newFile();
                 copyInputStreamToFile(randomStream(i, 10), testfile);
@@ -454,7 +455,7 @@ public class AzureDataStoreTest {
             }
 
             Iterator<DataRecord> iter = backend.getAllRecords();
-            List<DataIdentifier> identifiers = Lists.newArrayList();
+            List<DataIdentifier> identifiers = new ArrayList<>();
             int actualCount = 0;
             while (iter.hasNext()) {
                 DataRecord record = iter.next();

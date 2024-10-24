@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMI
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -34,7 +35,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
@@ -46,8 +46,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class AtomicCounterIT extends AbstractRepositoryTest {
+
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
-        
+
     public AtomicCounterIT(NodeStoreFixture fixture) {
         super(fixture);
     }
@@ -62,28 +63,28 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
                                                      ExecutionException {
         // ensuring the run only on allowed fix
         assumeTrue(NodeStoreFixtures.SEGMENT_TAR.equals(fixture));
-        
+
         // setting-up
         Session session = getAdminSession();
-        
+
         try {
             Node counter = session.getRootNode().addNode("counter");
             counter.addMixin(MIX_ATOMIC_COUNTER);
             session.save();
-            
+
             final AtomicLong expected = new AtomicLong(0);
             final String counterPath = counter.getPath();
             final Random rnd = new Random(11);
-            
+
             // ensuring initial state
             assertEquals(expected.get(), counter.getProperty(PROP_COUNTER).getLong());
-            
-            List<ListenableFutureTask<Void>> tasks = Lists.newArrayList();
+
+            List<ListenableFutureTask<Void>> tasks = new ArrayList<>();
             for (int t = 0; t < 100; t++) {
                 tasks.add(updateCounter(counterPath, rnd.nextInt(10) + 1, expected));
             }
             Futures.allAsList(tasks).get();
-            
+
             session.refresh(false);
             assertEquals(expected.get(), 
                 session.getNode(counterPath).getProperty(PROP_COUNTER).getLong());
@@ -91,13 +92,13 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
             session.logout();
         }
     }
-    
+
     private ListenableFutureTask<Void> updateCounter(@NotNull final String counterPath,
                                                      final long delta,
                                                      @NotNull final AtomicLong expected) {
         requireNonNull(counterPath);
         requireNonNull(expected);
-        
+
         ListenableFutureTask<Void> task = ListenableFutureTask.create(new Callable<Void>() {
 
             @Override
@@ -114,7 +115,7 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
                 return null;
             }
         });
-        
+
         new Thread(task).start();
         return task;
     }

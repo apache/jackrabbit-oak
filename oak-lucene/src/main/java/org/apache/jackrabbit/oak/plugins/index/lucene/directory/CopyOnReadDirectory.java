@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
@@ -167,7 +166,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         long start = PERF_LOGGER.start();
         long totalSize = 0;
         int copyCount = 0;
-        List<String> copiedFileNames = Lists.newArrayList();
+        List<String> copiedFileNames = new ArrayList<>();
         for (String name : remote.listAll()) {
             if (IndexCopier.REMOTE_ONLY.contains(name)) {
                 continue;

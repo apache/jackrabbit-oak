@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -27,6 +26,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -54,9 +54,9 @@ public class BackgroundObserverTest {
     private static final CommitInfo COMMIT_INFO = new CommitInfo("no-session", null);
     public static final int CHANGE_COUNT = 1024;
 
-    private final List<Runnable> assertions = Lists.newArrayList();
+    private final List<Runnable> assertions = new ArrayList<>();
     private CountDownLatch doneCounter;
-    private final List<Closeable> closeables = Lists.newArrayList();
+    private final List<Closeable> closeables = new ArrayList<>();
 
     /**
      * Assert that each observer of many running concurrently sees the same
