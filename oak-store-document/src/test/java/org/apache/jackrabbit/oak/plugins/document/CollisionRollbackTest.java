@@ -24,11 +24,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.PausableDocumentStore.PauseCallback;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -63,7 +63,7 @@ public class CollisionRollbackTest {
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
         fixtures.add(new Object[] {new DocumentStoreFixture.ClusterlikeMemoryFixture()});
         fixtures.add(new Object[] {new DocumentStoreFixture.RDBFixture()});

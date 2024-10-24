@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -49,7 +49,7 @@ public class MultiBinaryPropertyState extends MultiPropertyState<Blob> {
      * @return  The new property state of type {@link Type#BINARIES}
      */
     public static PropertyState binaryPropertyFromArray(String name, Iterable<byte[]> values) {
-        List<Blob> blobs = Lists.newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         for (byte[] data : values) {
             blobs.add(new ArrayBasedBlob(data));
         }

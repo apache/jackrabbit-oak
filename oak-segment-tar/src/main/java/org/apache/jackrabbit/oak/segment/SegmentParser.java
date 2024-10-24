@@ -765,7 +765,7 @@ public class SegmentParser {
             }
             return new ListBucketInfo(listId, true, entries, count * RECORD_ID_BYTES);
         } else {
-            entries = newArrayList();
+            entries = new ArrayList<>();
             while (count > 0) {
                 int bucketIndex = index / bucketSize;
                 int bucketOffset = index % bucketSize;

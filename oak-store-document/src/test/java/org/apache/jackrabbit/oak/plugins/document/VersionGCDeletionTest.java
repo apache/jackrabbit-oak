@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -29,6 +28,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -39,7 +39,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -356,7 +355,7 @@ public class VersionGCDeletionTest {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
 
-        List<String> expected = Lists.newArrayList();
+        List<String> expected = new ArrayList<>();
         // fill caches
         NodeState n = store.getRoot().getChildNode("node");
         for (ChildNodeEntry entry : n.getChildNodeEntries()) {
@@ -371,7 +370,7 @@ public class VersionGCDeletionTest {
                 new Callable<List<String>>() {
             @Override
             public List<String> call() {
-                List<String> names = Lists.newArrayList();
+                List<String> names = new ArrayList<>();
                 NodeState n = store.getRoot().getChildNode("node");
                 for (ChildNodeEntry entry : n.getChildNodeEntries()) {
                     names.add(entry.getName());

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
@@ -187,7 +188,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
             // never downgrade
             throw unableToWrite("Version " + this + " cannot read " + v);
         }
-        List<Integer> active = Lists.newArrayList();
+        List<Integer> active = new ArrayList<>();
         for (ClusterNodeInfoDocument d : ClusterNodeInfoDocument.all(store)) {
             if (d.isActive()) {
                 active.add(d.getClusterId());

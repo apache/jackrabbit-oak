@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -256,7 +257,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
 
         final NodeBuilder rootBuilder = nodeStore.getRoot().builder();
 
-        final List<NodeBuilder> builders = Lists.newArrayList();
+        final List<NodeBuilder> builders = new ArrayList<>();
         for (final String path : paths) {
             NodeBuilder builder = rootBuilder;
             for (final String nodeName : PathUtils.elements(path)) {
@@ -271,7 +272,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
 
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        final List<DataRecord> records = Lists.newArrayList();
+        final List<DataRecord> records = new ArrayList<>();
         try {
             for (final String s : blobContents) {
                 records.add(dataStore.addRecord(getStream(s)));
@@ -452,7 +453,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
     private void assertSyncedFalse(ConsolidatedDataStoreCacheStats mBean,
         AbstractSharedCachingDataStore s3ds, InputStream... streams) throws DataStoreException {
 
-        List<DataRecord> recs = Lists.newArrayList();
+        List<DataRecord> recs = new ArrayList<>();
         try {
             for (InputStream is : streams) {
                 recs.add(s3ds.addRecord(is));
@@ -472,7 +473,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         taskLatch.countDown();
         callbackLatch.countDown();
 
-        List<DataRecord> recs = Lists.newArrayList();
+        List<DataRecord> recs = new ArrayList<>();
         try {
             for (InputStream is : streams) {
                 recs.add(s3ds.addRecord(is));

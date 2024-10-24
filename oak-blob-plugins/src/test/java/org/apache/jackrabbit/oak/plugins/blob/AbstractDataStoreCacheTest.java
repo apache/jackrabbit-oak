@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 
@@ -231,7 +231,7 @@ public class AbstractDataStoreCacheTest {
         public TestExecutor(int threads, CountDownLatch beforeLatch, CountDownLatch afterLatch,
             CountDownLatch afterExecuteLatch) {
             this.delegate = new TestPoolExecutor(threads, beforeLatch, afterExecuteLatch);
-            this.futures = Lists.newArrayList();
+            this.futures = new ArrayList<>();
             this.afterLatch = afterLatch;
         }
 

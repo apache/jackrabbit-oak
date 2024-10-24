@@ -262,7 +262,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
                                                        List<UpdateOp> updateOps) {
         List<UpdateOp> remaining = new ArrayList<>(updateOps);
-        List<T> result = Lists.newArrayList();
+        List<T> result = new ArrayList<>();
         int i = 0;
         for (UpdateOp op : updateOps) {
             if (!afterOp) {

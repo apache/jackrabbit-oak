@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -64,7 +65,6 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.client.MongoDatabase;
 
 import junitx.util.PrivateAccessor;
@@ -569,7 +569,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     static final int SEED = Integer.getInteger(BaseDocumentDiscoveryLiteServiceTest.class.getSimpleName() + "-seed",
             new Random().nextInt());
 
-    private List<DocumentMK> mks = Lists.newArrayList();
+    private List<DocumentMK> mks = new ArrayList<>();
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
 

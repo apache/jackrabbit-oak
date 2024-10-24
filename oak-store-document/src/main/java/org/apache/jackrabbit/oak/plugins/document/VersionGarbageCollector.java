@@ -667,7 +667,7 @@ public class VersionGarbageCollector {
         final VersionGCStats stats;
         final Stopwatch elapsed;
         private final GCMonitor monitor;
-        private final List<GCPhase> phases = Lists.newArrayList();
+        private final List<GCPhase> phases = new ArrayList<>();
         private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
         private final AtomicBoolean canceled;
 
@@ -2184,8 +2184,8 @@ public class VersionGarbageCollector {
 
         private final RevisionVector headRevision;
         private final AtomicBoolean cancel;
-        private final List<String> leafDocIdsToDelete = Lists.newArrayList();
-        private final List<String> resurrectedIds = Lists.newArrayList();
+        private final List<String> leafDocIdsToDelete = new ArrayList<>();
+        private final List<String> resurrectedIds = new ArrayList<>();
         private final StringSort docIdsToDelete;
         private final StringSort prevDocIdsToDelete;
         private final Set<String> exclude = new HashSet<>();

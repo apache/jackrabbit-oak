@@ -58,7 +58,7 @@ public interface RefreshStrategy {
         private final RefreshStrategy[] refreshStrategies;
 
         public static RefreshStrategy create(RefreshStrategy... refreshStrategies) {
-            ArrayList<RefreshStrategy> strategies = newArrayList();
+            ArrayList<RefreshStrategy> strategies = new ArrayList<>();
             for (RefreshStrategy strategy : refreshStrategies) {
                 if (strategy instanceof Composite) {
                     strategies.addAll(asList(((Composite) strategy).refreshStrategies));

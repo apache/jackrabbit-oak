@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -71,8 +72,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Mockito;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 /**
  * AbstractOakTest is the base class for oak test execution.
@@ -224,7 +223,7 @@ public abstract class AbstractSecurityTest {
 
     protected Privilege[] privilegesFromNames(Iterable<String> privilegeNames) throws RepositoryException {
         PrivilegeManager manager = getPrivilegeManager(root);
-        List<Privilege> privs = newArrayList();
+        List<Privilege> privs = new ArrayList<>();
         for (String name : privilegeNames) {
             privs.add(manager.getPrivilege(name));
         }

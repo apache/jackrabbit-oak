@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -28,7 +29,6 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -198,7 +197,7 @@ public class FSBackendIT {
      * Method to assert record while writing and deleting record from FSBackend
      */
     void doTest(DataStore ds, int concurrency, boolean same) throws Exception {
-        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         CountDownLatch latch = new CountDownLatch(concurrency);
 
         int seed = 0;

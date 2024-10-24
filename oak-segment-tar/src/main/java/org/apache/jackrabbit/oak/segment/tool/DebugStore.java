@@ -174,7 +174,7 @@ public class DebugStore {
     }
 
     private static void analyseSegment(final Segment segment, final RecordUsageAnalyser analyser) {
-        final List<RecordId> ids = newArrayList();
+        final List<RecordId> ids = new ArrayList<>();
 
         segment.forEachRecord((number, type, offset) -> {
             if (type == NODE) {

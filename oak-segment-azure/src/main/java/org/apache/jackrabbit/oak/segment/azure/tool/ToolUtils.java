@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +65,6 @@ import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,7 +205,7 @@ public class ToolUtils {
             }
         }
 
-        return newArrayList();
+        return new ArrayList<>();
     }
 
     public static SegmentStoreType storeTypeFromPathOrUri(String pathOrUri) {

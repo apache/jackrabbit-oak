@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,7 +48,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -182,7 +181,7 @@ public class ReferenceIndexTest {
     private static List<String> assertFilter(Filter filter, QueryIndex queryIndex,
                                              NodeState indexed, List<String> expected) {
         Cursor cursor = queryIndex.query(filter, indexed);
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
         }

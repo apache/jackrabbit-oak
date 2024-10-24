@@ -16,17 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -94,7 +92,7 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
     }
 
     private static class TestHandler extends Handler {
-        final List<String> records = Lists.newArrayList();
+        final List<String> records = new ArrayList<>();
 
         @Override
         public void publish(LogRecord record) {

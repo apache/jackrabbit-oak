@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -57,6 +56,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -90,7 +90,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
-        List<Object[]> result = Lists.newArrayList();
+        List<Object[]> result = new ArrayList<>();
         result.add(new Object[]{DataStoreType.WITHOUT_FDS});
         result.add(new Object[]{DataStoreType.WITH_FDS});
         return result;

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -145,8 +146,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         root.addNode(ROOT_NODE_NAME);
         session.save();
 
-        users = Lists.newArrayList();
-        groups = Lists.newArrayList();
+        users = new ArrayList<>();
+        groups = new ArrayList<>();
 
         if (CUSTOM_TYPE) {
             NodeTypeUtils.createNodeType(session, CUSTOM_ACT_NODE_TYPE,
@@ -502,7 +503,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
          */
         private void createRelationships(Authorizable user, Node relationshipsParentNode,
             Node activitiesParentNode) throws RepositoryException {
-            List<Integer> usersIdx = Lists.newArrayList();
+            List<Integer> usersIdx = new ArrayList<>();
             for (int count = 0; count < users.size(); count++) {
                 usersIdx.add(count);
             }

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -40,9 +41,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static java.util.Collections.synchronizedSet;
 import static org.junit.Assert.assertTrue;
@@ -78,7 +76,7 @@ public class ObservationTest extends AbstractClusterTest {
     @Test
     public void externalEvents() throws Throwable {
         final Set<String> externallyAdded = synchronizedSet(new LinkedHashSet<String>());
-        final List<Throwable> exceptions = Lists.newArrayList();
+        final List<Throwable> exceptions = new ArrayList<>();
         ObservationManager obsMgr = s1.getWorkspace().getObservationManager();
         final AtomicLong localEvents = new AtomicLong();
         final AtomicLong externalEvents = new AtomicLong();

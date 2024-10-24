@@ -37,6 +37,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -138,9 +139,9 @@ public class AsyncQueueTest {
 
         private final CacheWriteQueue<PathRev, StringValue>  wrapped;
 
-        private final List<PathRev> putActions = newArrayList();
+        private final List<PathRev> putActions = new ArrayList<>();
 
-        private final List<PathRev> invalidateActions = newArrayList();
+        private final List<PathRev> invalidateActions = new ArrayList<>();
 
         public CacheWriteQueueWrapper(CacheWriteQueue<PathRev, StringValue>  wrapped) {
             super(null, null, null);

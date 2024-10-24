@@ -14,17 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.checkpoint;
 
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.getCheckpoints;
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.min;
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.removeOlderThan;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -39,7 +38,7 @@ class DocumentCheckpoints extends Checkpoints {
 
     @Override
     public List<CP> list() {
-        List<CP> list = Lists.newArrayList();
+        List<CP> list = new ArrayList<>();
         for (Map.Entry<Revision, Long> entry : getCheckpoints(store).entrySet()) {
             list.add(new CP(entry.getKey().toString(),
                     entry.getKey().getTimestamp(),

@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 import java.awt.GridLayout;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -219,7 +220,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             return;
         }
 
-        List<NamePathModel> kids = newArrayList();
+        List<NamePathModel> kids = new ArrayList<>();
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
             NamePathModel c = new NamePathModel(ce.getName(), concat(
                     model.getPath(), ce.getName()), ce.getNodeState(),
@@ -420,7 +421,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             sb.append(newline);
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(uuids, paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -462,7 +463,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(Set.of(id), paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -710,7 +711,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         List<String> names = newArrayList(ns.getChildNodeNames());
 
         if (names.contains("root")) {
-            List<String> temp = newArrayList();
+            List<String> temp = new ArrayList<>();
             int poz = 0;
             // push 'root' to the beginning
             for (String n : names) {

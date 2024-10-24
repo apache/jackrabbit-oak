@@ -509,7 +509,7 @@ public class RepositoryUpgrade {
             watch.reset().start();
             logger.info("Applying default commit hooks");
             // TODO: default hooks?
-            List<CommitHook> hooks = newArrayList();
+            List<CommitHook> hooks = new ArrayList<>();
 
             UserConfiguration userConf =
                     security.getConfiguration(UserConfiguration.class);
@@ -745,7 +745,7 @@ public class RepositoryUpgrade {
     private void copyCustomPrivileges(PrivilegeManager pMgr) throws RepositoryException {
         PrivilegeRegistry registry = source.getPrivilegeRegistry();
 
-        List<Privilege> customAggrPrivs = Lists.newArrayList();
+        List<Privilege> customAggrPrivs = new ArrayList<>();
 
         logger.debug("Registering custom non-aggregated privileges");
         for (Privilege privilege : registry.getRegisteredPrivileges()) {
@@ -823,7 +823,7 @@ public class RepositoryUpgrade {
 
     private void copyNodeTypes(NodeTypeManager ntMgr, ValueFactory valueFactory) throws RepositoryException {
         NodeTypeRegistry sourceRegistry = source.getNodeTypeRegistry();
-        List<NodeTypeTemplate> templates = Lists.newArrayList();
+        List<NodeTypeTemplate> templates = new ArrayList<>();
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
             String oakName = getOakName(name);
             // skip built-in nodetypes (OAK-1235)

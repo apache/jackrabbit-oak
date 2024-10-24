@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,7 +30,6 @@ import java.util.UUID;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -165,7 +165,7 @@ public class DataStoreCommandMetadataTest {
         setupDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             REFERENCES.getNameFromIdPrefix(rep2Id, sessionId));
 
-        List<String> expectations = Lists.newArrayList();
+        List<String> expectations = new ArrayList<>();
         expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
             MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()), "-"));
         expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),

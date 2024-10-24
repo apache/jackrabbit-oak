@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import static org.junit.Assert.assertEquals;
@@ -24,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,8 +58,6 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class NodeCacheTest {
 
@@ -247,7 +245,7 @@ public class NodeCacheTest {
 
     private static <V extends CacheValue> void assertPathRevs(NodeCache<PathRev, V> cache, String path, boolean contains) {
         List<PathRev> revs = getPathRevs(cache, path);
-        List<PathRev> matchingRevs = Lists.newArrayList();
+        List<PathRev> matchingRevs = new ArrayList<>();
         for (PathRev pr : revs) {
             if (cache.getGenerationalMap().containsKey(pr)) {
                 matchingRevs.add(pr);
@@ -265,7 +263,7 @@ public class NodeCacheTest {
 
     private static <V extends CacheValue> void assertPathNameRevs(NodeCache<NamePathRev, V> cache, String path, boolean contains) {
         List<NamePathRev> revs = getPathNameRevs(cache, path);
-        List<NamePathRev> matchingRevs = Lists.newArrayList();
+        List<NamePathRev> matchingRevs = new ArrayList<>();
         for (NamePathRev pr : revs) {
             if (cache.getGenerationalMap().containsKey(pr)) {
                 matchingRevs.add(pr);
@@ -282,7 +280,7 @@ public class NodeCacheTest {
     }
 
     private static <V extends CacheValue> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache, String path) {
-        List<PathRev> revs = Lists.newArrayList();
+        List<PathRev> revs = new ArrayList<>();
         for (PathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().toString().equals(path)) {
                 revs.add(pr);
@@ -292,7 +290,7 @@ public class NodeCacheTest {
     }
 
     private static <V extends CacheValue> List<NamePathRev> getPathNameRevs(NodeCache<NamePathRev, V> cache, String path) {
-        List<NamePathRev> revs = Lists.newArrayList();
+        List<NamePathRev> revs = new ArrayList<>();
         for (NamePathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().toString().equals(path)) {
                 revs.add(pr);

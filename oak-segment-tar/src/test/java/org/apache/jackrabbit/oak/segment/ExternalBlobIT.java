@@ -30,12 +30,12 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -123,7 +123,7 @@ public class ExternalBlobIT {
         cb.setProperty("anotherBlob3", createBlob(Segment.MEDIUM_LIMIT + 1));
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        final List<String> references = Lists.newArrayList();
+        final List<String> references = new ArrayList<>();
         store.collectBlobReferences(reference -> {
                 assertNotNull(reference);
                 references.add(reference);

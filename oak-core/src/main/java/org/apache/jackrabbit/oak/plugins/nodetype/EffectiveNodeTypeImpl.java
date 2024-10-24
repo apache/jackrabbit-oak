@@ -218,7 +218,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getNamedPropertyDefinitions(@NotNull String oakName) {
-        List<PropertyDefinition> definitions = newArrayList();
+        List<PropertyDefinition> definitions = new ArrayList<>();
         for (NodeTypeImpl type : nodeTypes.values()) {
             definitions.addAll(type.getDeclaredNamedPropertyDefinitions(oakName));
         }
@@ -233,7 +233,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
-        List<NodeDefinition> definitions = newArrayList();
+        List<NodeDefinition> definitions = new ArrayList<>();
         for (NodeTypeImpl type : nodeTypes.values()) {
             definitions.addAll(type.getDeclaredResidualNodeDefinitions());
         }
@@ -248,7 +248,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
-        List<PropertyDefinition> definitions = newArrayList();
+        List<PropertyDefinition> definitions = new ArrayList<>();
         for (NodeTypeImpl type : nodeTypes.values()) {
             definitions.addAll(type.getDeclaredResidualPropertyDefinitions());
         }

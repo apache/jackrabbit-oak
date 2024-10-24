@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -206,7 +204,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
     public ScalabilityNodeSuite(Boolean storageEnabled) {
         this.storageEnabled = storageEnabled;
-        this.nodeTypes = newArrayList();
+        this.nodeTypes = new ArrayList<>();
     }
 
     @Override
@@ -305,8 +303,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         }
 
         // recreate paths created in this run
-        searchRootPaths = newArrayList();
-        searchDescPaths = newArrayList();
+        searchRootPaths = new ArrayList<>();
+        searchDescPaths = new ArrayList<>();
 
         // create the blob load for this iteration
         createLoad(context);
@@ -358,7 +356,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         SynchronizedDescriptiveStatistics writeStats = new SynchronizedDescriptiveStatistics();
 
-        List<Thread> loadThreads = newArrayList();
+        List<Thread> loadThreads = new ArrayList<>();
         for (int idx = 0; idx < LOADERS; idx++) {
             /* Each loader will write to a directory of the form load-idx */
             Thread t =

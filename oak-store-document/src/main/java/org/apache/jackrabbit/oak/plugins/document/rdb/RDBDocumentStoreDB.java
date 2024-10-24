@@ -703,7 +703,7 @@ public enum RDBDocumentStoreDB {
     }
 
     public List<String> getIndexCreationStatements(String tableName, int level) {
-        List<String> result = Lists.newArrayList();
+        List<String> result = new ArrayList<>();
         result.add("create index " + tableName + "_MOD on " + tableName + " (MODIFIED)");
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");

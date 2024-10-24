@@ -528,7 +528,7 @@ public class NodeDelegate extends ItemDelegate {
 
     private List<Tree> getNodeTypes(Tree tree, Tree typeRoot) {
         // Find applicable node types
-        List<Tree> types = newArrayList();
+        List<Tree> types = new ArrayList<>();
         String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
         if (primaryName == null) {
             primaryName = NT_BASE;

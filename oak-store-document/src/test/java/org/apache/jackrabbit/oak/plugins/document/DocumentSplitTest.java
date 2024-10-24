@@ -436,7 +436,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             p = PathUtils.concat(p, name);
         }
 
-        List<String> revs = Lists.newArrayList();
+        List<String> revs = new ArrayList<>();
         for (int i = 0; i < NodeDocument.PREV_SPLIT_FACTOR + 1; i++) {
             NodeDocument doc = store.find(NODES, Utils.getIdFromPath(path));
             assertNotNull(doc);
@@ -577,7 +577,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         DocumentStore store = mk.getDocumentStore();
         int clusterId = mk.getNodeStore().getClusterId();
 
-        List<Revision> revs = Lists.newArrayList();
+        List<Revision> revs = new ArrayList<>();
         UpdateOp op = new UpdateOp(id, false);
         for (int i = 0; i < numClusterNodes; i++) {
             // create some commits for each cluster node
@@ -824,8 +824,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     public void removeGarbage() throws Exception {
         final DocumentStore store = mk.getDocumentStore();
         final DocumentNodeStore ns = mk.getNodeStore();
-        final List<Exception> exceptions = Lists.newArrayList();
-        final List<RevisionVector> revisions = Lists.newArrayList();
+        final List<Exception> exceptions = new ArrayList<>();
+        final List<RevisionVector> revisions = new ArrayList<>();
 
         Thread t = new Thread(new Runnable() {
             @Override

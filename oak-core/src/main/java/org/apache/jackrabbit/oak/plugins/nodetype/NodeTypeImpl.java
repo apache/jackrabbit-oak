@@ -288,7 +288,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public NodeTypeIterator getDeclaredSubtypes() {
-        List<NodeType> subtypes = Lists.newArrayList();
+        List<NodeType> subtypes = new ArrayList<>();
 
         String oakName = getOakName();
         Tree root = definition.getParent();
@@ -411,7 +411,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public boolean canRemoveItem(String itemName) {
-        List<ItemDefinition> definitions = Lists.newArrayList();
+        List<ItemDefinition> definitions = new ArrayList<>();
         definitions.addAll(Arrays.asList(getChildNodeDefinitions()));
         definitions.addAll(Arrays.asList(getPropertyDefinitions()));
         return internalCanRemoveItem(itemName, definitions);
@@ -557,7 +557,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private List<PropertyDefinition> getDeclaredPropertyDefs(Tree definitions) {
         if (definitions.exists()) {
-            List<PropertyDefinition> list = newArrayList();
+            List<PropertyDefinition> list = new ArrayList<>();
             String typeName = getOakName();
             for (Tree def : definitions.getChildren()) {
                 String declaringTypeName =
@@ -574,7 +574,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private List<NodeDefinition> getDeclaredNodeDefs(Tree defs) {
         if (defs.exists()) {
-            List<NodeDefinition> list = newArrayList();
+            List<NodeDefinition> list = new ArrayList<>();
             String typeName = getOakName();
             for (Tree def : defs.getChildren()) {
                 String declaringTypeName =

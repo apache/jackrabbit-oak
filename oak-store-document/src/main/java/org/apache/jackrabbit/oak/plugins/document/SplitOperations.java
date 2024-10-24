@@ -153,7 +153,7 @@ class SplitOperations {
         if (!considerSplit()) {
             return Collections.emptyList();
         }
-        splitOps = Lists.newArrayList();
+        splitOps = new ArrayList<>();
         mostRecentRevs = new HashSet<>();
         splitRevs = new HashSet<>();
         garbage = Maps.newHashMap();

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -32,6 +31,8 @@ import org.junit.Test;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -79,7 +80,7 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").setProperty("prop", System.currentTimeMillis());
         store.merge(builder, HOOK, CommitInfo.EMPTY);
-        List<Callable<Object>> tasks = Lists.newArrayList();
+        List<Callable<Object>> tasks = new ArrayList<>();
         for (int i = 0; i < NUM_THREADS; i++) {
             tasks.add(new Callable<Object>() {
                 @Override

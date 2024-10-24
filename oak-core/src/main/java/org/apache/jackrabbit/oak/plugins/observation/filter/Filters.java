@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.EXCLUDE_ALL;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.INCLUDE_ALL;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -216,7 +217,7 @@ public final class Filters {
 
                 @Override
                 public EventFilter create(String name, NodeState before, NodeState after) {
-                    List<EventFilter> childFilters = Lists.newArrayList();
+                    List<EventFilter> childFilters = new ArrayList<>();
                     for (EventFilter filter : filters) {
                         EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter != null) {
@@ -315,7 +316,7 @@ public final class Filters {
 
                 @Override
                 public EventFilter create(String name, NodeState before, NodeState after) {
-                    List<EventFilter> childFilters = Lists.newArrayList();
+                    List<EventFilter> childFilters = new ArrayList<>();
                     for (EventFilter filter : filters) {
                         EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter == null) {

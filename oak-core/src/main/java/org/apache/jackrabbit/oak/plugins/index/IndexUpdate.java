@@ -130,7 +130,7 @@ public class IndexUpdate implements Editor, PathSource {
     /**
      * Editors for indexes that will be normally updated.
      */
-    private final List<Editor> editors = newArrayList();
+    private final List<Editor> editors = new ArrayList<>();
 
     /**
      * Editors for indexes that need to be re-indexed.

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.scalability;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -50,7 +50,7 @@ public class ScalabilityRunner {
 
     private static final long MB = 1024 * 1024L;
 
-    protected static List<ScalabilitySuite> allSuites = Lists.newArrayList();
+    protected static List<ScalabilitySuite> allSuites = new ArrayList<>();
     private static OptionParser parser = new OptionParser();
     protected static ScalabilityOptions scalabilityOptions = null;
     protected static OptionSet options;
@@ -130,7 +130,7 @@ public class ScalabilityRunner {
                 ));
 
         Set<String> argset = new HashSet<>(scalabilityOptions.getNonOption().values(options));
-        List<RepositoryFixture> fixtures = Lists.newArrayList();
+        List<RepositoryFixture> fixtures = new ArrayList<>();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
                 fixtures.add(fixture);
@@ -154,7 +154,7 @@ public class ScalabilityRunner {
                 "supported  are: " + Arrays.asList(allSuites));
         }
 
-        List<ScalabilitySuite> suites = Lists.newArrayList();
+        List<ScalabilitySuite> suites = new ArrayList<>();
         for (ScalabilitySuite suite : allSuites) {
             if (argmap.containsKey(suite.toString())) {
                 List<String> benchmarks = argmap.get(suite.toString());

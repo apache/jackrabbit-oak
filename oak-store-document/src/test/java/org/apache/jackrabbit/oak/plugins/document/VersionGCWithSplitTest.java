@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -73,7 +73,7 @@ public class VersionGCWithSplitTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();

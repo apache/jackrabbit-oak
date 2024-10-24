@@ -245,7 +245,7 @@ public class ClassicCompactor extends Compactor {
             compactionMonitor.onBinary();
             return binaryProperty(name, property.getValue(Type.BINARY));
         } else if (type == BINARIES) {
-            List<Blob> blobs = newArrayList();
+            List<Blob> blobs = new ArrayList<>();
             for (Blob blob : property.getValue(BINARIES)) {
                 compactionMonitor.onBinary();
                 blobs.add(blob);

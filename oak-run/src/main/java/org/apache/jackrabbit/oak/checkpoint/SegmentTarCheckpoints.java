@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.checkpoint;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -59,7 +58,7 @@ class SegmentTarCheckpoints extends Checkpoints {
 
     @Override
     public List<CP> list() {
-        List<CP> list = Lists.newArrayList();
+        List<CP> list = new ArrayList<>();
         NodeState ns = store.getHead().getChildNode("checkpoints");
         for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
             NodeState cneNs = cne.getNodeState();
