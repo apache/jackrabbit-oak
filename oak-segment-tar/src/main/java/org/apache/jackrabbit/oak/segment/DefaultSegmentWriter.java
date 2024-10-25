@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositio
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -528,7 +527,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             }
 
             int pos = 0;
-            List<RecordId> blockIds = newArrayListWithExpectedSize(
+            List<RecordId> blockIds = new ArrayList<>(
                     data.length / SegmentStream.BLOCK_SIZE + 1);
 
             // write as many full bulk segments as possible
@@ -684,7 +683,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             n += read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
             long length = n;
             List<RecordId> blockIds =
-                    newArrayListWithExpectedSize(2 * n / SegmentStream.BLOCK_SIZE);
+                    new ArrayList<>(2 * n / SegmentStream.BLOCK_SIZE);
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
