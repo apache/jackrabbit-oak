@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark.util;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -41,16 +40,16 @@ import java.util.Map;
  * A simple utility class for Oak indexes.
  */
 public class OakIndexUtils {
-    
+
     /**
      * A property index
      */
     public static class PropertyIndex {
-        
+
         private String indexName;
-        
+
         private String propertyName;
-        
+
         private String[] nodeTypeNames;
 
         /**
@@ -104,7 +103,7 @@ public class OakIndexUtils {
         public @Nullable Node create(Session session) throws RepositoryException {
            return create(session,PropertyIndexEditorProvider.TYPE);
         }
-        
+
         public @Nullable Node create(Session session,String indexType) throws RepositoryException {
            Node index;
            if (!session.getWorkspace().getNodeTypeManager().hasNodeType(
@@ -216,7 +215,7 @@ public class OakIndexUtils {
     public static Node propertyIndexDefinition(Session session, String indexDefinitionName,
             String[] propertyNames, boolean unique,
             String[] enclosingNodeTypes) throws RepositoryException {
-        
+
         Node root = session.getRootNode();
         Node indexDefRoot = JcrUtils.getOrAddNode(root, IndexConstants.INDEX_DEFINITIONS_NAME,
                 NodeTypeConstants.NT_UNSTRUCTURED);
@@ -233,7 +232,7 @@ public class OakIndexUtils {
                 PropertyType.NAME);
         }
         session.save();
-        
+
         return indexDef;
     }
 

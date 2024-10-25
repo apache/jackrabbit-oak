@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom

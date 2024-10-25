@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * RDB specific version of {@link VersionGCSupport} which uses an extended query

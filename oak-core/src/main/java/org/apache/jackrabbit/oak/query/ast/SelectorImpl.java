@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 import java.util.ArrayList;
@@ -75,13 +74,14 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * A selector within a query.
  */
 public class SelectorImpl extends SourceImpl {
+
     private static final Logger LOG = LoggerFactory.getLogger(SelectorImpl.class);
-    
+
     private static final Boolean TIMER_DISABLED = Boolean.getBoolean("oak.query.timerDisabled");
-    
+
     // The sample rate. Must be a power of 2.
     private static final Long TIMER_SAMPLE_RATE = Long.getLong("oak.query.timerSampleRate", 0x100);
-    
+
     private static final long SLOW_QUERY_HISTOGRAM = 1;
     private static final long TOTAL_QUERY_HISTOGRAM = 0;
     private static final String SLOW_QUERY_PERCENTILE_METRICS_NAME = "SLOW_QUERY_PERCENTILE_METRICS";
@@ -89,15 +89,15 @@ public class SelectorImpl extends SourceImpl {
 
     private static long timerSampleCounter;
 
-    
+
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     private SelectorExecutionPlan plan;
-    
+
     /**
      * The WHERE clause of the query.
      */
     private ConstraintImpl queryConstraint;
-    
+
     /**
      * The join condition of this selector that can be evaluated at execution
      * time. For the query "select * from nt:base as a inner join nt:base as b
@@ -142,7 +142,7 @@ public class SelectorImpl extends SourceImpl {
      * are conditions on the selector).
      */
     private boolean isParent;  
-    
+
     /**
      * Whether this selector is the left hand side of a left outer join.
      * Right outer joins are converted to left outer join.
@@ -267,7 +267,7 @@ public class SelectorImpl extends SourceImpl {
     public boolean isPrepared() {
         return plan != null;
     }
-    
+
     @Override
     public void unprepare() {
         plan = null;
@@ -278,7 +278,7 @@ public class SelectorImpl extends SourceImpl {
         joinCondition = null;
         allJoinConditions.clear();
     }
-    
+
     @Override
     public void prepare(ExecutionPlan p) {
         if (!(p instanceof SelectorExecutionPlan)) {
@@ -291,7 +291,7 @@ public class SelectorImpl extends SourceImpl {
         pushDown();
         this.plan = selectorPlan;
     }
-    
+
     private void pushDown() {
         if (queryConstraint != null) {
             queryConstraint.restrictPushDown(this);
@@ -312,22 +312,22 @@ public class SelectorImpl extends SourceImpl {
         plan = query.getBestSelectorExecutionPlan(createFilter(true));
         return plan;
     }
-    
+
     public SelectorExecutionPlan getExecutionPlan() {
         return plan;
     }
-    
+
     @Override
     public void setQueryConstraint(ConstraintImpl queryConstraint) {
         this.queryConstraint = queryConstraint;
-    }    
-    
+    }
+
     @Override
     public void setOuterJoin(boolean outerJoinLeftHandSide, boolean outerJoinRightHandSide) {
         this.outerJoinLeftHandSide = outerJoinLeftHandSide;
         this.outerJoinRightHandSide = outerJoinRightHandSide;
-    }    
-    
+    }
+
     @Override
     public void addJoinCondition(JoinConditionImpl joinCondition, boolean forThisSelector) {
         if (forThisSelector) {
@@ -338,7 +338,7 @@ public class SelectorImpl extends SourceImpl {
             isParent = true;
         }
     }
-    
+
     @Override
     public void execute(NodeState rootState) {
         long start = startTimer();
@@ -348,7 +348,7 @@ public class SelectorImpl extends SourceImpl {
             stopTimer(start, true);
         }
     }
-    
+
     private void executeInternal(NodeState rootState) {
         QueryIndex index = plan.getIndex();
         timerDuration = null;
@@ -376,7 +376,7 @@ public class SelectorImpl extends SourceImpl {
                     rootState, query.getQueryOptions().prefetch);
         }
     }
-    
+
     private long startTimer() {
         if (TIMER_DISABLED) {
             return -1;
@@ -486,7 +486,7 @@ public class SelectorImpl extends SourceImpl {
                 }
             }
         }
-        
+
         // all conditions can be pushed to the selectors -
         // except in some cases to "outer joined" selectors,
         // but the exceptions are handled in the condition
@@ -527,7 +527,7 @@ public class SelectorImpl extends SourceImpl {
             stopTimer(start, true);
         }
     }
-    
+
     private boolean nextInternal() {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
@@ -644,7 +644,7 @@ public class SelectorImpl extends SourceImpl {
     public String currentPath() {
         return cursor == null ? null : currentRow.getPath();
     }
-    
+
     /**
      * Get the tree at the current path.
      * 
@@ -663,7 +663,7 @@ public class SelectorImpl extends SourceImpl {
     Tree getTree(@NotNull String path) {
         return getCachedTree(path).getTree();
     }
-    
+
     /**
      * Get the tree at the given path.
      * 
@@ -781,7 +781,7 @@ public class SelectorImpl extends SourceImpl {
         }
         return currentOakProperty(t, oakPropertyName, propertyType);
     }
-    
+
     private PropertyValue currentOakProperty(Tree t, String oakPropertyName, Integer propertyType) {
         PropertyValue result;
         if ((t == null || !t.exists()) && (currentRow == null || !currentRow.isVirtualRow())) {
@@ -819,7 +819,7 @@ public class SelectorImpl extends SourceImpl {
         }
         return result;
     }
-    
+
     private void readOakProperties(ArrayList<PropertyValue> target, Tree t, String oakPropertyName, Integer propertyType) {
         boolean skipCurrentNode = false;
 
@@ -900,7 +900,7 @@ public class SelectorImpl extends SourceImpl {
         }
         return selectorName.equals(((SelectorImpl) other).selectorName);
     }
-    
+
     @Override
     public int hashCode() {
         return selectorName.hashCode();

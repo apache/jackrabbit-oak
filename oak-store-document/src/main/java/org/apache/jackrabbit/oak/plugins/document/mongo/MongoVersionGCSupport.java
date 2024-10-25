@@ -74,7 +74,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.client.FindIterable;

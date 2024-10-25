@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
