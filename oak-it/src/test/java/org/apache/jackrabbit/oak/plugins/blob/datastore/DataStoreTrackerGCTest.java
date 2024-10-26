@@ -250,7 +250,7 @@ public class DataStoreTrackerGCTest {
         DataStoreState state = init(cluster.nodeStore, 0);
 
         // Directly delete from blobstore
-        ArrayList<String> blobs = Lists.newArrayList(state.blobsPresent);
+        ArrayList<String> blobs = new ArrayList<>(state.blobsPresent);
         String removedId = blobs.remove(0);
         ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
         state.blobsPresent = new HashSet<>(blobs);

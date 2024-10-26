@@ -133,7 +133,7 @@ public class PropertyBuilder<T> {
 
     @NotNull
     public List<T> getValues() {
-        return Lists.newArrayList(values);
+        return new ArrayList<>(values);
     }
 
     public T getValue(int index) {

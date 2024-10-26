@@ -3325,7 +3325,7 @@ public class DocumentNodeStoreTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/a/b"));
         assertNotNull(doc);
         long previousValue = -1;
-        List<String> values = Lists.newArrayList(doc.getLocalMap("p").values());
+        List<String> values = new ArrayList<>(doc.getLocalMap("p").values());
         for (String v : Lists.reverse(values)) {
             long currentValue = Long.parseLong(v);
             assertEquals(previousValue + 1, currentValue);

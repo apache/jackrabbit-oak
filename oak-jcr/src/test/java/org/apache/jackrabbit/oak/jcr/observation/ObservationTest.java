@@ -1371,7 +1371,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }
 
         public List<Event> getUnexpected() {
-            return Lists.newArrayList(unexpected);
+            return new ArrayList<>(unexpected);
         }
 
         @Override

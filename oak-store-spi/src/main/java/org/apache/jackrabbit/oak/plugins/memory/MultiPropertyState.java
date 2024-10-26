@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.PropertyType;

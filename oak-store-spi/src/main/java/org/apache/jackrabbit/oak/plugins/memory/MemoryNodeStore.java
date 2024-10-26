@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +33,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
@@ -224,7 +224,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public synchronized Iterable<String> checkpoints() {
-        return Lists.newArrayList(checkpoints.keySet());
+        return new ArrayList<>(checkpoints.keySet());
     }
 
     @Override @Nullable

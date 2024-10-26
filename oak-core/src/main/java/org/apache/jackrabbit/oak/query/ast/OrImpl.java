@@ -114,7 +114,7 @@ public class OrImpl extends ConstraintImpl {
                         entry.getKey(), EQUAL, values.iterator().next()));
             } else {
                 simplified.add(new InImpl(
-                        entry.getKey(), newArrayList(values)));
+                        entry.getKey(), new ArrayList<>(values)));
             }
         }
 
@@ -309,7 +309,7 @@ public class OrImpl extends ConstraintImpl {
             }
         }
 
-        InImpl in = new InImpl(operand, newArrayList(values));
+        InImpl in = new InImpl(operand, new ArrayList<>(values));
         in.setQuery(query);
         in.restrictPushDown(s);
     }

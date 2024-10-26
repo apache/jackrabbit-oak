@@ -139,7 +139,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         List<ChangeProcessor> toBeStopped;
 
         synchronized (this) {
-            toBeStopped = newArrayList(processors.values());
+            toBeStopped = new ArrayList<>(processors.values());
             processors.clear();
         }
 

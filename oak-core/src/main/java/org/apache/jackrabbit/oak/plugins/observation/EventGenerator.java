@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -86,7 +86,7 @@ public class TarReader implements Closeable {
         SortedMap<Character, String> sorted = new TreeMap<>();
         sorted.putAll(files);
 
-        List<String> list = newArrayList(sorted.values());
+        List<String> list = new ArrayList<>(sorted.values());
         Collections.reverse(list);
 
         TarReader reader = openFirstFileWithValidIndex(list, archiveManager);

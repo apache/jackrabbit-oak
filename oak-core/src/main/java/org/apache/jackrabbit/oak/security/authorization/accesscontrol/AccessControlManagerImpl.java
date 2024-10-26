@@ -219,7 +219,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
         PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
 
-        List<ACE> toAdd = Lists.newArrayList(principalAcl.getEntries());
+        List<ACE> toAdd = new ArrayList<>(principalAcl.getEntries());
         List<ACE> toRemove = Collections.emptyList();
         if (existing != null) {
             toAdd.removeAll(existing.getEntries());

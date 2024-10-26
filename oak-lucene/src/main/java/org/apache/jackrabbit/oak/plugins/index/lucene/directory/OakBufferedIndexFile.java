@@ -153,7 +153,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
         this.position = that.position;
         this.length = that.length;
-        this.data = newArrayList(that.data);
+        this.data = new ArrayList<>(that.data);
         this.dataModified = that.dataModified;
         this.blobFactory = that.blobFactory;
     }

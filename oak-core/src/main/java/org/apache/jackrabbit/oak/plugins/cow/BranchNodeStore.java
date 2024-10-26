@@ -31,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +125,7 @@ public class BranchNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public Iterable<String> checkpoints() {
-        List<String> result = newArrayList(inheritedCheckpoints);
+        List<String> result = new ArrayList<>(inheritedCheckpoints);
         result.retainAll(newArrayList(nodeStore.checkpoints()));
 
         checkpointMapping.entrySet().stream()
