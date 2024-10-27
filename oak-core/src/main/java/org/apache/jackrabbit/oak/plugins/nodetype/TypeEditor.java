@@ -468,7 +468,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

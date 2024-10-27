@@ -32,6 +32,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -48,7 +49,6 @@ import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -629,7 +629,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Revision r = valueMap.keySet().iterator().next();
         assertTrue(doc.getLocalRevisions().containsKey(r));
         // but also the previous document must contain the revision
-        List<NodeDocument> prevDocs = Lists.newArrayList(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         NodeDocument prev = prevDocs.get(0);
         assertTrue(prev.getLocalRevisions().containsKey(r));
@@ -663,7 +663,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Revision r = valueMap.keySet().iterator().next();
         assertTrue(doc.getLocalCommitRoot().containsKey(r));
         // but also the previous document must contain the commitRoot entry
-        List<NodeDocument> prevDocs = Lists.newArrayList(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         NodeDocument prev = prevDocs.get(0);
         assertTrue(prev.getLocalCommitRoot().containsKey(r));

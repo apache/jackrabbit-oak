@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.upgrade.checkpoint;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentCheckpointRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.segment.CheckpointAccessor;
@@ -86,7 +86,7 @@ public final class CheckpointRetriever {
     }
 
     private static List<Checkpoint> getCheckpoints(NodeState checkpointRoot) {
-        return Lists.newArrayList(Iterables.transform(checkpointRoot.getChildNodeEntries(),
+        return CollectionUtils.toList(Iterables.transform(checkpointRoot.getChildNodeEntries(),
                 input -> Checkpoint.createFromSegmentNode(input.getName(), input.getNodeState())));
     }
 }

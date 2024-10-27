@@ -118,7 +118,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertTrue("More elements after filtering", Lists.newArrayList(filtered).isEmpty());
+        assertTrue("More elements after filtering", CollectionUtils.toList(filtered).isEmpty());
     }
 
     @Test
@@ -128,7 +128,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilterFile = create(toFilter, folder);
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
-        assertEquals("Incorrect elements after filtering", range(0, 4), Lists.newArrayList(filtered));
+        assertEquals("Incorrect elements after filtering", range(0, 4), CollectionUtils.toList(filtered));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class ActiveDeletionTrackerStoreTest {
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
         assertEquals("Incorrect elements after filtering",
-            range(0, 4), Lists.newArrayList(filtered));
+            range(0, 4), CollectionUtils.toList(filtered));
     }
 
     @Test
