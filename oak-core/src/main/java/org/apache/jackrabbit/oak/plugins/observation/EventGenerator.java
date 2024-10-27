@@ -18,14 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
@@ -195,9 +194,9 @@ public class EventGenerator {
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     // list the child node names before and after the change
                     List<String> beforeNames =
-                            newArrayList(before.getValue(NAMES));
+                            CollectionUtils.toList(before.getValue(NAMES));
                     List<String> afterNames =
-                            newArrayList(after.getValue(NAMES));
+                            CollectionUtils.toList(after.getValue(NAMES));
 
                     // check only those names that weren't added or removed
                     beforeNames.retainAll(new HashSet<>(afterNames));

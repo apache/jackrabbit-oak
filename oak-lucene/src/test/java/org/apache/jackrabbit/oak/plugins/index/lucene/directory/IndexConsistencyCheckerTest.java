@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.ByteArrayOutputStream;
@@ -30,6 +29,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
@@ -172,7 +172,7 @@ public class IndexConsistencyCheckerTest {
         NodeBuilder builder = rootState.builder();
 
         NodeBuilder file = idx.getChildNode(":data").getChildNode("_0.cfe");
-        List<Blob> blobs = Lists.newArrayList(file.getProperty("jcr:data").getValue(Type.BINARIES));
+        List<Blob> blobs = CollectionUtils.toList(file.getProperty("jcr:data").getValue(Type.BINARIES));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         IOUtils.copy(blobs.get(0).getNewStream(), baos);

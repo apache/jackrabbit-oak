@@ -48,7 +48,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -539,7 +538,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(
+        List<UpdateOp> splitOps = CollectionUtils.toList(doc.split(
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
                 NO_BINARY));
         assertEquals(2, splitOps.size());
@@ -596,7 +595,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must split document and create a previous document starting at
         // the second most recent revision
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(
+        List<UpdateOp> splitOps = CollectionUtils.toList(doc.split(
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
                 NO_BINARY));
         assertEquals(2, splitOps.size());
