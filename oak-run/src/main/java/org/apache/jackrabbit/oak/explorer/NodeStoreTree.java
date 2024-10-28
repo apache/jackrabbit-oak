@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
@@ -57,6 +56,7 @@ import javax.swing.tree.DefaultTreeModel;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -708,7 +708,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         Long[] s = {0L, 0L};
 
-        List<String> names = newArrayList(ns.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(ns.getChildNodeNames());
 
         if (names.contains("root")) {
             List<String> temp = new ArrayList<>();
