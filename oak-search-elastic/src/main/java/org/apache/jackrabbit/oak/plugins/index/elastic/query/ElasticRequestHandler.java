@@ -57,6 +57,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.json.JsonpUtils;
+import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -564,70 +565,7 @@ public class ElasticRequestHandler {
 
                     // Experimental support for inference queries
                     if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
-                        bqBuilder.must(m -> m.bool(b -> {
-
-                            ElasticIndexDefinition.InferenceDefinition.Query q = null;
-                            // select first query eligible for the given text
-                            // TODO: evaluate if/how to handle multiple queries
-                            String  queryText = text;
-                            for (ElasticIndexDefinition.InferenceDefinition.Query query : elasticIndexDefinition.inferenceDefinition.queries) {
-                                if (query.isEligibleForInput(queryText)) {
-                                    queryText = query.rewrite(queryText);
-                                    if (query.hasMinTerms(queryText)) {
-                                        q = query;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFieldName(propertyName), pr, dbEnabled);
-
-                            if (q != null) {
-                                LOG.info("Using inference query: {}", q);
-                                try {
-                                    // let's retrieve the fields with the same model as the query
-                                    final ElasticIndexDefinition.InferenceDefinition.Query query = q;
-                                    List<ElasticIndexDefinition.InferenceDefinition.Property> properties = elasticIndexDefinition.inferenceDefinition.properties.stream()
-                                            .filter(pd -> pd.model.equals(query.model))
-                                            .collect(Collectors.toList());
-                                    if (!properties.isEmpty()) {
-                                        InferenceService inferenceService = InferenceServiceManager.getInstance(q.serviceUrl, q.model);
-                                        List<Float> embeddings = inferenceService.embeddings(queryText, (int) q.timeout);
-                                        if (embeddings != null) {
-                                            for (ElasticIndexDefinition.InferenceDefinition.Property p : properties) {
-                                                // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-knn-query.html
-                                                String knnQuery = "{" +
-                                                        "  \"knn\": {" +
-                                                        "    \"field\": \"" + p.name + ".value\"," +
-                                                        "    \"num_candidates\": " + q.numCandidates + "," +
-                                                        "    \"query_vector\": [" +
-                                                        embeddings.stream().map(Objects::toString).collect(Collectors.joining(",")) +
-                                                        "    ]" +
-                                                        "  }" +
-                                                        "}";
-                                                b.should(s -> s.wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8)))));
-                                            }
-                                            int tokens = text.split(" ").length;
-                                            double qsBoost;
-                                            if (tokens > 1) {
-                                                qsBoost = 1.0d / (5 * tokens);
-                                            } else {
-                                                qsBoost = 1.0d;
-                                            }
-
-                                            return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
-                                        } else {
-                                            LOG.warn("No embeddings found for text {}", text);
-                                        }
-                                    } else {
-                                        LOG.warn("No properties with model {} found", query.model);
-                                    }
-                                } catch (Exception e) {
-                                    LOG.warn("Error while calling inference service. Query won't use embeddings", e);
-                                }
-                            }
-                            return b.must(mm -> mm.queryString(qsqBuilder.build()));
-                        }));
+                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, dbEnabled)));
                     } else {
                         QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
                         bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
@@ -651,6 +589,70 @@ public class ElasticRequestHandler {
         });
 
         return Query.of(q -> q.bool(result.get()));
+    }
+
+    private ObjectBuilder<BoolQuery> inference(BoolQuery.Builder b, String propertyName, String text, PlanResult pr, boolean dbEnabled) {
+        ElasticIndexDefinition.InferenceDefinition.Query q = null;
+        // select first query eligible for the given text
+        // TODO: evaluate if/how to handle multiple queries
+        String  queryText = text;
+        for (ElasticIndexDefinition.InferenceDefinition.Query query : elasticIndexDefinition.inferenceDefinition.queries) {
+            if (query.isEligibleForInput(queryText)) {
+                queryText = query.rewrite(queryText);
+                if (query.hasMinTerms(queryText)) {
+                    q = query;
+                    break;
+                }
+            }
+        }
+
+        QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFieldName(propertyName), pr, dbEnabled);
+
+        if (q != null) {
+            LOG.info("Using inference query: {}", q);
+            try {
+                // let's retrieve the fields with the same model as the query
+                final ElasticIndexDefinition.InferenceDefinition.Query query = q;
+                List<ElasticIndexDefinition.InferenceDefinition.Property> properties = elasticIndexDefinition.inferenceDefinition.properties.stream()
+                        .filter(pd -> pd.model.equals(query.model))
+                        .collect(Collectors.toList());
+                if (!properties.isEmpty()) {
+                    InferenceService inferenceService = InferenceServiceManager.getInstance(q.serviceUrl, q.model);
+                    List<Float> embeddings = inferenceService.embeddings(queryText, (int) q.timeout);
+                    if (embeddings != null) {
+                        for (ElasticIndexDefinition.InferenceDefinition.Property p : properties) {
+                            // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-knn-query.html
+                            String knnQuery = "{" +
+                                    "  \"knn\": {" +
+                                    "    \"field\": \"" + p.name + ".value\"," +
+                                    "    \"num_candidates\": " + q.numCandidates + "," +
+                                    "    \"query_vector\": [" +
+                                    embeddings.stream().map(Objects::toString).collect(Collectors.joining(",")) +
+                                    "    ]" +
+                                    "  }" +
+                                    "}";
+                            b.should(s -> s.wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8)))));
+                        }
+                        int tokens = text.split(" ").length;
+                        double qsBoost;
+                        if (tokens > 1) {
+                            qsBoost = 1.0d / (5 * tokens);
+                        } else {
+                            qsBoost = 1.0d;
+                        }
+
+                        return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
+                    } else {
+                        LOG.warn("No embeddings found for text {}", text);
+                    }
+                } else {
+                    LOG.warn("No properties with model {} found", query.model);
+                }
+            } catch (Exception e) {
+                LOG.warn("Error while calling inference service. Query won't use embeddings", e);
+            }
+        }
+        return b.must(mm -> mm.queryString(qsqBuilder.build()));
     }
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {
