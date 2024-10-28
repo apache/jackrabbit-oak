@@ -59,7 +59,7 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     @NotNull
-    public static <T> List<T> toList(@NotNull final Iterable<T> iterable) {
+    public static <T> List<T> toList(@NotNull final Iterable<? extends T> iterable) {
         Objects.requireNonNull(iterable);
         List<T> result = new ArrayList<>();
         iterable.forEach(result::add);
@@ -87,7 +87,7 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     @NotNull
-    public static <T> List<T> toList(final Iterator<T> iterator) {
+    public static <T> List<T> toList(final Iterator<? extends T> iterator) {
         Objects.requireNonNull(iterator);
         List<T> result = new ArrayList<>();
         iterator.forEachRemaining(result::add);
