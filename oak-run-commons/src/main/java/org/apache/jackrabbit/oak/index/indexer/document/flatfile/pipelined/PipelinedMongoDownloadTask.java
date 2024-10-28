@@ -642,6 +642,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
+    // Not safe for read-modify-write operations
+    private volatile int maxDocsWithSameModified = 0;
+
     /**
      * Downloads a given range from Mongo. Instances of this class should be used for downloading a single range.
      * To download multiple ranges, create multiple instances of this class.
@@ -656,11 +659,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private long documentsDownloadedTotalBytes;
         private long documentsDownloadedTotal;
         private long nextLastModified;
-        //        private String lastIdDownloaded;
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
         private volatile MongoCursor<RawBsonDocument> mongoCursor = null;
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
+        boolean printNextBatch = false;
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
             this(downloadOrder, downloadStatics, null);
@@ -678,7 +681,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             this.parallelDownloadCoordinator = parallelDownloadCoordinator;
             this.documentsDownloadedTotalBytes = 0;
             this.documentsDownloadedTotal = 0;
-            this.nextLastModified = downloadOrder.downloadInAscendingOrder() ? 0 : Long.MAX_VALUE;
+            this.nextLastModified = -1;
         }
 
         private Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -706,21 +709,23 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 while (!downloadCompleted) {
                     try {
-//                        if (lastIdDownloaded == null) {
-                        // lastIdDownloaded is null only when starting the download or if there is a connection error
-                        // before anything is downloaded
-                        DownloadRange firstRange = new DownloadRange(fromModified, toModified);
-                        downloadRange(firstRange, mongoQueryFilter, downloadOrder);
-//                        } else {
-//                        LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
-//                            DownloadRange partialLastModifiedRange = new DownloadRange(nextLastModified, nextLastModified, lastIdDownloaded, downloadOrder.downloadInAscendingOrder());
-//                            downloadRange(partialLastModifiedRange, mongoQueryFilter, downloadOrder);
-//                             Downloaded everything from _nextLastModified. Continue with the next timestamp for _modified
-//                            DownloadRange nextRange = downloadOrder.downloadInAscendingOrder() ?
-//                                    new DownloadRange(nextLastModified, Long.MAX_VALUE, true) :
-//                                    new DownloadRange(0, nextLastModified, false);
-//                            downloadRange(nextRange, mongoQueryFilter, downloadOrder);
-//                        }
+                        DownloadRange range;
+                        if (nextLastModified == -1) {
+                            // Nothing downloaded so far
+                            range = new DownloadRange(fromModified, toModified);
+                        } else {
+                            // Some documents were downloaded, update the download range based on the traversal
+                            // order and on the last modified value downloaded
+                            if (downloadOrder.downloadInAscendingOrder()) {
+                                // We have seen some documents with _modified equal to nextLastModified but none with a
+                                // higher value. We may not have downloaded all the documents with nextLastModified, so
+                                // we need to download them again. Duplicates are eliminated at a later stage of the pipeline.
+                                range = new DownloadRange(nextLastModified, toModified);
+                            } else {
+                                range = new DownloadRange(fromModified, nextLastModified);
+                            }
+                        }
+                        downloadRange(range, mongoQueryFilter, downloadOrder);
                         downloadCompleted = true;
                     } catch (IllegalStateException | InterruptedException | MongoInterruptedException e) {
                         if (cancelled.get()) {
@@ -763,6 +768,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             Thread.sleep(retryIntervalMs);
                             // simple exponential backoff mechanism
                             retryIntervalMs = Math.min(retryMaxIntervalMillis, retryIntervalMs * 2);
+                            String comparisonSymbol = downloadOrder.downloadInAscendingOrder() ? " >= " : " <= ";
+                            LOG.info("Recovering from broken connection, continuing downloading documents with _modified{}{}",
+                                    comparisonSymbol, nextLastModified);
                         }
                     }
                 }
@@ -779,9 +787,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             Bson sortOrder = downloadOrder.downloadInAscendingOrder() ?
                     Sorts.ascending(NodeDocument.MODIFIED_IN_SECS) :
                     Sorts.descending(NodeDocument.MODIFIED_IN_SECS);
-//            Bson sortOrder = downloadOrder.downloadInAscendingOrder() ?
-//                    Sorts.ascending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID) :
-//                    Sorts.descending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID);
 
             FindIterable<RawBsonDocument> mongoIterable = dbCollection
                     .find(findQuery)
@@ -823,6 +828,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     numberOfFailures = 0;
                 }
                 try {
+                    int docsInCurrentModified = 0;
+                    Stopwatch timer = Stopwatch.createStarted();
                     while (cursor.hasNext()) {
                         RawBsonDocument rawBsonDocument = cursor.next();
                         ByteBuf byteBuffer = rawBsonDocument.getByteBuffer();
@@ -850,9 +857,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             throw new IllegalStateException("Document does not have _id or _modified field: " + rawBsonDocument);
                         }
 
+                        docsInCurrentModified++;
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
                         if (this.nextLastModified != modified) {
+                            if (docsInCurrentModified > maxDocsWithSameModified) {
+                                maxDocsWithSameModified = docsInCurrentModified;
+                                LOG.info("New max docs with same modified. _modified: {}, count: {}, time: {}", this.nextLastModified, maxDocsWithSameModified,
+                                        timer.elapsed(TimeUnit.MILLISECONDS));
+                            }
+                            timer.reset().start();
+                            docsInCurrentModified = 0;
                             this.nextLastModified = modified;
                             if (this.firstModifiedValueSeen == -1) {
                                 this.firstModifiedValueSeen = this.nextLastModified;
@@ -870,21 +885,26 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         }
 
                         if (this.documentsDownloadedTotal % 50_000 == 0) {
-//                            reportProgress(id);
-                            reportProgress("id: N/A, modified: " + modified);
+                            reportProgress("modified: " + modified);
                         }
-//                        TRAVERSAL_LOG.trace(id);
+                        TRAVERSAL_LOG.trace("{}", modified);
 
                         batch[nextIndex] = rawBsonDocument;
                         nextIndex++;
                         batchSize += docSize;
                         if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
+                            if (printNextBatch) {
+                                LOG.info("Batch: {}", Arrays.stream(batch).limit(nextIndex).collect(Collectors.toList()));
+                                printNextBatch = false;
+                            }
                             LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                             tryEnqueueCopy(batch, nextIndex);
                             nextIndex = 0;
                             batchSize = 0;
                             if (parallelDump && parallelDumpSecondariesOnly && mongoServerSelector.isConnectedToPrimary()) {
                                 LOG.info("Connected to primary. Will disconnect from MongoDB to force a new connection to a secondary.");
+                                LOG.info("Last batch: {}", Arrays.stream(batch).limit(nextIndex).collect(Collectors.toList()));
+                                printNextBatch = true;
                                 throw new MongoException("Disconnecting from MongoDB primary to force a new connection");
                             }
                         }

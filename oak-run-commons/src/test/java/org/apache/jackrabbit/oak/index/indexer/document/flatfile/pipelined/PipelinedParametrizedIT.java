@@ -243,8 +243,8 @@ public class PipelinedParametrizedIT {
                 // one more time for the catch-up at the end of the download
                 assertTrue("Docs downloaded: " + actualDocumentsDownloaded + " must be between " + nDocumentsMatchingFilter + " and " + nDocumentsMatchingFilter * 3,
                         nDocumentsMatchingFilter <= actualDocumentsDownloaded && actualDocumentsDownloaded <= nDocumentsMatchingFilter * 3);
-                assertTrue("Entries downloaded: " + actualDocumentsDownloaded + " must be between " + expected.size() + " and " + expected.size() * 2,
-                        expected.size() <= actualEntriesAccepted && actualEntriesAccepted <= expected.size() * 2L);
+                assertTrue("Entries downloaded: " + actualEntriesAccepted + " must be between " + expected.size() + " and " + expected.size() * 3,
+                        expected.size() <= actualEntriesAccepted && actualEntriesAccepted <= expected.size() * 3L);
             } else {
                 assertEquals(nDocumentsMatchingFilter, actualDocumentsDownloaded);
                 assertEquals(expected.size(), actualEntriesAccepted);

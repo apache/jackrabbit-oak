@@ -34,8 +34,11 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.bson.BsonBinaryReader;
+import org.bson.ByteBuf;
 import org.bson.RawBsonDocument;
-import org.bson.codecs.Codec;
+import org.bson.codecs.DecoderContext;
+import org.bson.io.ByteBufferBsonInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +82,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
-    private final Codec<NodeDocument> nodeDocumentCodec;
+    private final NodeDocumentCodec nodeDocumentCodec;
     private final RevisionVector rootRevision;
     private final NodeStateEntryWriter entryWriter;
     private final Predicate<String> pathPredicate;
@@ -96,7 +99,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
-                                  Codec<NodeDocument> nodeDocumentCodec,
+                                  NodeDocumentCodec nodeDocumentCodec,
                                   RevisionVector rootRevision,
                                   Predicate<String> pathPredicate,
                                   NodeStateEntryWriter entryWriter,
@@ -127,6 +130,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
             long totalDocumentQueueWaitTimeMillis = 0;
             long totalEntryCount = 0;
+            int mongoObjectsProcessedSinceLastLog = 0;
             long mongoObjectsProcessed = 0;
             LOG.debug("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
@@ -163,19 +167,26 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     return new Result(threadId, totalEntryCount);
                 } else {
                     for (RawBsonDocument rawBsonDocument : rawBsonDocumentBatch) {
-                        int sizeEstimate = rawBsonDocument.getByteBuffer().remaining() * 2;
-                        NodeDocument nodeDoc = rawBsonDocument.decode(nodeDocumentCodec);
                         statistics.incrementMongoDocumentsTraversed();
+                        mongoObjectsProcessedSinceLastLog++;
                         mongoObjectsProcessed++;
-                        if (mongoObjectsProcessed % 50_000 == 0) {
-                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                        ByteBuf byteBuffer = rawBsonDocument.getByteBuffer();
+                        int sizeEstimate = byteBuffer.remaining() * 2;
+                        NodeDocument nodeDoc;
+                        try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
+                            nodeDoc = nodeDocumentCodec.decode(bsonReader, DecoderContext.builder().build());
+                        }
+                        if (nodeDoc == NodeDocument.NULL) {
+                            continue;
+                        }
+                        if (mongoObjectsProcessedSinceLastLog >= 100_000) {
+                            mongoObjectsProcessedSinceLastLog = 0;
+                            LOG.info("Processing: {}, {}. Total documents: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                                    nodeDoc.getModified(), nodeDoc.getId(),
                                     mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
                                     nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
-                        }
-                        if (nodeDoc == NodeDocument.NULL) {
-                            continue;
                         }
                         nodeDoc.put(NodeDocumentCodec.SIZE_FIELD, sizeEstimate);
                         //TODO Review the cache update approach where tracker has to track *all* docs

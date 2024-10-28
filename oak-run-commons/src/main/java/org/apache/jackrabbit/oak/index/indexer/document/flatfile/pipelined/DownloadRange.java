@@ -25,8 +25,8 @@ import org.bson.conversions.Bson;
 import java.util.ArrayList;
 
 public final class DownloadRange {
-    private final long lastModifiedFrom;
-    private final long lastModifiedToInclusive;
+    final long lastModifiedFrom;
+    final long lastModifiedToInclusive;
 
     public DownloadRange(long lastModifiedFrom, long lastModifiedToInclusive) {
         if (!(lastModifiedFrom <= lastModifiedToInclusive)) {
@@ -34,15 +34,6 @@ public final class DownloadRange {
         }
         this.lastModifiedFrom = lastModifiedFrom;
         this.lastModifiedToInclusive = lastModifiedToInclusive;
-    }
-
-
-    public long getLastModifiedFrom() {
-        return lastModifiedFrom;
-    }
-
-    public long getLastModifiedToInclusive() {
-        return lastModifiedToInclusive;
     }
 
     public Bson getFindQuery() {

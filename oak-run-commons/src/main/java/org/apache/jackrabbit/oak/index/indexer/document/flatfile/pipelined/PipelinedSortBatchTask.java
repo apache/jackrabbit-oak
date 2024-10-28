@@ -196,13 +196,15 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
-        String[] prevPathElements = new String[0];
-        int equalEntries = 0;
+        String[] prevPathElements = null;
+        int duplicateEntriesSkippped = 0;
         try (OutputStream os = IndexStoreUtils.createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
                 if (Arrays.equals(prevPathElements, entry.getPathElements())) {
-                    equalEntries++;
+                    LOG.info("Equal entries: {}, pos: {}", Arrays.toString(entry.getPathElements()), entry.getBufferPos());
+                    duplicateEntriesSkippped++;
+                    continue;
                 }
                 prevPathElements = entry.getPathElements();
                 // Retrieve the entry from the buffer
@@ -220,13 +222,14 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         long compressedSize = Files.size(newtmpfile);
-        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}",
+        int entriesWritten = sortBuffer.size() - duplicateEntriesSkippped;
+        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}. Duplicate entries skipped: {}",
                 humanReadableByteCountBin(compressedSize),
                 humanReadableByteCountBin(textSize),
-                sortBuffer.size(), saveClock,
-                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis())
+                entriesWritten, saveClock,
+                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis()),
+                duplicateEntriesSkippped
         );
-        LOG.info("Equal entries: {}", equalEntries);
         // Free the memory taken by the entries in the buffer
         sortBuffer.clear();
         sortedFilesQueue.put(newtmpfile);

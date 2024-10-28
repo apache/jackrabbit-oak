@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -32,7 +31,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryW
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
@@ -42,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.RawBsonDocument;
-import org.bson.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -360,7 +357,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         MongoDocumentFilter documentFilter = new MongoDocumentFilter(filteredPath, suffixesToSkip);
-        Codec<NodeDocument> nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, documentFilter, MongoClientSettings.getDefaultCodecRegistry());
+        NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, documentFilter, MongoClientSettings.getDefaultCodecRegistry());
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
