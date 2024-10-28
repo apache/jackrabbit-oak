@@ -53,6 +53,7 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
+import co.elastic.clients.elasticsearch._types.KnnQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.HighlightField;
@@ -622,16 +623,11 @@ public class ElasticRequestHandler {
                     if (embeddings != null) {
                         for (ElasticIndexDefinition.InferenceDefinition.Property p : properties) {
                             // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-knn-query.html
-                            String knnQuery = "{" +
-                                    "  \"knn\": {" +
-                                    "    \"field\": \"" + p.name + ".value\"," +
-                                    "    \"num_candidates\": " + q.numCandidates + "," +
-                                    "    \"query_vector\": [" +
-                                    embeddings.stream().map(Objects::toString).collect(Collectors.joining(",")) +
-                                    "    ]" +
-                                    "  }" +
-                                    "}";
-                            b.should(s -> s.wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8)))));
+                            KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
+                            knnQueryBuilder.field(p.name + ".value");
+                            knnQueryBuilder.numCandidates(q.numCandidates);
+                            knnQueryBuilder.queryVector(embeddings);
+                            b.should(s -> s.knn(knnQueryBuilder.build()));
                         }
                         int tokens = text.split(" ").length;
                         double qsBoost;
