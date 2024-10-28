@@ -41,7 +41,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 
 import org.osgi.service.component.annotations.Activate;
@@ -151,7 +150,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             TabularType tt = new TabularType(LeaderBoardData.class.getName(),
                     "Leaderboard", LeaderBoardData.TYPE, new String[]{"index"});
             tds = new TabularDataSupport(tt);
-            List<LeaderBoardData> leaderBoard = Lists.newArrayList();
+            List<LeaderBoardData> leaderBoard = new ArrayList<>();
             for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
                 String listenerId = getListenerId(e.getKey());
                 EventListenerMBean mbean = e.getValue();
@@ -185,7 +184,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     }
 
     private Collection<BackgroundObserverMBean> collectNonJcrObservers() {
-        List<BackgroundObserverMBean> observers = Lists.newArrayList();
+        List<BackgroundObserverMBean> observers = new ArrayList<>();
 
         for (Map.Entry<ObjectName, BackgroundObserverMBean> o : bgObservers.entrySet()){
             String listenerId = getListenerId(o.getKey());

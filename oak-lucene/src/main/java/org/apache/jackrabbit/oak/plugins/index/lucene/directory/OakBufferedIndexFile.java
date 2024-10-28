@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
@@ -129,7 +130,7 @@ class OakBufferedIndexFile implements OakIndexFile {
         if (property != null && property.getType() == BINARIES) {
             this.data = newArrayList(property.getValue(BINARIES));
         } else {
-            this.data = newArrayList();
+            this.data = new ArrayList<>();
         }
 
         this.length = (long)data.size() * blobSize;

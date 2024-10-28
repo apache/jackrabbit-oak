@@ -38,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 
 /**
  * A cursor that reads all nodes in a given subtree.
@@ -72,7 +71,7 @@ class TraversingCursor extends AbstractCursor {
         currentPath = "/";
         NodeState parent = null;
         NodeState node = rootState;
-        
+
         if (filter.containsNativeConstraint()) {
             // OAK-4313: if no other index was found,
             // then, for native queries, we won't match anything
@@ -141,7 +140,7 @@ class TraversingCursor extends AbstractCursor {
         fetchNext();
         return result;
     }
-    
+
     @Override 
     public boolean hasNext() {
         if (!closed && !init) {

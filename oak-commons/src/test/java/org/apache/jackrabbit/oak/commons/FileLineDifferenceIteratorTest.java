@@ -141,7 +141,7 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static List<String> remove(List<String> list, int idx, int count) {
-        List<String> diff = Lists.newArrayList();
+        List<String> diff = new ArrayList<>();
         int i = 0;
         while (i < count) {
             diff.add(list.remove(idx));
@@ -151,7 +151,7 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static List<String> escape(List<String> list) {
-        List<String> escaped = Lists.newArrayList();
+        List<String> escaped = new ArrayList<>();
         for (String s : list) {
             escaped.add(escapeLineBreak(s));
         }

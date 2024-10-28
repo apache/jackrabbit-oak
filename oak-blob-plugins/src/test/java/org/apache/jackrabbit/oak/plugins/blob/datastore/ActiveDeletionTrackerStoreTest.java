@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -43,7 +44,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
@@ -145,7 +145,7 @@ public class ActiveDeletionTrackerStoreTest {
     @Test
     public void reconcileAll() throws Exception {
         Set<String> initAdd = add(tracker, range(0, 20), folder);
-        List<String> toReconcile = Lists.newArrayList();
+        List<String> toReconcile = new ArrayList<>();
 
         File toFilter = create(toReconcile, folder);
 
@@ -223,7 +223,7 @@ public class ActiveDeletionTrackerStoreTest {
     }
 
     private static List<String> range(int min, int max) {
-        List<String> list = newArrayList();
+        List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
             list.add(Strings.padStart(valueOf(i), 2, '0'));
         }

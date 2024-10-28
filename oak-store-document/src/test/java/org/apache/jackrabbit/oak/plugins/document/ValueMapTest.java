@@ -143,7 +143,7 @@ public class ValueMapTest {
         DocumentStore docStore = store.getDocumentStore();
         String id = Utils.getIdFromPath("/");
         
-        List<NodeBuilder> branches = Lists.newArrayList();
+        List<NodeBuilder> branches = new ArrayList<>();
         int i = 0;
         while (docStore.find(NODES, id).getPreviousRanges().size() < 2) {
             i++;

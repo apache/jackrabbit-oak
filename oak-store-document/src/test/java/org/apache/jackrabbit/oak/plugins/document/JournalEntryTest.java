@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,7 +53,7 @@ public class JournalEntryTest {
     @Test
     public void applyTo() throws Exception {
         DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
-        List<Path> paths = Lists.newArrayList();
+        List<Path> paths = new ArrayList<>();
         addRandomPaths(paths);
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
@@ -444,7 +445,7 @@ public class JournalEntryTest {
     }
 
     private static List<String> getChildren(String diff) {
-        List<String> children = Lists.newArrayList();
+        List<String> children = new ArrayList<>();
         JsopTokenizer t = new JsopTokenizer(diff);
         for (;;) {
             int r = t.read();

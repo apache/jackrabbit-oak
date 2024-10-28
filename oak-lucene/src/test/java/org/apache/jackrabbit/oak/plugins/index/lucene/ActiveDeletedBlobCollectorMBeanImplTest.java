@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -67,6 +65,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -101,7 +100,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
     private NodeStore nodeStore;
 
-    private List<String> indexPaths = Lists.newArrayList();
+    private List<String> indexPaths = new ArrayList<>();
 
     private final Clock clock = new Clock.Virtual();
 
@@ -410,7 +409,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
             AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
 
-            List<String> asyncLanes = Lists.newArrayList();
+            List<String> asyncLanes = new ArrayList<>();
 
             for (IndexMBeanInfoSupplier info : infoSuppliers) {
                 String lane = info.getName();
@@ -490,7 +489,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     }
 
     private static class DeletedFileTrackingADBC implements ActiveDeletedBlobCollector {
-        final List<String> deletedFiles = newArrayList();
+        final List<String> deletedFiles = new ArrayList<>();
         BlobDeletionCallback blobDeletionCallback = null;
 
         private final ActiveDeletedBlobCollector delegate;

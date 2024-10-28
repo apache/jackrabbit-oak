@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
@@ -55,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -314,9 +314,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
-        private List<CopyOnWriteDirectory> openedCoWDirectories = Lists.newArrayList();
-        private List<File> reindexingLocalDirectories = Lists.newArrayList();
-
+        private List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();
+        private List<File> reindexingLocalDirectories = new ArrayList<>();
 
         @Override
         public void commitProgress(IndexProgress indexProgress) {

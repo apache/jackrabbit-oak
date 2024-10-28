@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -23,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -82,7 +82,7 @@ public final class Utils {
             }
         }
 
-        return newArrayList();
+        return new ArrayList<>();
     }
 
     private static File isValidFileStoreOrFail(File store) {

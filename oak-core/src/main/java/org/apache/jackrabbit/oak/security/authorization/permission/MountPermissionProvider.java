@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -30,8 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 public class MountPermissionProvider extends PermissionProviderImpl {
 
@@ -57,7 +56,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
     @NotNull
     @Override
     protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
-        List<PermissionStore> stores = newArrayList();
+        List<PermissionStore> stores = new ArrayList<>();
         stores.add(super.getPermissionStore(root, workspaceName, restrictionProvider));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
             String psRoot = getPermissionRootName(m, workspaceName);

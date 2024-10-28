@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -82,7 +81,7 @@ public class DocumentBundlor {
     }
 
     public static DocumentBundlor from(Iterable<String> includeStrings){
-        List<Include> includes = Lists.newArrayList();
+        List<Include> includes = new ArrayList<>();
         for (String i : includeStrings){
             includes.add(new Include(i));
         }

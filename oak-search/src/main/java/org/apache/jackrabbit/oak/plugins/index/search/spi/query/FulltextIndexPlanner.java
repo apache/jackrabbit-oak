@@ -60,8 +60,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
@@ -701,8 +699,8 @@ public class FulltextIndexPlanner {
             return false;
         }
 
-        List<PropertyIndexResult> unique = newArrayList();
-        List<PropertyIndexResult> nonUnique = newArrayList();
+        List<PropertyIndexResult> unique = new ArrayList<>();
+        List<PropertyIndexResult> nonUnique = new ArrayList<>();
 
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = result.getPropertyName(pr);
@@ -1045,7 +1043,7 @@ public class FulltextIndexPlanner {
         public final String indexPath;
         public final IndexDefinition indexDefinition;
         public final IndexDefinition.IndexingRule indexingRule;
-        private final List<PropertyDefinition> sortedProperties = newArrayList();
+        private final List<PropertyDefinition> sortedProperties = new ArrayList<>();
 
         //Map of actual property name as present in our property definitions
         private final Map<String, PropertyDefinition> propDefns = new HashMap<>();

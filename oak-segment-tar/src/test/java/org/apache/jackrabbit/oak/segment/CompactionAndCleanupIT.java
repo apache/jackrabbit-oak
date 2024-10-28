@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -46,6 +43,7 @@ import static org.junit.Assume.assumeTrue;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -665,7 +663,7 @@ public class CompactionAndCleanupIT {
 
 
         final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
-        final List<Exception> failedCommits = newArrayList();
+        final List<Exception> failedCommits = new ArrayList<>();
         Thread[] threads = new Thread[10];
         for (int k = 0; k < threads.length; k++) {
             final int threadId = k;
@@ -1218,7 +1216,7 @@ public class CompactionAndCleanupIT {
                 }
             };
 
-            List<Future<?>> results = newArrayList();
+            List<Future<?>> results = new ArrayList<>();
             for (int i = 0; i < 5; i++) {
                 results.add(executorService.submit(concurrentWriteTask));
             }
@@ -1274,7 +1272,7 @@ public class CompactionAndCleanupIT {
                 }
             };
 
-            List<Future<?>> results = newArrayList();
+            List<Future<?>> results = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
                 results.add(executorService.submit(concurrentWriteTask));
             }
@@ -1338,7 +1336,7 @@ public class CompactionAndCleanupIT {
                 }
             };
 
-            List<Future<?>> results = newArrayList();
+            List<Future<?>> results = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
                 results.add(executorService.submit(concurrentWriteTask));
                 results.add(executorService.submit(concurrentCleanupTask));
@@ -1390,7 +1388,7 @@ public class CompactionAndCleanupIT {
                 }
             };
 
-            List<Future<?>> results = newArrayList();
+            List<Future<?>> results = new ArrayList<>();
             for (int i = 0; i < 50; i++) {
                 if (i % 2 == 0) {
                     results.add(executorService.submit(concurrentWriteTask));

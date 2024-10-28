@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -86,6 +85,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {
+
     public static final String CTX_SEARCH_PATHS_PROP = "searchPaths";
 
     protected static final Logger LOG = LoggerFactory.getLogger(ScalabilityAbstractSuite.class);
@@ -190,7 +190,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
             tearDown();
         }
     }
-    
+
     /**
      * Setup the iteration. Calls {@link #beforeIteration(ExecutionContext)} which can be
      * overridden by subclasses.
@@ -202,9 +202,9 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         if (LOG.isDebugEnabled()) {
             LOG.debug("Start load : " + increment);
         }
-        
+
         initBackgroundJobs();
-        
+
         // create the load for this iteration
         beforeIteration(context);
 
@@ -214,7 +214,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
             }
         }
     }
-    
+
     /**
      * Post processing for the iteration.
      * 
@@ -223,9 +223,9 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      */
     private void tearDownIteration() throws Exception {
         shutdownBackgroundJobs();
-        
+
         afterIteration();
-    }    
+    }
 
     /**
      * Setup any options before the benchmarks.
@@ -300,7 +300,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     public boolean removeBenchmark(String benchmark) {
         return benchmarks.remove(benchmark) != null;
     }
-    
+
     @Override
     public Map<String, ScalabilityBenchmark> getBenchmarks() {
         return benchmarks;
@@ -379,15 +379,15 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         thread.start();
         threads.add(thread);
     }
-    
+
     /**
      * Sets the running flag to true.
      */
     protected void initBackgroundJobs() {
         this.running = true;
-        threads = newArrayList();
+        threads = new ArrayList<>();
     }
-    
+
     /**
      * Shutdown the background threads.
      * 

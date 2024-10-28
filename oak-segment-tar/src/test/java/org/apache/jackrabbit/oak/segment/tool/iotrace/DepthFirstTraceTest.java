@@ -15,13 +15,12 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -44,7 +43,7 @@ public class DepthFirstTraceTest {
 
     @Test
     public void testTraverseEmptyTree() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(4, "/", trace::add).run(createTree(0));
         assertEquals(1, trace.size());
         assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
@@ -52,7 +51,7 @@ public class DepthFirstTraceTest {
 
     @Test
     public void testTraverseDepth1Tree() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(4, "/", trace::add).run(createTree(1));
         assertEquals(2, trace.size());
         assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
@@ -61,7 +60,7 @@ public class DepthFirstTraceTest {
 
     @Test
     public void testTraverseDepth2Tree() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(4, "/", trace::add).run(createTree(2));
         assertEquals(3, trace.size());
         assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
@@ -71,7 +70,7 @@ public class DepthFirstTraceTest {
 
     @Test
     public void testTraverseDepth3TreeWithLimit2() {
-        List<List<String>> trace = newArrayList();
+        List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(2, "/", trace::add).run(createTree(3));
         assertEquals(3, trace.size());
         assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));

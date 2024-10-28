@@ -15,11 +15,9 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;

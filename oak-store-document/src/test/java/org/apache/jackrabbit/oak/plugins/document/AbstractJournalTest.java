@@ -43,7 +43,7 @@ import static org.junit.Assert.fail;
 public abstract class AbstractJournalTest {
 
     protected TestBuilder builder;
-    protected List<DocumentMK> mks = Lists.newArrayList();
+    protected List<DocumentMK> mks = new ArrayList<>();
     protected Random random;
 
     @Before

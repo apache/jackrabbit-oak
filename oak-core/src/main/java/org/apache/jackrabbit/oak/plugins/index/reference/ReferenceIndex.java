@@ -45,9 +45,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom
@@ -98,7 +96,7 @@ class ReferenceIndex implements QueryIndex {
         // not an appropriate index
         return POSITIVE_INFINITY;
     }
-    
+
     private static boolean isEqualityRestrictionOnType(PropertyRestriction pr, int propertyType) {
         if (pr.propertyType != propertyType) {
             return false;
@@ -130,7 +128,7 @@ class ReferenceIndex implements QueryIndex {
         if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
                     + uuid + ")", indexRoot, Set.of(uuid)));

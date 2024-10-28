@@ -20,7 +20,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;

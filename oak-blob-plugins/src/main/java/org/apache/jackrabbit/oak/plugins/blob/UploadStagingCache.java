@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -38,7 +39,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -550,7 +550,7 @@ public class UploadStagingCache implements Closeable {
         public void run() {
             LOG.debug("Retry job started");
             int count = 0;
-            List<String> entries = Lists.newArrayList();
+            List<String> entries = new ArrayList<>();
             retryQueue.drainTo(entries);
             for (String key : entries) {
                 File file = map.get(key);

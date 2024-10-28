@@ -35,7 +35,6 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -121,7 +120,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         map.removeReadMap(generation);
         stats.removeReadGeneration(generation);
     }
-    
+
     private V readIfPresent(K key) {
         return async ? asyncReadIfPresent(key) : syncReadIfPresent(key);
     }
@@ -221,13 +220,13 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public V get(K key,
             Callable<? extends V> valueLoader)
             throws ExecutionException {
-            
+
         // Get stats covered in getIfPresent
         V value = getIfPresent(key);
         if (value != null) {
             return value;
         }
-        
+
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
@@ -242,7 +241,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         } catch (ExecutionException e) {
             stats.markException();
             throw e;
-         }        
+         }
     }
 
     @Override

@@ -88,11 +88,11 @@ public class ObservationQueueTest extends AbstractClusterTest {
     private static final int NUM_CHILDREN = 100;
 
     private List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<Throwable>());
-    private List<Session> sessions = Lists.newArrayList();
-    private List<Thread> writers = Lists.newArrayList();
-    private List<Thread> readers = Lists.newArrayList();
-    private List<Thread> observers = Lists.newArrayList();
-    private List<Thread> loggers = Lists.newArrayList();
+    private List<Session> sessions = new ArrayList<>();
+    private List<Thread> writers = new ArrayList<>();
+    private List<Thread> readers = new ArrayList<>();
+    private List<Thread> observers = new ArrayList<>();
+    private List<Thread> loggers = new ArrayList<>();
 
     @BeforeClass
     public static void dropDB() {
@@ -204,7 +204,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
         @Override
         void perform() throws Exception {
             s.refresh(false);
-            List<Node> nodes = Lists.newArrayList();
+            List<Node> nodes = new ArrayList<>();
             for (NodeIterator it = s.getRootNode().getNodes(); it.hasNext(); ) {
                 Node n = it.nextNode();
                 if (n.getName().startsWith("session-")) {
@@ -341,7 +341,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
 
         @Override
         void perform() throws Exception {
-            List<String> stats = Lists.newArrayList();
+            List<String> stats = new ArrayList<>();
             for (Whiteboard w : whiteboards) {
                 stats.add(queueStats(w));
             }
@@ -371,7 +371,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
                 micros += bean.getMicrosecondsPerEventDelivery();
                 numListeners++;
             }
-            List<String> stats = Lists.newArrayList();
+            List<String> stats = new ArrayList<>();
             stats.add(String.valueOf(len));
             stats.add(String.valueOf(ext));
             stats.add(String.valueOf(micros / numListeners));

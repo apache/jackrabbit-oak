@@ -1284,7 +1284,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             existingDocs.add(doc.getPath());
         }
 
-        List<UpdateOp> docs = Lists.newArrayList();
+        List<UpdateOp> docs = new ArrayList<>();
         docs.add(newDocument("/foo", 100));
         removeMe.add(Utils.getIdFromPath("/foo"));
         docs.add(newDocument("/bar", 200));

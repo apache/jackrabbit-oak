@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,7 +50,6 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -939,7 +939,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 }
             }
         };
-        List<EditorProvider> editorProviders = Lists.newArrayList();
+        List<EditorProvider> editorProviders = new ArrayList<>();
         editorProviders.add(new ConflictValidatorProvider());
         editorProviders.addAll(validatorProviders);
         CompositeHook hooks = new CompositeHook(

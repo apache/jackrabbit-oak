@@ -3511,7 +3511,7 @@ public class VersionGarbageCollectorIT {
         }
 
         // read children again after GC finished
-        List<String> names = Lists.newArrayList();
+        List<String> names = new ArrayList<>();
         for (ChildNodeEntry cne : store1.getRoot().getChildNodeEntries()) {
             names.add(cne.getName());
         }

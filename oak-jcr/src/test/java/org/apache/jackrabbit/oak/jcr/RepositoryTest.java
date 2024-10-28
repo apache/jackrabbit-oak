@@ -39,6 +39,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -81,7 +82,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -101,10 +101,10 @@ import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 import org.slf4j.LoggerFactory;
 
 public class RepositoryTest extends AbstractRepositoryTest {
+
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
 
@@ -2301,7 +2301,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void largeMultiValueProperty() throws Exception{
-        final List<String> logMessages = Lists.newArrayList();
+        final List<String> logMessages = new ArrayList<>();
         Appender<ILoggingEvent> a = new AppenderBase<ILoggingEvent>() {
             @Override
             protected void append(ILoggingEvent e) {

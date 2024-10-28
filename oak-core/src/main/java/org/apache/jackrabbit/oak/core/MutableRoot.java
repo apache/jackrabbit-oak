@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.core;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -281,7 +280,7 @@ class MutableRoot implements Root, PermissionAware {
      *         defined with the security modules and the padded {@code hooks}.
      */
     private CommitHook getCommitHook() {
-        List<CommitHook> hooks = newArrayList();
+        List<CommitHook> hooks = new ArrayList<>();
         hooks.add(ResetCommitAttributeHook.INSTANCE);
         hooks.add(hook);
 

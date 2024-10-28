@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -70,7 +71,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private int counter = 0;
 
-    private List<String> ops = Lists.newArrayList();
+    private List<String> ops = new ArrayList<>();
 
     private Clock clock;
 

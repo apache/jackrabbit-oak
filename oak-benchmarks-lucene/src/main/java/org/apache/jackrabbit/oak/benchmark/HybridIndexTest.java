@@ -512,7 +512,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             //With explicit list on those nodes would be indexed
             NodeBuilder nodetype = builder.getChildNode("oak:index").getChildNode("nodetype");
             if (nodetype.exists()) {
-                List<String> nodetypes = Lists.newArrayList();
+                List<String> nodetypes = new ArrayList<>();
                 if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
                     nodetypes = Lists.newArrayList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
                 }

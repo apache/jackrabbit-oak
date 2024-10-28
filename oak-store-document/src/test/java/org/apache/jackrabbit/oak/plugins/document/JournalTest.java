@@ -61,8 +61,8 @@ public class JournalTest extends AbstractJournalTest {
 
     class DiffingObserver implements Observer, Runnable, NodeStateDiff {
 
-        final List<DocumentNodeState> incomingRootStates1 = Lists.newArrayList();
-        final List<DocumentNodeState> diffedRootStates1 = Lists.newArrayList();
+        final List<DocumentNodeState> incomingRootStates1 = new ArrayList<>();
+        final List<DocumentNodeState> diffedRootStates1 = new ArrayList<>();
         
         DocumentNodeState oldRoot = null;
         

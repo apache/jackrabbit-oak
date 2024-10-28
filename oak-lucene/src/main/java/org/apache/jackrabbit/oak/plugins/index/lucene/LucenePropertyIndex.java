@@ -43,7 +43,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;

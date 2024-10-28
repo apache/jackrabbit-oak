@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
@@ -30,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -181,7 +181,7 @@ public class SegmentDataStoreBlobGCIT {
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = 5;
         int numBlobs = count;
-        List<Integer> processed = Lists.newArrayList();
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(numBlobs);

@@ -33,6 +33,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -51,7 +52,6 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.LocationMode;
@@ -653,7 +653,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             throw new NullPointerException("prefix");
         }
         long start = System.currentTimeMillis();
-        final List<DataRecord> records = Lists.newArrayList();
+        final List<DataRecord> records = new ArrayList<>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -913,7 +913,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;

@@ -29,6 +29,7 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -60,11 +61,11 @@ public final class FilterBuilder {
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
-    private final List<String> subTrees = newArrayList();
+    private final List<String> subTrees = new ArrayList<>();
     private final Set<String> pathsForMBean = new HashSet<>();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
-        
+
         @Override
         public boolean excludes(ChangeSet changeSet) {
             return false;
@@ -77,7 +78,7 @@ public final class FilterBuilder {
         @NotNull
         EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after);
     }
-    
+
     @NotNull
     public FilterBuilder setChangeSetFilter(@NotNull ChangeSetFilter changeSetFilter) {
         this.changeSetFilter = changeSetFilter;
@@ -108,7 +109,7 @@ public final class FilterBuilder {
         subTrees.add(requireNonNull(absPath));
         return this;
     }
-    
+
     /**
      * Adds paths to the FilterConfigMBean's getPaths set
      * @param paths
@@ -128,7 +129,7 @@ public final class FilterBuilder {
     private Iterable<String> getSubTrees() {
         return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
     }
-    
+
     public FilterBuilder aggregator(EventAggregator aggregator) {
         this.aggregator = aggregator;
         return this;
@@ -343,9 +344,9 @@ public final class FilterBuilder {
     public Condition any(@NotNull Condition... conditions) {
         return new AnyCondition(newArrayList(requireNonNull(conditions)));
     }
-
     /**
      * A compound condition that holds when all of its constituents hold.
+
      * @param conditions conditions of which all must hold in order for this condition to hold
      * @return  any condition
      */
@@ -607,7 +608,7 @@ public final class FilterBuilder {
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
@@ -634,7 +635,7 @@ public final class FilterBuilder {
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;

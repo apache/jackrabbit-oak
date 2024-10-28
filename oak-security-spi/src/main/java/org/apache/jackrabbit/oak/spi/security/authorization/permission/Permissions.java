@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;

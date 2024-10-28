@@ -149,7 +149,7 @@ public class IndexStatisticsTest {
     }
 
     private static Directory createSampleDirectory(long numOfDocs) throws IOException {
-        return createSampleDirectory(numOfDocs, Lists.newArrayList());
+        return createSampleDirectory(numOfDocs, Collections.emptyList());
     }
 
     private static Directory createSampleDirectory(Document moreDoc) throws IOException {

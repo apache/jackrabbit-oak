@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -91,7 +92,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
                 if (count % 100 == 0
                         && sampleSet.size() < maxSampleSize
                         && text != null) {
-                    List<String> words = newArrayList();
+                    List<String> words = new ArrayList<>();
 
                     if(isFullTextSearch()) {
                         Matcher matcher = WORD_PATTERN.matcher(text);
