@@ -48,6 +48,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -95,7 +96,6 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -1099,7 +1099,7 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = Lists.newArrayList(
+                List<S3ObjectSummary> listing = CollectionUtils.toList(
                     filter(prevObjectListing.getObjectSummaries(),
                             input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 

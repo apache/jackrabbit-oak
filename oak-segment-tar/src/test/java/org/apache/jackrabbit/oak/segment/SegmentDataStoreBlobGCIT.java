@@ -342,7 +342,7 @@ public class SegmentDataStoreBlobGCIT {
         
         // Simulate faulty state by deleting some blobs directly
         Random rand = new Random(87);
-        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        List<String> existing = new ArrayList<>(state.blobsPresent);
         
         long count = blobStore.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
         
