@@ -66,6 +66,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceService;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceServiceManager;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -133,7 +135,7 @@ public class ElasticRequestHandler {
     private final NodeState rootState;
 
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
-            NodeState rootState) {
+                          NodeState rootState) {
         this.indexPlan = indexPlan;
         this.filter = indexPlan.getFilter();
         this.planResult = planResult;
@@ -282,7 +284,7 @@ public class ElasticRequestHandler {
     public ElasticFacetProvider getAsyncFacetProvider(ElasticConnection connection, ElasticResponseHandler responseHandler) {
         return requiresFacets()
                 ? ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), connection,
-                        elasticIndexDefinition, this, responseHandler, filter::isAccessible)
+                elasticIndexDefinition, this, responseHandler, filter::isAccessible)
                 : null;
     }
 
@@ -359,7 +361,7 @@ public class ElasticRequestHandler {
                         .filter(fb -> fb.exists(ef -> ef.field(similarityPropFieldName)))
                         .should(s -> s
                                 .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
-                );
+                        );
             }
         }
         return query.build();
@@ -559,8 +561,77 @@ public class ElasticRequestHandler {
                     bqBuilder.must(m -> m.nested(nf -> nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES).query(Query.of(q -> q.queryString(qsqBuilder.build())))));
                 } else {
                     boolean dbEnabled = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty();
-                    QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
-                    bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
+
+                    // Experimental support for inference queries
+                    if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
+                        bqBuilder.must(m -> m.bool(b -> {
+
+                            ElasticIndexDefinition.InferenceDefinition.Query q = null;
+                            // select first query eligible for the given text
+                            // TODO: evaluate if/how to handle multiple queries
+                            String  queryText = text;
+                            for (ElasticIndexDefinition.InferenceDefinition.Query query : elasticIndexDefinition.inferenceDefinition.queries) {
+                                if (query.isEligibleForInput(queryText)) {
+                                    queryText = query.rewrite(queryText);
+                                    if (query.hasMinTerms(queryText)) {
+                                        q = query;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFieldName(propertyName), pr, dbEnabled);
+
+                            if (q != null) {
+                                LOG.info("Using inference query: {}", q);
+                                try {
+                                    // let's retrieve the fields with the same model as the query
+                                    final ElasticIndexDefinition.InferenceDefinition.Query query = q;
+                                    List<ElasticIndexDefinition.InferenceDefinition.Property> properties = elasticIndexDefinition.inferenceDefinition.properties.stream()
+                                            .filter(pd -> pd.model.equals(query.model))
+                                            .collect(Collectors.toList());
+                                    if (!properties.isEmpty()) {
+                                        InferenceService inferenceService = InferenceServiceManager.getInstance(q.serviceUrl, q.model);
+                                        List<Float> embeddings = inferenceService.embeddings(queryText, (int) q.timeout);
+                                        if (embeddings != null) {
+                                            for (ElasticIndexDefinition.InferenceDefinition.Property p : properties) {
+                                                // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-knn-query.html
+                                                String knnQuery = "{" +
+                                                        "  \"knn\": {" +
+                                                        "    \"field\": \"" + p.name + ".value\"," +
+                                                        "    \"num_candidates\": " + q.numCandidates + "," +
+                                                        "    \"query_vector\": [" +
+                                                        embeddings.stream().map(Objects::toString).collect(Collectors.joining(",")) +
+                                                        "    ]" +
+                                                        "  }" +
+                                                        "}";
+                                                b.should(s -> s.wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8)))));
+                                            }
+                                            int tokens = text.split(" ").length;
+                                            double qsBoost;
+                                            if (tokens > 1) {
+                                                qsBoost = 1.0d / (5 * tokens);
+                                            } else {
+                                                qsBoost = 1.0d;
+                                            }
+
+                                            return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
+                                        } else {
+                                            LOG.warn("No embeddings found for text {}", text);
+                                        }
+                                    } else {
+                                        LOG.warn("No properties with model {} found", query.model);
+                                    }
+                                } catch (Exception e) {
+                                    LOG.warn("Error while calling inference service. Query won't use embeddings", e);
+                                }
+                            }
+                            return b.must(mm -> mm.queryString(qsqBuilder.build()));
+                        }));
+                    } else {
+                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
+                        bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
+                    }
                 }
 
                 if (boost != null) {
@@ -578,7 +649,7 @@ public class ElasticRequestHandler {
                 return true;
             }
         });
-        
+
         return Query.of(q -> q.bool(result.get()));
     }
 
@@ -824,7 +895,7 @@ public class ElasticRequestHandler {
                 .type(TextQueryType.CrossFields)
                 .tieBreaker(0.5d);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
-            for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
+            for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
                 qsqBuilder.fields(pd.name + "^" + pd.boost);
             }
             // dynamic boost is included only for :fulltext field

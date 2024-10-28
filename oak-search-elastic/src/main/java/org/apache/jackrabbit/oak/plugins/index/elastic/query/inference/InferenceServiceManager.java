@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InferenceServiceManager {
@@ -26,8 +28,9 @@ public class InferenceServiceManager {
 
     private static final ConcurrentHashMap<String, InferenceService> SERVICES = new ConcurrentHashMap<>();
 
-    public static InferenceService getInstance(String url) {
-        return SERVICES.computeIfAbsent(url, key -> new InferenceService(key, Integer.getInteger(INFERENCE_CACHE_SIZE, 100)));
+    public static InferenceService getInstance(@NotNull String url, String model) {
+        String k = model == null ? url : url + "|" + model;
+        return SERVICES.computeIfAbsent(k, key -> new InferenceService(url, Integer.getInteger(INFERENCE_CACHE_SIZE, 100)));
     }
 
 }

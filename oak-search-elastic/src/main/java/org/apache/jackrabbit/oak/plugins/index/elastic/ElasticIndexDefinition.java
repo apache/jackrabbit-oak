@@ -143,6 +143,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     protected static final String INFERENCE_CONFIG = "inference";
 
+    public static final String INFERENCE = ":inference";
+
     private static final Function<Integer, Boolean> isAnalyzable;
 
     static {
@@ -401,12 +403,21 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         public List<Property> properties;
 
+        public List<Query> queries;
+
         public InferenceDefinition() { }
 
         public InferenceDefinition(NodeState inferenceNode) {
-            this.properties = StreamSupport.stream(inferenceNode.getChildNodeEntries().spliterator(), false)
-                    .map(cne -> new Property(cne.getName(), cne.getNodeState()))
-                    .collect(Collectors.toList());
+            if (inferenceNode.hasChildNode("properties")) {
+                this.properties = StreamSupport.stream(inferenceNode.getChildNode("properties").getChildNodeEntries().spliterator(), false)
+                        .map(cne -> new Property(cne.getName(), cne.getNodeState()))
+                        .collect(Collectors.toList());
+            }
+            if (inferenceNode.hasChildNode("queries")) {
+                this.queries = StreamSupport.stream(inferenceNode.getChildNode("queries").getChildNodeEntries().spliterator(), false)
+                        .map(cne -> new Query(cne.getName(), cne.getNodeState()))
+                        .collect(Collectors.toList());
+            }
         }
 
         @Override
@@ -414,7 +425,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             InferenceDefinition that = (InferenceDefinition) o;
-            return Objects.equals(properties, that.properties);
+            return Objects.equals(properties, that.properties) && Objects.equals(queries, that.queries);
         }
 
         @Override
@@ -424,7 +435,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         public static class Property {
             public String name;
-            public String serviceUrl;
+            public String model;
             public List<String> fields;
             public int dims;
             public String similarity;
@@ -432,8 +443,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
             public Property() {}
 
             public Property(String name, NodeState inferenceNode) {
-                this.name = name;
-                this.serviceUrl = getOptionalValue(inferenceNode, "serviceUrl", null);
+                this.name = ElasticIndexDefinition.INFERENCE + "." + name;
+                this.model = getOptionalValue(inferenceNode, "model", "semantic");
                 this.fields = Arrays.asList(getOptionalValues(inferenceNode, "fields", Type.STRINGS, String.class, new String[0]));
                 this.dims = getOptionalValue(inferenceNode, "dims", 1024);
                 this.similarity = getOptionalValue(inferenceNode, "similarity", "cosine");
@@ -445,14 +456,88 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 if (o == null || getClass() != o.getClass()) return false;
                 Property property = (Property) o;
                 return dims == property.dims && Objects.equals(name, property.name) &&
-                        Objects.equals(serviceUrl, property.serviceUrl) &&
+                        Objects.equals(model, property.model) &&
                         Objects.equals(fields, property.fields) &&
                         Objects.equals(similarity, property.similarity);
             }
 
             @Override
             public int hashCode() {
-                return Objects.hash(name, serviceUrl, fields, dims, similarity);
+                return Objects.hash(name, model, fields, dims, similarity);
+            }
+        }
+
+        public static class Query {
+            public String name;
+            public String serviceUrl;
+            public String model;
+            public String prefix;
+            public int minTerms;
+            public int numCandidates;
+            public String type; // this can be hybrid or vector
+            public long timeout;
+
+            public Query() {}
+
+            public Query(String name, NodeState queryNode) {
+                this.name = name;
+                this.serviceUrl = getOptionalValue(queryNode, "serviceUrl", null);
+                this.model = getOptionalValue(queryNode, "model", "semantic");
+                this.prefix = getOptionalValue(queryNode, "prefix", null);
+                this.minTerms = getOptionalValue(queryNode, "minTerms", 2);
+                this.numCandidates = getOptionalValue(queryNode, "numCandidates", 100);
+                this.type = getOptionalValue(queryNode, "type", "hybrid");
+                this.timeout = getOptionalValue(queryNode, "timeout", 5000L);
+            }
+
+            /**
+             * Returns {@code true} if the input string is eligible for this query.
+             * @param input the input string
+             * @return {@code true} if the input string is eligible for this query
+             */
+            public boolean isEligibleForInput(String input) {
+                return prefix == null || input.startsWith(prefix);
+            }
+
+            public String rewrite(String input) {
+                return prefix == null ? input : input.substring(prefix.length());
+            }
+
+            public boolean hasMinTerms(String input) {
+                return minTerms <= input.split(" ").length;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Query query = (Query) o;
+                return minTerms == query.minTerms && numCandidates == query.numCandidates &&
+                        Objects.equals(name, query.name) &&
+                        Objects.equals(serviceUrl, query.serviceUrl) &&
+                        Objects.equals(model, query.model) &&
+                        Objects.equals(prefix, query.prefix) &&
+                        Objects.equals(type, query.type) &&
+                        timeout == query.timeout;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(name, serviceUrl, model, prefix, minTerms, numCandidates, type, timeout);
+            }
+
+            @Override
+            public String toString() {
+                return "Query{" +
+                        "name='" + name + '\'' +
+                        ", serviceUrl='" + serviceUrl + '\'' +
+                        ", model='" + model + '\'' +
+                        ", prefix='" + prefix + '\'' +
+                        ", minTerms=" + minTerms +
+                        ", numCandidates=" + numCandidates +
+                        ", type='" + type + '\'' +
+                        ", timeout=" + timeout +
+                        '}';
             }
         }
     }

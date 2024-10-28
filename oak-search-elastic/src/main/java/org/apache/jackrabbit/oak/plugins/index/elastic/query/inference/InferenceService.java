@@ -52,7 +52,7 @@ public class InferenceService {
         this.cache = new Cache<>(cacheSize);
     }
 
-    public List<Float> embeddings(String text) {
+    public List<Float> embeddings(String text, int timeoutMillis) {
         if (cache.containsKey(text)) {
             return cache.get(text);
         }
@@ -67,6 +67,10 @@ public class InferenceService {
 
             // Set the content type to application/json.
             connection.setRequestProperty("Content-Type", "application/json; utf-8");
+
+            // Set the connection and read timeouts.
+            connection.setConnectTimeout(timeoutMillis);
+            connection.setReadTimeout(timeoutMillis);
 
             // Enable input and output streams.
             connection.setDoOutput(true);

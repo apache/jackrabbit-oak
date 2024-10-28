@@ -20,9 +20,13 @@ import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,33 +34,42 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class ElasticInferenceTest extends ElasticAbstractQueryTest {
 
     @Rule
-    public WireMockRule wireMock= new WireMockRule(WireMockConfiguration.options().dynamicPort());
-
-    @Override
-    protected void createTestIndexNode() {
-        setTraversalEnabled(true);
-    }
+    public WireMockRule wireMock = new WireMockRule(WireMockConfiguration.options().dynamicPort());
 
     @Test
     public void inferenceConfigStoredInIndexMetadata() throws CommitFailedException {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
-        Tree inferenceConfig = builder.getBuilderTree().addChild(ElasticIndexDefinition.INFERENCE_CONFIG);
-        Tree embeddings = inferenceConfig.addChild("embeddings");
-        embeddings.setProperty("serviceUrl", "http://localhost:" + wireMock.port());
-        embeddings.setProperty("fields", List.of("a"), Type.STRINGS);
         builder.indexRule("nt:base").property("a").analyzed();
+
+        Tree inferenceConfig = builder.getBuilderTree().addChild(ElasticIndexDefinition.INFERENCE_CONFIG);
+        Tree inferenceProperties = inferenceConfig.addChild("properties");
+        Tree embeddings = inferenceProperties.addChild("embeddings");
+        embeddings.setProperty("fields", List.of("a"), Type.STRINGS);
+        Tree inferenceQueries = inferenceProperties.addChild("queries");
+        Tree semantic = inferenceQueries.addChild("semantic");
+        semantic.setProperty("serviceUrl", "http://localhost:" + wireMock.port());
+        semantic.setProperty("prefix", "!");
+        semantic.setProperty("minTerms", "2");
+
         String indexName = UUID.randomUUID().toString();
         Tree index = setIndex(indexName, builder);
         root.commit();
@@ -72,17 +85,21 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void semanticSearch() throws CommitFailedException {
+    public void hybridSearch() throws Exception {
         IndexDefinitionBuilder builder = createIndex();
         builder.includedPaths("/content")
                 .indexRule("nt:base")
-                .property("title").propertyIndex().analyzed()
-                .property("description").propertyIndex().analyzed();
+                .property("title").propertyIndex().analyzed().nodeScopeIndex()
+                .property("description").propertyIndex().analyzed().nodeScopeIndex();
 
         Tree inferenceConfig = builder.getBuilderTree().addChild(ElasticIndexDefinition.INFERENCE_CONFIG);
-        Tree embeddings = inferenceConfig.addChild("embeddings");
-        embeddings.setProperty("serviceUrl", "http://localhost:" + wireMock.port());
+        Tree embeddings = inferenceConfig.addChild("properties").addChild("embeddings");
         embeddings.setProperty("fields", List.of("title", "description"), Type.STRINGS);
+
+        Tree queryConfig = inferenceConfig.addChild("queries").addChild("semantic");
+        queryConfig.setProperty("serviceUrl", "http://localhost:" + wireMock.port() + "/get_embedding");
+        queryConfig.setProperty("prefix", "?");
+        queryConfig.setProperty("timeout", "1000");
 
         String indexName = UUID.randomUUID().toString();
         Tree index = setIndex(indexName, builder);
@@ -110,42 +127,93 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
         yoga.setProperty("title", "Yoga for Mental Wellness");
         yoga.setProperty("description", "The benefits of yoga for mental health are vast. This study shows how practicing yoga can reduce stress, anxiety, and improve overall well-being through breathing techniques and meditation.");
 
+        // this content is not enriched with embeddings on purpose
+        Tree farm = content.addChild("farm");
+        farm.setProperty("title", "Sustainable Farming Practices");
+        farm.setProperty("description", "Sustainable farming practices are essential for preserving the environment. This article discusses crop rotation, soil health, and water conservation methods to reduce the carbon footprint of agriculture.");
+
         root.commit();
 
         // let the index catch up
-        assertEventually(() -> assertEquals(5, countDocuments(index)));
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
 
+        // this mimics the inference service by traversing the content and enriching it with embeddings
         ObjectMapper mapper = new JsonMapper();
-        List<String> docs = executeQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and title is not null", SQL2);
-        for (String doc : docs) {
-//            Map<String, Object> docMap = mapper.readValue(doc, Map.class);
-//            String path = (String) docMap.get("jcr:path");
-//            System.out.println("Path: " + path);
+        List<String> paths = executeQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and title is not null", SQL2);
+        for (String path : paths) {
+            URL json = this.getClass().getResource("/inference" + path + ".json");
+            if (json != null) {
+                Map<String, Object> map = mapper.readValue(json, Map.class);
+                ObjectNode updateDoc = mapper.createObjectNode();
+                ObjectNode inferenceNode = updateDoc.putObject(ElasticIndexDefinition.INFERENCE);
+                ArrayNode embeddingsNode = inferenceNode.putObject("embeddings").putArray("value");
+                inferenceNode.putObject("metadata").put("updatedAt", Instant.now().toEpochMilli());
+                for (Double d : (Collection<Double>) map.get("embedding")) {
+                    embeddingsNode.add(d);
+                }
+                updateDocument(index, path, updateDoc);
+            }
         }
 
-        wireMock.stubFor(WireMock.post("/get_embeddings")
-                .withRequestBody(WireMock.equalToJson("{\"text\":\"pets playing in a park\"}"))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\"embeddings\":[0.1,0.2,0.3]}")));
-    }
-
-    @Test
-    public void connectionCutOnQuery() throws Exception {
-        String indexName = UUID.randomUUID().toString();
-        setIndex(indexName, createIndex("propa", "propb").includedPaths("/test"));
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        test.addChild("b").setProperty("propa", "c");
-        test.addChild("c").setProperty("propb", "e");
-        root.commit(Map.of("sync-mode", "rt"));
-
-        String query = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/test') and propa is not null";
+        // let's instruct wiremock to return the embeddings for the queries as the inference service would
+        try (Stream<Path> stream = Files.walk(Paths.get(this.getClass().getResource("/inference/queries").toURI()))) {
+            stream.filter(Files::isRegularFile).forEach(queryFile -> {
+                String query = FilenameUtils.removeExtension(queryFile.getFileName().toString()).replaceAll("_", " ");
+                if (queryFile.toAbsolutePath().toString().contains("queries/faulty")) {
+                    wireMock.stubFor(WireMock.post("/get_embedding")
+                            .withRequestBody(WireMock.equalToJson("{\"text\":\"" + query + "\"}"))
+                            .willReturn(WireMock.serverError()));
+                } else if (queryFile.toAbsolutePath().toString().contains("delayed")) {
+                    wireMock.stubFor(WireMock.post("/get_embedding")
+                            .withRequestBody(WireMock.equalToJson("{\"text\":\"" + query + "\"}"))
+                            .willReturn(WireMock.ok()
+                                    .withHeader("Content-Type", "application/json")
+                                    .withBody("[]")
+                                    .withFixedDelay(2000)));
+                } else {
+                    String json;
+                    try {
+                        json = IOUtils.toString(queryFile.toUri(), StandardCharsets.UTF_8);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    wireMock.stubFor(WireMock.post("/get_embedding")
+                            .withRequestBody(WireMock.equalToJson("{\"text\":\"" + query + "\"}"))
+                            .willReturn(WireMock.ok()
+                                    .withHeader("Content-Type", "application/json")
+                                    .withBody(json)));
+                }
+            });
+        }
 
         assertEventually(() -> {
-            assertThat(explain(query), containsString("elasticsearch:" + indexName));
-            assertQuery(query, List.of("/test/a", "/test/b"));
+            Map<String, String> queryResults = Map.of(
+                    "a beginner guide to data manipulation in python", "/content/programming",
+                    "how to improve mental health through exercises", "/content/yoga",
+                    "nutritional advice for a healthier lifestyle", "/content/health",
+                    "technological advancements in electric vehicles", "/content/cars",
+                    "what are the key algorithms used in machine learning", "/content/ml"
+            );
+
+            for (Map.Entry<String, String> entry : queryResults.entrySet()) {
+                String query = entry.getKey();
+                String expectedPath = entry.getValue();
+                String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"+query+"')";
+                assertEquals(expectedPath, executeQuery(queryPath, SQL2, true, true).get(0));
+
+                // test that the same query does not return any result when the inference service is not invoked (no prefix)
+                String queryPath2 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"+query+"')";
+                assertQuery(queryPath2, List.of());
+            }
+
+            // test that a failure in the inference service does not prevent the query from returning results
+            String queryPath3 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?machine learning')";
+            assertQuery(queryPath3, List.of("/content/ml", "/content/programming"));
+
+            // test that a delayed response from the inference service does not prevent the query from returning results
+            String queryPath4 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?farming practices')";
+            assertQuery(queryPath4, List.of("/content/farm"));
         });
+
     }
 }
