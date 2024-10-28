@@ -99,6 +99,7 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
         Tree queryConfig = inferenceConfig.addChild("queries").addChild("semantic");
         queryConfig.setProperty("serviceUrl", "http://localhost:" + wireMock.port() + "/get_embedding");
         queryConfig.setProperty("prefix", "?");
+        queryConfig.setProperty("similarityThreshold", "0.75");
         queryConfig.setProperty("timeout", "1000");
 
         String indexName = UUID.randomUUID().toString();
@@ -186,23 +187,26 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
             });
         }
 
+        Map<String, String> queryResults = Map.of(
+                "a beginner guide to data manipulation in python", "/content/programming",
+                "how to improve mental health through exercises", "/content/yoga",
+                "nutritional advice for a healthier lifestyle", "/content/health",
+                "technological advancements in electric vehicles", "/content/cars",
+                "what are the key algorithms used in machine learning", "/content/ml"
+        );
+
         assertEventually(() -> {
-            Map<String, String> queryResults = Map.of(
-                    "a beginner guide to data manipulation in python", "/content/programming",
-                    "how to improve mental health through exercises", "/content/yoga",
-                    "nutritional advice for a healthier lifestyle", "/content/health",
-                    "technological advancements in electric vehicles", "/content/cars",
-                    "what are the key algorithms used in machine learning", "/content/ml"
-            );
 
             for (Map.Entry<String, String> entry : queryResults.entrySet()) {
                 String query = entry.getKey();
                 String expectedPath = entry.getValue();
-                String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"+query+"')";
-                assertEquals(expectedPath, executeQuery(queryPath, SQL2, true, true).get(0));
+                String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?" + query + "')";
+                List<String> results = executeQuery(queryPath, SQL2, true, true);
+                assertEquals(expectedPath, results.get(0));
+                System.out.println("Query: " + query + " -> Results: " + results.size());
 
                 // test that the same query does not return any result when the inference service is not invoked (no prefix)
-                String queryPath2 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"+query+"')";
+                String queryPath2 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '" + query + "')";
                 assertQuery(queryPath2, List.of());
             }
 

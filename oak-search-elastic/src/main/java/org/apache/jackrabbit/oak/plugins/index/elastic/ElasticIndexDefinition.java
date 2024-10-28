@@ -475,6 +475,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
             public int minTerms;
             public int numCandidates;
             public String type; // this can be hybrid or vector
+            public float similarityThreshold;
             public long timeout;
 
             public Query() {}
@@ -487,6 +488,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 this.minTerms = getOptionalValue(queryNode, "minTerms", 2);
                 this.numCandidates = getOptionalValue(queryNode, "numCandidates", 100);
                 this.type = getOptionalValue(queryNode, "type", "hybrid");
+                this.similarityThreshold = getOptionalValue(queryNode, "similarityThreshold", 0.5f);
                 this.timeout = getOptionalValue(queryNode, "timeout", 5000L);
             }
 
@@ -518,12 +520,13 @@ public class ElasticIndexDefinition extends IndexDefinition {
                         Objects.equals(model, query.model) &&
                         Objects.equals(prefix, query.prefix) &&
                         Objects.equals(type, query.type) &&
+                        similarityThreshold == query.similarityThreshold &&
                         timeout == query.timeout;
             }
 
             @Override
             public int hashCode() {
-                return Objects.hash(name, serviceUrl, model, prefix, minTerms, numCandidates, type, timeout);
+                return Objects.hash(name, serviceUrl, model, prefix, minTerms, numCandidates, type, similarityThreshold, timeout);
             }
 
             @Override
@@ -536,6 +539,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
                         ", minTerms=" + minTerms +
                         ", numCandidates=" + numCandidates +
                         ", type='" + type + '\'' +
+                        ", similarityThreshold=" + similarityThreshold +
                         ", timeout=" + timeout +
                         '}';
             }

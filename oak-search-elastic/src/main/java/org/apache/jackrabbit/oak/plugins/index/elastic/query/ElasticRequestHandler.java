@@ -627,6 +627,7 @@ public class ElasticRequestHandler {
                             knnQueryBuilder.field(p.name + ".value");
                             knnQueryBuilder.numCandidates(q.numCandidates);
                             knnQueryBuilder.queryVector(embeddings);
+                            knnQueryBuilder.similarity(q.similarityThreshold);
                             b.should(s -> s.knn(knnQueryBuilder.build()));
                         }
                         int tokens = text.split(" ").length;
