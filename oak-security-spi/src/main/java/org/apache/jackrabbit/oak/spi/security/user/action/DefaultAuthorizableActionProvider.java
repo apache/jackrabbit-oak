@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
@@ -104,7 +104,7 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     @NotNull
     @Override
     public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-        List<AuthorizableAction> actions = Lists.newArrayListWithExpectedSize(enabledActions.length);
+        List<AuthorizableAction> actions = new ArrayList<>(enabledActions.length);
         for (String className : enabledActions) {
             try {
                 Class<? extends AuthorizableAction> cl = SUPPORTED_ACTIONS.get(className);

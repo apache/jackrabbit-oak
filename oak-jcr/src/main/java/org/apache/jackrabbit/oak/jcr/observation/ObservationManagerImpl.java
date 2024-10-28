@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathF
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -138,7 +139,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         List<ChangeProcessor> toBeStopped;
 
         synchronized (this) {
-            toBeStopped = newArrayList(processors.values());
+            toBeStopped = new ArrayList<>(processors.values());
             processors.clear();
         }
 
@@ -254,7 +255,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
         FilterBuilder filterBuilder = new FilterBuilder();
         String depthPattern = isDeep ? STAR + '/' + STAR_STAR : STAR;
-        List<Condition> includeConditions = newArrayList();
+        List<Condition> includeConditions = new ArrayList<>();
         filterBuilder.addPathsForMBean(includePaths);
         for (String path : includePaths) {
             final String deepenedPath;
@@ -381,7 +382,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     }
 
     private static List<Condition> createExclusions(FilterBuilder filterBuilder, Iterable<String> excludedPaths) {
-        List<Condition> conditions = newArrayList();
+        List<Condition> conditions = new ArrayList<>();
         for (String path : excludedPaths) {
             conditions.add(filterBuilder.not(filterBuilder.path(path + '/' + STAR_STAR)));
         }

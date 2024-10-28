@@ -23,9 +23,9 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -47,7 +47,7 @@ public class SplitDocumentCleanUp implements Closeable {
     protected final DocumentStore store;
     protected final Iterable<NodeDocument> splitDocGarbage;
     protected final VersionGCStats stats;
-    protected final List<String> idsToBeDeleted = Lists.newArrayList();
+    protected final List<String> idsToBeDeleted = new ArrayList<>();
     protected int deleteCount;
 
     protected SplitDocumentCleanUp(DocumentStore store,

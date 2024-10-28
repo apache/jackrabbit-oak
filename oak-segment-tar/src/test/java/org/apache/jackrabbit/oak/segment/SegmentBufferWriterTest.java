@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -28,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -56,7 +55,7 @@ public class SegmentBufferWriterTest {
             // init
         }
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            before = newArrayList(store.getSegmentIds());
+            before = CollectionUtils.toList(store.getSegmentIds());
         }
 
         try (FileStore store = openFileStore()) {
@@ -66,7 +65,7 @@ public class SegmentBufferWriterTest {
         List<SegmentId> after;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            after = newArrayList(store.getSegmentIds());
+            after = CollectionUtils.toList(store.getSegmentIds());
         }
 
         assertEquals(before, after);
@@ -80,7 +79,7 @@ public class SegmentBufferWriterTest {
             // init
         }
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            before = newArrayList(store.getSegmentIds());
+            before = CollectionUtils.toList(store.getSegmentIds());
         }
 
         try (FileStore store = openFileStore()) {
@@ -92,7 +91,7 @@ public class SegmentBufferWriterTest {
         List<SegmentId> after;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            after = newArrayList(store.getSegmentIds());
+            after = CollectionUtils.toList(store.getSegmentIds());
         }
 
         assertNotEquals(before, after);

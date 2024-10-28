@@ -91,7 +91,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
@@ -281,7 +280,7 @@ public class IncrementalStoreTest {
         IndexDefinitionUpdater indexDefinitionUpdater = new IndexDefinitionUpdater(new File(referenceIndexFilePath));
 
 
-        ExtendedIndexHelper indexHelper = new ExtendedIndexHelper(store, blobStore, whiteboard, workDir, workDir, newArrayList(indexDefinitionUpdater.getIndexPaths()));
+        ExtendedIndexHelper indexHelper = new ExtendedIndexHelper(store, blobStore, whiteboard, workDir, workDir, new ArrayList<>(indexDefinitionUpdater.getIndexPaths()));
         IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
         indexerSupport.setIndexDefinitions(new File(referenceIndexFilePath));
 

@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -50,8 +51,6 @@ import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -61,7 +60,7 @@ import ch.qos.logback.core.read.ListAppender;
  * Test if prefetch works, when using the composite node store.
  */
 public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
-    
+
     @Parameters(name = "Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
@@ -72,15 +71,15 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
     }
 
     private static String READ_ONLY_MOUNT_V1_NAME = "readOnlyV1";
-    
+
     // JCR repository
     private CompositeRepo repoV1;
     private CompositeRepo repoV2;
-    
+
     private ListAppender<ILoggingEvent> listAppender;
     private final String cacheWarmingLogger = CacheWarming.class.getName();
 
-    
+
     @Rule
     public final ProvideSystemProperty updateSystemProperties
             = new ProvideSystemProperty(DocumentNodeStore.SYS_PROP_PREFETCH, "true");
@@ -92,7 +91,7 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
     public PrefetchTest(NodeStoreKind root, NodeStoreKind mounts) {
         super(root, mounts);
     }
-    
+
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
@@ -108,7 +107,7 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
     @After
     public void loggingAppenderStop() {
         listAppender.stop();
-    }    
+    }
 
     @Override
     @Before
@@ -134,7 +133,7 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
         getResult(result, "jcr:path");
         assertTrue(isMessagePresent(listAppender, "Prefetch"));
     }
-    
+
     private boolean isMessagePresent(ListAppender<ILoggingEvent> listAppender, String pattern) {
         for (ILoggingEvent loggingEvent : listAppender.list) {
             if (loggingEvent.getMessage().contains(pattern)) {
@@ -180,7 +179,7 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
             this.mip = Mounts.newBuilder().readOnlyMount(readOnlyMountName, "/libs").build();
 
             initReadOnlySeedRepo();
-            List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+            List<MountedNodeStore> nonDefaultStores = new ArrayList<>();
             nonDefaultStores.add(new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
             this.store = new CompositeNodeStore(this.mip, globalStore, nonDefaultStores);
 

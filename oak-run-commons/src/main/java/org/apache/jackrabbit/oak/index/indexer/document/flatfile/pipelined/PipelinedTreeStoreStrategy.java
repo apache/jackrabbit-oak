@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -40,6 +42,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.bson.RawBsonDocument;
+import org.bson.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -345,12 +349,13 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         // to detect this failure.
         @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
+        Codec<NodeDocument> nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, new MongoDocumentFilter("", List.of()), MongoClientSettings.getDefaultCodecRegistry());
         File resultDir = getStoreDir();
         TreeStore treeStore = new TreeStore("dump", resultDir, null, 1);
         treeStore.getSession().init();
         try {
             // download -> transform thread.
-            ArrayBlockingQueue<NodeDocument[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
+            ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
 
             // transform <-> sort and save threads
             // Queue with empty buffers, used by the transform task
@@ -390,6 +395,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                 Future<PipelinedTransformTask.Result> future = ecs.submit(new PipelinedTransformTask(
                         docStore,
                         documentNodeStore,
+                        nodeDocumentCodec,
                         rootRevision,
                         this.getPathPredicate(),
                         entryWriter,

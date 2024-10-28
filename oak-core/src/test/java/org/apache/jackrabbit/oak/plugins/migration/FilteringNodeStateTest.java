@@ -22,6 +22,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -146,7 +147,7 @@ public class FilteringNodeStateTest {
         { // access via getProperty()
             final PropertyState childOrder = decorated.getProperty(OAK_CHILD_ORDER);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(newArrayList("football"), newArrayList(values));
+            assertEquals(newArrayList("football"), CollectionUtils.toList(values));
         }
 
         { // access via getProperties()
@@ -158,7 +159,7 @@ public class FilteringNodeStateTest {
             };
             final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(newArrayList("football"), newArrayList(values));
+            assertEquals(newArrayList("football"), CollectionUtils.toList(values));
         }
     }
 

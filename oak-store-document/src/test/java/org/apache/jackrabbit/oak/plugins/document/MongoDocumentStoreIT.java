@@ -254,7 +254,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, newArrayList());
+                20, Collections.emptyList());
         docs.forEach(d -> assertEquals(4 , d.keySet().size()));
         assertEquals(10, docs.size());
     }

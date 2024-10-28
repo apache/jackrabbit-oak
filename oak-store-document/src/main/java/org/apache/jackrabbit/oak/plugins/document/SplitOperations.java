@@ -40,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
@@ -153,7 +152,7 @@ class SplitOperations {
         if (!considerSplit()) {
             return Collections.emptyList();
         }
-        splitOps = Lists.newArrayList();
+        splitOps = new ArrayList<>();
         mostRecentRevs = new HashSet<>();
         splitRevs = new HashSet<>();
         garbage = Maps.newHashMap();

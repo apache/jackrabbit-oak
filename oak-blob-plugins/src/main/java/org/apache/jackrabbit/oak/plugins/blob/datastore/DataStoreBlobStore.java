@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -79,7 +80,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 
@@ -530,14 +530,14 @@ public class DataStoreBlobStore
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
-    }    
-    
+    }
+
     @Override
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         int count = 0;
         if (delegate instanceof MultiDataStoreAware) {
             try {
-                List<String> deleted = Lists.newArrayListWithExpectedSize(512);
+                List<String> deleted = new ArrayList<>(512);
                 for (String chunkId : chunkIds) {
                     long start = System.nanoTime();
 

@@ -25,12 +25,12 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -113,7 +113,7 @@ public class Template {
         requireNonNull(state);
         PropertyState primary = null;
         PropertyState mixins = null;
-        List<PropertyTemplate> templates = Lists.newArrayList();
+        List<PropertyTemplate> templates = new ArrayList<>();
 
         for (PropertyState property : state.getProperties()) {
             String name = property.getName();

@@ -513,7 +513,7 @@ public abstract class AbstractQueryTest {
      */
     private static PropertyState readArrayProperty(String name, JsopReader reader) {
         int type = PropertyType.STRING;
-        List<Object> values = Lists.newArrayList();
+        List<Object> values = new ArrayList<>();
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();

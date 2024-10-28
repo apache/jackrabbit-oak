@@ -181,7 +181,7 @@ public class DataStoreCommandTest {
 
         Data data = new Data();
 
-        List<Integer> toBeDeleted = Lists.newArrayList();
+        List<Integer> toBeDeleted = new ArrayList<>();
         Random rand = new Random();
         for (int i = 0; i < numMaxDeletions; i++) {
             int n = rand.nextInt(numBlobs);
@@ -871,7 +871,7 @@ public class DataStoreCommandTest {
     private static Map<String, String> dummyData(MemoryBlobStoreNodeStore memNodeStore, String rep2Id, NodeStore store,
         DataStoreBlobStore setupDataStore, File f)
         throws IOException, CommitFailedException, DataStoreException {
-        List<String> list = Lists.newArrayList();
+        List<String> list = new ArrayList<>();
         Map<String, String> idMapping = Maps.newHashMap();
         NodeBuilder a = memNodeStore.getRoot().builder();
         for (int i = 0; i < 2; i++) {
@@ -1358,7 +1358,7 @@ public class DataStoreCommandTest {
         }
 
         static List<Object[]> get() {
-            List<Object[]> fixtures = Lists.newArrayList();
+            List<Object[]> fixtures = new ArrayList<>();
             for (StoreFixture storeFixture : getStoreFixtures()) {
                 if (storeFixture.isAvailable()) {
                     for (DataStoreFixture dsFixture : getDataStoreFixtures()) {

@@ -961,8 +961,8 @@ public class MongoDocumentStore implements DocumentStore {
         MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
-            List<String> batchIds = Lists.newArrayList();
-            List<Bson> batch = Lists.newArrayList();
+            List<String> batchIds = new ArrayList<>();
+            List<Bson> batch = new ArrayList<>();
             Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, Long> entry = it.next();

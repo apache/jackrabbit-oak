@@ -48,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 
 /**
  * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
@@ -75,7 +74,7 @@ import org.apache.jackrabbit.guava.common.collect.Queues;
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(ContentMirrorStoreStrategy.class);
-    
+
     /**
      * logging a warning every {@code oak.traversing.warn} traversed nodes. Default {@code 10000}
      */
@@ -587,7 +586,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
 
     }
-    
+
     /**
      * fetch from the index the <i>key</i> node
      * 

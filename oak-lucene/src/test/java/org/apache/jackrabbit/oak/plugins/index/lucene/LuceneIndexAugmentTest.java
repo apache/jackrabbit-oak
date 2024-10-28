@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -52,6 +51,7 @@ import org.apache.lucene.search.TopDocs;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -309,7 +309,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
             @NotNull
             @Override
             public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
-                List<Field> fields = Lists.newArrayList();
+                List<Field> fields = new ArrayList<>();
                 fields.add(new StringField("bar", "baz", Field.Store.NO));
                 return fields;
             }

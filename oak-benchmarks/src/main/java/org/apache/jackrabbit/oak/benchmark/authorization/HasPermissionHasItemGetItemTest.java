@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -24,11 +23,13 @@ import org.jetbrains.annotations.NotNull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
-    private static final List<String> PERMISSIONS = Lists.newArrayList(Permissions.PERMISSION_NAMES.values());
+    private static final List<String> PERMISSIONS = new ArrayList<>(Permissions.PERMISSION_NAMES.values());
 
     public HasPermissionHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);

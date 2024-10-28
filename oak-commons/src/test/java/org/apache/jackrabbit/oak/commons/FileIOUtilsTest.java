@@ -49,6 +49,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -154,7 +155,7 @@ public class FileIOUtilsTest {
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
         String line;
-        List<String> retrieved = newArrayList();
+        List<String> retrieved = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
             retrieved.add(line);
         }
@@ -173,7 +174,7 @@ public class FileIOUtilsTest {
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
         String line;
-        List<String> retrieved = newArrayList();
+        List<String> retrieved = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
             retrieved.add(unescapeLineBreaks(line));
         }
@@ -427,7 +428,7 @@ public class FileIOUtilsTest {
     }
 
     private static List<String> escape(List<String> list) {
-        List<String> escaped = newArrayList();
+        List<String> escaped = new ArrayList<>();
         for (String s : list) {
             escaped.add(escapeLineBreak(s));
         }
@@ -435,7 +436,7 @@ public class FileIOUtilsTest {
     }
 
     private static List<String> unescape(List<String> list) {
-        List<String> unescaped = newArrayList();
+        List<String> unescaped = new ArrayList<>();
         for (String s : list) {
             unescaped.add(unescapeLineBreaks(s));
         }

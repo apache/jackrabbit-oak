@@ -2952,7 +2952,7 @@ public final class DocumentNodeStore
                     setRoot(newHead);
                     commitQueue.headRevisionChanged();
 
-                    store.createOrUpdate(NODES, Lists.newArrayList(updates.values()));
+                    store.createOrUpdate(NODES, new ArrayList<>(updates.values()));
                     numUpdates.addAndGet(updates.size());
                     LOG.debug("Background sweep2 updated {}", updates.keySet());
                 }
@@ -3074,7 +3074,7 @@ public final class DocumentNodeStore
                     setRoot(newHead);
                     commitQueue.headRevisionChanged();
 
-                    store.createOrUpdate(NODES, Lists.newArrayList(updates.values()));
+                    store.createOrUpdate(NODES, new ArrayList<>(updates.values()));
                     numUpdates.addAndGet(updates.size());
                     LOG.debug("Background sweep updated {}", updates.keySet());
                 }

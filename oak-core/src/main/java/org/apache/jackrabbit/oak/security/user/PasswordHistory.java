@@ -22,10 +22,10 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -86,7 +86,7 @@ final class PasswordHistory implements UserConstants {
             PropertyState historyProp = passwordTree.getProperty(UserConstants.REP_PWD_HISTORY);
 
             // insert the current (old) password at the beginning of the password history
-            List<String> historyEntries = (historyProp == null) ? new ArrayList<>() : Lists.newArrayList(historyProp.getValue(Type.STRINGS));
+            List<String> historyEntries = (historyProp == null) ? new ArrayList<>() : CollectionUtils.toList(historyProp.getValue(Type.STRINGS));
             historyEntries.add(0, currentPasswordHash);
 
             /* remove oldest history entries exceeding configured history max size (e.g. after

@@ -150,7 +150,7 @@ public class IndexCopierTest {
 
     @Test
     public void basicTestWithPrefetch() throws Exception{
-        final List<String> syncedFiles = Lists.newArrayList();
+        final List<String> syncedFiles = new ArrayList<>();
         Directory baseDir = new RAMDirectory(){
             @Override
             public void sync(Collection<String> names) throws IOException {
@@ -335,7 +335,7 @@ public class IndexCopierTest {
         Directory baseDir = new RAMDirectory();
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
-        final List<ListenableFuture<?>> submittedTasks = Lists.newArrayList();
+        final List<ListenableFuture<?>> submittedTasks = new ArrayList<>();
         ExecutorService executor = new ForwardingListeningExecutorService() {
             @Override
             protected ListeningExecutorService delegate() {
@@ -1207,7 +1207,7 @@ public class IndexCopierTest {
     }
 
     private class FileTrackingDirectory extends DelayCopyingSimpleFSDirectory {
-        final List<String> openedFiles = newArrayList();
+        final List<String> openedFiles = new ArrayList<>();
 
         public FileTrackingDirectory() throws IOException {
         }

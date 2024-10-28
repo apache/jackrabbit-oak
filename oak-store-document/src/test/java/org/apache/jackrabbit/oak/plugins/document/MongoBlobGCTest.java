@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -105,7 +106,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         int number = count;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
-        List<Integer> processed = Lists.newArrayList();
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random(47);
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(number);
@@ -314,7 +315,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         
         // Simulate faulty state by deleting some blobs directly
         Random rand = new Random(87);
-        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        List<String> existing = new ArrayList<>(state.blobsPresent);
 
         GarbageCollectableBlobStore store = (GarbageCollectableBlobStore)
                                                 mk.getNodeStore().getBlobStore();

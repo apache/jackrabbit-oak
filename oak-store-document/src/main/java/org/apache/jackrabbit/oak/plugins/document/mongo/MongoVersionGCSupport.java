@@ -74,7 +74,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.client.FindIterable;
@@ -393,8 +392,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private List<Bson> createQueries(Set<SplitDocType> gcTypes,
                                  RevisionVector sweepRevs,
                                  long oldestRevTimeStamp) {
-        List<Bson> result = Lists.newArrayList();
-        List<Bson> orClauses = Lists.newArrayList();
+        List<Bson> result = new ArrayList<>();
+        List<Bson> orClauses = new ArrayList<>();
         for(SplitDocType type : gcTypes) {
             if (DEFAULT_NO_BRANCH != type) {
                 orClauses.add(Filters.eq(SD_TYPE, type.typeCode()));
@@ -416,7 +415,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private List<Bson> queriesForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
         // default_no_branch split type is special because we can
         // only remove those older than sweep rev
-        List<Bson> result = Lists.newArrayList();
+        List<Bson> result = new ArrayList<>();
         for (Revision r : sweepRevs) {
             if (lastDefaultNoBranchDeletionRevs != null) {
                 Revision dr = lastDefaultNoBranchDeletionRevs.getRevision(r.getClusterId());

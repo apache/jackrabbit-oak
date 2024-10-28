@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.st
 import static org.junit.Assert.assertNull;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -29,7 +30,6 @@ import javax.jcr.Binary;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
@@ -61,7 +61,7 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
-        Collection<NodeStoreFixture> fixtures = Lists.newArrayList();
+        Collection<NodeStoreFixture> fixtures = new ArrayList<>();
 
         // Create a fixture using FileDataStore.  FileDataStore doesn't support the direct access features so
         // it should be a valid real-world example of how the API should behave when the implementation doesn't

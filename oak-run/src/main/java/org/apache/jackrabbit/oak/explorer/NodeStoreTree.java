@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
@@ -34,6 +33,7 @@ import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 import java.awt.GridLayout;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +56,7 @@ import javax.swing.tree.DefaultTreeModel;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -219,7 +220,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             return;
         }
 
-        List<NamePathModel> kids = newArrayList();
+        List<NamePathModel> kids = new ArrayList<>();
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
             NamePathModel c = new NamePathModel(ce.getName(), concat(
                     model.getPath(), ce.getName()), ce.getNodeState(),
@@ -420,7 +421,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             sb.append(newline);
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(uuids, paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -462,7 +463,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(Set.of(id), paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -707,10 +708,10 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         Long[] s = {0L, 0L};
 
-        List<String> names = newArrayList(ns.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(ns.getChildNodeNames());
 
         if (names.contains("root")) {
-            List<String> temp = newArrayList();
+            List<String> temp = new ArrayList<>();
             int poz = 0;
             // push 'root' to the beginning
             for (String n : names) {

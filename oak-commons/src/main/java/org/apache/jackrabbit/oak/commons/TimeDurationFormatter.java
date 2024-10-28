@@ -22,8 +22,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 /**
  * Format a time duration as human-readable string, inspired by
  * {@link Stopwatch#toString()}.

@@ -34,9 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 public class Multiplexers {
 
     static boolean RO_PRIVATE_UNIQUE_INDEX;

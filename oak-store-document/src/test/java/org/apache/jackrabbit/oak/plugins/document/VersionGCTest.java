@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -675,8 +676,8 @@ public class VersionGCTest {
     }
 
     private class TestGCMonitor implements GCMonitor {
-        final List<String> infoMessages = Lists.newArrayList();
-        final List<String> statusMessages = Lists.newArrayList();
+        final List<String> infoMessages = new ArrayList<>();
+        final List<String> statusMessages = new ArrayList<>();
 
         @Override
         public void info(String message, Object... arguments) {

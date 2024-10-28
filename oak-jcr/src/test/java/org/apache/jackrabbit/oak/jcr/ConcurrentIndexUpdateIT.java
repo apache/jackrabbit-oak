@@ -57,8 +57,8 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
         getAdminSession().save();
 
         final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
-        List<AtomicLong> counters = Lists.newArrayList();
-        List<Thread> writers = Lists.newArrayList();
+        List<AtomicLong> counters = new ArrayList<>();
+        List<Thread> writers = new ArrayList<>();
         for (int i = 0; i < NUM_WRITERS; i++) {
             final int id = i;
             final AtomicLong counter = new AtomicLong();
