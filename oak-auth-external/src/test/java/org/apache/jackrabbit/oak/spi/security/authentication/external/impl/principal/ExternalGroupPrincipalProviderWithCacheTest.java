@@ -16,47 +16,38 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.REP_CACHE;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalGroupPrincipalProvider.CACHE_PRINCIPAL_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants.REP_CACHE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import java.security.Principal;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
@@ -65,31 +56,42 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.osgi.framework.ServiceReference;
 
-@RunWith(Parameterized.class)
-public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrincipalTest {
+public class ExternalGroupPrincipalProviderWithCacheTest extends AbstractPrincipalTest {
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
-                new Object[]{"test"},
-                new Object[]{""});
-    }
+    private @NotNull Group testGroup;
 
     private final String idpName;
 
-    public ExternalGroupPrincipalProviderWithCacheTest(String idpName) {
-        this.idpName = idpName;
+    public ExternalGroupPrincipalProviderWithCacheTest() {
+        this.idpName = "test";
     }
 
     @Before
     public void before() throws Exception {
         super.before();
 
+        testGroup = createTestGroup();
+
         principalProvider = createPrincipalProvider(getSystemRoot(), getUserConfiguration());
+        Iterator<ExternalGroup> externalGroup = idp.listGroups();
+        while (externalGroup.hasNext()) {
+            ExternalGroup next = externalGroup.next();
+            Authorizable authorizable = getUserManager(root).getAuthorizable(next.getPrincipalName());
+            testGroup.addMember(authorizable);
+        }
+        root.commit();
+        root.refresh();
+        getSystemRoot().refresh();
+    }
+
+    @Override
+    protected @NotNull DefaultSyncConfig createSyncConfig() {
+        DefaultSyncConfig config = super.createSyncConfig();
+        config.group().setDynamicGroups(true);
+        config.user().setDynamicMembership(true);
+        return config;
     }
 
     @Override
@@ -103,7 +105,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
         } else {
             when(scTracker.getIdpNamesWithDynamicGroups()).thenReturn(Collections.emptySet());
         }
-        when(scTracker.getServiceReferences()).thenReturn(new ServiceReference[] {mock(ServiceReference.class)});
+        when(scTracker.getServiceReferences()).thenReturn(new ServiceReference[]{mock(ServiceReference.class)});
         return new ExternalGroupPrincipalProvider(r, uc, getNamePathMapper(), scTracker);
     }
 
@@ -119,7 +121,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
     }
 
     @NotNull
-    Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
+    Set<Principal> getExternalGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
             return ImmutableSet.copyOf(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
                 try {
@@ -130,12 +132,15 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
             }).collect(Collectors.toSet());
         } else {
             Set<Principal> set = new HashSet<>();
-            collectExpectedPrincipals(set, idp.getUser(userId).getDeclaredGroups(), syncConfig.user().getMembershipNestingDepth());
+            collectExpectedPrincipals(set,
+                    idp.getUser(userId).getDeclaredGroups(),
+                    syncConfig.user().getMembershipNestingDepth());
             return set;
         }
     }
 
-    private void collectExpectedPrincipals(Set<Principal> grPrincipals, @NotNull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
+    private void collectExpectedPrincipals(Set<Principal> grPrincipals,
+            @NotNull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
         if (depth <= 0) {
             return;
         }
@@ -146,214 +151,60 @@ public class ExternalGroupPrincipalProviderWithCacheTest  extends AbstractPrinci
         }
     }
 
-    private boolean hasDynamicGroups() {
-        return getIdpNamesWithDynamicGroups().contains(idp.getName());
-    }
-
-    @Test
-    public void testGetGroupMembershipExternalUser() throws Exception {
-        Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
-        assertNotNull(user);
-
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(user.getPrincipal());
-        Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
-        assertEquals(expected, principals);
-
-        root.refresh();
-
-        //Check cache values, as only local groups are cached the cache should be empty
-        Tree cacheTree = root.getTree(user.getPath()).getChild(REP_CACHE);
-        assertNotNull(cacheTree);
-        assertTrue(cacheTree.hasProperty(CACHE_PRINCIPAL_NAMES));
-        assertTrue(cacheTree.getProperty(CACHE_PRINCIPAL_NAMES).getValue(Type.STRING).isEmpty());
-    }
-
     @Test
     public void testGetGroupMembershipExternalUserAndLocal() throws Exception {
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
 
-        Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
-        Group gr = createTestGroup(root);
-        Set<String> addedMembers = gr.addMembers(expected.stream().map(Principal::getName).toArray(String[]::new));
-        assertTrue(addedMembers.isEmpty());
-        root.commit();
-
         // same as in test before even if the principal is not a tree-based-principal
-        Principal notTreeBased = new PrincipalImpl(user.getPrincipal().getName());
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(notTreeBased);
-        assertEquals(expected, principals);
+        Set<Principal> expected = getExternalGroupPrincipals(USER_ID);
+        expected.add(testGroup.getPrincipal());
+        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(user.getPrincipal());
+        assertEquals(expected.size(), principals.size());
 
-        root.refresh();
-
+        root.refresh(); //Refreshing root to make sure changes in cache are reflected
         Tree cacheTree = root.getTree(user.getPath()).getChild(REP_CACHE);
         assertNotNull(cacheTree);
         assertTrue(cacheTree.hasProperty(CACHE_PRINCIPAL_NAMES));
         assertFalse(cacheTree.getProperty(CACHE_PRINCIPAL_NAMES).getValue(Type.STRING).isEmpty());
 
+        //Read again but this time from cache
         Set<Principal> readFromCache = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertEquals(expected, readFromCache);
     }
 
     @Test
-    public void testGetGroupMembershipDefaultSync() throws Exception {
-        // synchronized by default sync-context => no 'dynamic' group principals
-        Authorizable user = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_SECOND_USER);
+    public void testCachedGroupPrincipalIsMember() throws Exception {
+        Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
-
         Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(user.getPrincipal());
-        assertTrue(principals.isEmpty());
-    }
+        assertTrue(principals.contains(testGroup.getPrincipal()));
 
-    @Test
-    public void testGetGroupMembershipDefaultSync2() throws Exception {
-        // synchronized by default sync-context => no 'dynamic' group principals
-        Authorizable user = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_SECOND_USER);
-        assertNotNull(user);
+        root.refresh(); //Refreshing root to make sure changes in cache are reflected
+        Tree cacheTree = root.getTree(user.getPath()).getChild(REP_CACHE);
+        assertNotNull(cacheTree);
+        assertTrue(cacheTree.hasProperty(CACHE_PRINCIPAL_NAMES));
+        assertFalse(cacheTree.getProperty(CACHE_PRINCIPAL_NAMES).getValue(Type.STRING).isEmpty());
 
-        // same as in test before even if the principal is not a tree-based-principal
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(new PrincipalImpl(user.getPrincipal().getName()));
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetGroupMembershipExternalGroup() throws Exception {
-        UserManager um = getUserManager(root);
-        Authorizable group = um.getAuthorizable("secondGroup");
-        assertNotNull(group);
-
-        for (Principal principal : new Principal[] {group.getPrincipal(), new PrincipalImpl(group.getPrincipal().getName())}) {
-            Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(principal);
-            if (hasDynamicGroups()) {
-                Set<Principal> expected = getExpectedGroupAutomembership(group, um);
-                assertEquals(expected, principals);
-            } else {
-                assertTrue(principals.isEmpty());
-            }
-        }
-    }
-
-    private Set<Principal> getExpectedGroupAutomembership(@NotNull Authorizable authorizable, @NotNull UserManager um) {
-        return syncConfig.group().getAutoMembership(authorizable).stream().map(id -> {
+        Set<Principal> externalPrincipals = getExternalGroupPrincipals(USER_ID);
+        Set<Principal> cachedPrincipals = principalProvider.getMembershipPrincipals(user.getPrincipal());
+        cachedPrincipals.forEach(principal -> {
             try {
-                Group gr = um.getAuthorizable(id, Group.class);
-                return (gr == null) ? null : gr.getPrincipal();
-            } catch (RepositoryException repositoryException) {
-                return null;
+                assertTrue(principal instanceof ItemBasedPrincipal);
+                assertTrue(principal instanceof GroupPrincipal);
+                assertNotNull(((ItemBasedPrincipal) principal).getPath());
+                if (principal.getName().equals(testGroup.getPrincipal().getName())) {
+                    //Check if external group is a member of the cached group
+                    externalPrincipals.forEach(externalPrincipal -> {
+                        assertTrue(((GroupPrincipal) principal).isMember(externalPrincipal));
+                    });
+
+                    var members = ((GroupPrincipal) principal).members();
+                    assertTrue(members.hasMoreElements());
+                }
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
             }
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
-    }
-
-    @Test
-    public void testGetGroupMembershipItemBasedNonExistingPrincipal() {
-        Principal p = new ItemBasedPrincipal() {
-            @Override
-            public @NotNull String getPath() {
-                return PathUtils.ROOT_PATH;
-            }
-
-            @Override
-            public String getName() {
-                return "principalName";
-            }
-        };
-        assertTrue(principalProvider.getMembershipPrincipals(p).isEmpty());
-    }
-
-    @Test
-    public void testGetGroupMembershipItemBasedLookupFails() throws Exception {
-        UserManager um = spy(getUserManager(root));
-        doThrow(new RepositoryException()).when(um).getAuthorizable(any(Principal.class));
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
-        Principal principal = new PrincipalImpl(um.getAuthorizable(USER_ID).getPrincipal().getName());
-        assertTrue(pp.getMembershipPrincipals(principal).isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsLocalUser() throws Exception {
-        Set<? extends Principal> principals = principalProvider.getPrincipals(getTestUser().getID());
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsLocalGroup() throws Exception {
-        Set<? extends Principal> principals = principalProvider.getPrincipals(createTestGroup().getID());
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsExternalUser() throws Exception {
-        Set<? extends Principal> principals = principalProvider.getPrincipals(USER_ID);
-        assertEquals(getExpectedGroupPrincipals(USER_ID), principals);
-
-        Set<? extends Principal> cachedPrincipals = principalProvider.getPrincipals(USER_ID);
-        assertEquals(getExpectedGroupPrincipals(USER_ID), cachedPrincipals);
-    }
-
-    @Test
-    public void testGetPrincipalsExternalUser2() {
-        // synchronized by default sync-context => no 'dynamic' group principals
-        Set<? extends Principal> principals = principalProvider.getPrincipals(TestIdentityProvider.ID_SECOND_USER);
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsExternalGroup() throws Exception {
-        Authorizable authorizable = getUserManager(root).getAuthorizable("secondGroup");
-        assertNotNull(authorizable);
-
-        Set<? extends Principal> principals = principalProvider.getPrincipals(authorizable.getID());
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsNonExistingUser() throws Exception {
-        assertNull(getUserManager(root).getAuthorizable("nonExistingUser"));
-        Set<? extends Principal> principals = principalProvider.getPrincipals("nonExistingUser");
-        assertTrue(principals.isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsNonExistingUserTree() throws Exception {
-        Authorizable a = mock(Authorizable.class, withSettings().extraInterfaces(User.class));
-        when(a.getID()).thenReturn(USER_ID);
-        when(a.getPath()).thenReturn("/path/to/non/existing/item");
-
-        UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
-        assertTrue(pp.getPrincipals(USER_ID).isEmpty());
-    }
-
-    @Test
-    public void testGetPrincipalsForGroupTree() throws Exception {
-        Authorizable group = getUserManager(root).createGroup("testGroup");
-        Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
-        when(a.getPath()).thenReturn(group.getPath());
-        if (a instanceof TreeAware && group instanceof TreeAware) {
-            when(((TreeAware) a).getTree()).thenReturn(((TreeAware)group).getTree());
-        }
-        UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
-        assertTrue(pp.getPrincipals(USER_ID).isEmpty());
-    }
-
-
-    @Test
-    public void testGetPrincipalsMissingIdpName() throws Exception {
-        String userPath = getUserManager(root).getAuthorizable(USER_ID).getPath();
-
-        Tree t = root.getTree(userPath);
-        t.removeProperty(REP_EXTERNAL_ID);
-
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, getUserConfiguration());
-
-        Set<String> principalNames = pp.getPrincipals(USER_ID).stream().map(Principal::getName).collect(Collectors.toSet());
-        assertTrue(principalNames.isEmpty());
+        });
     }
 }

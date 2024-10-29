@@ -442,8 +442,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     private Set<Principal> getInheritedPrincipals(@NotNull Set<Principal> externalGroupPrincipals, @NotNull String idpName) {
         if (idpNamesWithDynamicGroups.contains(idpName)) {
             Set<Principal> inherited = new HashSet<>();
-            for (Principal p : externalGroupPrincipals) {
-                inherited.addAll(DynamicGroupUtil.getInheritedPrincipals(p, userManager));
+            for (Principal p : externalGroupPrincipals) {inherited.addAll(DynamicGroupUtil.getInheritedPrincipals(p, userManager));
             }
             return inherited;
         } else {
@@ -739,7 +738,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         abstract T get(@NotNull Authorizable authorizable) throws RepositoryException;
     }
 
-    private class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal, ItemBasedPrincipal {
+    private static final class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal, ItemBasedPrincipal {
 
         private Group group;
         private UserManager userManager;
