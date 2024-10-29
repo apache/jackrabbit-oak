@@ -399,14 +399,29 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
     }
 
+    /**
+     * Represents the inference configuration for an Elasticsearch index definition.
+     * This class holds the properties and queries used for inference.
+     */
     public static class InferenceDefinition {
 
+        /**
+         * List of properties used for inference.
+         */
         public List<Property> properties;
 
+        /**
+         * List of queries used for inference.
+         */
         public List<Query> queries;
 
         public InferenceDefinition() { }
 
+        /**
+         * Constructs an InferenceDefinition from a given NodeState.
+         *
+         * @param inferenceNode the NodeState containing the inference configuration
+         */
         public InferenceDefinition(NodeState inferenceNode) {
             if (inferenceNode.hasChildNode("properties")) {
                 this.properties = StreamSupport.stream(inferenceNode.getChildNode("properties").getChildNodeEntries().spliterator(), false)
@@ -430,9 +445,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(properties);
+            return Objects.hash(properties, queries);
         }
 
+        /**
+         * Represents a property used for inference.
+         */
         public static class Property {
             public String name;
             public String model;
@@ -442,6 +460,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
             public Property() {}
 
+            /**
+             * Constructs a Property from a given NodeState.
+             *
+             * @param name the name of the property
+             * @param inferenceNode the NodeState containing the property configuration
+             */
             public Property(String name, NodeState inferenceNode) {
                 this.name = ElasticIndexDefinition.INFERENCE + "." + name;
                 this.model = getOptionalValue(inferenceNode, "model", "semantic");
@@ -467,6 +491,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
             }
         }
 
+        /**
+         * Represents a query used for inference.
+         */
         public static class Query {
             public String name;
             public String serviceUrl;
@@ -480,6 +507,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
             public Query() {}
 
+            /**
+             * Constructs a Query from a given NodeState.
+             *
+             * @param name the name of the query
+             * @param queryNode the NodeState containing the query configuration
+             */
             public Query(String name, NodeState queryNode) {
                 this.name = name;
                 this.serviceUrl = getOptionalValue(queryNode, "serviceUrl", null);
@@ -501,10 +534,22 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 return prefix == null || input.startsWith(prefix);
             }
 
+            /**
+             * Rewrites the input string by removing the prefix.
+             *
+             * @param input the input string
+             * @return the rewritten input string
+             */
             public String rewrite(String input) {
                 return prefix == null ? input : input.substring(prefix.length());
             }
 
+            /**
+             * Checks if the input string has the minimum number of terms required for this query.
+             *
+             * @param input the input string
+             * @return true if the input string has the minimum number of terms
+             */
             public boolean hasMinTerms(String input) {
                 return minTerms <= input.split(" ").length;
             }
