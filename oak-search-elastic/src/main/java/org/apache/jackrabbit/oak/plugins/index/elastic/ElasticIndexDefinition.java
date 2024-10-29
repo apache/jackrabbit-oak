@@ -452,10 +452,25 @@ public class ElasticIndexDefinition extends IndexDefinition {
          * Represents a property used for inference.
          */
         public static class Property {
+            /**
+             * The name of the property. It will be prefixed with {@link ElasticIndexDefinition#INFERENCE}. when stored in the index.
+             */
             public String name;
+            /**
+             * The model used for inference. Default is "semantic". This will be used by the inference service to determine the model to use.
+             */
             public String model;
+            /**
+             * The fields used for inference. These fields will be used to generate the vector for the inference.
+             */
             public List<String> fields;
+            /**
+             * The number of dimensions for the vector generated for the inference.
+             */
             public int dims;
+            /**
+             * The similarity function used for the inference. Default is "cosine".
+             */
             public String similarity;
 
             public Property() {}
@@ -495,14 +510,41 @@ public class ElasticIndexDefinition extends IndexDefinition {
          * Represents a query used for inference.
          */
         public static class Query {
+            /**
+             * The name of the query.
+             */
             public String name;
+            /**
+             * The service URL used for the query.
+             */
             public String serviceUrl;
+            /**
+             * The model used for the query. Default is "semantic". It needs to match with one of the models used for the properties.
+             */
             public String model;
+            /**
+             * The prefix used for the query. If the input string starts with this prefix, the query will be executed. Default is null (no prefix).
+             */
             public String prefix;
+            /**
+             * The minimum number of terms required for the query to be executed. Default is 2.
+             */
             public int minTerms;
+            /**
+             * The number of candidates to be returned by the query. Default is 100.
+             */
             public int numCandidates;
+            /**
+             * The type of the query. Default is "hybrid". Currently not used
+             */
             public String type; // this can be hybrid or vector
+            /**
+             * The similarity threshold used for the query. Default is 0.5.
+             */
             public float similarityThreshold;
+            /**
+             * The timeout for the query in milliseconds. Default is 5000.
+             */
             public long timeout;
 
             public Query() {}
