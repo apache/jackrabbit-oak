@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -364,11 +365,12 @@ public class PipelinedTreeStoreIT {
             contentDamBuilder.child("old.png");
             contentDamBuilder.child("change.png").setProperty("test", 0);
             rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            long oldMod = NodeDocument.getModifiedInSecs(System.currentTimeMillis());
+            Clock clock = rwNodeStore.getClock();
+            long oldMod = NodeDocument.getModifiedInSecs(clock.getTime());
             // wait until the modified time changes
             do {
-                Thread.sleep(10);
-                minModified = NodeDocument.getModifiedInSecs(System.currentTimeMillis());
+                clock.waitUntil(clock.getTime() + 1000);
+                minModified = NodeDocument.getModifiedInSecs(clock.getTime());
             } while (oldMod == minModified);
             rootBuilder = rwNodeStore.getRoot().builder();
             contentDamBuilder = rootBuilder.child("content").child("dam");
