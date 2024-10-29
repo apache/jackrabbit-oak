@@ -879,7 +879,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             timer.reset().start();
                             docsInCurrentModified = 0;
 
-                            // Completed downloading all documents with the previous _modified value
+                            this.nextLastModified = modified;
+                            if (this.firstModifiedValueSeen == -1) {
+                                this.firstModifiedValueSeen = this.nextLastModified;
+                            }
                             if (parallelDownloadCoordinator != null) {
                                 boolean crossedDownloads = downloadOrder == DownloadOrder.ASCENDING ?
                                         parallelDownloadCoordinator.increaseLowerRange(modified) :
@@ -889,11 +892,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                     tryEnqueueCopy(batch, nextIndex);
                                     return;
                                 }
-                            }
-
-                            this.nextLastModified = modified;
-                            if (this.firstModifiedValueSeen == -1) {
-                                this.firstModifiedValueSeen = this.nextLastModified;
                             }
                         }
 
