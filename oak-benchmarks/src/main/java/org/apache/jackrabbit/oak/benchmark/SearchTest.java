@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import java.io.File;
@@ -194,7 +193,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
     }
 
     private String[] getRandomWords() {
-        List<String> samples = newArrayList(sampleSet);
+        List<String> samples = new ArrayList<>(sampleSet);
         String[] words = new String[100];
         for (int i = 0; i < words.length; i++) {
             words[i] = samples.get(random.nextInt(samples.size()));

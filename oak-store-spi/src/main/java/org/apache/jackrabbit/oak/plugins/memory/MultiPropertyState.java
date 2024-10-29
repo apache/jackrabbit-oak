@@ -25,8 +25,8 @@ import java.util.List;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +45,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      */
     protected MultiPropertyState(String name, Iterable<T> values) {
         super(name);
-        this.values = Lists.newArrayList(values);
+        this.values = CollectionUtils.toList(values);
     }
 
     /**

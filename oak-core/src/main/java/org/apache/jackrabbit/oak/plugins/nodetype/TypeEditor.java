@@ -46,7 +46,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -442,9 +441,9 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = Lists.newArrayList(before.getNames(JCR_MIXINTYPES));
+        List<String> pre = CollectionUtils.toList(before.getNames(JCR_MIXINTYPES));
         Collections.sort(pre);
-        List<String> post = Lists.newArrayList(after);
+        List<String> post = CollectionUtils.toList(after);
         Collections.sort(post);
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
@@ -468,7 +467,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

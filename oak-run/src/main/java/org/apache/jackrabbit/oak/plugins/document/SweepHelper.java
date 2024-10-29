@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +83,7 @@ public final class SweepHelper {
                 sweepRev.set(Utils.max(sweepRev.get(), jRev));
                 // now that journal entry is in place, perform the actual
                 // updates on the documents
-                store.createOrUpdate(NODES, newArrayList(updates.values()));
+                store.createOrUpdate(NODES, new ArrayList<>(updates.values()));
                 sweepUpdates.incrementAndGet();
                 trackStats(updates.values());
                 System.out.println("Sweeper updated " + updates.keySet());

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.itemsave;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeExcludingValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -50,7 +50,7 @@ class ItemSaveValidator extends SubtreeExcludingValidator {
         this(new FailingValidator(CommitFailedException.UNSUPPORTED, 0,
                 "Failed to save subtree at " + path + ". There are " +
                         "transient modifications outside that subtree."),
-                newArrayList(elements(path)));
+                CollectionUtils.toList(elements(path)));
     }
 
     private ItemSaveValidator(Validator validator, List<String> path) {

@@ -315,7 +315,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         
         // Simulate faulty state by deleting some blobs directly
         Random rand = new Random(87);
-        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        List<String> existing = new ArrayList<>(state.blobsPresent);
 
         GarbageCollectableBlobStore store = (GarbageCollectableBlobStore)
                                                 mk.getNodeStore().getBlobStore();

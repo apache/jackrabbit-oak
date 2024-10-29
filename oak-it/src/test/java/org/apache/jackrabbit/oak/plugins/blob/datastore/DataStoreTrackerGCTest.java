@@ -35,6 +35,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -60,8 +61,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.lang.String.valueOf;
@@ -250,7 +249,7 @@ public class DataStoreTrackerGCTest {
         DataStoreState state = init(cluster.nodeStore, 0);
 
         // Directly delete from blobstore
-        ArrayList<String> blobs = Lists.newArrayList(state.blobsPresent);
+        ArrayList<String> blobs = new ArrayList<>(state.blobsPresent);
         String removedId = blobs.remove(0);
         ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
         state.blobsPresent = new HashSet<>(blobs);
@@ -350,7 +349,7 @@ public class DataStoreTrackerGCTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            List<String> ids = Lists.newArrayList(idIter);
+            List<String> ids = CollectionUtils.toList(idIter);
             if (toBeDeleted != i) {
                 set.addAll(ids);
             }

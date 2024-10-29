@@ -26,6 +26,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
@@ -263,7 +264,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     }
 
     private static void assertSequence(Iterable<Tree> trees, String... names) {
-        List<String> actual = Lists.newArrayList(Iterables.transform(trees, input -> input.getName()));
+        List<String> actual = CollectionUtils.toList(Iterables.transform(trees, input -> input.getName()));
         assertEquals(Lists.newArrayList(names), actual);
     }
 

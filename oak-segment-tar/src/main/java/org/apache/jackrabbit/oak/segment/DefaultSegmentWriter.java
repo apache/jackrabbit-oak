@@ -480,7 +480,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             int shift = 32 - (level + 1) * MapRecord.BITS_PER_LEVEL;
 
             List<List<MapEntry>> buckets =
-                    newArrayList(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
+                    new ArrayList<>(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
             for (MapEntry entry : entries) {
                 int index = (entry.getHash() >> shift) & mask;
                 List<MapEntry> bucket = buckets.get(index);

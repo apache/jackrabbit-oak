@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.composite;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -52,6 +51,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -650,13 +650,13 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(),
+        List<ChildNodeEntry> children = CollectionUtils.toList(filter(store.getRoot().getChildNodeEntries(),
                 x -> Objects.equals(x == null ? null : x.getName(), "new")));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 
         NodeBuilder rootBuilder = store.getRoot().builder();
-        List<String> childNames = newArrayList(filter(rootBuilder.getChildNodeNames(),
+        List<String> childNames = CollectionUtils.toList(filter(rootBuilder.getChildNodeNames(),
                 x -> Objects.equals(x, "new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));

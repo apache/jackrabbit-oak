@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -1012,7 +1013,7 @@ public class NodeDocumentTest {
         int numMoreChanges = 50;
         List<RevisionVector> moreRevs = Lists.reverse(
                 createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
+        headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         // now merge the branch and update 'q'. this will split
@@ -1026,7 +1027,7 @@ public class NodeDocumentTest {
         numMoreChanges = 50;
         moreRevs = Lists.reverse(
                 createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
+        headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         NodeDocument doc = getRootDocument(store);

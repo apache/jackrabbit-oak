@@ -52,6 +52,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
@@ -377,7 +378,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.deleted("blobId3", Collections.singleton("/c"));
         bdc.commitProgress(COMMIT_SUCCEDED);
 
-        List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+        List<String> externallyDeletedChunks = CollectionUtils.toList(blobStore.resolveChunks("blobId2"));
         blobStore.countDeleteChunks(externallyDeletedChunks, 0);
 
         warnLogCustomizer.starting();
@@ -395,7 +396,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+        blobStore.failWithDSEForChunkIds.addAll(CollectionUtils.toList(blobStore.resolveChunks("blobId4")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -411,7 +412,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithExceptionForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId6")));
+        blobStore.failWithExceptionForChunkIds.addAll(CollectionUtils.toList(blobStore.resolveChunks("blobId6")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -435,7 +436,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.deleted("blobId3", Collections.singleton("/c"));
         bdc.commitProgress(COMMIT_SUCCEDED);
 
-        List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+        List<String> externallyDeletedChunks = CollectionUtils.toList(blobStore.resolveChunks("blobId2"));
         blobStore.countDeleteChunks(externallyDeletedChunks, 0);
 
         warnLogCustomizer.starting();
@@ -453,7 +454,7 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+        blobStore.failWithDSEForChunkIds.addAll(CollectionUtils.toList(blobStore.resolveChunks("blobId4")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -498,7 +499,7 @@ public class ActiveDeletedBlobCollectorTest {
     private void verifyBlobsDeleted(String ... blobIds) throws IOException {
         List<String> chunkIds = new ArrayList<>();
         for (String blobId : blobIds) {
-            chunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks(blobId)));
+            chunkIds.addAll(CollectionUtils.toList(blobStore.resolveChunks(blobId)));
         }
 
         assertThat(blobStore.deletedChunkIds, containsInAnyOrder(chunkIds.toArray()));

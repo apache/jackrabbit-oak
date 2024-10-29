@@ -35,6 +35,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
@@ -46,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
 import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
@@ -267,7 +267,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(transform(refRecords, input -> {
+            List<File> refFiles = CollectionUtils.toList(transform(refRecords, input -> {
                     InputStream inputStream = null;
                     try {
                         inputStream = input.getStream();

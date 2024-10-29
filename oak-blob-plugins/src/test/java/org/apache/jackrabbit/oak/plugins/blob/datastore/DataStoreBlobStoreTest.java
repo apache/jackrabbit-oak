@@ -171,7 +171,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataIdentifier d20 = new DataIdentifier("d-20");
         DataIdentifier d30 = new DataIdentifier("d-30");
         List<DataIdentifier> dis = ImmutableList.of(d10, d20, d30);
-        List<DataRecord> recs = Lists.newArrayList(
+        List<DataRecord> recs = CollectionUtils.toList(
             Iterables.transform(dis, input -> new TimeDataRecord(input)));
         OakFileDataStore mockedDS = mock(OakFileDataStore.class);
         when(mockedDS.getAllRecords()).thenReturn(recs.iterator());

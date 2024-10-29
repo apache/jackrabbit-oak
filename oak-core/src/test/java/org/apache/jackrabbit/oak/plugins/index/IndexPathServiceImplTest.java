@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -101,7 +100,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
 
         List<String> nodetypes = new ArrayList<>();
         if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-            nodetypes = Lists.newArrayList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+            nodetypes = CollectionUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
         }
 
         nodetypes.add(INDEX_DEFINITIONS_NODE_TYPE);

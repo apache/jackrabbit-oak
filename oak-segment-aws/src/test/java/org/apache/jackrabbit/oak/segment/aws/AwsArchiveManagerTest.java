@@ -93,7 +93,7 @@ public class AwsArchiveManagerTest {
 
         LinkedHashMap<UUID, byte[]> recovered = new LinkedHashMap<>();
         manager.recoverEntries("data00000a.tar", recovered);
-        assertEquals(uuids.subList(0, 5), newArrayList(recovered.keySet()));
+        assertEquals(uuids.subList(0, 5), new ArrayList<>(recovered.keySet()));
     }
 
     @Test
