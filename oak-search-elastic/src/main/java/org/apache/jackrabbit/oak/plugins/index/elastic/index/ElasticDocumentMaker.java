@@ -109,7 +109,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexSuggestValue(ElasticDocument doc, String value) {
         if (value != null) {
             String v = value.trim();
-            if (v.length() > 0) {
+            if (!v.isEmpty()) {
                 doc.addSuggest(v);
             }
         }
@@ -119,7 +119,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexSpellcheckValue(ElasticDocument doc, String value) {
         if (value != null) {
             String v = value.trim();
-            if (v.length() > 0) {
+            if (!v.isEmpty()) {
                 doc.addSpellcheck(v);
             }
         }
@@ -129,7 +129,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexFulltextValue(ElasticDocument doc, String value) {
         if (value != null) {
             String v = value.trim();
-            if (v.length() > 0) {
+            if (!v.isEmpty()) {
                 doc.addFulltext(v);
             }
         }
@@ -223,7 +223,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected boolean indexSimilarityTag(ElasticDocument doc, PropertyState property) {
         String val = property.getValue(Type.STRING);
-        if (val.length() > 0) {
+        if (!val.isEmpty()) {
             doc.addSimilarityTag(val);
             return true;
         }
@@ -256,7 +256,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName, String token, double boost) {
-        if (token.length() > 0) {
+        if (!token.isEmpty()) {
             doc.addDynamicBoostField(nodeName, token, boost);
             return true;
         }
