@@ -37,7 +37,19 @@ public class MongoConnectionFactory extends ExternalResource {
     @Override
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
-        if (MongoDockerRule.isDockerAvailable()) {
+        MongoConnection c = null;
+        try {
+            c = MongoUtils.getConnection(MongoUtils.DB);
+        } finally {
+            try {
+                if (c != null) {
+                    c.close();
+                }
+            } catch (IllegalStateException e) {
+                // may happen when connection is already closed (OAK-7447)
+            }
+        }
+        if (c == null && MongoDockerRule.isDockerAvailable()) {
             s = mongo.apply(s, description);
         }
         return s;
