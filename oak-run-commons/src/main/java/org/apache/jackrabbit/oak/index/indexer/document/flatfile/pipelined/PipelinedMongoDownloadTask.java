@@ -841,6 +841,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         downloadStatics.incrementDocumentsDownloadedTotal();
 
                         long modified = -1;
+                        String id = "";
                         try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
                             bsonReader.readStartDocument();
                             while (bsonReader.readBsonType() != BsonType.END_OF_DOCUMENT) {
@@ -848,6 +849,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                 if (fieldName.equals(NodeDocument.MODIFIED_IN_SECS)) {
                                     modified = bsonReader.readInt64();
                                     break;
+                                } else if (fieldName.equals(NodeDocument.ID)) {
+                                    id = bsonReader.readString();
                                 } else {
                                     bsonReader.skipValue();
                                 }
@@ -860,12 +863,19 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         docsInCurrentModified++;
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
+                        batch[nextIndex] = rawBsonDocument;
+                        nextIndex++;
+                        batchSize += docSize;
+
+                        LOG.info("_modified: {}, id: {}", modified, id);
+
                         if (this.nextLastModified != modified) {
                             if (docsInCurrentModified > maxDocsWithSameModified) {
                                 maxDocsWithSameModified = docsInCurrentModified;
                                 LOG.info("New max docs with same modified. _modified: {}, count: {}, time: {}", this.nextLastModified, maxDocsWithSameModified,
                                         timer.elapsed(TimeUnit.MILLISECONDS));
                             }
+                            LOG.info("New _modified value: {}, count: {}, time: {}", modified, docsInCurrentModified, timer.elapsed(TimeUnit.MILLISECONDS));
                             timer.reset().start();
                             docsInCurrentModified = 0;
                             this.nextLastModified = modified;
@@ -889,9 +899,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         }
                         TRAVERSAL_LOG.trace("{}", modified);
 
-                        batch[nextIndex] = rawBsonDocument;
-                        nextIndex++;
-                        batchSize += docSize;
                         if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                             if (printNextBatch) {
                                 LOG.info("Batch: {}", Arrays.stream(batch).limit(nextIndex).collect(Collectors.toList()));

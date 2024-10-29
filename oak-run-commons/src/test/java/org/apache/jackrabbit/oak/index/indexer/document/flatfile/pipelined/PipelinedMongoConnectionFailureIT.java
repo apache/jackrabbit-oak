@@ -59,6 +59,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
@@ -220,14 +221,10 @@ public class PipelinedMongoConnectionFailureIT {
         List<String> allLinesExpected = Files.readAllLines(resultWithoutInterruption);
         List<String> allLinesActual = Files.readAllLines(resultWithInterruption);
         if (!allLinesExpected.equals(allLinesActual)) {
-            for (int i = 0; i < allLinesExpected.size(); i++) {
-                if (!allLinesExpected.get(i).equals(allLinesActual.get(i))) {
-                    LOG.warn("Line {} differs: expected: {} actual: {}", i, allLinesExpected.get(i), allLinesActual.get(i));
-                }
-            }
-            Assert.fail("The resulting FFS with and without interruptions are different");
+            List<String> expectedPaths = allLinesExpected.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
+            List<String> actualPaths = allLinesActual.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
+            Assert.fail("Results differ. Expected: " + expectedPaths + ", actual: " + actualPaths);
         }
-//        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
     }
 
 
