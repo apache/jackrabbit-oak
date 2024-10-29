@@ -144,6 +144,19 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         return pd.isRegexp || !pd.analyzed;
     }
 
+    /**
+     * ElasticDocument can be updated. If a property gets deleted from the node, we need to add it to the list of properties to remove.
+     * This is needed to remove the property from the index. See @{link ElasticBulkProcessorHandler#updateDocument} for more details.
+     */
+    @Override
+    protected boolean addTypedFields(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd) {
+        boolean added = super.addTypedFields(doc, property, pname, pd);
+        if (!added) {
+            doc.removeProperty(pname);
+        }
+        return added;
+    }
+
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case

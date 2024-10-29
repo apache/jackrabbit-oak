@@ -371,6 +371,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
+     * Checks if the ElasticIndexDefinition allows external updates.
+     * Definitions including the inference config are considered externally modifiable.
+     *
+     * @return true if the definition allows external updates, false otherwise
+     */
+    public boolean isExternallyModifiable() {
+        return this.inferenceDefinition != null;
+    }
+
+    /**
      * Class to help with {@link ElasticIndexDefinition} creation.
      * The built object represents the index definition only without the node structure.
      */

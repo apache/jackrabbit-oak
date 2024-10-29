@@ -179,8 +179,32 @@ class ElasticBulkProcessorHandler {
         }
     }
 
-    public void update(String id, ElasticDocument document) throws IOException {
+    /**
+     * Indexes a document in the bulk processor. The document is identified by the given id. If the document already exists it will be replaced by the new one.
+     * @param id the document id
+     * @param document the document to index
+     * @throws IOException if an error happened while processing the bulk request
+     */
+    public void index(String id, ElasticDocument document) throws IOException {
         add(BulkOperation.of(op -> op.index(idx -> idx.index(indexName).id(id).document(document))), id);
+    }
+
+    public void update(String id, ElasticDocument document) throws IOException {
+        add(BulkOperation.of(op ->
+                op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.doc(document).docAsUpsert(true)))
+        ), id);
+        // when updating a document we need to remove the properties that are not present in the new document
+        // to do so we need to keep track of the properties that are present in the document before the update
+        // and add a specific script bulk operation to remove them
+        // Document and script updates cannot be done in the same bulk operation
+        if (!document.getPropertiesToRemove().isEmpty()) {
+            String script = document.getPropertiesToRemove().stream()
+                    .map(p -> "ctx._source.remove('" + p + "')")
+                    .collect(Collectors.joining(";"));
+            add(BulkOperation.of(op ->
+                    op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.script(s -> s.source(script))))
+            ), id);
+        }
     }
 
     public void delete(String id) throws IOException {

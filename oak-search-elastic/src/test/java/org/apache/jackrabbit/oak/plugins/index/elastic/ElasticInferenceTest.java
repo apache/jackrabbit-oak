@@ -90,7 +90,8 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
         builder.includedPaths("/content")
                 .indexRule("nt:base")
                 .property("title").propertyIndex().analyzed().nodeScopeIndex()
-                .property("description").propertyIndex().analyzed().nodeScopeIndex();
+                .property("description").propertyIndex().analyzed().nodeScopeIndex()
+                .property("updatedBy").propertyIndex();
 
         Tree inferenceConfig = builder.getBuilderTree().addChild(ElasticIndexDefinition.INFERENCE_CONFIG);
         Tree embeddings = inferenceConfig.addChild("properties").addChild("embeddings");
@@ -203,7 +204,6 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
                 String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?" + query + "')";
                 List<String> results = executeQuery(queryPath, SQL2, true, true);
                 assertEquals(expectedPath, results.get(0));
-                System.out.println("Query: " + query + " -> Results: " + results.size());
 
                 // test that the same query does not return any result when the inference service is not invoked (no prefix)
                 String queryPath2 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '" + query + "')";
@@ -219,5 +219,14 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
             assertQuery(queryPath4, List.of("/content/farm"));
         });
 
+
+        // let's check that inference data is not deleted when updating a document
+        cars.setProperty("updatedBy", "John Doe");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and updatedBy = 'John Doe'", List.of("/content/cars")));
+
+        ObjectNode carsDoc = getDocument(index, "/content/cars");
+        assertNotNull(carsDoc.get(ElasticIndexDefinition.INFERENCE));
     }
 }
