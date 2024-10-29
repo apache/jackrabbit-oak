@@ -55,7 +55,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
     private final ScheduledExecutorService continuousRunExecutor = Executors.newScheduledThreadPool(1);
 
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
-            "generate-test-garbage {<jdbc-uri> | <mongodb-uri>} <sub-command> [options] ",
+            "create-test-garbage {<jdbc-uri> | <mongodb-uri>} <sub-command> [options] ",
             "where sub-command is one of: ",
             "  clean - clean up all generated garbage under the specified root node",
             "  generate - generate garbage nodes in the repository, under the root node tmp/oak-run-generated-test-garbage. ",
