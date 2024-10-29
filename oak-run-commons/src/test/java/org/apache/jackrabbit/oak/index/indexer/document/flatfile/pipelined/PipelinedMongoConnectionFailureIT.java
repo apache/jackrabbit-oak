@@ -217,7 +217,17 @@ public class PipelinedMongoConnectionFailureIT {
         }
 
         LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}", resultWithoutInterruption, resultWithInterruption);
-        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
+        List<String> allLinesExpected = Files.readAllLines(resultWithoutInterruption);
+        List<String> allLinesActual = Files.readAllLines(resultWithInterruption);
+        if (!allLinesExpected.equals(allLinesActual)) {
+            for (int i = 0; i < allLinesExpected.size(); i++) {
+                if (!allLinesExpected.get(i).equals(allLinesActual.get(i))) {
+                    LOG.warn("Line {} differs: expected: {} actual: {}", i, allLinesExpected.get(i), allLinesActual.get(i));
+                }
+            }
+            Assert.fail("The resulting FFS with and without interruptions are different");
+        }
+//        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
     }
 
 
