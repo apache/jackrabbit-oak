@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.run;
 
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -46,33 +47,45 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPat
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
- * GenerateFullGCCommand generates garbage nodes in the repository in order to allow for testing fullGC functionality.
+ * GenerateGarbageCommand generates garbage nodes in the repository in order to allow for testing fullGC functionality.
  */
 public class GenerateGarbageCommand implements Command, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(GenerateGarbageCommand.class);
 
     private final ScheduledExecutorService continuousRunExecutor = Executors.newScheduledThreadPool(1);
 
-    private static final String USAGE = "createGarbage {<jdbc-uri> | <mongodb-uri>} [options]";
+    private static final String USAGE = Joiner.on(System.lineSeparator()).join(
+            "generate-test-garbage {<jdbc-uri> | <mongodb-uri>} <sub-command> [options] ",
+            "where sub-command is one of: ",
+            "  clean - clean up all generated garbage under the specified root node",
+            "  generate - generate garbage nodes in the repository, under the root node tmp/oak-run-generated-test-garbage. ",
+            "           Use the --garbageType (required) option to specify the type of garbage to generate",
+            "           the --garbageNodesCount option to specify the total number of garbage nodes to create,",
+            "           the --garbageNodesParentCount option to specify the total number of parent nodes under which to create garbage nodes,",
+            "           the --orphansDepth option to specify the depth in the tree at which to create garbage nodes,",
+            "           the --orphansLevelGap option to specify the gap in the tree between the first leaf gap orphan garbage node and its parent,",
+            "           the --numberOfRuns option to specify the number of garbage generation runs to do,",
+            "           and the --generateIntervalSeconds option to specify the interval at which to generate a complete garbage count from createGarbageNotesCount.");
+
 
     /**
-     * FullGC garbage should be generated under tmp node.
+     * Garbage should be generated under tmp node.
      */
     public static String GARBAGE_GEN_ROOT_PATH_BASE = "tmp";
 
     /**
-     * The root node name for fullGC garbage generation, one level under tmp.
+     * The root node name for garbage generation, one level under tmp.
      */
-    public static String GARBAGE_GEN_ROOT_NODE_NAME = "fullGC_GarbageRoot";
+    public static String GARBAGE_GEN_ROOT_NODE_NAME = "oak-run-generated-test-garbage";
 
     /**
-     * Root node for fullGC garbage generation.
+     * Root node for garbage generation.
      * Necessary in order to allow cleanup of all generated garbage nodes by simply removing the root node.
      */
     public static String GARBAGE_GEN_ROOT_PATH = GARBAGE_GEN_ROOT_PATH_BASE + "/" + GARBAGE_GEN_ROOT_NODE_NAME;
 
     /**
-     * Base path for fullGC garbage generation. The timestamp of the run will be appended to this path,
+     * Base path for garbage generation. The timestamp of the run will be appended to this path,
      * which is necessary in order for each garbage generation run to be unique and not overwrite previous ones.
      * If continuous generation is enabled, the index of the run will also be appended to this path.
      */
@@ -102,7 +115,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
         return documentNodeStore;
     }
 
-    private static class GenerateFullGCOptions extends Utils.NodeStoreOptions {
+    private static class GenerateGarbageOptions extends Utils.NodeStoreOptions {
 
         /**
          * Sub-command for generating garbage.
@@ -112,7 +125,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
         /**
          * Sub-command for cleaning up all generated garbage.
-         * Using this will remove the root node FULLGC_GEN_ROOT_PATH and all of its children (recursively).
+         * Using this will remove the root node GARBAGE_GEN_ROOT_PATH and all of its children (recursively).
          */
         static final String CMD_CLEAN = "clean";
 
@@ -124,7 +137,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
         final OptionSpec<Integer> numberOfRuns;
         final OptionSpec<Integer> generateIntervalSeconds;
 
-        public GenerateFullGCOptions(String usage) {
+        public GenerateGarbageOptions(String usage) {
             super(usage);
             createGarbageNodesCount = parser
                     .accepts("garbageNodesCount", "the total number of garbage nodes to create").withRequiredArg()
@@ -151,7 +164,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
                     .ofType(Integer.class).defaultsTo(60);
         }
 
-        public GenerateFullGCOptions parse(String[] args) {
+        public GenerateGarbageOptions parse(String[] args) {
             super.parse(args);
             return this;
         }
@@ -225,10 +238,10 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
         List<String> generateBasePaths = new ArrayList<>();
 
-        GenerateFullGCOptions options = new GenerateFullGCOptions(USAGE).parse(args);
+        GenerateGarbageOptions options = new GenerateGarbageOptions(USAGE).parse(args);
         String subCmd = options.getSubCmd();
 
-        if (GenerateFullGCOptions.CMD_GENERATE.equals(subCmd)) {
+        if (GenerateGarbageOptions.CMD_GENERATE.equals(subCmd)) {
 
             if (options.getCreateGarbageNodesCount() <= 0) {
                 LOG.error("Invalid garbageNodesCount specified: " + options.getCreateGarbageNodesCount() + " in: " + getClass().getName());
@@ -244,7 +257,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
             } else {
                 generateBasePaths.add(generateGarbage(options, closer, 0));
             }
-        } else if (GenerateFullGCOptions.CMD_CLEAN.equals(subCmd)) {
+        } else if (GenerateGarbageOptions.CMD_CLEAN.equals(subCmd)) {
             cleanGarbage(options, closer);
         } else {
             System.err.println("Unknown revisions command: " + subCmd);
@@ -258,7 +271,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
         new ExecutorCloser(this.continuousRunExecutor).close();
     }
 
-    private List<String> generateGarbageContinuously(GenerateFullGCOptions options, Closer closer) throws Exception {
+    private List<String> generateGarbageContinuously(GenerateGarbageOptions options, Closer closer) throws Exception {
 
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         long startGenTimestamp = System.currentTimeMillis();
@@ -293,7 +306,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
     /**
      * Generate garbage nodes in the repository in order to allow for testing fullGC functionality.
      *
-     * Returns the path of the generated FULLGC_GEN_BASE_PATH node (under the root).
+     * Returns the path of the generated GARBAGE_GEN_ROOT_PATH node (under the root).
      * @param options
      * @param closer
      * @param runIndex
@@ -301,7 +314,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
      * @throws IOException
      * @throws Exception
      */
-    private String generateGarbage(GenerateFullGCOptions options, Closer closer, int runIndex) throws IOException, Exception {
+    private String generateGarbage(GenerateGarbageOptions options, Closer closer, int runIndex) throws IOException, Exception {
 
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         long generationTimestamp = System.currentTimeMillis();
@@ -309,11 +322,11 @@ public class GenerateGarbageCommand implements Command, Closeable {
         return generateGarbage(options, runIndex, builder, generationTimestamp);
     }
 
-    private String generateGarbage(GenerateFullGCOptions options, int runIndex,
+    private String generateGarbage(GenerateGarbageOptions options, int runIndex,
                                    DocumentNodeStoreBuilder<?> builder, long timestamp) throws Exception {
 
         if (builder == null) {
-            System.err.println("generateFullGC mode only available for DocumentNodeStore");
+            System.err.println("generateGarbage mode only available for DocumentNodeStore");
             System.exit(1);
         }
 
@@ -336,7 +349,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
         return generationBasePath;
     }
-    private void generateGarbageGapOrphans(NodeBuilder rootNode, GenerateFullGCOptions options, String generationBasePath)
+    private void generateGarbageGapOrphans(NodeBuilder rootNode, GenerateGarbageOptions options, String generationBasePath)
             throws CommitFailedException {
 
         // validate gap orphans depth and level gap
@@ -351,7 +364,7 @@ public class GenerateGarbageCommand implements Command, Closeable {
             System.exit(1);
         }
 
-        System.out.println("Generating fullGC gap orphans on the document: " + generationBasePath);
+        System.out.println("Generating gap orphans garbage on the document: " + generationBasePath);
 
         NodeBuilder garbageRootNode = rootNode.child(GARBAGE_GEN_ROOT_PATH_BASE).child(GARBAGE_GEN_ROOT_NODE_NAME);
         garbageRootNode.child(generationBasePath).setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, NAME);
@@ -412,19 +425,19 @@ public class GenerateGarbageCommand implements Command, Closeable {
      * gap orphan node.
      *
      * Example 1: gapDepth = 4, gapLevelGap = 2, fromLevelGapToLeaf = false will return:
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
      * and will NOT return the rest of the nodes:
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0 (the leaf node)
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0 (the leaf node)
      *
      * Example 2: gapDepth = 5, gapLevelGap = 2, fromLevelGapToLeaf = true will return:
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4/Node_0 (the leaf node)
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4/Node_0 (the leaf node)
      * and will NOT return the nodes from the parent to the gap level:
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
-     * - /tmp/fullGC_GarbageRoot/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
+     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
      *
      * @param generationBasePath
      * @param parentIndex
@@ -460,9 +473,9 @@ public class GenerateGarbageCommand implements Command, Closeable {
         return gapOrphanNodePaths;
     }
 
-    private void generateGarbageEmptyProps(NodeBuilder rootNode, GenerateFullGCOptions options, String generationBasePath) throws CommitFailedException {
+    private void generateGarbageEmptyProps(NodeBuilder rootNode, GenerateGarbageOptions options, String generationBasePath) throws CommitFailedException {
 
-        System.out.println("Generating fullGC empty props on the document: " + generationBasePath);
+        System.out.println("Generating empty props garbage on the document: " + generationBasePath);
 
         NodeBuilder garbageRootNode = rootNode.child(GARBAGE_GEN_ROOT_PATH_BASE).child(GARBAGE_GEN_ROOT_NODE_NAME);
         garbageRootNode.child(generationBasePath).setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, NAME);
@@ -482,7 +495,6 @@ public class GenerateGarbageCommand implements Command, Closeable {
             }
         }
         documentNodeStore.merge(rootNode, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        documentNodeStore.runBackgroundOperations();
 
 
         //2. Generate garbage nodes - EMPTY_PROPERTIES
@@ -494,23 +506,22 @@ public class GenerateGarbageCommand implements Command, Closeable {
         }
 
         documentNodeStore.merge(rootNode, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        documentNodeStore.runBackgroundOperations();
     }
 
     /**
-     * Cleans up all generated garbage by removing the node FULLGC_GEN_ROOT_PATH and all of
+     * Cleans up all generated garbage by removing the node GARBAGE_GEN_ROOT_PATH and all of
      * its children (recursively)
      * @param options
      * @param closer
      * @throws IOException
      * @throws Exception
      */
-    private void cleanGarbage(GenerateFullGCOptions options, Closer closer) throws IOException, Exception {
+    private void cleanGarbage(GenerateGarbageOptions options, Closer closer) throws IOException, Exception {
 
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
 
         if (builder == null) {
-            System.err.println("generateFullGC mode only available for DocumentNodeStore");
+            System.err.println("generateGarbage mode only available for DocumentNodeStore");
             System.exit(1);
         }
 
@@ -521,12 +532,17 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
         NodeBuilder generatedGarbageRootBuilder = rootBuilder.child(GARBAGE_GEN_ROOT_PATH_BASE).child(GARBAGE_GEN_ROOT_NODE_NAME);
 
-        String garbageRootNodePath = "2:/"+ GARBAGE_GEN_ROOT_PATH;
+        String garbageRootNodePath = "/" + GARBAGE_GEN_ROOT_PATH;
         List<String> childNodePaths = new ArrayList<>();
-        childNodePaths.add(garbageRootNodePath);
+        childNodePaths.add(getIdFromPath(garbageRootNodePath));
 
         // get all paths of the tree nodes under the garbage root node
-        getTreeNodePaths(generatedGarbageRootBuilder, garbageRootNodePath, childNodePaths, 2);
+        getTreeNodePaths(generatedGarbageRootBuilder, garbageRootNodePath, childNodePaths);
+
+        // check that only nodes under the garbage root node are being removed
+        for (String childNodePath : childNodePaths) {
+            assert childNodePath.substring(2).startsWith("/" + GARBAGE_GEN_ROOT_PATH);
+        }
 
         documentNodeStore.getDocumentStore().remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, childNodePaths);
         documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -535,18 +551,19 @@ public class GenerateGarbageCommand implements Command, Closeable {
 
     /**
      * Recursively get all paths of the tree nodes under the given root node.
+     * If there are any gaps in the tree, the paths of the gap nodes will NOT be included.
      * @param rootNode
      * @param basePath
      * @param treeNodePaths
-     * @param nodeLevel
      */
     private void getTreeNodePaths(NodeBuilder rootNode, String basePath,
-                                  List<String> treeNodePaths, int nodeLevel) {
-        String childBasePath = basePath.replaceFirst(nodeLevel + ":/", (nodeLevel + 1) + ":/");
+                                  List<String> treeNodePaths) {
+
         for (String childNodeName : rootNode.getChildNodeNames()) {
-            String childPath = childBasePath + "/" + childNodeName;
-            treeNodePaths.add(childPath);
-            getTreeNodePaths(rootNode.child(childNodeName), childPath, treeNodePaths, nodeLevel + 1);
+            String childPath = basePath + "/" + childNodeName;
+            String pathId = getIdFromPath(childPath);
+            treeNodePaths.add(pathId);
+            getTreeNodePaths(rootNode.child(childNodeName), childPath, treeNodePaths);
         }
     }
 }

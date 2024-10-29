@@ -101,6 +101,11 @@ public class GenerateGarbageCommandTest {
         return childNodeNames;
     }
 
+    /**
+     * This test generates garbage empty properties under one parent node and then cleans up the garbage.
+     * Use a custom MongoDB connection string for the MongoDB to run the test on.
+     * Long running test, should only be run manually.
+     */
     @Ignore
     @Test
     public void generateGarbageEmptyPropsUnderOneParentOnCustomMongoDB() {
@@ -131,9 +136,43 @@ public class GenerateGarbageCommandTest {
         assertEquals(propGarbageNodeNames.size(), 10);
     }
 
+    /**
+     * This test generates garbage empty properties and then cleans up the garbage.
+     * Long running test, should only be run manually.
+     */
     @Ignore
     @Test
-    public void cleanupAllGarbage() {
+    public void cleanupAllGarbageEmptyProperties() {
+
+        // generate garbage first
+        GenerateGarbageCmd cmdGenerateGarbage = new GenerateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "4", OPTION_GARBAGE_NODES_PARENT_COUNT, "3",
+                OPTION_GARBAGE_TYPE, "1");
+        cmdGenerateGarbage.run();
+        Closer cmd1Closer = cmdGenerateGarbage.getCloser();
+
+        // cleanup garbage
+        GenerateGarbageCmd cmdClean = new GenerateGarbageCmd("clean");
+        cmdClean.run();
+        closer = cmdClean.getCloser();
+
+        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH), 0);
+        // garbage root node should be either deleted or empty (no children)
+        assertTrue(garbageRoot == null || !garbageRoot.hasChildren());
+
+        try {
+            cmd1Closer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * This test generates garbage gap orphans and then cleans up the garbage.
+     * Long running test, should only be run manually.
+     */
+    @Ignore
+    @Test
+    public void cleanupAllGarbageGapOrphans() {
 
         // generate garbage first
         GenerateGarbageCmd cmdGenerateGarbage = new GenerateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
@@ -352,6 +391,9 @@ public class GenerateGarbageCommandTest {
         return cmd.getCommand().getDocumentNodeStore().getDocumentStore().find(collection, key, maxCacheAge);
     }
 
+    /**
+     * Wrapper class for the GenerateGarbageCommand to be used in unit tests.
+     */
     private static class GenerateGarbageCmd implements Runnable {
 
         private final ImmutableList<String> args;

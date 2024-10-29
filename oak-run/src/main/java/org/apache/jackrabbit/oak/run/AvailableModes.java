@@ -75,6 +75,6 @@ public final class AvailableModes {
             .put("segment-copy", new SegmentCopyCommand())
             .put("server", new ServerCommand())
             .put("purge-index-versions", new LucenePurgeOldIndexVersionCommand())
-            .put("generateGarbage", new GenerateGarbageCommand())
+            .put("generate-test-garbage", new GenerateGarbageCommand())
             .build());
 }
