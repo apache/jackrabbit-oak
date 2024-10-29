@@ -22,7 +22,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.run.GenerateGarbageCommand;
+import org.apache.jackrabbit.oak.run.CreateGarbageCommand;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,14 +38,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemOut;
-import static org.apache.jackrabbit.oak.run.GenerateGarbageCommand.EMPTY_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.run.CreateGarbageCommand.EMPTY_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-public class GenerateGarbageCommandTest {
+public class CreateGarbageCommandTest {
 
     final String OPTION_GARBAGE_NODES_COUNT = "--garbageNodesCount";
     final String OPTION_GARBAGE_NODES_PARENT_COUNT = "--garbageNodesParentCount";
@@ -113,7 +113,7 @@ public class GenerateGarbageCommandTest {
 
         // this should be a valid mongoDB connection string for the MongoDB on which to generate the garbage
         String mongoDBConnString = "";
-        GenerateGarbageCmd cmd = new GenerateGarbageCmd( mongoDBConnString, OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
+        CreateGarbageCmd cmd = new CreateGarbageCmd( mongoDBConnString, OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
                 OPTION_GARBAGE_TYPE, "1");
         String output = captureSystemOut(cmd);
 
@@ -125,7 +125,7 @@ public class GenerateGarbageCommandTest {
         }
 
         DocumentNodeStore nodeStore = cmd.getCommand().getDocumentNodeStore();
-        NodeState garbageRootNodeState = getFullGCRootNode(nodeStore);
+        NodeState garbageRootNodeState = getGarbageRootNode(nodeStore);
         List<String> garbageRootNodeChildNames = getChildNodeNames(garbageRootNodeState);
 
         assertEquals(garbageRootNodeChildNames.size(), 1);
@@ -145,17 +145,17 @@ public class GenerateGarbageCommandTest {
     public void cleanupAllGarbageEmptyProperties() {
 
         // generate garbage first
-        GenerateGarbageCmd cmdGenerateGarbage = new GenerateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "4", OPTION_GARBAGE_NODES_PARENT_COUNT, "3",
+        CreateGarbageCmd cmdGenerateGarbage = new CreateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "4", OPTION_GARBAGE_NODES_PARENT_COUNT, "3",
                 OPTION_GARBAGE_TYPE, "1");
         cmdGenerateGarbage.run();
         Closer cmd1Closer = cmdGenerateGarbage.getCloser();
 
         // cleanup garbage
-        GenerateGarbageCmd cmdClean = new GenerateGarbageCmd("clean");
+        CreateGarbageCmd cmdClean = new CreateGarbageCmd("clean");
         cmdClean.run();
         closer = cmdClean.getCloser();
 
-        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH), 0);
+        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + CreateGarbageCommand.GARBAGE_GEN_ROOT_PATH), 0);
         // garbage root node should be either deleted or empty (no children)
         assertTrue(garbageRoot == null || !garbageRoot.hasChildren());
 
@@ -175,17 +175,17 @@ public class GenerateGarbageCommandTest {
     public void cleanupAllGarbageGapOrphans() {
 
         // generate garbage first
-        GenerateGarbageCmd cmdGenerateGarbage = new GenerateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
+        CreateGarbageCmd cmdGenerateGarbage = new CreateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
                 OPTION_GARBAGE_TYPE, "2");
         cmdGenerateGarbage.run();
         Closer cmd1Closer = cmdGenerateGarbage.getCloser();
 
         // cleanup garbage
-        GenerateGarbageCmd cmdClean = new GenerateGarbageCmd("clean");
+        CreateGarbageCmd cmdClean = new CreateGarbageCmd("clean");
         cmdClean.run();
         closer = cmdClean.getCloser();
 
-        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH), 0);
+        NodeDocument garbageRoot = getDocument(cmdClean, Collection.NODES, Utils.getIdFromPath("/" + CreateGarbageCommand.GARBAGE_GEN_ROOT_PATH), 0);
         // garbage root node should be either deleted or empty (no children)
         assertTrue(garbageRoot == null || !garbageRoot.hasChildren());
 
@@ -200,7 +200,7 @@ public class GenerateGarbageCommandTest {
     public void generateGarbageEmptyPropsUnderOneParent() {
         ns.dispose();
 
-        GenerateGarbageCmd cmd = new GenerateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
+        CreateGarbageCmd cmd = new CreateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, "10", OPTION_GARBAGE_NODES_PARENT_COUNT, "1",
                 OPTION_GARBAGE_TYPE, "1");
         String output = captureSystemOut(cmd);
         closer = cmd.getCloser();
@@ -208,7 +208,7 @@ public class GenerateGarbageCommandTest {
         List<String> generatedBasePaths = cmd.getGeneratedBasePaths();
 
         DocumentNodeStore nodeStore = cmd.getCommand().getDocumentNodeStore();
-        NodeState garbageRootNodeState = getFullGCRootNode(nodeStore);
+        NodeState garbageRootNodeState = getGarbageRootNode(nodeStore);
         List<String> garbageRootNodeChildNames = getChildNodeNames(garbageRootNodeState);
 
         assertEquals(garbageRootNodeChildNames.size(), 1);
@@ -320,7 +320,7 @@ public class GenerateGarbageCommandTest {
      */
     private void testGenerateGapOrphans(int garbageNodesCount, int garbageNodesParentCount,
                                         int orphansDepth, int orphansLevelGap) {
-        GenerateGarbageCmd cmd = new GenerateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, String.valueOf(garbageNodesCount),
+        CreateGarbageCmd cmd = new CreateGarbageCmd(OPTION_GARBAGE_NODES_COUNT, String.valueOf(garbageNodesCount),
                 OPTION_GARBAGE_NODES_PARENT_COUNT, String.valueOf(garbageNodesParentCount),
                 OPTION_GARBAGE_ORPHANS_DEPTH, String.valueOf(orphansDepth),
                 OPTION_GARBAGE_ORPHANS_LEVEL_GAP, String.valueOf(orphansLevelGap),
@@ -333,7 +333,7 @@ public class GenerateGarbageCommandTest {
         List<String> generatedBasePaths = cmd.getGeneratedBasePaths();
 
         DocumentNodeStore nodeStore = cmd.getCommand().getDocumentNodeStore();
-        NodeState garbageRootNodeState = getFullGCRootNode(nodeStore);
+        NodeState garbageRootNodeState = getGarbageRootNode(nodeStore);
         List<String> garbageRootNodeChildNames = getChildNodeNames(garbageRootNodeState);
 
         assertEquals(garbageRootNodeChildNames.size(), 1);
@@ -347,7 +347,7 @@ public class GenerateGarbageCommandTest {
             for (int j = 0; j < nodesPerParent; j++) {
 
                 // check deleted node paths
-                List<String> deletedNodePaths = GenerateGarbageCommand.generateGapOrphanNodePaths(
+                List<String> deletedNodePaths = CreateGarbageCommand.generateGapOrphanNodePaths(
                         generateBasePath, i, j, orphansDepth, orphansLevelGap, false);
                 for (String deletedNodePath : deletedNodePaths) {
                     NodeDocument missingDocument = getDocument(cmd, Collection.NODES, deletedNodePath, 0);
@@ -355,7 +355,7 @@ public class GenerateGarbageCommandTest {
                 }
 
                 // check not deleted node paths - remaining gap orphans
-                List<String> notDeletedNodePaths = GenerateGarbageCommand.generateGapOrphanNodePaths(generateBasePath, i, j, orphansDepth, orphansLevelGap, true);
+                List<String> notDeletedNodePaths = CreateGarbageCommand.generateGapOrphanNodePaths(generateBasePath, i, j, orphansDepth, orphansLevelGap, true);
                 for (String notDeletedNodePath : notDeletedNodePaths) {
                     NodeDocument gapOrphanDocument = getDocument(cmd, Collection.NODES, notDeletedNodePath, 0);
                     assertNotNull(gapOrphanDocument);
@@ -369,9 +369,9 @@ public class GenerateGarbageCommandTest {
      * @param nodeStore
      * @return
      */
-    private static @NotNull NodeState getFullGCRootNode(DocumentNodeStore nodeStore) {
-        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(GenerateGarbageCommand.GARBAGE_GEN_ROOT_PATH_BASE).
-                getChildNode(GenerateGarbageCommand.GARBAGE_GEN_ROOT_NODE_NAME);
+    private static @NotNull NodeState getGarbageRootNode(DocumentNodeStore nodeStore) {
+        NodeState garbageRootNodeState = nodeStore.getRoot().getChildNode(CreateGarbageCommand.GARBAGE_GEN_ROOT_PATH_BASE).
+                getChildNode(CreateGarbageCommand.GARBAGE_GEN_ROOT_NODE_NAME);
         return garbageRootNodeState;
     }
 
@@ -386,7 +386,7 @@ public class GenerateGarbageCommandTest {
      * @throws DocumentStoreException
      */
     @Nullable
-    private  <T extends Document> T getDocument(GenerateGarbageCmd cmd, Collection<T> collection, String key, int maxCacheAge)
+    private  <T extends Document> T getDocument(CreateGarbageCmd cmd, Collection<T> collection, String key, int maxCacheAge)
             throws DocumentStoreException {
         return cmd.getCommand().getDocumentNodeStore().getDocumentStore().find(collection, key, maxCacheAge);
     }
@@ -394,14 +394,14 @@ public class GenerateGarbageCommandTest {
     /**
      * Wrapper class for the GenerateGarbageCommand to be used in unit tests.
      */
-    private static class GenerateGarbageCmd implements Runnable {
+    private static class CreateGarbageCmd implements Runnable {
 
         private final ImmutableList<String> args;
-        private GenerateGarbageCommand command;
+        private CreateGarbageCommand command;
         private Closer closer;
         private List<String> generatedBasePaths;
 
-        public GenerateGarbageCmd(String... args) {
+        public CreateGarbageCmd(String... args) {
             // append the default mongodb connection string if one was not provided
             if (args[0].startsWith("mongodb://")) {
                 this.args = ImmutableList.copyOf(args);
@@ -415,7 +415,7 @@ public class GenerateGarbageCommandTest {
         public void run() {
             try {
                 closer = Closer.create();
-                command = new GenerateGarbageCommand();
+                command = new CreateGarbageCommand();
                 generatedBasePaths = command.execute(closer, args.toArray(new String[0]));
             } catch (Throwable e) {
                 String str = e.getMessage();
@@ -430,7 +430,7 @@ public class GenerateGarbageCommandTest {
             return generatedBasePaths;
         }
 
-        public GenerateGarbageCommand getCommand() {
+        public CreateGarbageCommand getCommand() {
             return command;
         }
     }
