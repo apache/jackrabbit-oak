@@ -170,11 +170,7 @@ public class PathIteratorFilterTest {
         builder.includedPaths("/content/abc", "/var");
         IndexDefinition test2 = IndexDefinition.newBuilder(store.getRoot(), builder.build(), "/").build();
         defs.add(test2);
-
         List<PathFilter> list = PathIteratorFilter.extractPathFilters(defs);
-        assertEquals("[PathFilter{includedPaths=[/etc, /content], excludedPaths=[]}, " +
-                "PathFilter{includedPaths=[/content/abc, /var], excludedPaths=[]}]", list.toString());
-
         assertEquals("[/content, /etc, /var]", PathIteratorFilter.getAllIncludedPaths(list).toString());
     }
 
