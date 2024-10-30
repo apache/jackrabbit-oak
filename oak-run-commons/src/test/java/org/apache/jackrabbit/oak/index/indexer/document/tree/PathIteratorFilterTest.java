@@ -25,10 +25,23 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.Test;
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.OakInitializer;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class PathIteratorFilterTest {
 
@@ -90,8 +103,11 @@ public class PathIteratorFilterTest {
         assertFalse(filter.includes("/"));
         assertEquals("/content", filter.nextIncludedPath("/"));
         assertTrue(filter.includes("/content"));
+        assertFalse(filter.includes("/content-"));
+        assertEquals("/content/", filter.nextIncludedPath("/content-"));
         assertTrue(filter.includes("/content/abc"));
         assertTrue(filter.includes("/content/def"));
+        assertFalse(filter.includes("/contentNext"));
         assertFalse(filter.includes("/var"));
         assertNull(filter.nextIncludedPath("/var"));
     }
@@ -116,7 +132,46 @@ public class PathIteratorFilterTest {
 
         assertEquals("/content", filter.nextIncludedPath("/"));
         assertEquals("/etc", filter.nextIncludedPath("/content1"));
-        assertNull(filter.nextIncludedPath("/etc"));
+        assertEquals("/etc/", filter.nextIncludedPath("/etc"));
+        assertNull(filter.nextIncludedPath("/etc/"));
+    }
+
+    @Test
+    public void whiteboxTest() {
+        List<PathFilter> list = new ArrayList<>();
+        list.add(new PathFilter(List.of("/content"), Collections.emptyList()));
+        list.add(new PathFilter(List.of("/etc"), Collections.emptyList()));
+        PathIteratorFilter filter = new PathIteratorFilter(PathIteratorFilter.getAllIncludedPaths(list));
+        // we verify that the internal set contains the children as well
+        assertEquals("[/content, /content/, /etc, /etc/]", filter.toString());
+
+        PathIteratorFilter f = new PathIteratorFilter(
+                new TreeSet<>(List.of("/", "/etc")));
+        assertEquals("[/etc, /etc/]", f.toString());
+
+        PathIteratorFilter all = new PathIteratorFilter();
+        assertEquals("[/]", all.toString());
+    }
+
+    @Test
+    public void extractPathFiltersTest() {
+        NodeStore store = new MemoryNodeStore();
+        EditorHook hook = new EditorHook(
+                new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
+        OakInitializer.initialize(store, new InitialContent(), hook);
+        Set<IndexDefinition> defs = new HashSet<>();
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("test-1");
+        builder.includedPaths("/content", "/etc");
+        IndexDefinition test1 = IndexDefinition.newBuilder(store.getRoot(), builder.build(), "/").build();
+        defs.add(test1);
+        builder = new IndexDefinitionBuilder();
+        builder.indexRule("test-2");
+        builder.includedPaths("/content/abc", "/var");
+        IndexDefinition test2 = IndexDefinition.newBuilder(store.getRoot(), builder.build(), "/").build();
+        defs.add(test2);
+        List<PathFilter> list = PathIteratorFilter.extractPathFilters(defs);
+        assertEquals("[/content, /etc, /var]", PathIteratorFilter.getAllIncludedPaths(list).toString());
     }
 
 }

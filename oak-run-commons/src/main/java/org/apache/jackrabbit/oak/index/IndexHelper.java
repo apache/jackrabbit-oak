@@ -74,7 +74,7 @@ public class IndexHelper implements Closeable {
     private IndexInfoServiceImpl indexInfoService;
 
 
-    IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
+    protected IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                 File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.blobStore = blobStore;

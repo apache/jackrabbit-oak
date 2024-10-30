@@ -88,4 +88,4 @@ Since Oak 1.5.3
 [PrincipalProviderImpl]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/principal/PrincipalProviderImpl.java
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
 [UserPrincipalProvider]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserPrincipalProvider.java
-[ExternalGroupPrincipalProvider]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-auth-external/src/main/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalGroupPrincipalProvider.java
+[ExternalGroupPrincipalProvider]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-auth-external/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalGroupPrincipalProvider.java

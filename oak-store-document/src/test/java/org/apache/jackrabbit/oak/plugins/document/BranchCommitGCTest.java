@@ -105,6 +105,7 @@ public class BranchCommitGCTest {
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED).setFullGCEnabled(true)
                 .setAsyncDelay(0).getNodeStore();
         gc = store.getVersionGarbageCollector();
+        VersionGarbageCollectorIT.staticStore = store;
         originalFullGcMode = VersionGarbageCollector.getFullGcMode();
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
     }
@@ -116,6 +117,7 @@ public class BranchCommitGCTest {
         if (store != null) {
             store.dispose();
         }
+        VersionGarbageCollectorIT.staticStore = null;
         Revision.resetClockToDefault();
     }
 
