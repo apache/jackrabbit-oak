@@ -363,8 +363,6 @@ public final class NodeDocument extends Document {
 
     private final long creationTime;
 
-    private Path path = null;
-
     NodeDocument(@NotNull DocumentStore store) {
         this(store, Revision.getCurrentTimestamp());
     }
@@ -2280,10 +2278,7 @@ public final class NodeDocument extends Document {
 
     @NotNull
     public Path getPath() {
-        if (path == null) {
-            path = Path.fromString(getPathString());
-        }
-        return path;
+        return Path.fromString(getPathString());
     }
 
     @NotNull
