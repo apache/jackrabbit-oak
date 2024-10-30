@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
@@ -40,7 +41,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
@@ -155,7 +155,7 @@ public class AsyncQueueTest {
         }
 
         public boolean addInvalidate(Iterable<PathRev> keys) {
-            invalidateActions.addAll(newArrayList(keys));
+            invalidateActions.addAll(CollectionUtils.toList(keys));
             return wrapped.addInvalidate(keys);
         }
     }
