@@ -61,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +77,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
@@ -476,7 +476,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 while (true) {
                     // The parent thread waits for the download to complete, reporting progress periodically
-                    Future<Void> completedTask = ecs.poll(10, TimeUnit.SECONDS);
+                    Future<Void> completedTask = ecs.poll(30, TimeUnit.SECONDS);
                     if (completedTask == null) {
                         // null return means that the poll timed-out, so the download tasks are still ongoing. Report
                         // progress and then go back to waiting for the tasks to complete
@@ -501,24 +501,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // One of the download tasks has completed. Cancel the other one.
                         if (completedTask == ascendingDownloadFuture) {
                             LOG.info("Ascending download task has completed. Cancelling descending download task.");
-                            // This closes the Mongo cursor, which will cause the download task to abort next time it
-                            // performs an operation on the cursor or if it is blocked on the cursor.
+                            // This will set a flag indicating that the download should be cancelled and close the Mongo
+                            // cursor, which will cause the download task to abort next time it performs an operation on
+                            // the cursor or if it is blocked on the cursor.
                             descendingDownloadTask.cancelDownload();
-                            // In case the thread is not currently operating on the Mongo cursor, we interrupt the thread
-                            // to ensure that it terminates quickly.
-                            descendingDownloadFuture.cancel(true);
-                            // Notes:
-                            // 1. Calling close() on a Mongo cursor will fail if the cursor was already interrupted. So
-                            //   we cancel the cursor before interrupting the thread. Any exception thrown by calling
-                            //   close() on the cursor will be ignored, but it's better if we avoid them.
-                            // 2. Interrupting the thread is not enough if the thread is blocked waiting on a socket.
-                            //   In that state, the thread does not check for interrupts, it will only check when it
-                            //   finishes the I/O operation, which can take a long time. So we need to close the cursor,
-                            //   which will abort the I/O operation.
                         } else if (completedTask == descendingDownloadFuture) {
                             LOG.info("Descending download task has completed. Cancelling ascending download task.");
                             ascendingDownloadTask.cancelDownload();
-                            ascendingDownloadFuture.cancel(true);
                         } else {
                             throw new IllegalStateException("Unknown download task completed: " + completedTask);
                         }
@@ -662,8 +651,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
         private volatile MongoCursor<RawBsonDocument> mongoCursor = null;
-        private final AtomicBoolean cancelled = new AtomicBoolean(false);
-        boolean printNextBatch = false;
+        private volatile boolean cancelled = false;
 
         DownloadTask(DownloadOrder downloadOrder, DownloadStageStatistics downloadStatics) {
             this(downloadOrder, downloadStatics, null);
@@ -728,7 +716,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         downloadRange(range, mongoQueryFilter, downloadOrder);
                         downloadCompleted = true;
                     } catch (IllegalStateException | InterruptedException | MongoInterruptedException e) {
-                        if (cancelled.get()) {
+                        if (cancelled) {
                             LOG.info("Download task was cancelled: {}", e.toString());
                             return;
                         } else {
@@ -797,10 +785,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         public void cancelDownload() {
-            boolean alreadyCancelled = cancelled.getAndSet(true);
-            if (alreadyCancelled) {
+            if (cancelled) {
                 LOG.info("Download task was already cancelled.");
             } else {
+                // Checking and setting the cancelled flag is not atomic, but it is not a problem to call close twice in the mongo cursor.
+                cancelled = true;
                 LOG.info("Cancelling download for {} order task, closing Mongo cursor.", downloadOrder);
                 if (mongoCursor != null) {
                     try {
@@ -819,9 +808,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
             try (MongoCursor<RawBsonDocument> cursor = mongoIterable.iterator()) {
                 this.mongoCursor = cursor;
-                RawBsonDocument[] batch = new RawBsonDocument[maxBatchNumberOfDocuments];
-                int nextIndex = 0;
-                int batchSize = 0;
+                ArrayList<RawBsonDocument> batch = new ArrayList<>(maxBatchNumberOfDocuments);
+                int batchSizeBytes = 0;
                 if (cursor.hasNext()) {
                     // We have managed to reconnect, reset the failure timestamp
                     failuresStartTimestamp = null;
@@ -841,7 +829,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         downloadStatics.incrementDocumentsDownloadedTotal();
 
                         long modified = -1;
-                        String id = "";
                         try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
                             bsonReader.readStartDocument();
                             while (bsonReader.readBsonType() != BsonType.END_OF_DOCUMENT) {
@@ -849,8 +836,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                 if (fieldName.equals(NodeDocument.MODIFIED_IN_SECS)) {
                                     modified = bsonReader.readInt64();
                                     break;
-                                } else if (fieldName.equals(NodeDocument.ID)) {
-                                    id = bsonReader.readString();
                                 } else {
                                     bsonReader.skipValue();
                                 }
@@ -860,14 +845,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             throw new IllegalStateException("Document does not have _id or _modified field: " + rawBsonDocument);
                         }
 
-                        docsInCurrentModified++;
+
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.
-                        batch[nextIndex] = rawBsonDocument;
-                        nextIndex++;
-                        batchSize += docSize;
-
-                        LOG.info("_modified: {}, id: {}", modified, id);
+                        batch.add(rawBsonDocument);
+                        batchSizeBytes += docSize;
 
                         if (this.nextLastModified != modified) {
                             if (docsInCurrentModified > maxDocsWithSameModified) {
@@ -875,7 +857,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                 LOG.info("New max docs with same modified. _modified: {}, count: {}, time: {}", this.nextLastModified, maxDocsWithSameModified,
                                         timer.elapsed(TimeUnit.MILLISECONDS));
                             }
-                            LOG.info("New _modified value: {}, count: {}, time: {}", modified, docsInCurrentModified, timer.elapsed(TimeUnit.MILLISECONDS));
                             timer.reset().start();
                             docsInCurrentModified = 0;
 
@@ -889,50 +870,36 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                         parallelDownloadCoordinator.decreaseUpperRange(modified);
                                 if (crossedDownloads) {
                                     LOG.info("Download complete, reached already seen document: {}", modified);
-                                    tryEnqueueCopy(batch, nextIndex);
+                                    tryEnqueueCopy(batch);
                                     return;
                                 }
                             }
                         }
+                        docsInCurrentModified++;
 
                         if (this.documentsDownloadedTotal % 50_000 == 0) {
                             reportProgress("modified: " + modified);
                         }
                         TRAVERSAL_LOG.trace("{}", modified);
 
-                        if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
-                            if (printNextBatch) {
-                                LOG.info("Batch: {}", Arrays.stream(batch).limit(nextIndex).collect(Collectors.toList()));
-                                printNextBatch = false;
-                            }
-                            LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
-                            tryEnqueueCopy(batch, nextIndex);
-                            nextIndex = 0;
-                            batchSize = 0;
+                        if (batchSizeBytes >= maxBatchSizeBytes || batch.size() == maxBatchNumberOfDocuments) {
+                            LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", batch.size(), batchSizeBytes);
+                            tryEnqueueCopy(batch);
+                            batch.clear();
+                            batchSizeBytes = 0;
                             if (parallelDump && parallelDumpSecondariesOnly && mongoServerSelector.isConnectedToPrimary()) {
                                 LOG.info("Connected to primary. Will disconnect from MongoDB to force a new connection to a secondary.");
-                                LOG.info("Last batch: {}", Arrays.stream(batch).limit(nextIndex).collect(Collectors.toList()));
-                                printNextBatch = true;
                                 throw new MongoException("Disconnecting from MongoDB primary to force a new connection");
                             }
                         }
                     }
-                    if (nextIndex > 0) {
-                        LOG.info("Enqueueing last block with {} elements, estimated size: {}",
-                                nextIndex, IOUtils.humanReadableByteCountBin(batchSize));
-                        tryEnqueueCopy(batch, nextIndex);
-                    }
-                } catch (MongoException e) {
-                    if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
-                        // Non-recoverable exceptions
-                        throw e;
-                    }
+                    LOG.info("Enqueueing last block with {} elements, estimated size: {}", batch.size(), IOUtils.humanReadableByteCountBin(batchSizeBytes));
+                    tryEnqueueCopy(batch);
+                } catch (Throwable e) {
                     // There may be some documents in the current batch, enqueue them and rethrow the exception
-                    if (nextIndex > 0) {
-                        LOG.info("Connection interrupted with recoverable failure. Enqueueing partial block with {} elements, estimated size: {}",
-                                nextIndex, IOUtils.humanReadableByteCountBin(batchSize));
-                        tryEnqueueCopy(batch, nextIndex);
-                    }
+                    LOG.info("Error downloading from Mongo: {}. Enqueueing partial block with {} elements, estimated size: {}",
+                            e, batch.size(), IOUtils.humanReadableByteCountBin(batchSizeBytes));
+                    tryEnqueueCopy(batch);
                     throw e;
                 }
             }
@@ -951,11 +918,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             download(ancestorsIterable);
         }
 
-        private void tryEnqueueCopy(RawBsonDocument[] batch, int sizeOfBatch) throws TimeoutException, InterruptedException {
-            if (sizeOfBatch == 0) {
-                LOG.info("Batch is empty, not enqueuing.");
+        private void tryEnqueueCopy(ArrayList<RawBsonDocument> batch) throws TimeoutException, InterruptedException {
+            if (batch.isEmpty()) {
+                LOG.debug("Batch is empty, not enqueuing.");
             } else {
-                RawBsonDocument[] copyOfBatch = Arrays.copyOfRange(batch, 0, sizeOfBatch);
+                RawBsonDocument[] copyOfBatch = batch.toArray(new RawBsonDocument[0]);
                 Stopwatch enqueueDelayStopwatch = Stopwatch.createStarted();
                 if (!mongoDocQueue.offer(copyOfBatch, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
                     throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);

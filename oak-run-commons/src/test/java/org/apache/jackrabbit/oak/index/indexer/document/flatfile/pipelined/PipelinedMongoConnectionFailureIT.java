@@ -219,13 +219,14 @@ public class PipelinedMongoConnectionFailureIT {
             }
         }
 
-        LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}", resultWithoutInterruption, resultWithInterruption);
-        List<String> allLinesExpected = Files.readAllLines(resultWithoutInterruption);
-        List<String> allLinesActual = Files.readAllLines(resultWithInterruption);
-        if (!allLinesExpected.equals(allLinesActual)) {
-            List<String> expectedPaths = allLinesExpected.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
-            List<String> actualPaths = allLinesActual.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
-            Assert.fail("Results differ. Expected: " + expectedPaths + ", actual: " + actualPaths);
+        List<String> ffsLinesNoFailure = Files.readAllLines(resultWithoutInterruption);
+        List<String> allLinesWithFailure = Files.readAllLines(resultWithInterruption);
+        if (!ffsLinesNoFailure.equals(allLinesWithFailure)) {
+            List<String> pathsInFFSNoFailures = ffsLinesNoFailure.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
+            List<String> pathsInFFSFailures = allLinesWithFailure.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
+            Assert.fail("Results differ when downloading with no failures and with failures.\n" +
+                    "  No failures  : " + pathsInFFSNoFailures + "\n" +
+                    "  With failures: " + pathsInFFSFailures);
         }
     }
 
@@ -239,7 +240,7 @@ public class PipelinedMongoConnectionFailureIT {
 
     private static void createContent(DocumentNodeStore rwNodeStore) throws CommitFailedException {
         LOG.info("Creating content");
-        var payload = "0123456789".repeat(500); // 5KB per entry. 500KB per tree, 5MB per 10 trees.
+        String payload = "0123456789".repeat(500); // 5KB per entry. 500KB per tree, 5MB per 10 trees.
         Stopwatch start = Stopwatch.createStarted();
         Clock.Virtual clock = rwNodeStore.getClock() instanceof Clock.Virtual ? (Clock.Virtual) rwNodeStore.getClock() : null;
         for (int i = 0; i < N_TREES; i++) {
