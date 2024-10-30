@@ -28,9 +28,9 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -121,6 +121,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public static final String ELASTIKNN = "elastiknn";
 
+    public static final String INFERENCE = ":inference";
+
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
 
@@ -142,8 +144,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
 
     protected static final String INFERENCE_CONFIG = "inference";
-
-    public static final String INFERENCE = ":inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
 
@@ -225,7 +225,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> Stream.concat(StreamSupport.stream(rule.getProperties().spliterator(), false),
+                .flatMap(rule -> Stream.concat(CollectionUtils.toStream(rule.getProperties()),
                         rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> {
@@ -434,12 +434,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
          */
         public InferenceDefinition(NodeState inferenceNode) {
             if (inferenceNode.hasChildNode("properties")) {
-                this.properties = StreamSupport.stream(inferenceNode.getChildNode("properties").getChildNodeEntries().spliterator(), false)
+                this.properties = CollectionUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
                         .map(cne -> new Property(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }
             if (inferenceNode.hasChildNode("queries")) {
-                this.queries = StreamSupport.stream(inferenceNode.getChildNode("queries").getChildNodeEntries().spliterator(), false)
+                this.queries = CollectionUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
                         .map(cne -> new Query(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }
@@ -463,7 +463,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
          */
         public static class Property {
             /**
-             * The name of the property. It will be prefixed with {@link ElasticIndexDefinition#INFERENCE}. when stored in the index.
+             * The name of the property. It will be prefixed with "{@link ElasticIndexDefinition#INFERENCE}." when stored in the index.
              */
             public String name;
             /**
@@ -483,7 +483,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
              */
             public String similarity;
 
-            public Property() {}
+            // Jackson requires a no-arg constructor for deserialization.
+            @SuppressWarnings("unused")
+            protected Property() {
+                // Default constructor for Jackson deserialization only.
+            }
 
             /**
              * Constructs a Property from a given NodeState.
@@ -557,7 +561,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
              */
             public long timeout;
 
-            public Query() {}
+            // Jackson requires a no-arg constructor for deserialization.
+            @SuppressWarnings("unused")
+            protected Query() {
+                // Default constructor for Jackson deserialization only.
+            }
 
             /**
              * Constructs a Query from a given NodeState.
@@ -603,7 +611,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
              * @return true if the input string has the minimum number of terms
              */
             public boolean hasMinTerms(String input) {
-                return minTerms <= input.split(" ").length;
+                return minTerms <= input.split("\\s+").length;
             }
 
             @Override

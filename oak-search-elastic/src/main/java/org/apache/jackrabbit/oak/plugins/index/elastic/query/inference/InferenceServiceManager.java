@@ -21,16 +21,29 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 public class InferenceServiceManager {
 
-    private static final String INFERENCE_CACHE_SIZE = "oak.inference.cache.size";
+    private static final String MAX_CACHED_SERVICES_PROPERTY = "oak.inference.max.cached.services";
+    private static final int MAX_CACHED_SERVICES = Integer.getInteger(MAX_CACHED_SERVICES_PROPERTY, 10);
+
+    private static final String CACHE_SIZE_PROPERTY = "oak.inference.cache.size";
+    private static final int CACHE_SIZE = Integer.getInteger(CACHE_SIZE_PROPERTY, 100);
 
     private static final ConcurrentHashMap<String, InferenceService> SERVICES = new ConcurrentHashMap<>();
+    private static final Logger LOGGER = Logger.getLogger(InferenceServiceManager.class.getName());
 
     public static InferenceService getInstance(@NotNull String url, String model) {
         String k = model == null ? url : url + "|" + model;
-        return SERVICES.computeIfAbsent(k, key -> new InferenceService(url, Integer.getInteger(INFERENCE_CACHE_SIZE, 100)));
+
+        if (SERVICES.size() >= MAX_CACHED_SERVICES) {
+            LOGGER.warning("InferenceServiceManager maximum cached services reached: " + MAX_CACHED_SERVICES);
+            LOGGER.warning("Returning a new InferenceService instance with no cache");
+            return new InferenceService(url, 0);
+        }
+
+        return SERVICES.computeIfAbsent(k, key -> new InferenceService(url, CACHE_SIZE));
     }
 
 }

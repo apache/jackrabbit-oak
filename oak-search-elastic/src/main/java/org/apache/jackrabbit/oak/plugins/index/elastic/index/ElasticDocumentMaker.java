@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
 
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
@@ -58,7 +57,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         // Evaluate path restrictions is enabled by default in elastic. Always index ancestors.
         // When specifically disabled, we will keep indexing it, but the field won't be used at query time
         doc.indexAncestors(path);
-        doc.setLastUpdated(Instant.now().toEpochMilli());
+        doc.setLastUpdated(System.currentTimeMillis());
         return doc;
     }
 

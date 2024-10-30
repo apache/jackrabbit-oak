@@ -632,14 +632,10 @@ public class ElasticRequestHandler {
                             knnQueryBuilder.similarity(q.similarityThreshold);
                             b.should(s -> s.knn(knnQueryBuilder.build()));
                         }
-                        int tokens = text.split(" ").length;
-                        double qsBoost;
-                        if (tokens > 1) {
-                            qsBoost = 1.0d / (5 * tokens);
-                        } else {
-                            qsBoost = 1.0d;
-                        }
-
+                        int tokens = queryText.split("\\s+").length;
+                        // the more tokens, the less important the full-text query is
+                        // TODO: make it configurable
+                        double qsBoost = (tokens > 1) ? 1.0d / (5 * tokens) : 1.0d;
                         return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
                     } else {
                         LOG.warn("No embeddings found for text {}", text);

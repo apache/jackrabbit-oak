@@ -23,6 +23,7 @@ import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
+import co.elastic.clients.json.JsonData;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -190,20 +191,25 @@ class ElasticBulkProcessorHandler {
     }
 
     public void update(String id, ElasticDocument document) throws IOException {
-        add(BulkOperation.of(op ->
-                op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.doc(document).docAsUpsert(true)))
-        ), id);
-        // when updating a document we need to remove the properties that are not present in the new document
-        // to do so we need to keep track of the properties that are present in the document before the update
-        // and add a specific script bulk operation to remove them
-        // Document and script updates cannot be done in the same bulk operation
-        if (!document.getPropertiesToRemove().isEmpty()) {
-            String script = document.getPropertiesToRemove().stream()
-                    .map(p -> "ctx._source.remove('" + p + "')")
-                    .collect(Collectors.joining(";"));
+        if (document.getPropertiesToRemove().isEmpty()) {
             add(BulkOperation.of(op ->
-                    op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.script(s -> s.source(script))))
+                    op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.doc(document).docAsUpsert(true)))
             ), id);
+        } else {
+            // when updating a document we need to remove the properties that are not present in the new document
+            // to do so we need to keep track of the properties that are present in the document before the update
+            // and add a specific script bulk operation to remove them
+            // Create a script to update the document and remove properties in one operation
+            StringBuilder script = new StringBuilder();
+            script.append("ctx._source.putAll(params.document);");
+            for (String property : document.getPropertiesToRemove()) {
+                script.append("ctx._source.remove('").append(property).append("');");
+            }
+
+            // Add the update operation with the script
+            add(BulkOperation.of(op -> op.update(uf -> uf.index(indexName).id(id)
+                    .action(uaf -> uaf.script(s -> s.source(script.toString()).params("document", JsonData.of(document)))
+                            .upsert(document)))), id);
         }
     }
 

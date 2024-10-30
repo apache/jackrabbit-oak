@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -40,16 +39,20 @@ import java.util.stream.Collectors;
  */
 public class InferenceService {
 
-    private final URL url;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private final URI uri;
     private final Cache<String, List<Float>> cache;
+    private final HttpClient httpClient;
 
     public InferenceService(String url, int cacheSize) {
         try {
-            this.url = new URL(url);
-        } catch (MalformedURLException e) {
+            this.uri = new URI(url);
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid URL: " + url, e);
         }
         this.cache = new Cache<>(cacheSize);
+        this.httpClient = HttpClient.newHttpClient();
     }
 
     public List<Float> embeddings(String text, int timeoutMillis) {
@@ -57,58 +60,36 @@ public class InferenceService {
             return cache.get(text);
         }
 
-        HttpURLConnection connection;
         try {
-            // Create a connection.
-            connection = (HttpURLConnection) url.openConnection();
-
-            // Set the request type to POST.
-            connection.setRequestMethod("POST");
-
-            // Set the content type to application/json.
-            connection.setRequestProperty("Content-Type", "application/json; utf-8");
-
-            // Set the connection and read timeouts.
-            connection.setConnectTimeout(timeoutMillis);
-            connection.setReadTimeout(timeoutMillis);
-
-            // Enable input and output streams.
-            connection.setDoOutput(true);
-
             // Create the JSON payload.
             String jsonInputString = "{\"text\":\"" + text + "\"}";
 
-            // Write the JSON payload to the output stream of the connection.
-            try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
-            }
+            // Build the HttpRequest.
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .timeout(java.time.Duration.ofMillis(timeoutMillis))
+                    .header("Content-Type", "application/json; utf-8")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonInputString, StandardCharsets.UTF_8))
+                    .build();
 
-            // Get the response from the connection.
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-                StringBuilder response = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) {
-                    response.append(responseLine.trim());
-                }
+            // Send the request and get the response.
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-                // Parse the response string into a JsonNode.
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode jsonResponse = mapper.readTree(response.toString());
+            // Parse the response string into a JsonNode.
+            JsonNode jsonResponse = MAPPER.readTree(response.body());
 
-                // Extract the 'embedding' property.
-                JsonNode embedding = jsonResponse.get("embedding");
+            // Extract the 'embedding' property.
+            JsonNode embedding = jsonResponse.get("embedding");
 
-                double[] embeddings = mapper.treeToValue(embedding, double[].class);
+            double[] embeddings = MAPPER.treeToValue(embedding, double[].class);
 
-                // Convert the array of doubles to a list of floats.
-                List<Float> result = Arrays.stream(embeddings)
-                        .mapToObj(d -> ((Double) d).floatValue())
-                        .collect(Collectors.toList());
+            // Convert the array of doubles to a list of floats.
+            List<Float> result = Arrays.stream(embeddings)
+                    .mapToObj(d -> ((Double) d).floatValue())
+                    .collect(Collectors.toList());
 
-                cache.put(text, result);
-                return result;
-            }
+            cache.put(text, result);
+            return result;
         } catch (Exception e) {
             throw new InferenceServiceException("Failed to get embeddings", e);
         }
