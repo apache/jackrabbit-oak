@@ -215,7 +215,7 @@ membership configuration.
 
 ### Principal Resolution Cache
 
-Since Oak 1.7.2 `ExternalGroupPrincipalProvider`, see [OAK-11026], will cache the principal resolution for 
+Since Oak 1.72 `ExternalGroupPrincipalProvider`, see [OAK-11026], will cache the principal resolution for 
 those dynamic groups that have been added to local groups. Caching is disabled by default and can be enabled 
 as described in the section [Caching Results of Principal Resolution](../../principal/cache.html#configuration).
 
