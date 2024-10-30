@@ -522,7 +522,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 count += ids.size();
                 deleted += BlobCollectionType.get(blobStore)
                     .sweepInternal(blobStore, ids, removesQueue, maxModifiedTime);
-                saveBatchToFile(newArrayList(removesQueue), removesWriter);
+                saveBatchToFile(new ArrayList<>(removesQueue), removesWriter);
 
                 for(String deletedId : removesQueue) {
                     // Estimate the size of the blob

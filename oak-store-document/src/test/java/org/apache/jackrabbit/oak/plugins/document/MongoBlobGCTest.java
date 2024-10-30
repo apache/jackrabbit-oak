@@ -47,6 +47,7 @@ import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -189,7 +190,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            set.addAll(Lists.newArrayList(idIter));
+            set.addAll(CollectionUtils.toList(idIter));
         }
         ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;
