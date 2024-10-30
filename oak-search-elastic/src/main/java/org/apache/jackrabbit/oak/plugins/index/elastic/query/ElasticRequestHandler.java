@@ -609,6 +609,8 @@ public class ElasticRequestHandler {
 
         QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFieldName(propertyName), pr, dbEnabled);
 
+        // the query can be null if no inference query is eligible for the given text or the min terms are not met
+        // in this case, we fall back to the default full-text query
         if (q != null) {
             LOG.info("Using inference query: {}", q);
             try {
