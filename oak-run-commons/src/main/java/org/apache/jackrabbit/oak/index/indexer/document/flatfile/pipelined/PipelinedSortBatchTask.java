@@ -202,7 +202,6 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
                 if (Arrays.equals(prevPathElements, entry.getPathElements())) {
-                    LOG.info("Equal entries: {}, pos: {}", Arrays.toString(entry.getPathElements()), entry.getBufferPos());
                     duplicateEntriesSkippped++;
                     continue;
                 }
