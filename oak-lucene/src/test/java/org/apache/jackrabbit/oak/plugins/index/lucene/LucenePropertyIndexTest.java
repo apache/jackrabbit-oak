@@ -1183,11 +1183,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         child.setProperty("bar", "baz");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", Lists
-            .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
-            )));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
+                .toList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
+                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a"))));
     }
 
     void assertSortedString() throws CommitFailedException {
@@ -1274,14 +1273,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         // Add the path of property added as timestamp string in the sorted list
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-                CollectionUtils.toList(Iterables.concat(Lists.newArrayList("/test/n0"),
-                        getSortedPaths(tuples, OrderDirection.ASC))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
+                .toList(Iterables.concat(Lists.newArrayList("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
-        assertOrderedQuery(
-                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-                        .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC),
-                                Lists.newArrayList("/test/n0"))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
+                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/n0"))));
     }
 
     @Test

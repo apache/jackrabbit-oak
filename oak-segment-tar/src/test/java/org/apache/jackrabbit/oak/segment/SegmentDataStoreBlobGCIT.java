@@ -51,6 +51,7 @@ import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -247,7 +248,7 @@ public class SegmentDataStoreBlobGCIT {
             NodeBuilder n = a.child("cspecial");
             n.child(specialCharSets.get(i)).setProperty("x", b);
             Iterator<String> idIter = blobStore.resolveChunks(b.getBlobId());
-            set.addAll(Lists.newArrayList(idIter));
+            set.addAll(CollectionUtils.toList(idIter));
         }
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
@@ -422,7 +421,7 @@ public class RDBDocumentStore implements DocumentStore {
                 break;
             }
 
-            for (List<UpdateOp> partition : CollectionUtils.partitionList(newArrayList(operationsToCover.values()), CHUNKSIZE)) {
+            for (List<UpdateOp> partition : CollectionUtils.partitionList(new ArrayList<>(operationsToCover.values()), CHUNKSIZE)) {
                 Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
                 results.putAll(successfulUpdates);
                 operationsToCover.values().removeAll(successfulUpdates.keySet());

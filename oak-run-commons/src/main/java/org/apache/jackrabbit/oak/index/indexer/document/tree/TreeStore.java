@@ -133,6 +133,10 @@ public class TreeStore implements ParallelIndexStore {
         }
         List<PathFilter> pathFilters = PathIteratorFilter.extractPathFilters(indexDefs);
         SortedSet<String> includedPaths = PathIteratorFilter.getAllIncludedPaths(pathFilters);
+        setIncludedPaths(includedPaths);
+    }
+
+    public void setIncludedPaths(SortedSet<String> includedPaths) {
         LOG.info("Included paths {}", includedPaths.toString());
         filter = new PathIteratorFilter(includedPaths);
     }
