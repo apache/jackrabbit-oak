@@ -55,7 +55,7 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private final CloudBlockBlob blob;
 
-    private final ExecutorService executor;
+    private final Thread refresherThread;
 
     private final int timeoutSec;
 
@@ -64,6 +64,8 @@ public class AzureRepositoryLock implements RepositoryLock {
     private String leaseId;
 
     private volatile boolean doUpdate;
+    private static final String REFRESHER_THREAD_NAME = "AzureRepositoryLock-Refresher";
+    private boolean inError;
 
     public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController) {
         this(blob, shutdownHook, writeAccessController, TIMEOUT_SEC);
@@ -72,7 +74,8 @@ public class AzureRepositoryLock implements RepositoryLock {
     public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
         this.shutdownHook = shutdownHook;
         this.blob = blob;
-        this.executor = Executors.newSingleThreadExecutor();
+        this.refresherThread = new Thread(this::refreshLease, REFRESHER_THREAD_NAME);
+        this.refresherThread.setDaemon(true);
         this.timeoutSec = timeoutSec;
         this.writeAccessController = writeAccessController;
 
@@ -116,67 +119,77 @@ public class AzureRepositoryLock implements RepositoryLock {
             log.error("Can't acquire the lease in {}s.", timeoutSec);
             throw new IOException(ex);
         } else {
-            executor.submit(this::refreshLease);
+            refresherThread.start();
             return this;
         }
     }
 
     private void refreshLease() {
+        log.info("Starting the lease renewal loop");
         doUpdate = true;
         long lastUpdate = 0;
+        setInError(false);
         while (doUpdate) {
-            long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
             try {
-                if (timeSinceLastUpdate > renewalInterval) {
+                long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
+                try {
+                    if (timeSinceLastUpdate > renewalInterval) {
 
-                    BlobRequestOptions requestOptions = new BlobRequestOptions();
-                    requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
-                    requestOptions.setRetryPolicyFactory(new RetryNoRetry());
-                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions, null);
+                        BlobRequestOptions requestOptions = new BlobRequestOptions();
+                        requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
+                        requestOptions.setRetryPolicyFactory(new RetryNoRetry());
+                        blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions, null);
 
-                    writeAccessController.enableWriting();
-                    lastUpdate = System.currentTimeMillis();
-                }
-            } catch (Exception e) {
-                timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
-
-                if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
-                    writeAccessController.disableWriting();
-                }
-
-                if (e instanceof StorageException) {
-                    StorageException storageException = (StorageException) e;
-                    if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT
-                            , StorageErrorCode.SERVICE_INTERNAL_ERROR
-                            , StorageErrorCodeStrings.SERVER_BUSY
-                            , StorageErrorCodeStrings.INTERNAL_ERROR).contains(storageException.getErrorCode())) {
-                        log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
-                    } else if (storageException.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
-                        log.warn("Client side error. Retry in progress ...", e);
-                    } else {
-                        log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
+                        writeAccessController.enableWriting();
+                        if (isInError()) {
+                            log.info("Lease renewal successful again.");
+                            setInError(false);
+                        }
+                        lastUpdate = System.currentTimeMillis();
                     }
-                } else {
-                    log.error("Can't renew the lease", e);
-                    shutdownHook.run();
-                    doUpdate = false;
-                    return;
+                } catch (Exception e) {
+                    timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
+
+                    if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
+                        writeAccessController.disableWriting();
+                    }
+
+                    if (e instanceof StorageException) {
+                        StorageException storageException = (StorageException) e;
+                        if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT
+                                , StorageErrorCode.SERVICE_INTERNAL_ERROR
+                                , StorageErrorCodeStrings.SERVER_BUSY
+                                , StorageErrorCodeStrings.INTERNAL_ERROR).contains(storageException.getErrorCode())) {
+                            log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
+                        } else if (storageException.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
+                            log.warn("Client side error. Retry in progress ...", e);
+                        } else {
+                            log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
+                        }
+                    } else {
+                        log.error("Can't renew the lease", e);
+                        shutdownHook.run();
+                        doUpdate = false;
+                        return;
+                    }
                 }
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                log.error("Interrupted the lease renewal loop", e);
+                waitABit(100);
+            } catch (Throwable t) {
+                if (!isInError()) {
+                    log.error("Unexpected error in the lease renewal loop, trying to recover", t);
+                    setInError(true);
+                }
+                waitABit(100);
             }
         }
+        log.info("Lease renewal loop exiting.");
     }
 
     @Override
     public void unlock() throws IOException {
         doUpdate = false;
-        executor.shutdown();
         try {
-            executor.awaitTermination(1, TimeUnit.MINUTES);
+            refresherThread.join(60000);
         } catch (InterruptedException e) {
             throw new IOException(e);
         } finally {
@@ -192,6 +205,23 @@ public class AzureRepositoryLock implements RepositoryLock {
             leaseId = null;
         } catch (StorageException e) {
             throw new IOException(e);
+        }
+    }
+
+    private void setInError(boolean inError) {
+        this.inError = inError;
+        refresherThread.setName(REFRESHER_THREAD_NAME + (inError ? "-InError" : ""));
+    }
+
+    private boolean isInError() {
+        return inError;
+    }
+
+    private void waitABit(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            // ignore
         }
     }
 }
