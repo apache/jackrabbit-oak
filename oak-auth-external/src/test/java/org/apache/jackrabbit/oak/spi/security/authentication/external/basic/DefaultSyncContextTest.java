@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -53,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -1459,7 +1459,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testCreateValuesSkipsNull() throws Exception {
-        List<String> strings = Lists.newArrayList("s", null, null, "t");
+        List<String> strings = new ArrayList<>(Arrays.asList("s", null, null, "t"));
         Value[] vs = syncCtx.createValues(strings);
         assertNotNull(vs);
         assertEquals(2, vs.length);

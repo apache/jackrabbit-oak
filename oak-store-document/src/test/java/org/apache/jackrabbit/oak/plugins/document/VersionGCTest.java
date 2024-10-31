@@ -339,7 +339,7 @@ public class VersionGCTest {
 
         gc.gc(30, TimeUnit.MINUTES);
 
-        List<String> expected = Lists.newArrayList("INITIALIZING",
+        List<String> expected = List.of("INITIALIZING",
                 "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
                 "DELETING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
         assertEquals(expected, monitor.getStatusMessages());

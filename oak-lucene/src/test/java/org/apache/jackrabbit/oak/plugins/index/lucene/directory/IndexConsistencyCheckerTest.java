@@ -80,7 +80,7 @@ public class IndexConsistencyCheckerTest {
 
         idx.setProperty("foo", failingBlob);
         idx.child(":index").setProperty("foo", failingBlob);
-        idx.child("b").setProperty("foo", Lists.newArrayList(failingBlob, failingBlob), Type.BINARIES);
+        idx.child("b").setProperty("foo", List.of(failingBlob, failingBlob), Type.BINARIES);
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("a", idx.getNodeState());

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -62,6 +61,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -87,7 +87,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { IdentityProtectionType.NONE, false, "None, Default Sync" },
                 new Object[] { IdentityProtectionType.WARN, true, "Warn, Dynamic Sync" },
                 new Object[] { IdentityProtectionType.WARN, false, "Warn, Default Sync" },

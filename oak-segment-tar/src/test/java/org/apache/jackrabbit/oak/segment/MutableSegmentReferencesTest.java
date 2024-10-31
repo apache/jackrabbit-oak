@@ -100,7 +100,7 @@ public class MutableSegmentReferencesTest {
         MemoryStore store = new MemoryStore();
         SegmentId first = store.getSegmentIdProvider().newDataSegmentId();
         SegmentId second = store.getSegmentIdProvider().newDataSegmentId();
-        List<SegmentId> ids = newArrayList(first, second);
+        List<SegmentId> ids = List.of(first, second);
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         table.addOrReference(first);

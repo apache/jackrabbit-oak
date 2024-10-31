@@ -31,11 +31,11 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.wrap;
@@ -147,7 +147,7 @@ public class FilteringNodeStateTest {
         { // access via getProperty()
             final PropertyState childOrder = decorated.getProperty(OAK_CHILD_ORDER);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(newArrayList("football"), CollectionUtils.toList(values));
+            assertEquals(List.of("football"), CollectionUtils.toList(values));
         }
 
         { // access via getProperties()
@@ -159,7 +159,7 @@ public class FilteringNodeStateTest {
             };
             final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(newArrayList("football"), CollectionUtils.toList(values));
+            assertEquals(List.of("football"), CollectionUtils.toList(values));
         }
     }
 

@@ -47,8 +47,8 @@ import static org.junit.Assert.assertNotNull;
 
 public class PropertyIndexLookupTest {
 
-    private static final List<String> PROP_NAMES = Lists.newArrayList("jcr:primaryType", "jcr:mixinTypes");
-    private static final List<String> DECL_NODE_TYPES = Lists.newArrayList("nt:unstructured", "mix:versionable");
+    private static final List<String> PROP_NAMES = List.of("jcr:primaryType", "jcr:mixinTypes");
+    private static final List<String> DECL_NODE_TYPES = List.of("nt:unstructured", "mix:versionable");
 
     private NodeState root;
     private NodeBuilder rootBuilder;

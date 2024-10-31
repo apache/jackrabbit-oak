@@ -121,7 +121,7 @@ public class JournalEntryTest {
         validateCacheUsage(cache, from, to, "/c", false);//there is no cache entry for the whole hierarchy
 
         //Fill cache using journal
-        List<Path> paths = Lists.newArrayList(
+        List<Path> paths = List.of(
                 p("/content/changed"),
                 p("/content/changed1/child1")
         );

@@ -179,7 +179,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     private HashSet<String> addNodeSpecialChars() throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
         DocumentNodeStore ds = mk.getNodeStore();
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = ds.getRoot().builder();

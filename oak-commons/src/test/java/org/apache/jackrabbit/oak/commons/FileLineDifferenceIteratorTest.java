@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -38,7 +39,6 @@ import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -136,8 +136,8 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static List<String> getLineBreakStrings() {
-        return Lists.newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
-            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
+        return new ArrayList<>(Arrays.asList("ab\nc\r", "ab\\z", "a\\\\z\nc",
+            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c"));
     }
 
     private static List<String> remove(List<String> list, int idx, int count) {

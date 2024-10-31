@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,6 +32,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
@@ -48,7 +48,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, "DynamicGroups=false" },
                 new Object[] { true, "DynamicGroups=true" });
     }

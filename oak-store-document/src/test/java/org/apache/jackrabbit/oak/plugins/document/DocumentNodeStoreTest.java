@@ -3397,13 +3397,13 @@ public class DocumentNodeStoreTest {
         NodeDocument.setDeleted(op, r, false);
         NodeDocument.setRevision(op, r, "c");
         NodeDocument.setLastRev(op, r);
-        store.create(NODES, Lists.newArrayList(op));
+        store.create(NODES, List.of(op));
         // initialize checkpoints document
         op = new UpdateOp("checkpoint", true);
-        store.create(SETTINGS, Lists.newArrayList(op));
+        store.create(SETTINGS, List.of(op));
         // initialize version GC status in settings
         op = new UpdateOp("versionGC", true);
-        store.create(SETTINGS, Lists.newArrayList(op));
+        store.create(SETTINGS, List.of(op));
         // now try to open in read-only mode with more recent version
         builderProvider.newBuilder().setReadOnlyMode().setDocumentStore(store).getNodeStore();
     }

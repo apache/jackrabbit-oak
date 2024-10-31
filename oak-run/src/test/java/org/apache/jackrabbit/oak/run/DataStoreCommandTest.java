@@ -3,7 +3,7 @@
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
+ * to you under the Apache License, Version 2.0 (theF
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -293,10 +294,9 @@ public class DataStoreCommandTest {
     public void testNoSensitiveParams() throws Exception {
         storeFixture.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
+        List<String> argsList = new ArrayList<>(Arrays.asList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
                 dump.getAbsolutePath(), storeFixture.getConnectionString(), "--reset-log-config", "false", "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath());
+                temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
@@ -325,16 +325,15 @@ public class DataStoreCommandTest {
     public void testMissingOpParams() throws Exception {
         storeFixture.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
+        List<String> argsList = new ArrayList<>(Arrays.asList("--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
                 dump.getAbsolutePath(), storeFixture.getConnectionString(), "--reset-log-config", "false", "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath());
+                temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
         log.info("Running testMissingOpParams: {}", argsList);
-        testIncorrectParams(argsList, Lists.newArrayList("No actions specified"), DataStoreCommand.class);
+        testIncorrectParams(argsList, new ArrayList<>(Arrays.asList("No actions specified")), DataStoreCommand.class);
     }
 
     /**
@@ -347,15 +346,14 @@ public class DataStoreCommandTest {
         Assume.assumeTrue(storeFixture instanceof StoreFixture.SegmentStoreFixture);
 
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList(storeFixture.getConnectionString(),
+        List<String> argsList = new ArrayList<>(Arrays.asList(storeFixture.getConnectionString(),
                 "--out-dir", dump.getAbsolutePath(), "--reset-log-config", "false", "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath(), "--check-consistency");
+                temporaryFolder.newFolder().getAbsolutePath(), "--check-consistency"));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
-        testIncorrectParams(argsList, Lists.newArrayList("No BlobStore specified"), DataStoreCommand.class);
+        testIncorrectParams(argsList, new ArrayList<>(Arrays.asList("No BlobStore specified")), DataStoreCommand.class);
     }
 
     @Test
@@ -683,15 +681,14 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        List<String> argsList = Lists
-            .newArrayList("--collect-garbage", "--max-age", String.valueOf(0), "--" + getOption(blobFixture.getType()),
+        List<String> argsList = new ArrayList<>(Arrays.asList("--collect-garbage", "--max-age", String.valueOf(0), "--" + getOption(blobFixture.getType()),
                 blobFixture.getConfigPath(), storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(),
-                "--reset-log-config", "false", "--work-dir", temporaryFolder.newFolder().getAbsolutePath());
+                "--reset-log-config", "false", "--work-dir", temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
-        testIncorrectParams(argsList, Lists.newArrayList("Not all repositories have marked references available : "),
+        testIncorrectParams(argsList, new ArrayList<>(Arrays.asList("Not all repositories have marked references available : ")),
             MarkSweepGarbageCollector.class);
     }
 
@@ -708,10 +705,9 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
         storeFixture.close();
 
-        List<String> argsList = Lists
-            .newArrayList("--check-consistency", "--fake-ds-path", dsPath.getAbsolutePath(),
+        List<String> argsList = new ArrayList<>(Arrays.asList("--check-consistency", "--fake-ds-path", dsPath.getAbsolutePath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath());
+                temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
@@ -728,10 +724,9 @@ public class DataStoreCommandTest {
     }
 
     private void testConsistency(File dump, Data data, boolean verbose, boolean verboseRootPath, boolean markOnly) throws Exception {
-        List<String> argsList = Lists
-            .newArrayList("--check-consistency", String.valueOf(markOnly), "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+        List<String> argsList = new ArrayList<>(Arrays.asList("--check-consistency", String.valueOf(markOnly), "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath());
+                temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
@@ -770,10 +765,9 @@ public class DataStoreCommandTest {
     }
 
     private void testDumpRef(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
-        List<String> argsList = Lists
-                .newArrayList("--dump-ref", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+        List<String> argsList = new ArrayList<>(Arrays.asList("--dump-ref", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                         storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
-                        temporaryFolder.newFolder().getAbsolutePath());
+                        temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
@@ -793,10 +787,9 @@ public class DataStoreCommandTest {
     }
 
     private void testDumpIds(File dump, Data data, boolean verbose) throws Exception {
-        List<String> argsList = Lists
-                .newArrayList("--dump-id", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+        List<String> argsList = new ArrayList<>(Arrays.asList("--dump-id", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                         storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
-                        temporaryFolder.newFolder().getAbsolutePath());
+                        temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
@@ -815,11 +808,10 @@ public class DataStoreCommandTest {
     }
 
     private void testGc(File dump, Data data, long maxAge, boolean markOnly, boolean refsOld) throws Exception {
-        List<String> argsList = Lists
-            .newArrayList("--collect-garbage", String.valueOf(markOnly), "--max-age", String.valueOf(maxAge),
+        List<String> argsList = new ArrayList<>(Arrays.asList("--collect-garbage", String.valueOf(markOnly), "--max-age", String.valueOf(maxAge),
                 "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath());
+                temporaryFolder.newFolder().getAbsolutePath()));
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
@@ -848,7 +840,7 @@ public class DataStoreCommandTest {
         }
     }
 
-    public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg, Class logger) {
+    public static void testIncorrectParams(List<String> argList, List<String> assertMsg, Class logger) {
         LogCustomizer customLogs = LogCustomizer
             .forLogger(logger.getName())
             .enable(Level.INFO)

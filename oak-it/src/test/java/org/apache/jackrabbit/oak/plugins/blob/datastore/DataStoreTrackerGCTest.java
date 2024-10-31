@@ -155,8 +155,8 @@ public class DataStoreTrackerGCTest {
         // Simulate creation and active deletion after init without version gc to enable references to hang around
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
             (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
-        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = List.of(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -185,8 +185,8 @@ public class DataStoreTrackerGCTest {
         File f = folder.newFile();
         tracker.remove(f, BlobTracker.Options.ACTIVE_DELETION);
 
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
-        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = List.of(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -232,8 +232,8 @@ public class DataStoreTrackerGCTest {
 
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
             (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
-        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = List.of(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -251,15 +251,15 @@ public class DataStoreTrackerGCTest {
         // Directly delete from blobstore
         ArrayList<String> blobs = new ArrayList<>(state.blobsPresent);
         String removedId = blobs.remove(0);
-        ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
+        ((DataStoreBlobStore) s).deleteChunks(List.of(removedId), 0);
         state.blobsPresent = new HashSet<>(blobs);
         File f = folder.newFile();
-        writeStrings(Lists.newArrayList(removedId).iterator(), f, false);
+        writeStrings(List.of(removedId).iterator(), f, false);
         tracker.remove(f);
 
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
             (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -283,7 +283,7 @@ public class DataStoreTrackerGCTest {
 
         //a = nodeStore.getRoot().builder();
         for(int idx = delIdx; idx < delIdx + num; idx++) {
-            blobStore.deleteChunks(Lists.newArrayList(set.get(idx)), 0);
+            blobStore.deleteChunks(List.of(set.get(idx)), 0);
             deleted.add(set.get(idx));
             a.child("cactive" + idx).remove();
         }
@@ -338,7 +338,7 @@ public class DataStoreTrackerGCTest {
 
     private HashSet<String> addNodeSpecialChars(DocumentNodeStore ds) throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = ds.getRoot().builder();
         int toBeDeleted = 0;

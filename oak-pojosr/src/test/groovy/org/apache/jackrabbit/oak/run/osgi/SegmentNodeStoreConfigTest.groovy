@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import org.apache.jackrabbit.guava.common.collect.Lists
 import org.apache.jackrabbit.guava.common.collect.Maps
 import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.spi.state.NodeState
@@ -131,7 +130,7 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         }
 
         public List<NodeState> getRoots() {
-            List<NodeState> result = Lists.newArrayList();
+            List<NodeState> result = new ArrayList<>();
             synchronized (trackerLock) {
                 mainLatch.countDown()
                 trackerLatch.await()
@@ -149,7 +148,7 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         }
 
         public List<NodeStore> getStores() {
-            List<NodeStore> result = Lists.newArrayList();
+            List<NodeStore> result = new ArrayList<>();
             synchronized (trackerLock) {
                 result.addAll(stores.values())
             }

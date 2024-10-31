@@ -89,7 +89,7 @@ public class AsyncIndexStatsUpdateCallbackTest {
                 null, Mounts.defaultMountInfoProvider(),
                 ActiveDeletedBlobCollectorFactory.NOOP, mBean, StatisticsProvider.NOOP);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )), StatisticsProvider.NOOP, false);

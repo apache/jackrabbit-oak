@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -483,7 +482,7 @@ public class EntryTest extends AbstractAccessControlTest {
         JackrabbitAccessControlEntry ace = createEntry(PrivilegeConstants.JCR_ALL);
         Privilege[] declaredAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getDeclaredAggregatePrivileges();
         Privilege[] aggregateAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getAggregatePrivileges();
-        List<Privilege> l = Lists.newArrayList(aggregateAllPrivs);
+        List<Privilege> l = new ArrayList<>(Arrays.asList(aggregateAllPrivs));
         l.add(l.remove(0));
         Privilege[] reordered = l.toArray(new Privilege[0]);
 

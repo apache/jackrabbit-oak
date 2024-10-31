@@ -49,7 +49,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
     @Test
     public void testPassthrough() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final List<String> disallowedMethods = Lists.newArrayList(
+        final List<String> disallowedMethods = List.of(
                 "create", "update", "remove", "createOrUpdate", "findAndUpdate");
         InvocationHandler handler = new InvocationHandler() {
             @Override

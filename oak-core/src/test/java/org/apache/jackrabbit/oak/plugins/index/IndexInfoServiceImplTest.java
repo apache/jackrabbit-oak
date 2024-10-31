@@ -89,7 +89,7 @@ public class IndexInfoServiceImplTest {
 
     @Test
     public void allIndexInfo() throws Exception{
-        pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
+        pathService.paths = List.of("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("a"); //Index with no type

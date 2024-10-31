@@ -440,7 +440,7 @@ public class BlobGCTest {
         log.info("after setup time {}", afterSetupTime);
 
         cluster.blobStore
-            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
+            .countDeleteChunks(List.of(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
                 0);
         MarkSweepGarbageCollector collector = cluster.getCollector(0);
         long missing = collector.checkConsistency();
@@ -482,7 +482,7 @@ public class BlobGCTest {
         closer.register(secondCluster);
 
         cluster.blobStore
-            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
+            .countDeleteChunks(List.of(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
                 0);
 
         // Execute mark on the default cluster
@@ -507,7 +507,7 @@ public class BlobGCTest {
         closer.register(secondCluster);
 
         secondCluster.blobStore
-            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(secondCluster.blobStoreState.blobsPresent.iterator())),
+            .countDeleteChunks(List.of(Iterators.getLast(secondCluster.blobStoreState.blobsPresent.iterator())),
                 0);
 
         // Execute mark on the default cluster

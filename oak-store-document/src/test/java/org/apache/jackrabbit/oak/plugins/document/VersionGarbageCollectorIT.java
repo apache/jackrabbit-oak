@@ -3563,7 +3563,7 @@ public class VersionGarbageCollectorIT {
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setDeletedOnce(op);
         NodeDocument.setModified(op, store1.newRevision());
-        store1.getDocumentStore().create(NODES, Lists.newArrayList(op));
+        store1.getDocumentStore().create(NODES, List.of(op));
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 

@@ -124,7 +124,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
         final AtomicLong returnExecCount = new AtomicLong(2L);
 
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", statusSupplier, returnExecCount::get)
         ));
 
@@ -146,7 +146,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
         // running index with not stalled exec count doesn't wait
         statusSupplier.status = STATUS_RUNNING;
-        asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", statusSupplier, returnExecCount::incrementAndGet)
         ));
         bean = getTestBean(indexPathService, asyncIndexInfoService);
@@ -164,7 +164,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         createFakeIndex(indexPath);
 
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
         ));
 
@@ -180,7 +180,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     @Test
     public void pauseResumeSetsInMemFlag() {
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
         ));
 
@@ -209,7 +209,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     @Test
     public void timedOutWhileWaitingForIndexerShouldAutoResume() {
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_RUNNING, () -> 2L)
         ));
 
@@ -224,7 +224,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     @Test
     public void failureToFlagAllIndexFilesShouldAutoResume() {
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
         ));
 
@@ -259,7 +259,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
             assertTrue("Must wait for indexers before going to update index files", hadWaitedForIndex.get());
             return indexPaths;
         });
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", () -> {
                     assertTrue("Must pause before waiting for indexers", isPaused.get());
                     hadWaitedForIndex.set(true);
@@ -305,7 +305,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
         // pause active deletion
         IndexPathService indexPathService = new IndexPathServiceImpl(dns1);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(List.of(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
         ));
         ActiveDeletedBlobCollectorMBeanImpl bean =

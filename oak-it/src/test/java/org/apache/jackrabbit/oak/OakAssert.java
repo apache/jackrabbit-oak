@@ -31,7 +31,7 @@ public final class OakAssert {
     }
 
     public static void assertSequence(Iterable<Tree> trees, String... names) {
-        List<String> expected = Lists.newArrayList(names);
+        List<String> expected = List.of(names);
         List<String> actual = new ArrayList<>();
         for (Tree t : trees) {
             actual.add(t.getName());

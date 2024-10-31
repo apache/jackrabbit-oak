@@ -207,7 +207,7 @@ public class ValueMapTest {
         NodeDocument.setPrevious(op, range1);
         NodeDocument.setPrevious(op, range2);
         
-        store.create(NODES, Lists.newArrayList(op, prevOp1, prevOp2));
+        store.create(NODES, List.of(op, prevOp1, prevOp2));
         
         NodeDocument doc = store.find(NODES, rootId);
         Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());

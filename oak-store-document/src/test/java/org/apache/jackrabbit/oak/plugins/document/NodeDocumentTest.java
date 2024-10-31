@@ -137,11 +137,11 @@ public class NodeDocumentTest {
         conflicts = doc.getConflictsFor(branchCommits);
         assertEquals(Set.of(c2), conflicts);
 
-        branchCommits = Lists.newArrayList(r1.asBranchRevision(), r2.asBranchRevision());
+        branchCommits = List.of(r1.asBranchRevision(), r2.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
         assertEquals(Set.of(c1, c2), conflicts);
 
-        branchCommits = Lists.newArrayList(r2.asBranchRevision(), r1.asBranchRevision());
+        branchCommits = List.of(r2.asBranchRevision(), r1.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
         assertEquals(Set.of(c1, c2), conflicts);
     }
@@ -778,7 +778,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
@@ -959,7 +959,7 @@ public class NodeDocumentTest {
         Random random = new Random(42);
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
 
@@ -995,7 +995,7 @@ public class NodeDocumentTest {
         Random random = new Random(42);
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
 
@@ -1129,7 +1129,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));

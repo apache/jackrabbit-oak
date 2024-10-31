@@ -104,11 +104,11 @@ public class IndexlaneRepositoryTraversalTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )));
-        asyncIndexUpdateFulltext = new AsyncIndexUpdate("fulltext-async", nodeStore, compose(newArrayList(
+        asyncIndexUpdateFulltext = new AsyncIndexUpdate("fulltext-async", nodeStore, compose(List.of(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )));

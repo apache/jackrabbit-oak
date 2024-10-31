@@ -18,11 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.List;
 
 /**
  * Tests for UpdateOp
@@ -68,7 +69,7 @@ public class UpdateOpTest {
         Revision r = Revision.newRevision(1);
         op2.containsMapEntry("e", r, true);
 
-        UpdateOp combined = UpdateOp.combine("id", newArrayList(op1, op2));
+        UpdateOp combined = UpdateOp.combine("id", List.of(op1, op2));
         assertTrue(combined.hasChanges());
         assertEquals(1, combined.getChanges().size());
         assertEquals(1, combined.getConditions().size());

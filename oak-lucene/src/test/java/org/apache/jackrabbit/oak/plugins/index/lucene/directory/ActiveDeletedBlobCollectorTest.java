@@ -243,7 +243,7 @@ public class ActiveDeletedBlobCollectorTest {
             // Push commit with a marker blob-id and wait for it to be purged
             BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
             String markerBlobId = "MARKER-" + (i++);
-            bdc.deleted(markerBlobId, Lists.newArrayList(markerBlobId));
+            bdc.deleted(markerBlobId, List.of(markerBlobId));
             bdc.commitProgress(COMMIT_SUCCEDED);
 
             Iterators.addAll(markerChunks, blobStore.resolveChunks(markerBlobId));

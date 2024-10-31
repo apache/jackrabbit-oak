@@ -261,7 +261,7 @@ public class TarFileTest {
                 assertNotNull(swept);
 
                 Map<UUID, List<UUID>> graph = new HashMap<>();
-                graph.put(new UUID(2, 1), newArrayList(new UUID(2, 2)));
+                graph.put(new UUID(2, 1), List.of(new UUID(2, 2)));
 
                 assertEquals(graph, swept.getGraph());
             }

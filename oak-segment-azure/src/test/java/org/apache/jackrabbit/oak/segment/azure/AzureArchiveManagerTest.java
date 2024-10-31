@@ -128,7 +128,7 @@ public class AzureArchiveManagerTest {
 
         LinkedHashMap<UUID, byte[]> recovered = new LinkedHashMap<>();
         manager.recoverEntries("data00000a.tar", recovered);
-        assertEquals(uuids.subList(0, 5), newArrayList(recovered.keySet()));
+        assertEquals(uuids.subList(0, 5), List.of(recovered.keySet()));
     }
 
     @Test

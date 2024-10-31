@@ -228,7 +228,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     public void testCreateFromBaseList() throws Exception {
         AbstractAccessControlList aacl = Mockito.mock(AbstractAccessControlList.class);
         when(aacl.getPath()).thenReturn("/path");
-        List entries = Lists.newArrayList(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        List entries = List.of(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
         when(aacl.getEntries()).thenReturn(entries);
         when(aacl.getRestrictionProvider()).thenReturn(getRestrictionProvider());
         when(aacl.getNamePathMapper()).thenReturn(NamePathMapper.DEFAULT);

@@ -36,7 +36,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -203,7 +202,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testGetRestrictionNames() {
         String[] restrNames = acl.getRestrictionNames();
         assertNotNull(restrNames);
-        List<String> names = Lists.newArrayList(restrNames);
+        List<String> names = new ArrayList<>(Arrays.asList(restrNames));
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(TEST_PATH)) {
             assertTrue(names.remove(getNamePathMapper().getJcrName(def.getName())));
         }

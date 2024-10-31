@@ -183,8 +183,7 @@ public class DataStoreCommandMetadataTest {
 
         File dump = temporaryFolder.newFolder();
 
-        List<String> argsList = Lists
-            .newArrayList("--get-metadata", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+        List<String> argsList = List.of("--get-metadata", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
 

@@ -97,7 +97,7 @@ public class InvalidIndexTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )));

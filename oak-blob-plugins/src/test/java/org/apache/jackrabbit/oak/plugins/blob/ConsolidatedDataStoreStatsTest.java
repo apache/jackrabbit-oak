@@ -234,17 +234,17 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         final String path2 = "path/to/node/2";
         final String path3 = "shortpath";
         final String path4 = "a/very/very/long/path/leads/to/node/4";
-        final List<String> paths = Lists.newArrayList(path1, path2, path3, path4);
+        final List<String> paths = List.of(path1, path2, path3, path4);
         final String leadingSlashPath = "/" + path1;
 
-        final List<String> blobContents = Lists.newArrayList("1", "2", "3", "4");
-        final List<Blob> blobs = Lists.newArrayList(
+        final List<String> blobContents = List.of("1", "2", "3", "4");
+        final List<Blob> blobs = List.of(
             mock(Blob.class),
             mock(Blob.class),
             mock(Blob.class),
             mock(Blob.class)
         );
-        final List<String> blobIds = Lists.newArrayList(
+        final List<String> blobIds = List.of(
             getIdForInputStream(getStream(blobContents.get(0))),
             getIdForInputStream(getStream(blobContents.get(1))),
             getIdForInputStream(getStream(blobContents.get(2))),
@@ -282,13 +282,11 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
             callbackLatch.countDown();
             waitFinish();
 
-            for (final String path : Lists
-                .newArrayList(path1, path2, path3, path4, leadingSlashPath)) {
+            for (final String path : List.of(path1, path2, path3, path4, leadingSlashPath)) {
                 assertTrue(stats.isFileSynced(path));
             }
 
-            for (final String invalidPath : Lists
-                .newArrayList(path1 + "/", "/" + path1 + "/", "/path//to/node///1")) {
+            for (final String invalidPath : List.of(path1 + "/", "/" + path1 + "/", "/path//to/node///1")) {
                 try {
                     stats.isFileSynced(invalidPath);
                     assertFalse(false); // shouldn't get here on an invalid path
@@ -344,7 +342,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
 
     @Test
     public void binaryPropSingle() throws Exception {
-        List<Blob> blobPropList = Lists.newArrayList(mockBlob);
+        List<Blob> blobPropList = List.of(mockBlob);
         NodeStore nodeStore = initNodeStore(Optional.<Blob>empty(),
             Optional.<Blob>empty(),
             Optional.<String>empty(),
@@ -359,7 +357,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         Blob mockBlob2 = mock(Blob.class);
         final String id2 = getIdForInputStream(getStream("testContents2"));
         when(mockBlob2.getContentIdentity()).thenReturn(id2);
-        List<Blob> blobPropList = Lists.newArrayList(mockBlob, mockBlob2);
+        List<Blob> blobPropList = List.of(mockBlob, mockBlob2);
         NodeStore nodeStore = initNodeStore(Optional.<Blob>empty(),
             Optional.<Blob>empty(),
             Optional.<String>empty(),
@@ -375,7 +373,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         Blob mockBlob2 = mock(Blob.class);
         final String id2 = getIdForInputStream(getStream("testContents2"));
         when(mockBlob2.getContentIdentity()).thenReturn(id2);
-        List<Blob> blobPropList = Lists.newArrayList(mockBlob, mockBlob2);
+        List<Blob> blobPropList = List.of(mockBlob, mockBlob2);
         NodeStore nodeStore = initNodeStore(Optional.<Blob>empty(),
             Optional.<Blob>empty(),
             Optional.<String>empty(),
@@ -393,7 +391,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         Blob mockBlob3 = mock(Blob.class);
         final String id3 = getIdForInputStream(getStream("testContents3"));
         when(mockBlob2.getContentIdentity()).thenReturn(id3);
-        List<Blob> blobPropList = Lists.newArrayList(mockBlob2, mockBlob3);
+        List<Blob> blobPropList = List.of(mockBlob2, mockBlob3);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
             Optional.<Blob>empty(),
             Optional.<String>empty(),
@@ -412,7 +410,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         Blob mockBlob3 = mock(Blob.class);
         final String id3 = getIdForInputStream(getStream("testContents3"));
         when(mockBlob2.getContentIdentity()).thenReturn(id3);
-        List<Blob> blobPropList = Lists.newArrayList(mockBlob2, mockBlob3);
+        List<Blob> blobPropList = List.of(mockBlob2, mockBlob3);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
             Optional.<Blob>empty(),
             Optional.<String>empty(),
@@ -430,7 +428,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         Blob mockBlob3 = mock(Blob.class);
         final String id3 = getIdForInputStream(getStream("testContents3"));
         when(mockBlob3.getContentIdentity()).thenReturn(id3);
-        List<Blob> blobPropList = Lists.newArrayList(mockBlob2, mockBlob3);
+        List<Blob> blobPropList = List.of(mockBlob2, mockBlob3);
         NodeStore nodeStore = initNodeStore(Optional.of(mockBlob),
             Optional.<Blob>empty(),
             Optional.<String>empty(),

@@ -108,7 +108,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
 
     @Test
     public void heavyLoad() throws Throwable {
-        List<Whiteboard> whiteboards = Lists.newArrayList(w1, w2);
+        List<Whiteboard> whiteboards = List.of(w1, w2);
         Iterator<Repository> repos = Iterators.cycle(r1, r2);
         AtomicLong commitCounter = new AtomicLong();
         for (int i = 0; i < NUM_WRITERS; i++) {

@@ -1184,9 +1184,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
-                .toList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+                .toList(Iterables.concat(List.of("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
-                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a"))));
+                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/a"))));
     }
 
     void assertSortedString() throws CommitFailedException {
@@ -1274,10 +1274,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // Add the path of property added as timestamp string in the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
-                .toList(Iterables.concat(Lists.newArrayList("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
+                .toList(Iterables.concat(List.of("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
-                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/n0"))));
+                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/n0"))));
     }
 
     @Test
@@ -1891,8 +1891,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(TestUtil.NT_TEST, List.of("/*"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -1928,8 +1928,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(TestUtil.NT_TEST, List.of("/*"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");

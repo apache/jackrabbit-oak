@@ -234,7 +234,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, newArrayList(MODIFIED_IN_SECS));
+                20, List.of(MODIFIED_IN_SECS));
         // since _id is mandatory, so data size should be 2
         docs.forEach(d -> assertEquals(2 , d.keySet().size()));
         assertEquals(10, docs.size());
