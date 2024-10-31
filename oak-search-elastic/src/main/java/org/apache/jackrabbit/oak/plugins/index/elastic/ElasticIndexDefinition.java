@@ -112,9 +112,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
-
-    public static final String ELASTIKNN = "elastiknn";
-
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
 

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -25,14 +28,10 @@ import org.jetbrains.annotations.NotNull;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.json.JsonData;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
 
 public class TermQueryBuilderFactory {
     /**

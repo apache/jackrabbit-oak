@@ -40,6 +40,7 @@ import java.util.List;
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocumentMaker.class);
+    private static final int BLOB_LENGTH_DIVISOR = 4;
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                 @NotNull IndexDefinition definition,
@@ -218,13 +219,13 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
         // without this check, if the vector size is not correct, the entire document will be skipped
-        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 8) {
+        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / BLOB_LENGTH_DIVISOR) {
             // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
             doc.addSimilarityField(pd.name, blob);
         } else {
             LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
-                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
+                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / BLOB_LENGTH_DIVISOR);
         }
     }
 

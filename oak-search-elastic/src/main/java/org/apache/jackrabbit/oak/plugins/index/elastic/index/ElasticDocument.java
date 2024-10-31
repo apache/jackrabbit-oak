@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.LinkedHashSet;
 
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ElasticDocument {
@@ -140,7 +140,7 @@ public class ElasticDocument {
 
     void addSimilarityField(String name, Blob value) throws IOException {
         byte[] bytes = new BlobByteSource(value).read();
-        addProperty(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
+        addProperty(FieldNames.createSimilarityFieldName(name), toFloats(bytes));
     }
 
     void indexAncestors(String path) {

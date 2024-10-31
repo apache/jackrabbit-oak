@@ -16,16 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import co.elastic.clients.elasticsearch._types.Time;
-import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
-import co.elastic.clients.elasticsearch._types.mapping.Property;
-import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
-import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
-import co.elastic.clients.elasticsearch.indices.IndexSettings;
-import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
-import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
-import co.elastic.clients.json.JsonData;
-import co.elastic.clients.util.ObjectBuilder;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
@@ -33,8 +25,17 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.Reader;
-import java.io.StringReader;
+import co.elastic.clients.elasticsearch._types.Time;
+import co.elastic.clients.elasticsearch._types.mapping.DenseVectorProperty;
+import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
+import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
+import co.elastic.clients.util.ObjectBuilder;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -158,10 +159,6 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
-        }
-
         // collect analyzer settings
         IndexSettingsAnalysis.Builder analyzerBuilder =
                 ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
@@ -265,20 +262,13 @@ class ElasticIndexHelper {
                 ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
                 int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
 
-                Reader eknnConfig = new StringReader(
-                        "{" +
-                                "  \"type\": \"elastiknn_dense_float_vector\"," +
-                                "  \"elastiknn\": {" +
-                                "    \"dims\": " + denseVectorSize + "," +
-                                "    \"model\": \"lsh\"," +
-                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
-                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
-                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
-                                "  }" +
-                                "}");
+                DenseVectorProperty denseVectorProperty = new DenseVectorProperty.Builder()
+                    .index(true)
+                    .dims(denseVectorSize)
+                    .similarity(DEFAULT_SIMILARITY_METRIC)
+                    .build();
 
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
+                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.denseVector(denseVectorProperty));
             }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,
