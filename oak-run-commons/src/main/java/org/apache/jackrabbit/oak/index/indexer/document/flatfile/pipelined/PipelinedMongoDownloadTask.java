@@ -828,8 +828,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
                         downloadStatics.incrementDocumentsDownloadedTotal();
 
-                        // All the Mongo queries in this class have a requirement on the _modified field, so the
-                        // documents downloaded will all have the field defined.                        downloadStatics.incrementDocumentsDownloadedTotal();
+                        // Extract the value of _modified. This field must be present in the document, because the Mongo
+                        // queries in this class have a condition on _modified, so the filter will only match documents
+                        // that have this field defined.
                         long currentDocModified = -1;
                         try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
                             bsonReader.readStartDocument();

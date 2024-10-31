@@ -59,6 +59,12 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         this.nodeDocumentFilter = documentFilter;
     }
 
+    /**
+     *
+     * @param reader         the BSON reader
+     * @param decoderContext the decoder context
+     * @return the NodeDocument or null if the document matches the filter in the MongoDocumentFilter associated with this codec
+     */
     @Override
     public NodeDocument decode(BsonReader reader, DecoderContext decoderContext) {
         NodeDocument nodeDocument = collection.newDocument(store);

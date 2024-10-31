@@ -171,11 +171,15 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         mongoObjectsProcessedSinceLastLog++;
                         mongoObjectsProcessed++;
                         ByteBuf byteBuffer = rawBsonDocument.getByteBuffer();
+                        // Mongo documents contain mostly Strings, so we can estimate the size by doubling the byte
+                        // buffer size. This will usually will overestimate the size in memory of the document, but it
+                        // is good enough for our purposes.
                         int sizeEstimate = byteBuffer.remaining() * 2;
                         NodeDocument nodeDoc;
                         try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
                             nodeDoc = nodeDocumentCodec.decode(bsonReader, DecoderContext.builder().build());
                         }
+                        // Check if the document was filtered by the MongoDocumentFilter of the codec.
                         if (nodeDoc == NodeDocument.NULL) {
                             continue;
                         }
