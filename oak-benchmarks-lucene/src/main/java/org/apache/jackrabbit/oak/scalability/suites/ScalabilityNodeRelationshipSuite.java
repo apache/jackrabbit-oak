@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
@@ -123,11 +122,9 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
 
     private static final long BUCKET_SIZE = 100;
 
-    private static final List<String> actions = Lists
-        .newArrayList("act1", "act2", "act3", "act4", "act5", "act6", "act7", "act8", "act9",
+    private static final List<String> actions = List.of("act1", "act2", "act3", "act4", "act5", "act6", "act7", "act8", "act9",
             "act10");
-    private static final List<String> objects = Lists
-        .newArrayList("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7", "obj8", "obj9",
+    private static final List<String> objects = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7", "obj8", "obj9",
             "obj10");
 
     private final Random random = new Random(29);

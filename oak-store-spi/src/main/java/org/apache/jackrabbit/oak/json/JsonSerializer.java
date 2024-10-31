@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.json;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
@@ -26,6 +25,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -300,11 +300,11 @@ public class JsonSerializer {
 
         private static final Pattern EVERYTHING = Pattern.compile(".*");
 
-        private final List<Pattern> nodeIncludes = newArrayList(EVERYTHING);
+        private final List<Pattern> nodeIncludes = new ArrayList<>(Arrays.asList(EVERYTHING));
 
         private final List<Pattern> nodeExcludes = new ArrayList<>();
 
-        private final List<Pattern> propertyIncludes = newArrayList(EVERYTHING);
+        private final List<Pattern> propertyIncludes = new ArrayList<>(Arrays.asList(EVERYTHING));
 
         private final List<Pattern> propertyExcludes = new ArrayList<>();
 

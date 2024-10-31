@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.REMOVE_MAP_ENTRY;
@@ -75,7 +75,7 @@ public final class SweepHelper {
                 entry.invalidate(Collections.singleton(r));
                 Revision jRev = context.newRevision();
                 UpdateOp jOp = entry.asUpdateOp(jRev);
-                if (!store.create(JOURNAL, newArrayList(invOp, jOp))) {
+                if (!store.create(JOURNAL, List.of(invOp, jOp))) {
                     String msg = "Unable to create journal entries for " +
                             "document invalidation.";
                     throw new DocumentStoreException(msg);

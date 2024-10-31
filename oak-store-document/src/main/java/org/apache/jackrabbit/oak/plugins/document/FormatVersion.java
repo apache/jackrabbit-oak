@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -200,7 +199,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
         if (v == V0) {
             UpdateOp op = new UpdateOp(VERSION_ID, true);
             op.set(PROP_VERSION, toString());
-            if (!store.create(SETTINGS, Lists.newArrayList(op))) {
+            if (!store.create(SETTINGS, List.of(op))) {
                 throw concurrentUpdate();
             }
         } else {

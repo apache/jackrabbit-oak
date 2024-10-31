@@ -20,7 +20,6 @@ import static java.io.File.createTempFile;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.copyFile;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -39,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -1058,7 +1058,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.trace("Blob ids to be deleted {}", ids);
             for (String id : ids) {
                 try {
-                    long deleted = blobStore.countDeleteChunks(newArrayList(id), maxModified);
+                    long deleted = blobStore.countDeleteChunks(new ArrayList<>(Arrays.asList(id)), maxModified);
                     if (deleted != 1) {
                         LOG.debug("Blob [{}] not deleted", id);
                     } else {

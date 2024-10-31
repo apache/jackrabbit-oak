@@ -47,7 +47,6 @@ import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
@@ -772,7 +771,7 @@ public class VersionGarbageCollector {
             this.options = options;
             GCMessageTracker vgcm = new GCMessageTracker();
             this.status = vgcm;
-            this.monitor = new DelegatingGCMonitor(Lists.newArrayList(vgcm, gcMonitor));
+            this.monitor = new DelegatingGCMonitor(List.of(vgcm, gcMonitor));
             this.monitor.updateStatus(STATUS_INITIALIZING);
         }
 

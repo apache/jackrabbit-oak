@@ -23,9 +23,8 @@ import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilte
 import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.INCLUDE_ALL;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -101,7 +100,7 @@ public final class Filters {
      */
     @NotNull
     public static EventFilter any(@NotNull final EventFilter... filters) {
-        return any(Lists.newArrayList(requireNonNull(filters)));
+        return any(new ArrayList<>(Arrays.asList(requireNonNull(filters))));
     }
 
     /**
@@ -112,7 +111,7 @@ public final class Filters {
      */
     @NotNull
     public static EventFilter all(@NotNull final EventFilter... filters) {
-        return all(Lists.newArrayList(requireNonNull(filters)));
+        return all(new ArrayList<>(Arrays.asList(requireNonNull(filters))));
     }
 
     /**

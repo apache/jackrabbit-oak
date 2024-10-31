@@ -778,7 +778,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         if (ex != null) {
-            throw handleException(ex, collection, Lists.newArrayList(fromKey, toKey));
+            throw handleException(ex, collection, List.of(fromKey, toKey));
         } else {
             // impossible to get here
             throw new IllegalStateException();

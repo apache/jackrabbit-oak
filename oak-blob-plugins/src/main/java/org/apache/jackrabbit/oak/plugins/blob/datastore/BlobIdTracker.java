@@ -24,6 +24,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -394,7 +396,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         public void track(File recs) throws IOException {
             lock.lock();
             try {
-                append(Lists.newArrayList(recs), delFile, false);
+                append(new ArrayList<>(Arrays.asList(recs)), delFile, false);
                 sort(delFile);
             } finally {
                 lock.unlock();
@@ -688,7 +690,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             File added = createTempFile("added", null);
             writeStrings(recs, added, false);
             // Merge the file with the references
-            merge(Lists.newArrayList(added), false);
+            merge(new ArrayList<>(Arrays.asList(added)), false);
         }
 
         /**
@@ -699,7 +701,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          */
         protected void addRecords(File recs) throws IOException {
             // Merge the file with the references
-            merge(Lists.newArrayList(recs), false);
+            merge(new ArrayList<>(Arrays.asList(recs)), false);
         }
 
         /**

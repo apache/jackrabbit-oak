@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
@@ -3492,7 +3491,7 @@ public final class DocumentNodeStore
         LOG.debug("diffManyChildren: path: {}, fromRev: {}, toRev: {}", path, fromRev, toRev);
 
         for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
-                NodeDocument.MODIFIED_IN_SECS, minValue, Integer.MAX_VALUE, newArrayList(PATH))) {
+                NodeDocument.MODIFIED_IN_SECS, minValue, Integer.MAX_VALUE, List.of(PATH))) {
             paths.add(doc.getPath());
         }
 

@@ -20,7 +20,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -54,6 +53,7 @@ import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -111,7 +111,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         }
 
         // create additional ACEs according to benchmark configuration
-        List<Privilege> allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         if (!entriesForEachPrincipal) {
             createForRotatingPrincipal(acMgr, allPrivileges);
         } else {

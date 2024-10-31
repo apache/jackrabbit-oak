@@ -20,10 +20,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -167,7 +167,7 @@ public class OakDirectory extends Directory {
                         // OAK-7066: Also, make sure that we have at least some non-inlined chunks to delete
                         if (blobId != null && !InMemoryDataRecord.isInstance(blobId)) {
                             blobDeletionCallback.deleted(blobId,
-                                    Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
+                                    List.of(definition.getIndexPath(), dataNodeName, name));
                         }
                     }
                 }

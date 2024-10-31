@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 
 import static java.util.Collections.emptySet;
 
@@ -49,6 +47,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -497,7 +496,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        return String.format("TarFiles{readers=%s,writer=%s}", newArrayList(iterable(head)), w);
+        return String.format("TarFiles{readers=%s,writer=%s}", CollectionUtils.toList(iterable(head)), w);
     }
 
     public long size() {
