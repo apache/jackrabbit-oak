@@ -877,7 +877,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         }
                         docsInCurrentModified++;
 
-                        if (this.documentsDownloadedTotal % 50_000 == 0) {
+                        if (this.documentsDownloadedTotal % 100_000 == 0) {
                             reportProgress("modified: " + modified);
                         }
                         TRAVERSAL_LOG.trace("{}", modified);
