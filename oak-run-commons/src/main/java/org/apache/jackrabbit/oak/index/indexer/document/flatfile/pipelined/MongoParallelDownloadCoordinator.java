@@ -37,6 +37,12 @@ class MongoParallelDownloadCoordinator {
         return lowerRangeTop;
     }
 
+    /**
+     * Indicates that all documents with a modified date less than the given value have been downloaded.
+     *
+     * @param modified
+     * @return true if the lower range has intersected the upper range
+     */
     public synchronized boolean increaseLowerRange(long modified) {
         if (modified > lowerRangeTop) {
             lowerRangeTop = modified;
@@ -44,15 +50,20 @@ class MongoParallelDownloadCoordinator {
         return downloadsCrossed();
     }
 
-    private boolean downloadsCrossed() {
-        return lowerRangeTop > upperRangeBottom;
-    }
-
+    /**
+     * Indicates that all documents with a modified date greater than the given value have been downloaded.
+     * @param modified
+     * @return true if the lower range has intersected the upper range
+     */
     public synchronized boolean decreaseUpperRange(long modified) {
         if (modified < upperRangeBottom) {
             upperRangeBottom = modified;
         }
         return downloadsCrossed();
+    }
+
+    private boolean downloadsCrossed() {
+        return lowerRangeTop > upperRangeBottom;
     }
 
     @Override

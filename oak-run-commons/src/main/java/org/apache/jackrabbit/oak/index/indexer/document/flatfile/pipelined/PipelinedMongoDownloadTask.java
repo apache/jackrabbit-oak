@@ -826,32 +826,30 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         documentsDownloadedTotalBytes += docSize;
                         documentsDownloadedTotal++;
                         downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
-                        downloadStatics.incrementDocumentsDownloadedTotal();
 
-                        long modified = -1;
+                        // All the Mongo queries in this class have a requirement on the _modified field, so the
+                        // documents downloaded will all have the field defined.                        downloadStatics.incrementDocumentsDownloadedTotal();
+                        long currentDocModified = -1;
                         try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
                             bsonReader.readStartDocument();
                             while (bsonReader.readBsonType() != BsonType.END_OF_DOCUMENT) {
                                 String fieldName = bsonReader.readName();
                                 if (fieldName.equals(NodeDocument.MODIFIED_IN_SECS)) {
-                                    modified = bsonReader.readInt64();
+                                    currentDocModified = bsonReader.readInt64();
                                     break;
                                 } else {
                                     bsonReader.skipValue();
                                 }
                             }
                         }
-                        if (modified == -1) {
+                        if (currentDocModified == -1) {
                             throw new IllegalStateException("Document does not have _id or _modified field: " + rawBsonDocument);
                         }
 
-
-                        // All the Mongo queries in this class have a requirement on the _modified field, so the
-                        // documents downloaded will all have the field defined.
                         batch.add(rawBsonDocument);
                         batchSizeBytes += docSize;
 
-                        if (this.nextLastModified != modified) {
+                        if (this.nextLastModified != currentDocModified) {
                             if (docsInCurrentModified > maxDocsWithSameModified) {
                                 maxDocsWithSameModified = docsInCurrentModified;
                                 LOG.info("New max docs with same modified. _modified: {}, count: {}, time: {}", this.nextLastModified, maxDocsWithSameModified,
@@ -859,17 +857,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             }
                             timer.reset().start();
                             docsInCurrentModified = 0;
-
-                            this.nextLastModified = modified;
+                            this.nextLastModified = currentDocModified;
                             if (this.firstModifiedValueSeen == -1) {
                                 this.firstModifiedValueSeen = this.nextLastModified;
                             }
                             if (parallelDownloadCoordinator != null) {
                                 boolean crossedDownloads = downloadOrder == DownloadOrder.ASCENDING ?
-                                        parallelDownloadCoordinator.increaseLowerRange(modified) :
-                                        parallelDownloadCoordinator.decreaseUpperRange(modified);
+                                        parallelDownloadCoordinator.increaseLowerRange(currentDocModified) :
+                                        parallelDownloadCoordinator.decreaseUpperRange(currentDocModified);
                                 if (crossedDownloads) {
-                                    LOG.info("Download complete, reached already seen document: {}", modified);
+                                    LOG.info("Download complete, reached already seen document: {}", currentDocModified);
                                     tryEnqueueCopy(batch);
                                     return;
                                 }
@@ -878,9 +875,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         docsInCurrentModified++;
 
                         if (this.documentsDownloadedTotal % 100_000 == 0) {
-                            reportProgress("modified: " + modified);
+                            reportProgress("modified: " + currentDocModified);
                         }
-                        TRAVERSAL_LOG.trace("{}", modified);
+                        TRAVERSAL_LOG.trace("{}", currentDocModified);
 
                         if (batchSizeBytes >= maxBatchSizeBytes || batch.size() == maxBatchNumberOfDocuments) {
                             LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", batch.size(), batchSizeBytes);
