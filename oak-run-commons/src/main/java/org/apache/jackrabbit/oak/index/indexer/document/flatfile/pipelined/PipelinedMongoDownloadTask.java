@@ -826,6 +826,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         documentsDownloadedTotalBytes += docSize;
                         documentsDownloadedTotal++;
                         downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
+                        downloadStatics.incrementDocumentsDownloadedTotal();
 
                         // All the Mongo queries in this class have a requirement on the _modified field, so the
                         // documents downloaded will all have the field defined.                        downloadStatics.incrementDocumentsDownloadedTotal();
