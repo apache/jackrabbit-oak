@@ -109,7 +109,7 @@ added to or removed from a specific group:
         }
     
         private void createHome(Group group, Root root, String memberId, NamePathMapper namePathMapper) throws RepositoryException {
-            createHome(group, root, new ArrayList<>(Arrays.asList(memberId), Lists.<String>new ArrayList<>(Arrays.asList(), namePathMapper);
+            createHome(group, root, Arrays.asList(memberId), new ArrayList<>(), namePathMapper);
         }
     
         private void createHome(Group group, Root root, Iterable<String> memberIds, Iterable<String> failedIds, NamePathMapper namePathMapper) throws RepositoryException {
@@ -129,7 +129,7 @@ added to or removed from a specific group:
         }
     
         private void removeHome(Group group, Root root, String memberId, NamePathMapper namePathMapper) {
-            removeHome(group, root, new ArrayList<>(Arrays.asList(memberId), Lists.<String>new ArrayList<>(Arrays.asList(), namePathMapper);
+            removeHome(group, root, Arrays.asList(memberId), new ArrayList<>(), namePathMapper);
         }
     
         private void removeHome(Group group, Root root, Iterable<String> memberIds, Iterable<String> failedIds, NamePathMapper namePathMapper) {
