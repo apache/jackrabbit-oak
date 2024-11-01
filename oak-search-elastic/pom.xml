@@ -59,6 +59,7 @@
               !org.glassfish.json.*,
               !com.sun.management.*,
               !jakarta.json.bind.*,
+              !java.net.http.*,
               *
             </Import-Package>
             <Embed-Dependency>
