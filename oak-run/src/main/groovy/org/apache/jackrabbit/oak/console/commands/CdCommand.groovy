@@ -66,7 +66,7 @@ class CdCommand extends CommandSupport{
         } else {
             path = PathUtils.concat(session.getWorkingPath(), arg);
         }
-        List<String> elements = new ArrayList<>(Arrays.asList());
+        List<String> elements = new ArrayList<>();
         PathUtils.elements(path).each{String element ->
             if (PathUtils.denotesParent(element)) {
                 if (!elements.isEmpty()) {
