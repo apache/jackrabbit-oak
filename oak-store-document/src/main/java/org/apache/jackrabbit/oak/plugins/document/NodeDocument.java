@@ -1661,7 +1661,7 @@ public final class NodeDocument extends Document {
                                                @NotNull final List<Iterable<Entry<Revision, String>>> changes,
                                                @Nullable final Cache<StringValue, StringValue> prevNoPropCache,
                                                @Nullable final AtomicBoolean propRevFound) {
-        List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
+        List<Iterable<Map.Entry<Revision, String>>> revs = new ArrayList<>();
 
         RevisionVector readRV = new RevisionVector(readRevision);
         List<Range> ranges = new ArrayList<>();
