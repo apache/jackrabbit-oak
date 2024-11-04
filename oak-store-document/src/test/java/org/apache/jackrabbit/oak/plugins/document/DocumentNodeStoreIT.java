@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -54,6 +55,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests DocumentNodeStore on various DocumentStore back-ends.
@@ -211,7 +214,20 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
      * not-yet-visible property of a document with many previous documents).
      */
     @Test
-    public void unmergedCommitOnRoot() throws Exception {
+    public void unmergedCommitOnRoot_withPrevNoPropCache() throws Exception {
+        doUnmergedCommitOnRoot(true);
+    }
+
+    /**
+     * This variant tests without the case and is thus expected to fail with
+     * an AssertionError
+     */
+    @Test(expected = AssertionError.class)
+    public void unmergedCommitOnRoot_withoutPrevNoPropCache() throws Exception {
+        doUnmergedCommitOnRoot(false);
+    }
+
+    private void doUnmergedCommitOnRoot(boolean prevNoPropCacheEnabled) throws Exception {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
@@ -220,6 +236,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         FailingDocumentStore fs1 = new FailingDocumentStore(ds);
         PausableDocumentStore store1 = new PausableDocumentStore(fs1);
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).setAsyncDelay(0).clock(clock)
+                .setPrevNoPropCacheFeature(createFeature(prevNoPropCacheEnabled))
                 .setDocumentStore(store1).build();
 
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -297,6 +314,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             }
             CountingDocumentStore cds2 = new CountingDocumentStore(ds2);
             DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0).clock(clock)
+                    .setPrevNoPropCacheFeature(createFeature(prevNoPropCacheEnabled))
                     .setDocumentStore(cds2).build();
 
             // now simulate any write and count how many times
@@ -501,5 +519,11 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         public DiffCache getDiffCache(int clusterId) {
             return AmnesiaDiffCache.INSTANCE;
         }
+    }
+
+    private static Feature createFeature(boolean enabled) {
+        Feature cancelInvalidation = mock(Feature.class);
+        when(cancelInvalidation.isEnabled()).thenReturn(enabled);
+        return cancelInvalidation;
     }
 }
