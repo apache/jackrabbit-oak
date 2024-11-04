@@ -691,7 +691,12 @@ public final class DocumentNodeStore
 
         diffCache = builder.getDiffCache(this.clusterId);
 
-        prevNoPropCache = builder.buildPrevNoPropCache(this);
+        final Feature prevNoPropFeature = builder.getPrevNoPropCacheFeature();
+        if (prevNoPropFeature == null || !prevNoPropFeature.isEnabled()) {
+            prevNoPropCache = null;
+        } else {
+            prevNoPropCache = builder.buildPrevNoPropCache(this);
+        }
 
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));

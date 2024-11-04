@@ -135,6 +135,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
+    private Feature prevNoPropCacheFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -421,6 +422,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getDocStoreEmbeddedVerificationFeature() {
         return docStoreEmbeddedVerificationFeature;
+    }
+
+    public T setPrevNoPropCacheFeature(@Nullable Feature prevNoPropCacheFeature) {
+        this.prevNoPropCacheFeature = prevNoPropCacheFeature;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getPrevNoPropCacheFeature() {
+        return prevNoPropCacheFeature;
     }
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
