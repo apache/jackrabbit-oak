@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import static org.apache.commons.io.FilenameUtils.concat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -26,16 +31,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
-import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.commons.io.FileUtils;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
@@ -54,11 +57,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-
-import static org.apache.commons.io.FilenameUtils.concat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class OakOSGiRepositoryFactoryTest {
 
@@ -171,12 +169,12 @@ public class OakOSGiRepositoryFactoryTest {
     private class TestActivator implements BundleActivator {
 
         @Override
-        public void start(BundleContext bundleContext) throws Exception {
+        public void start(BundleContext bundleContext) {
             calledOnStart = true;
         }
 
         @Override
-        public void stop(BundleContext bundleContext) throws Exception {
+        public void stop(BundleContext bundleContext) {
             calledOnStop = true;
         }
     }
@@ -185,7 +183,7 @@ public class OakOSGiRepositoryFactoryTest {
 
         @Override
         public void onPasswordChange(@NotNull User user, @Nullable String newPassword,
-                                     @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+                                     @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             OakOSGiRepositoryFactoryTest.this.newPassword = newPassword;
         }
     }

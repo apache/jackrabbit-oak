@@ -19,23 +19,19 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.Repository;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.junit.Assert.assertNotNull;
 
 public class SimpleRepositoryFactoryTest {
     @Rule
@@ -43,7 +39,7 @@ public class SimpleRepositoryFactoryTest {
 
     @Test(timeout = 60 * 1000)
     public void testRepositoryService() throws Exception{
-        Map<String,String> config = new HashMap<String, String>();
+        Map<String,String> config = new HashMap<>();
         config.put("org.apache.jackrabbit.repository.home",
                 tmpFolder.getRoot().getAbsolutePath());
         config.put("org.apache.jackrabbit.oak.repository.configFile",
@@ -66,9 +62,9 @@ public class SimpleRepositoryFactoryTest {
         return new File(".").getAbsolutePath();
     }
 
-    private static String path(String path){
+    private static String path(String path) {
         File file = new File(FilenameUtils.concat(getBaseDir(), "src/test/resources/"+path));
-        assert file.exists() : "No file found at " + file.getAbsolutePath();
+        assertTrue("No file found at " + file.getAbsolutePath(), file.exists());
         return file.getAbsolutePath();
     }
 }
