@@ -96,7 +96,7 @@ public class ClusterConflictTest {
         b1.child("foo");
         ns1.merge(b1, new TestHook(), EMPTY);
 
-        final List<Exception> exceptions = Lists.newArrayList();
+        final List<Exception> exceptions = new ArrayList<>();
         final NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("bar");
         if (withBranch) {
@@ -156,7 +156,7 @@ public class ClusterConflictTest {
         final List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         // the writers perform conflicting changes
-        List<Thread> writers = Lists.newArrayList();
+        List<Thread> writers = new ArrayList<>();
         writers.add(new Thread(new Writer(exceptions, ns1, counter)));
         writers.add(new Thread(new Writer(exceptions, ns1, counter)));
         for (Thread t : writers) {

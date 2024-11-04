@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
@@ -64,6 +62,7 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -422,7 +421,7 @@ public class RDBDocumentStore implements DocumentStore {
                 break;
             }
 
-            for (List<UpdateOp> partition : partition(newArrayList(operationsToCover.values()), CHUNKSIZE)) {
+            for (List<UpdateOp> partition : CollectionUtils.partitionList(new ArrayList<>(operationsToCover.values()), CHUNKSIZE)) {
                 Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
                 results.putAll(successfulUpdates);
                 operationsToCover.values().removeAll(successfulUpdates.keySet());
@@ -1568,7 +1567,7 @@ public class RDBDocumentStore implements DocumentStore {
         try {
 
             // try up to CHUNKSIZE ops in one transaction
-            for (List<UpdateOp> chunks : Lists.partition(updates, CHUNKSIZE)) {
+            for (List<UpdateOp> chunks : CollectionUtils.partitionList(updates, CHUNKSIZE)) {
                 List<T> docs = new ArrayList<T>();
                 for (UpdateOp update : chunks) {
                     ids.add(update.getId());
@@ -1983,7 +1982,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> int delete(Collection<T> collection, List<String> ids) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
-        for (List<String> sublist : Lists.partition(ids, 64)) {
+        for (List<String> sublist : CollectionUtils.partitionList(ids, 64)) {
             Connection connection = null;
             Stopwatch watch = startWatch();
             try {

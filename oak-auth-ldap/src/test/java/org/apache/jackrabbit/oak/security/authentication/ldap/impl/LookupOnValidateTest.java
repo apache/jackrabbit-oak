@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,13 +23,14 @@ import org.junit.runners.Parameterized;
 
 import javax.jcr.SimpleCredentials;
 import java.util.Collection;
+import java.util.List;
 
 @RunWith(Parameterized.class)
 public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, false, false, "False False" },
                 new Object[] { false, true, false, "False True" },
                 new Object[] { true, false, false, "True False"},

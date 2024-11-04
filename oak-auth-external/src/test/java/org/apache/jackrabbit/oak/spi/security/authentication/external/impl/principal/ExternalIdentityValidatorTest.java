@@ -20,7 +20,6 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
@@ -150,7 +150,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testModifyExternalPrincipalNames() throws Exception {
         Tree userTree = root.getTree(externalUserPath);
         try {
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, Lists.newArrayList("principalNames"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalNames"), Type.STRINGS);
             root.commit();
             fail("Changing rep:externalPrincipalNames must be detected.");
         } catch (CommitFailedException e) {

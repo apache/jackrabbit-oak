@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -149,7 +149,7 @@ public class IndexStatisticsTest {
     }
 
     private static Directory createSampleDirectory(long numOfDocs) throws IOException {
-        return createSampleDirectory(numOfDocs, Lists.newArrayList());
+        return createSampleDirectory(numOfDocs, Collections.emptyList());
     }
 
     private static Directory createSampleDirectory(Document moreDoc) throws IOException {
@@ -157,7 +157,7 @@ public class IndexStatisticsTest {
     }
 
     private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> moreDocs) throws IOException {
-        List<Document> docs = Lists.newArrayList(moreDocs);
+        List<Document> docs = CollectionUtils.toList(moreDocs);
         for (int i = 0; i < numOfDocs; i++) {
             Document doc = new Document();
             doc.add(new StringField("foo", "bar" + i, Field.Store.NO));

@@ -316,7 +316,7 @@ public class LastRevRecoveryAgent {
                     sweepRev.set(Utils.max(sweepRev.get(), jRev));
                     // now that journal entry is in place, perform the actual
                     // updates on the documents
-                    store.createOrUpdate(NODES, newArrayList(updates.values()));
+                    store.createOrUpdate(NODES, new ArrayList<>(updates.values()));
                     log.info("Sweeper updated {}", updates.keySet());
                 }
             });

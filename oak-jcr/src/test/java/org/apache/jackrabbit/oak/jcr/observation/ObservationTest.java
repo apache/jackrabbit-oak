@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -43,6 +42,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -1355,7 +1355,7 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
-            List<Expectation> missing = Lists.newArrayList();
+            List<Expectation> missing = new ArrayList<>();
             long t0 = System.nanoTime();
             try {
                 Futures.allAsList(expected).get(time, timeUnit);
@@ -1371,7 +1371,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }
 
         public List<Event> getUnexpected() {
-            return Lists.newArrayList(unexpected);
+            return new ArrayList<>(unexpected);
         }
 
         @Override

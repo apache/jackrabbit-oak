@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.Closeable;
@@ -36,10 +35,10 @@ import java.util.concurrent.locks.Lock;
 
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService;
@@ -51,8 +50,6 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class DocumentQueue implements Closeable, IndexingQueue {
     private static final PerfLogger PERF_LOGGER =
@@ -157,7 +154,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
 
     @Override
     public boolean addIfNotFullWithoutWait(LuceneDoc doc){
-        checkState(!stopped);
+        Validate.checkState(!stopped);
         boolean added = docsQueue.offer(doc);
         if (added) {
             queueSizeStats.inc();
@@ -170,7 +167,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
 
     @Override
     public boolean add(LuceneDoc doc){
-        checkState(!stopped);
+        Validate.checkState(!stopped);
         boolean added = false;
         try {
             added = docsQueue.offer(doc, queueOfferTimeoutMillis, TimeUnit.MILLISECONDS);
@@ -233,7 +230,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     }
 
     List<LuceneDoc> getQueuedDocs(){
-        List<LuceneDoc> docs = Lists.newArrayList();
+        List<LuceneDoc> docs = new ArrayList<>();
         docs.addAll(docsQueue);
         return docs;
     }

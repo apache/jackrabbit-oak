@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -42,7 +42,6 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -94,7 +93,7 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
 
     @Override
     void assertBlobSizeInWrite(PropertyState jcrData, int blobSize, int fileSize) {
-        List<Blob> blobs = newArrayList(jcrData.getValue(BINARIES));
+        List<Blob> blobs = CollectionUtils.toList(jcrData.getValue(BINARIES));
         assertEquals(blobSize + UNIQUE_KEY_SIZE, blobs.get(0).length());
     }
 

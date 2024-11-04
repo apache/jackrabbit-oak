@@ -353,7 +353,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexSimilarityStrings(D doc, PropertyDefinition pd, String value) throws IOException;
 
-    private boolean addTypedFields(D doc, PropertyState property, String pname, PropertyDefinition pd) {
+    protected boolean addTypedFields(D doc, PropertyState property, String pname, PropertyDefinition pd) {
         int tag = property.getType().tag();
         boolean fieldAdded = false;
 

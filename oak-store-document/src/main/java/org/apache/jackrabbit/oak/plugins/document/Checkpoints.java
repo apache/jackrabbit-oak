@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -177,7 +178,7 @@ class Checkpoints {
         if (cdoc != null) {
             data = (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
         }
-        SortedMap<Revision, Info> checkpoints = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        SortedMap<Revision, Info> checkpoints = new TreeMap<>(StableRevisionComparator.REVERSE);
         if (data != null) {
             for (Map.Entry<Revision, String> entry : data.entrySet()) {
                 checkpoints.put(entry.getKey(), Info.fromString(entry.getValue()));

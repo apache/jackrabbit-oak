@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefi
 
 import java.security.Principal;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;

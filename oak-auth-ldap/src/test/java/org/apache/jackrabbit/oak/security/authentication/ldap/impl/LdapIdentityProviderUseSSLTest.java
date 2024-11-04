@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -41,7 +41,7 @@ public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProvider
     
     @Parameterized.Parameters(name = "LdapConfiguration with {2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] {false, false, null, "useSSL=false, useTLS=false, enabled_protocols=NA"},
                 new Object[] {true, false, null, "useSSL=true, useTLS=false, enabled_protocols=NA"},
                 new Object[] {true, false, new String[] {PROTOCOL}, "useSSL=true, useTLS=false, enabled_protocols=["+PROTOCOL+"]"},

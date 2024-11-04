@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
@@ -73,6 +72,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -326,7 +326,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     private JackrabbitNodeState createChildNodeState(NodeId id, String name) {
         if (mountPoints.containsKey(id)) {
             final JackrabbitNodeState nodeState = mountPoints.get(id);
-            checkState(name.equals(nodeState.name),
+            Validate.checkState(name.equals(nodeState.name),
                     "Expected mounted node " + id + " to be called " + nodeState.name +
                             " instead of " + name);
             nodeState.parent = this;

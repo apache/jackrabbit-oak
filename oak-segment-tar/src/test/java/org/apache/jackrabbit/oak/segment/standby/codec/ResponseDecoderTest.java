@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
@@ -32,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
@@ -206,7 +205,7 @@ public class ResponseDecoderTest {
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
-        assertTrue(elementsEqual(newArrayList("b"), response.getReferences()));
+        assertTrue(elementsEqual(List.of("b"), response.getReferences()));
     }
 
     @Test

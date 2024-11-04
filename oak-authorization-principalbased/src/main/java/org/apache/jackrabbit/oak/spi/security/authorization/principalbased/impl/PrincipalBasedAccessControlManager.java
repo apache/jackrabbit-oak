@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -406,7 +405,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     private static Iterable<String> getEffectivePaths(@Nullable String oakPath) {
         // read-access-control permission has already been check for 'oakPath'
-        List<String> paths = Lists.newArrayList();
+        List<String> paths = new ArrayList<>();
         paths.add(Objects.toString(oakPath, ""));
 
         String effectivePath = oakPath;

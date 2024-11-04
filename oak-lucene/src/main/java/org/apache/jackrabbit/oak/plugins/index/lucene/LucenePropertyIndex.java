@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,12 +43,12 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
@@ -136,7 +137,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -271,7 +271,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
-            private final Deque<FulltextResultRow> queue = Queues.newArrayDeque();
+            private final Deque<FulltextResultRow> queue = new ArrayDeque<>();
             private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
@@ -347,7 +347,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 ScoreDoc lastDocToRecord = null;
 
                 final LuceneIndexNode indexNode = acquireIndexNode(plan);
-                checkState(indexNode != null);
+                Validate.checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = getCurrentSearcher(indexNode);
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
@@ -762,7 +762,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
             LuceneIndexNode indexNode = acquireIndexNode(plan);
-            checkState(indexNode != null);
+            Validate.checkState(indexNode != null);
             try {
                 IndexSearcher searcher = indexNode.getSearcher();
                 LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
@@ -850,8 +850,8 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private static SortField.Type toLuceneSortType(OrderEntry oe, PropertyDefinition defn) {
         Type<?> t = oe.getPropertyType();
-        checkState(t != null, "Type cannot be null");
-        checkState(!t.isArray(), "Array types are not supported");
+        Validate.checkState(t != null, "Type cannot be null");
+        Validate.checkState(!t.isArray(), "Array types are not supported");
 
         int type = getPropertyType(defn, oe.getPropertyName(), t.tag());
         switch (type) {
@@ -1607,7 +1607,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
                     .filter(x -> x != null);
         } else {
-            checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
+            Validate.checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
             Filter filter = plan.getFilter();
             paths = FluentIterable.from(Iterables.concat(
                     lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),

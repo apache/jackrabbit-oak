@@ -34,6 +34,11 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.bson.BsonBinaryReader;
+import org.bson.ByteBuf;
+import org.bson.RawBsonDocument;
+import org.bson.codecs.DecoderContext;
+import org.bson.io.ByteBufferBsonInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,11 +82,12 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
+    private final NodeDocumentCodec nodeDocumentCodec;
     private final RevisionVector rootRevision;
     private final NodeStateEntryWriter entryWriter;
     private final Predicate<String> pathPredicate;
     // Input queue
-    private final ArrayBlockingQueue<NodeDocument[]> mongoDocQueue;
+    private final ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue;
     // Output queue
     private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
     // Queue with empty (recycled) buffers
@@ -93,15 +99,17 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
+                                  NodeDocumentCodec nodeDocumentCodec,
                                   RevisionVector rootRevision,
                                   Predicate<String> pathPredicate,
                                   NodeStateEntryWriter entryWriter,
-                                  ArrayBlockingQueue<NodeDocument[]> mongoDocQueue,
+                                  ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
                                   TransformStageStatistics statsCollector) {
         this.mongoStore = mongoStore;
         this.documentNodeStore = documentNodeStore;
+        this.nodeDocumentCodec = nodeDocumentCodec;
         this.rootRevision = rootRevision;
         this.pathPredicate = pathPredicate;
         this.entryWriter = entryWriter;
@@ -122,6 +130,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
             long totalDocumentQueueWaitTimeMillis = 0;
             long totalEntryCount = 0;
+            int mongoObjectsProcessedSinceLastLog = 0;
             long mongoObjectsProcessed = 0;
             LOG.debug("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
@@ -131,9 +140,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
-                NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
+                RawBsonDocument[] rawBsonDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                if (nodeDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
+                if (rawBsonDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
                     // So that other threads listening on this queue also get the sentinel
                     mongoDocQueue.put(PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT);
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
@@ -157,16 +166,33 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     tryEnqueue(nseBatch);
                     return new Result(threadId, totalEntryCount);
                 } else {
-                    for (NodeDocument nodeDoc : nodeDocumentBatch) {
+                    for (RawBsonDocument rawBsonDocument : rawBsonDocumentBatch) {
                         statistics.incrementMongoDocumentsTraversed();
+                        mongoObjectsProcessedSinceLastLog++;
                         mongoObjectsProcessed++;
-                        if (mongoObjectsProcessed % 50_000 == 0) {
-                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                        ByteBuf byteBuffer = rawBsonDocument.getByteBuffer();
+                        // Mongo documents contain mostly Strings, so we can estimate the size by doubling the byte
+                        // buffer size. This will usually overestimate the size in memory of the document, but it
+                        // is good enough for our purposes.
+                        int sizeEstimate = byteBuffer.remaining() * 2;
+                        NodeDocument nodeDoc;
+                        try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
+                            nodeDoc = nodeDocumentCodec.decode(bsonReader, DecoderContext.builder().build());
+                        }
+                        // Check if the document was filtered by the MongoDocumentFilter of the codec.
+                        if (nodeDoc == NodeDocument.NULL) {
+                            continue;
+                        }
+                        if (mongoObjectsProcessedSinceLastLog >= 100_000) {
+                            mongoObjectsProcessedSinceLastLog = 0;
+                            LOG.info("Processing: {}, {}. Total documents: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                                    nodeDoc.getModified(), nodeDoc.getId(),
                                     mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
                                     nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
+                        nodeDoc.put(NodeDocumentCodec.SIZE_FIELD, sizeEstimate);
                         //TODO Review the cache update approach where tracker has to track *all* docs
                         // TODO: should we cache splitDocuments? Maybe this can be moved to after the check for split document
                         nodeCache.put(nodeDoc);

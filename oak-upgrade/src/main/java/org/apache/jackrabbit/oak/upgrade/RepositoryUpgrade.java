@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -81,6 +79,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -509,7 +508,7 @@ public class RepositoryUpgrade {
             watch.reset().start();
             logger.info("Applying default commit hooks");
             // TODO: default hooks?
-            List<CommitHook> hooks = newArrayList();
+            List<CommitHook> hooks = new ArrayList<>();
 
             UserConfiguration userConf =
                     security.getConfiguration(UserConfiguration.class);
@@ -713,7 +712,7 @@ public class RepositoryUpgrade {
             } else {
                 prefix = addCustomMapping(namespaces, uri, prefixHint);
             }
-            checkState(uriToPrefix.put(uri, prefix) == null);
+            Validate.checkState(uriToPrefix.put(uri, prefix) == null);
         }
 
         Namespaces.buildIndexNode(namespaces);
@@ -745,7 +744,7 @@ public class RepositoryUpgrade {
     private void copyCustomPrivileges(PrivilegeManager pMgr) throws RepositoryException {
         PrivilegeRegistry registry = source.getPrivilegeRegistry();
 
-        List<Privilege> customAggrPrivs = Lists.newArrayList();
+        List<Privilege> customAggrPrivs = new ArrayList<>();
 
         logger.debug("Registering custom non-aggregated privileges");
         for (Privilege privilege : registry.getRegisteredPrivileges()) {
@@ -823,7 +822,7 @@ public class RepositoryUpgrade {
 
     private void copyNodeTypes(NodeTypeManager ntMgr, ValueFactory valueFactory) throws RepositoryException {
         NodeTypeRegistry sourceRegistry = source.getNodeTypeRegistry();
-        List<NodeTypeTemplate> templates = Lists.newArrayList();
+        List<NodeTypeTemplate> templates = new ArrayList<>();
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
             String oakName = getOakName(name);
             // skip built-in nodetypes (OAK-1235)

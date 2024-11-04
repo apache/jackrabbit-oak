@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
@@ -32,6 +31,8 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -58,6 +59,7 @@ import java.util.UUID;
  *
  */
 public class ConcurrentReader extends ScalabilityBenchmark {
+
     protected static final Logger LOG = LoggerFactory.getLogger(ConcurrentReader.class);
     private static final Random rand = new Random();
     private static final int WRITERS = Integer.getInteger("concurrentReaders", 0);
@@ -67,7 +69,7 @@ public class ConcurrentReader extends ScalabilityBenchmark {
         ConcurrentReader.class.getSimpleName() + UUID.randomUUID();
 
     private boolean running;
-    private List<Thread> jobs = Lists.newArrayList();
+    private List<Thread> jobs = new ArrayList<>();
 
     @Override
     public void beforeExecute(Repository repository, Credentials credentials, ExecutionContext context) throws Exception {

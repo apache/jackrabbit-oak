@@ -31,10 +31,10 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
@@ -69,8 +69,8 @@ public class LuceneIndexAggregationTest extends IndexAggregationCommonTest {
      */
     private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(NT_FOLDER, List.of("myFile", "subfolder/subsubfolder/file"));
     }
 
 }

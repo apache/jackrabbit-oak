@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -37,8 +38,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.joinUninterruptibly;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
@@ -58,7 +57,7 @@ public class HierarchyConflictTest {
 
     @Before
     public void before() {
-        exceptions = Lists.newArrayList();
+        exceptions = new ArrayList<>();
         nodeRemoved = new CountDownLatch(1);
         nodeAdded = new CountDownLatch(1);
         store = new DocumentMK.Builder().getNodeStore();

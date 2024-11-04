@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -35,6 +34,7 @@ import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.scheduler.Commit;
 import org.apache.jackrabbit.oak.segment.scheduler.LockBasedScheduler;
@@ -129,7 +129,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
         @NotNull
         public SegmentNodeStore build() {
-            checkState(!isCreated);
+            Validate.checkState(!isCreated);
             isCreated = true;
             LOG.info("Creating segment node store {}", this);
             return new SegmentNodeStore(this);

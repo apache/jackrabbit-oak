@@ -28,6 +28,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -54,7 +55,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
@@ -190,8 +190,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      */
     @NotNull
     DocumentNodeState asBranchRootState(@NotNull DocumentNodeStoreBranch branch) {
-        checkState(path.isRoot());
-        checkState(getRootRevision().isBranch());
+        Validate.checkState(path.isRoot());
+        Validate.checkState(getRootRevision().isBranch());
         return new DocumentBranchRootNodeState(store, branch, path, rootRevision, lastRevision, bundlingContext, memory);
     }
 

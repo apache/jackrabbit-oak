@@ -49,6 +49,7 @@
               org.apache.jackrabbit.oak.commons,
               org.apache.jackrabbit.oak.commons.cache,
               org.apache.jackrabbit.oak.commons.collections,
+              org.apache.jackrabbit.oak.commons.conditions,
               org.apache.jackrabbit.oak.commons.concurrent,
               org.apache.jackrabbit.oak.commons.io,
               org.apache.jackrabbit.oak.commons.json,

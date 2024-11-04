@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -42,7 +43,6 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
@@ -81,7 +81,7 @@ public class IndexPathServiceImpl implements IndexPathService {
     public Iterable<String> getIndexPaths() {
         NodeState nodeType = NodeStateUtils.getNode(nodeStore.getRoot(), "/oak:index/nodetype");
 
-        checkState("property".equals(nodeType.getString("type")), "nodetype index at " +
+        Validate.checkState("property".equals(nodeType.getString("type")), "nodetype index at " +
                 "/oak:index/nodetype is found to be disabled. Cannot determine the paths of all indexes");
 
         //Check if oak:QueryIndexDefinition is indexed as part of nodetype index

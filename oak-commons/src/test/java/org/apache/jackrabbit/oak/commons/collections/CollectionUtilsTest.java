@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -65,6 +66,24 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void partitionList() {
+        final List<String> list = List.of("a", "b", "c", "d", "e", "f", "g");
+        final List<List<String>> partitions = CollectionUtils.partitionList(list, 3);
+        Assert.assertEquals(3, partitions.size());
+        Assert.assertEquals(List.of("a", "b", "c"), partitions.get(0));
+        Assert.assertEquals(List.of("d", "e", "f"), partitions.get(1));
+        Assert.assertEquals(List.of("g"), partitions.get(2));
+    }
+
+    @Test
+    public void partitionListWhenListIsSmallerThanPartitionSize() {
+        final List<String> list = List.of("a");
+        final List<List<String>> partitions = CollectionUtils.partitionList(list, 3);
+        Assert.assertEquals(1, partitions.size());
+        Assert.assertEquals(List.of("a"), partitions.get(0));
+    }
+
+    @Test
     public void iterableToSet() {
         // create an iterable
         final Set<String> s = new HashSet<>(data);
@@ -98,6 +117,26 @@ public class CollectionUtilsTest {
         final Iterable<String> iterable = new SimpleIterable<>(s);
 
         Assert.assertEquals(s, CollectionUtils.toSet(iterable.iterator()));
+    }
+
+    @Test
+    public void toArrayDequeWithNonEmptyIterable() {
+        List<String> list = Arrays.asList("one", "two", "three");
+        ArrayDeque<String> result = CollectionUtils.toArrayDeque(list);
+
+        Assert.assertNotNull(result);
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals("one", result.peekFirst());
+        Assert.assertEquals("three", result.peekLast());
+    }
+
+    @Test
+    public void toArrayDequeWithEmptyIterable() {
+        List<String> emptyList = Collections.emptyList();
+        ArrayDeque<String> result = CollectionUtils.toArrayDeque(emptyList);
+
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.isEmpty());
     }
 
     @Test

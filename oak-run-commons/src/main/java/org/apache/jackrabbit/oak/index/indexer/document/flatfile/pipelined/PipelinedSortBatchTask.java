@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
@@ -195,9 +196,16 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
+        String[] prevPathElements = null;
+        int duplicateEntriesSkippped = 0;
         try (OutputStream os = IndexStoreUtils.createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
+                if (Arrays.equals(prevPathElements, entry.getPathElements())) {
+                    duplicateEntriesSkippped++;
+                    continue;
+                }
+                prevPathElements = entry.getPathElements();
                 // Retrieve the entry from the buffer
                 int posInBuffer = entry.getBufferPos();
                 buffer.position(posInBuffer);
@@ -213,11 +221,13 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         long compressedSize = Files.size(newtmpfile);
-        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}",
+        int entriesWritten = sortBuffer.size() - duplicateEntriesSkippped;
+        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}. Duplicate entries skipped: {}",
                 humanReadableByteCountBin(compressedSize),
                 humanReadableByteCountBin(textSize),
-                sortBuffer.size(), saveClock,
-                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis())
+                entriesWritten, saveClock,
+                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis()),
+                duplicateEntriesSkippped
         );
         // Free the memory taken by the entries in the buffer
         sortBuffer.clear();

@@ -30,6 +30,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
@@ -43,8 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -79,7 +79,7 @@ public class IndexDefinitionUpdater {
         String parentPath = PathUtils.getParentPath(indexPath);
         NodeState parent = NodeStateUtils.getNode(rootBuilder.getBaseState(), parentPath);
 
-        checkState(parent.exists(), "Parent node at path [%s] not found while " +
+        Validate.checkState(parent.exists(), "Parent node at path [%s] not found while " +
                 "adding new index definition for [%s]. Intermediate paths node must exist for new index " +
                 "nodes to be created", parentPath,indexPath);
 

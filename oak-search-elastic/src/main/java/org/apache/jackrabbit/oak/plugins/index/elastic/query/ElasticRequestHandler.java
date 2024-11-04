@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
@@ -32,31 +33,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.jcr.PropertyType;
-
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
-import co.elastic.clients.elasticsearch.core.search.Highlight;
-import co.elastic.clients.elasticsearch.core.search.HighlightField;
-import co.elastic.clients.json.JsonpUtils;
+import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -66,6 +43,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceService;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceServiceManager;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -94,6 +73,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.KnnQuery;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.SuggestMode;
@@ -105,9 +85,31 @@ import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import co.elastic.clients.elasticsearch.core.search.Highlight;
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
+import co.elastic.clients.json.JsonpUtils;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import javax.jcr.PropertyType;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -133,7 +135,7 @@ public class ElasticRequestHandler {
     private final NodeState rootState;
 
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
-            NodeState rootState) {
+                          NodeState rootState) {
         this.indexPlan = indexPlan;
         this.filter = indexPlan.getFilter();
         this.planResult = planResult;
@@ -192,7 +194,10 @@ public class ElasticRequestHandler {
                         bqb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
                     }
                 } else {
-                    bqb.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
+                  similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
+                    bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
+                        .should(s -> s.knn(similarityQuery))
+                  );
                 }
 
                 // Add should clause to improve relevance using similarity tags only when similarity is
@@ -222,6 +227,61 @@ public class ElasticRequestHandler {
         }
 
         return bqb;
+    }
+
+  public Optional<KnnQuery> similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
+    if (!sp.isEmpty()) {
+      LOG.debug("generating similarity query for {}", text);
+      NodeState targetNodeState = rootState;
+      for (String token : PathUtils.elements(text)) {
+        targetNodeState = targetNodeState.getChildNode(token);
+      }
+      if (!targetNodeState.exists()) {
+        throw new IllegalArgumentException("Could not find node " + text);
+      }
+      for (PropertyDefinition propertyDefinition : sp) {
+        ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+        String propertyPath = PathUtils.getParentPath(pd.name);
+        String propertyName = PathUtils.getName(pd.name);
+        NodeState tempState = targetNodeState;
+        for (String token : PathUtils.elements(propertyPath)) {
+          if (token.isEmpty()) {
+            break;
+          }
+          tempState = tempState.getChildNode(token);
+        }
+        PropertyState ps = tempState.getProperty(propertyName);
+        Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
+        if (property == null) {
+          LOG.warn("Couldn't find property {} on {}", pd.name, text);
+          continue;
+        }
+        byte[] bytes;
+        try {
+          bytes = new BlobByteSource(property).read();
+        } catch (IOException e) {
+          LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
+          continue;
+        }
+
+        String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
+        KnnQuery knnQuery = baseKnnQueryBuilder(similarityPropFieldName, bytes, pd).build();
+        return Optional.of(knnQuery);
+      }
+    }
+    return Optional.empty();
+  }
+
+    @NotNull
+    private KnnQuery.Builder baseKnnQueryBuilder(String similarityPropFieldName, byte[] bytes, ElasticPropertyDefinition pd) {
+        KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder()
+            .field(similarityPropFieldName)
+            .queryVector(toFloats(bytes))
+            .numCandidates(pd.getKnnSearchParameters().getCandidates());
+        if (!pd.getKnnSearchParameters().getSimilarityMetric().equals(DEFAULT_SIMILARITY_METRIC)) {
+            knnQueryBuilder.similarity(pd.getKnnSearchParameters().getSimilarity());
+        }
+        return knnQueryBuilder;
     }
 
     public @NotNull List<SortOptions> baseSorts() {
@@ -282,7 +342,7 @@ public class ElasticRequestHandler {
     public ElasticFacetProvider getAsyncFacetProvider(ElasticConnection connection, ElasticResponseHandler responseHandler) {
         return requiresFacets()
                 ? ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), connection,
-                        elasticIndexDefinition, this, responseHandler, filter::isAccessible)
+                elasticIndexDefinition, this, responseHandler, filter::isAccessible)
                 : null;
     }
 
@@ -301,68 +361,6 @@ public class ElasticRequestHandler {
     public Stream<String> facetFields() {
         return filter.getPropertyRestrictions().stream().filter(pr -> QueryConstants.REP_FACET.equals(pr.propertyName))
                 .map(pr -> FulltextIndex.parseFacetField(pr.first.getValue(Type.STRING)));
-    }
-
-    private BoolQuery similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
-        BoolQuery.Builder query = new BoolQuery.Builder();
-        if (!sp.isEmpty()) {
-            LOG.debug("generating similarity query for {}", text);
-            NodeState targetNodeState = rootState;
-            for (String token : PathUtils.elements(text)) {
-                targetNodeState = targetNodeState.getChildNode(token);
-            }
-            if (!targetNodeState.exists()) {
-                throw new IllegalArgumentException("Could not find node " + text);
-            }
-            for (PropertyDefinition propertyDefinition : sp) {
-                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-                String propertyPath = PathUtils.getParentPath(pd.name);
-                String propertyName = PathUtils.getName(pd.name);
-                NodeState tempState = targetNodeState;
-                for (String token : PathUtils.elements(propertyPath)) {
-                    if (token.isEmpty()) {
-                        break;
-                    }
-                    tempState = tempState.getChildNode(token);
-                }
-                PropertyState ps = tempState.getProperty(propertyName);
-                Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
-                if (property == null) {
-                    LOG.warn("Couldn't find property {} on {}", pd.name, text);
-                    continue;
-                }
-                byte[] bytes;
-                try {
-                    bytes = new BlobByteSource(property).read();
-                } catch (IOException e) {
-                    LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
-                    continue;
-                }
-
-                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
-                String knnQuery = "{" +
-                        "  \"elastiknn_nearest_neighbors\": {" +
-                        "    \"field\": \"" + similarityPropFieldName + "\"," +
-                        "    \"model\": \"" + pd.getSimilaritySearchParameters().getQueryModel() + "\"," +
-                        "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction() + "\"," +
-                        "    \"candidates\": " + pd.getSimilaritySearchParameters().getCandidates() + "," +
-                        "    \"probes\": " + pd.getSimilaritySearchParameters().getProbes() + "," +
-                        "    \"vec\": {" +
-                        "      \"values\": [" +
-                        toDoubles(bytes).stream().map(Objects::toString).collect(Collectors.joining(",")) +
-                        "      ]" +
-                        "    }" +
-                        "  }" +
-                        "}";
-
-                query
-                        .filter(fb -> fb.exists(ef -> ef.field(similarityPropFieldName)))
-                        .should(s -> s
-                                .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
-                );
-            }
-        }
-        return query.build();
     }
 
     /*
@@ -559,8 +557,14 @@ public class ElasticRequestHandler {
                     bqBuilder.must(m -> m.nested(nf -> nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES).query(Query.of(q -> q.queryString(qsqBuilder.build())))));
                 } else {
                     boolean dbEnabled = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty();
-                    QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
-                    bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
+
+                    // Experimental support for inference queries
+                    if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
+                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, dbEnabled)));
+                    } else {
+                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
+                        bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
+                    }
                 }
 
                 if (boost != null) {
@@ -578,8 +582,66 @@ public class ElasticRequestHandler {
                 return true;
             }
         });
-        
+
         return Query.of(q -> q.bool(result.get()));
+    }
+
+    private ObjectBuilder<BoolQuery> inference(BoolQuery.Builder b, String propertyName, String text, PlanResult pr, boolean dbEnabled) {
+        ElasticIndexDefinition.InferenceDefinition.Query q = null;
+        // select first query eligible for the given text
+        // TODO: evaluate if/how to handle multiple queries
+        String  queryText = text;
+        for (ElasticIndexDefinition.InferenceDefinition.Query query : elasticIndexDefinition.inferenceDefinition.queries) {
+            if (query.isEligibleForInput(queryText)) {
+                queryText = query.rewrite(queryText);
+                if (query.hasMinTerms(queryText)) {
+                    q = query;
+                    break;
+                }
+            }
+        }
+
+        QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFieldName(propertyName), pr, dbEnabled);
+
+        // the query can be null if no inference query is eligible for the given text or the min terms are not met
+        // in this case, we fall back to the default full-text query
+        if (q != null) {
+            LOG.info("Using inference query: {}", q);
+            try {
+                // let's retrieve the fields with the same model as the query
+                final ElasticIndexDefinition.InferenceDefinition.Query query = q;
+                List<ElasticIndexDefinition.InferenceDefinition.Property> properties = elasticIndexDefinition.inferenceDefinition.properties.stream()
+                        .filter(pd -> pd.model.equals(query.model))
+                        .collect(Collectors.toList());
+                if (!properties.isEmpty()) {
+                    InferenceService inferenceService = InferenceServiceManager.getInstance(q.serviceUrl, q.model);
+                    List<Float> embeddings = inferenceService.embeddings(queryText, (int) q.timeout);
+                    if (embeddings != null) {
+                        for (ElasticIndexDefinition.InferenceDefinition.Property p : properties) {
+                            // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-knn-query.html
+                            KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
+                            knnQueryBuilder.field(p.name + ".value");
+                            knnQueryBuilder.numCandidates(q.numCandidates);
+                            knnQueryBuilder.queryVector(embeddings);
+                            knnQueryBuilder.similarity(q.similarityThreshold);
+                            b.should(s -> s.knn(knnQueryBuilder.build()));
+                        }
+                        int tokens = queryText.split("\\s+").length;
+                        // the more tokens, the less important the full-text query is
+                        // TODO: make it configurable
+                        double qsBoost = (tokens > 1) ? 1.0d / (5 * tokens) : 1.0d;
+                        return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
+                    } else {
+                        LOG.warn("No embeddings found for text {}", text);
+                    }
+                } else {
+                    LOG.warn("No properties with model {} found", query.model);
+                }
+            } catch (Exception e) {
+                LOG.warn("Error while calling inference service. Query won't use embeddings", e);
+            }
+        }
+        return b.must(mm -> mm.queryString(qsqBuilder.build()));
     }
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {

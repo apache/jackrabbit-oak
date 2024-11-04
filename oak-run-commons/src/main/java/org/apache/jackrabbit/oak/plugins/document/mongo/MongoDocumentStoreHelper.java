@@ -20,9 +20,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import com.mongodb.ReadPreference;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;
@@ -65,8 +65,7 @@ public class MongoDocumentStoreHelper {
             }
         }
 
-        SortedMap<Revision, String> commitRoot = Maps
-            .newTreeMap(NodeDocumentHelper.getLocalCommitRoot(doc));
+        SortedMap<Revision, String> commitRoot = new TreeMap<>(NodeDocumentHelper.getLocalCommitRoot(doc));
         if (!commitRoot.keySet().retainAll(changes)) {
             System.out.println("Nothing to repair on " + path);
             return;

@@ -971,7 +971,7 @@ public class UserQueryTest extends AbstractUserTest {
 
     @Test
     public void testQueryUserWithSpecialCharId() throws Exception {
-        List<String> ids = Lists.newArrayList("'", "]");
+        List<String> ids = List.of("'", "]");
         for (String id : ids) {
             User user = null;
             try {

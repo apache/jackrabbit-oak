@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import java.util.TreeMap;
 
 import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -35,7 +34,7 @@ public abstract class CheckpointsHelper {
     public static SortedMap<Revision, Long> getCheckpoints(
             DocumentNodeStore store) {
         SortedMap<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
-        SortedMap<Revision, Long> map = Maps.newTreeMap(checkpoints.comparator());
+        SortedMap<Revision, Long> map = new TreeMap<>(checkpoints.comparator());
         for (Map.Entry<Revision, Info> entry : checkpoints.entrySet()) {
             map.put(entry.getKey(), entry.getValue().getExpiryTime());
         }

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 
 import java.util.ArrayList;
@@ -58,7 +57,7 @@ public interface RefreshStrategy {
         private final RefreshStrategy[] refreshStrategies;
 
         public static RefreshStrategy create(RefreshStrategy... refreshStrategies) {
-            ArrayList<RefreshStrategy> strategies = newArrayList();
+            ArrayList<RefreshStrategy> strategies = new ArrayList<>();
             for (RefreshStrategy strategy : refreshStrategies) {
                 if (strategy instanceof Composite) {
                     strategies.addAll(asList(((Composite) strategy).refreshStrategies));

@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.asPredicate;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -330,7 +330,7 @@ public class TypeEditor extends DefaultEditor {
             @Nullable EffectiveType parent, @Nullable String name,
             @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
-        List<NodeState> list = Lists.newArrayList();
+        List<NodeState> list = new ArrayList<>();
 
         NodeState type = (primary == null) ? null : types.getChildNode(primary);
         if (type == null || !type.exists()) {
@@ -441,9 +441,9 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = Lists.newArrayList(before.getNames(JCR_MIXINTYPES));
+        List<String> pre = CollectionUtils.toList(before.getNames(JCR_MIXINTYPES));
         Collections.sort(pre);
-        List<String> post = Lists.newArrayList(after);
+        List<String> post = CollectionUtils.toList(after);
         Collections.sort(post);
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
@@ -467,7 +467,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

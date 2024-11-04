@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +29,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -44,7 +43,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class WhiteboardUtilsTest {
-    private List<Registration> regs = Lists.newArrayList();
+    private List<Registration> regs = new ArrayList<>();
 
     @After
     public void unregisterRegs(){

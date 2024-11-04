@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
@@ -35,6 +34,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
@@ -431,7 +431,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStore build() throws InvalidFileStoreVersionException, IOException {
-        checkState(!built, "Cannot re-use builder");
+        Validate.checkState(!built, "Cannot re-use builder");
         built = true;
         directory.mkdirs();
         TarRevisions revisions = new TarRevisions(persistence);
@@ -470,8 +470,8 @@ public class FileStoreBuilder {
      */
     @NotNull
     public ReadOnlyFileStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
-        checkState(!built, "Cannot re-use builder");
-        checkState(directory.exists() && directory.isDirectory(),
+        Validate.checkState(!built, "Cannot re-use builder");
+        Validate.checkState(directory.exists() && directory.isDirectory(),
                 "%s does not exist or is not a directory", directory);
         built = true;
         ReadOnlyRevisions revisions = new ReadOnlyRevisions(persistence);

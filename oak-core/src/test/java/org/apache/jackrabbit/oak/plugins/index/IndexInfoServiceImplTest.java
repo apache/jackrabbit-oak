@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -89,7 +89,7 @@ public class IndexInfoServiceImplTest {
 
     @Test
     public void allIndexInfo() throws Exception{
-        pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
+        pathService.paths = List.of("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("a"); //Index with no type
@@ -113,7 +113,7 @@ public class IndexInfoServiceImplTest {
         service.bindInfoProviders(type_c);
         service.bindInfoProviders(type_d);
 
-        List<IndexInfo> infos = Lists.newArrayList(service.getAllIndexInfo());
+        List<IndexInfo> infos = CollectionUtils.toList(service.getAllIndexInfo());
 
         //Result would only have 2 entries. One throwing exception would be ignored
         assertEquals(2, infos.size());

@@ -25,15 +25,11 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -65,6 +61,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
@@ -310,7 +308,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 }
             }
 
-            List<MapEntry> entries = newArrayList();
+            List<MapEntry> entries = new ArrayList<>();
             for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
                 String key = entry.getKey();
 
@@ -432,7 +430,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return writeMapBucket(null, null, level);
             } else {
                 // combine all remaining entries into a leaf record
-                List<MapEntry> list = newArrayList();
+                List<MapEntry> list = new ArrayList<>();
                 for (MapRecord bucket : buckets) {
                     if (bucket != null) {
                         addAll(list, bucket.getEntries());
@@ -457,9 +455,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
             checkArgument(!list.isEmpty());
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
-                List<RecordId> nextLevel = newArrayList();
-                for (List<RecordId> bucket :
-                        partition(thisLevel, ListRecord.LEVEL_SIZE)) {
+                List<RecordId> nextLevel = new ArrayList<>();
+                for (List<RecordId> bucket : CollectionUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
                     if (bucket.size() > 1) {
                         nextLevel.add(writeListBucket(bucket));
                     } else {
@@ -482,12 +479,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             int shift = 32 - (level + 1) * MapRecord.BITS_PER_LEVEL;
 
             List<List<MapEntry>> buckets =
-                    newArrayList(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
+                    new ArrayList<>(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
             for (MapEntry entry : entries) {
                 int index = (entry.getHash() >> shift) & mask;
                 List<MapEntry> bucket = buckets.get(index);
                 if (bucket == null) {
-                    bucket = newArrayList();
+                    bucket = new ArrayList<>();
                     buckets.set(index, bucket);
                 }
                 bucket.add(entry);
@@ -529,7 +526,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             }
 
             int pos = 0;
-            List<RecordId> blockIds = newArrayListWithExpectedSize(
+            List<RecordId> blockIds = new ArrayList<>(
                     data.length / SegmentStream.BLOCK_SIZE + 1);
 
             // write as many full bulk segments as possible
@@ -685,7 +682,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             n += read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
             long length = n;
             List<RecordId> blockIds =
-                    newArrayListWithExpectedSize(2 * n / SegmentStream.BLOCK_SIZE);
+                    new ArrayList<>(2 * n / SegmentStream.BLOCK_SIZE);
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
@@ -716,7 +713,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             Type<?> type = state.getType();
             int count = state.count();
 
-            List<RecordId> valueIds = newArrayList();
+            List<RecordId> valueIds = new ArrayList<>();
             for (int i = 0; i < count; i++) {
                 if (type.tag() == PropertyType.BINARY) {
                     try {
@@ -754,7 +751,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return id; // shortcut if the same template was recently stored
             }
 
-            Collection<RecordId> ids = newArrayList();
+            Collection<RecordId> ids = new ArrayList<>();
             int head = 0;
 
             RecordId primaryId = null;
@@ -769,12 +766,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             PropertyState mixinTypes = template.getMixinTypes();
             if (mixinTypes != null) {
                 head |= 1 << 30;
-                mixinIds = newArrayList();
+                mixinIds = new ArrayList<>();
                 for (String mixin : mixinTypes.getValue(NAMES)) {
                     mixinIds.add(writeString(mixin));
                 }
                 ids.addAll(mixinIds);
-                checkState(mixinIds.size() < (1 << 10));
+                Validate.checkState(mixinIds.size() < (1 << 10));
                 head |= mixinIds.size() << 18;
             }
 
@@ -810,7 +807,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 ids.add(propNamesId);
             }
 
-            checkState(propertyNames.length < (1 << 18));
+            Validate.checkState(propertyNames.length < (1 << 18));
             head |= propertyNames.length;
 
             RecordId tid = writeOperationHandler.execute(gcGeneration, newWriteOperation(
@@ -866,7 +863,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 beforeTemplate = before.getTemplate();
             }
 
-            List<RecordId> ids = newArrayList();
+            List<RecordId> ids = new ArrayList<>();
             Template template = new Template(reader, state);
             if (template.equals(beforeTemplate)) {
                 ids.add(before.getTemplateId());
@@ -881,7 +878,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 ids.add(writeNode(state.getChildNode(template.getChildName()), null));
             }
 
-            List<RecordId> pIds = newArrayList();
+            List<RecordId> pIds = new ArrayList<>();
             for (PropertyTemplate pt : template.getPropertyTemplates()) {
                 String name = pt.getName();
                 PropertyState property = state.getProperty(name);

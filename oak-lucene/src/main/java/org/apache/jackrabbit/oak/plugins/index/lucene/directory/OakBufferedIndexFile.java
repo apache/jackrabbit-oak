@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
@@ -28,6 +29,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +38,6 @@ import org.jetbrains.annotations.NotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -127,9 +128,9 @@ class OakBufferedIndexFile implements OakIndexFile {
 
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null && property.getType() == BINARIES) {
-            this.data = newArrayList(property.getValue(BINARIES));
+            this.data = CollectionUtils.toList(property.getValue(BINARIES));
         } else {
-            this.data = newArrayList();
+            this.data = new ArrayList<>();
         }
 
         this.length = (long)data.size() * blobSize;
@@ -152,7 +153,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
         this.position = that.position;
         this.length = that.length;
-        this.data = newArrayList(that.data);
+        this.data = new ArrayList<>(that.data);
         this.dataModified = that.dataModified;
         this.blobFactory = that.blobFactory;
     }
@@ -161,7 +162,7 @@ class OakBufferedIndexFile implements OakIndexFile {
         checkElementIndex(i, data.size());
         if (index != i) {
             flushBlob();
-            checkState(!blobModified);
+            Validate.checkState(!blobModified);
 
             int n = (int) Math.min(blobSize, length - (long)i * blobSize);
             InputStream stream = data.get(i).getNewStream();
@@ -187,7 +188,7 @@ class OakBufferedIndexFile implements OakIndexFile {
             if (index < data.size()) {
                 data.set(index, b);
             } else {
-                checkState(index == data.size());
+                Validate.checkState(index == data.size());
                 data.add(b);
             }
             dataModified = true;

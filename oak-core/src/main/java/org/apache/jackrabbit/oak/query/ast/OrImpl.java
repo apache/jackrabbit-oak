@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,7 +35,6 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
 
 /**
  * An "or" condition.
@@ -114,14 +113,14 @@ public class OrImpl extends ConstraintImpl {
                         entry.getKey(), EQUAL, values.iterator().next()));
             } else {
                 simplified.add(new InImpl(
-                        entry.getKey(), newArrayList(values)));
+                        entry.getKey(), new ArrayList<>(values)));
             }
         }
 
         if (simplified.size() == 1) {
             return simplified.iterator().next();
         } else if (changed) {
-            return new OrImpl(newArrayList(simplified));
+            return new OrImpl(new ArrayList<>(simplified));
         } else {
             return this;
         }
@@ -130,7 +129,7 @@ public class OrImpl extends ConstraintImpl {
     @Override
     ConstraintImpl not() {
         // not (X or Y) == (not X) and (not Y)
-        List<ConstraintImpl> list = newArrayList();
+        List<ConstraintImpl> list = new ArrayList<>();
         for (ConstraintImpl constraint : getConstraints()) {
             list.add(new NotImpl(constraint));
         }
@@ -154,7 +153,7 @@ public class OrImpl extends ConstraintImpl {
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        List<FullTextExpression> list = newArrayList();
+        List<FullTextExpression> list = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             FullTextExpression expression = constraint.getFullTextConstraint(s);
             if (expression != null) {
@@ -246,7 +245,7 @@ public class OrImpl extends ConstraintImpl {
         LinkedHashSet<StaticOperandImpl> values = new LinkedHashSet<>();
  
         boolean multiPropertyOr = false;
-        List<AndImpl> ands = newArrayList();
+        List<AndImpl> ands = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             Set<SelectorImpl> selectors = constraint.getSelectors();
             if (selectors.size() != 1 || !selectors.contains(s)) {
@@ -309,7 +308,7 @@ public class OrImpl extends ConstraintImpl {
             }
         }
 
-        InImpl in = new InImpl(operand, newArrayList(values));
+        InImpl in = new InImpl(operand, new ArrayList<>(values));
         in.setQuery(query);
         in.restrictPushDown(s);
     }
@@ -346,7 +345,7 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public AstElement copyOf() {
-        List<ConstraintImpl> clone = newArrayList();
+        List<ConstraintImpl> clone = new ArrayList<>();
         for (ConstraintImpl c : constraints) {
             clone.add((ConstraintImpl) copyElementAndCheckReference(c));
         }

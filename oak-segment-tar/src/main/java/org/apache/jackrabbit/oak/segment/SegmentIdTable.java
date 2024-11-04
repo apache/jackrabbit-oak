@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.nCopies;
 
 import java.lang.ref.WeakReference;
@@ -60,7 +59,7 @@ public class SegmentIdTable {
      * entries would be slower).
      */
     private final ArrayList<WeakReference<SegmentId>> references =
-            newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
+            new ArrayList<>(nCopies(1024, (WeakReference<SegmentId>) null));
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
 

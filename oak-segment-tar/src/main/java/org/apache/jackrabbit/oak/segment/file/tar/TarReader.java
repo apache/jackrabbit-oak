@@ -18,14 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -83,10 +83,10 @@ public class TarReader implements Closeable {
      * @return An instance of {@link TarReader}.
      */
     static TarReader open(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
-        SortedMap<Character, String> sorted = newTreeMap();
+        SortedMap<Character, String> sorted = new TreeMap<>();
         sorted.putAll(files);
 
-        List<String> list = newArrayList(sorted.values());
+        List<String> list = new ArrayList<>(sorted.values());
         Collections.reverse(list);
 
         TarReader reader = openFirstFileWithValidIndex(list, archiveManager);

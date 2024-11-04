@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.commons;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
@@ -49,6 +48,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -146,7 +146,7 @@ public class FileIOUtilsTest {
 
     @Test
     public void sortTest() throws IOException {
-        List<String> list = newArrayList("a", "z", "e", "b");
+        List<String> list = new ArrayList<>(Arrays.asList("a", "z", "e", "b"));
         File f = assertWrite(list.iterator(), false, list.size());
 
         sort(f);
@@ -154,7 +154,7 @@ public class FileIOUtilsTest {
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
         String line;
-        List<String> retrieved = newArrayList();
+        List<String> retrieved = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
             retrieved.add(line);
         }
@@ -173,7 +173,7 @@ public class FileIOUtilsTest {
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
         String line;
-        List<String> retrieved = newArrayList();
+        List<String> retrieved = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
             retrieved.add(unescapeLineBreaks(line));
         }
@@ -238,7 +238,7 @@ public class FileIOUtilsTest {
         Set<String> added3 = Set.of("t", "y", "8", "9");
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
-        append(newArrayList(f2, f3), f1, true);
+        append(List.of(f2, f3), f1, true);
         assertEquals(union(union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
         assertTrue(!f2.exists());
@@ -257,7 +257,7 @@ public class FileIOUtilsTest {
         Set<String> added3 = Set.of("t", "y", "8", "9");
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
-        append(newArrayList(f2, f3), f1, false);
+        append(List.of(f2, f3), f1, false);
 
         assertEquals(union(union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
@@ -275,7 +275,7 @@ public class FileIOUtilsTest {
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         try {
-            append(newArrayList(f2, f3), null, true);
+            append(List.of(f2, f3), null, true);
         } catch (Exception e) {
         }
         assertTrue(!f2.exists());
@@ -293,7 +293,7 @@ public class FileIOUtilsTest {
         Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), true, added2.size());
 
-        append(newArrayList(f2), f1, true);
+        append(List.of(f2), f1, true);
 
         assertEquals(union(added1, added2),
             readStringsAsSet(new FileInputStream(f1), true));
@@ -307,7 +307,7 @@ public class FileIOUtilsTest {
         Set<String> added2 = Set.of("2", "3", "5", "6");
         File f2 = assertWrite(added2.iterator(), true, added2.size());
 
-        append(newArrayList(f1), f2, true);
+        append(List.of(f1), f2, true);
 
         assertEquals(union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
     }
@@ -321,7 +321,7 @@ public class FileIOUtilsTest {
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         try {
-            merge(newArrayList(f2, f3), null);
+            merge(List.of(f2, f3), null);
         } catch(Exception e) {}
 
         assertTrue(!f2.exists());
@@ -422,12 +422,12 @@ public class FileIOUtilsTest {
     }
 
     private static List<String> getLineBreakStrings() {
-        return newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
-            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
+        return new ArrayList<>(Arrays.asList("ab\nc\r", "ab\\z", "a\\\\z\nc",
+            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c"));
     }
 
     private static List<String> escape(List<String> list) {
-        List<String> escaped = newArrayList();
+        List<String> escaped = new ArrayList<>();
         for (String s : list) {
             escaped.add(escapeLineBreak(s));
         }
@@ -435,7 +435,7 @@ public class FileIOUtilsTest {
     }
 
     private static List<String> unescape(List<String> list) {
-        List<String> unescaped = newArrayList();
+        List<String> unescaped = new ArrayList<>();
         for (String s : list) {
             unescaped.add(unescapeLineBreaks(s));
         }

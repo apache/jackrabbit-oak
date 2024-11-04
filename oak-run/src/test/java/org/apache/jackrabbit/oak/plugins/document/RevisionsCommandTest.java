@@ -177,7 +177,7 @@ public class RevisionsCommandTest {
     }
 
     @Test
-    public void collect() throws Exception {
+    public void collect() {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("collect"));
@@ -196,6 +196,36 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("IncludePaths are : [/]"));
         assertTrue(output.contains("ExcludePaths are : []"));
         assertTrue(output.contains("FullGcMode is : 0"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.0"));
+        assertTrue(output.contains("FullGcBatchSize is : 1000"));
+        assertTrue(output.contains("FullGcProgressSize is : 10000"));
+    }
+
+    @Test
+    public void fullGCWithDelayFactor() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcDelayFactor", "2.5", "--entireRepo"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.5"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void fullGCWithBatchSize() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcBatchSize", "200", "--entireRepo"));
+        assertTrue(output.contains("FullGcBatchSize is : 200"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void fullGCWithProgressSize() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcProgressSize", "20000", "--entireRepo"));
+        assertTrue(output.contains("FullGcProgressSize is : 20000"));
+        assertTrue(output.contains("starting gc collect"));
     }
 
     @Test

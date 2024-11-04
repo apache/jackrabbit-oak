@@ -45,7 +45,7 @@ public class NodeDocumentIdComparatorTest {
 
         Collections.sort(paths, NodeDocumentIdComparator.INSTANCE);
 
-        List<String> expected = Lists.newArrayList(
+        List<String> expected = List.of(
                 "2:/bar/qux", "2:/foo/bar", "1:/bar", "1:/foo", "0:/");
 
         assertEquals(expected, paths);

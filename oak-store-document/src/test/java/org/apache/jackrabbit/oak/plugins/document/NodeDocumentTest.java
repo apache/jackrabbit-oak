@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,6 +28,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +40,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -47,7 +50,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -135,11 +137,11 @@ public class NodeDocumentTest {
         conflicts = doc.getConflictsFor(branchCommits);
         assertEquals(Set.of(c2), conflicts);
 
-        branchCommits = Lists.newArrayList(r1.asBranchRevision(), r2.asBranchRevision());
+        branchCommits = List.of(r1.asBranchRevision(), r2.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
         assertEquals(Set.of(c1, c2), conflicts);
 
-        branchCommits = Lists.newArrayList(r2.asBranchRevision(), r1.asBranchRevision());
+        branchCommits = List.of(r2.asBranchRevision(), r1.asBranchRevision());
         conflicts = doc.getConflictsFor(branchCommits);
         assertEquals(Set.of(c1, c2), conflicts);
     }
@@ -210,7 +212,7 @@ public class NodeDocumentTest {
         final int NUM_CLUSTER_NODES = 3;
         final int NUM_CHANGES = 500;
         DocumentStore store = new MemoryDocumentStore();
-        List<DocumentNodeStore> docStores = Lists.newArrayList();
+        List<DocumentNodeStore> docStores = new ArrayList<>();
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             DocumentNodeStore ns = new DocumentMK.Builder()
                     .setDocumentStore(store)
@@ -315,7 +317,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeUncommittedRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -336,7 +338,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeUncommittedRevisionsWithLaterRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -361,7 +363,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeUncommittedRevisionsWithOlderRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -386,7 +388,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkers() {
 
-        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> collisions = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -405,7 +407,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkersWithLaterRevisions() {
 
-        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> collisions = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -428,7 +430,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkersWithOlderRevisions() {
 
-        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        final SortedMap<Revision, String> collisions = new TreeMap<>(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -776,7 +778,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
@@ -868,7 +870,7 @@ public class NodeDocumentTest {
         ns2.runBackgroundOperations();
         ns1.runBackgroundOperations();
 
-        List<RevisionVector> headRevs = Lists.newArrayList();
+        List<RevisionVector> headRevs = new ArrayList<>();
         // perform many changes on ns1 and split
         for (int i = 0; i < 20; i++) {
             b1 = ns1.getRoot().builder();
@@ -957,7 +959,7 @@ public class NodeDocumentTest {
         Random random = new Random(42);
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
 
@@ -993,7 +995,7 @@ public class NodeDocumentTest {
         Random random = new Random(42);
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
 
@@ -1011,7 +1013,7 @@ public class NodeDocumentTest {
         int numMoreChanges = 50;
         List<RevisionVector> moreRevs = Lists.reverse(
                 createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
+        headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         // now merge the branch and update 'q'. this will split
@@ -1025,7 +1027,7 @@ public class NodeDocumentTest {
         numMoreChanges = 50;
         moreRevs = Lists.reverse(
                 createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
+        headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         NodeDocument doc = getRootDocument(store);
@@ -1059,7 +1061,7 @@ public class NodeDocumentTest {
         };
         Random random = new Random(42);
         DocumentNodeStore ns = createTestStore(store, 1, 0);
-        List<RevisionVector> headRevisions = Lists.newArrayList();
+        List<RevisionVector> headRevisions = new ArrayList<>();
 
         long count = 1000;
         for (int i = 0; i < count; i++) {
@@ -1089,7 +1091,7 @@ public class NodeDocumentTest {
 
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
-        List<Integer> numCalls = Lists.newArrayList();
+        List<Integer> numCalls = new ArrayList<>();
         // go back in time and check number of find calls
         Collections.reverse(headRevisions);
         for (RevisionVector rv : headRevisions) {
@@ -1127,7 +1129,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
-        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
         List<RevisionVector> headRevisions = Lists.reverse(
                 createTestData(nodeStores, random, numChanges));
@@ -1301,7 +1303,7 @@ public class NodeDocumentTest {
                                                 int numChanges,
                                                 int startValue)
             throws CommitFailedException {
-        List<RevisionVector> headRevisions = Lists.newArrayList();
+        List<RevisionVector> headRevisions = new ArrayList<>();
         for (int i = startValue; i < numChanges + startValue; i++) {
             DocumentNodeStore ns = nodeStores.get(random.nextInt(nodeStores.size()));
             ns.runBackgroundUpdateOperations();

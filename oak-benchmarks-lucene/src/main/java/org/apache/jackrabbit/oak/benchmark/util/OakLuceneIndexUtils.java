@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark.util;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -28,6 +27,8 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +76,7 @@ public class OakLuceneIndexUtils {
 
         // Set ordered property names
         if ((orderedPropsMap != null) && !orderedPropsMap.isEmpty()) {
-            List<String> orderedProps = Lists.newArrayList();
+            List<String> orderedProps = new ArrayList<>();
             for (Map.Entry<String, Map<String, String>> orderedPropEntry : orderedPropsMap
                     .entrySet()) {
                 Node propNode = JcrUtils.getOrAddNode(propsNode, orderedPropEntry.getKey(),

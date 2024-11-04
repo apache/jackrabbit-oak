@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.composite;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +72,7 @@ public class CompositeChildrenCountTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -123,7 +123,7 @@ public class CompositeChildrenCountTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 

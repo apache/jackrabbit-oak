@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.composite;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -44,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +54,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 
@@ -126,7 +126,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
                 .collect(Collectors.toList());
 
         checkArgument(readWriteMountNames.isEmpty(),
-                "Following partial mounts are write-enabled: ", readWriteMountNames);
+                "Following partial mounts are write-enabled: %s", readWriteMountNames);
     }
 
     @Override
@@ -375,7 +375,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
         private final NodeStore globalStore;
 
-        private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        private final List<MountedNodeStore> nonDefaultStores = new ArrayList<>();
 
         private CompositeNodeStoreMonitor nodeStateMonitor = CompositeNodeStoreMonitor.EMPTY_INSTANCE;
 
@@ -387,7 +387,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             this.mip = requireNonNull(mip, "mountInfoProvider");
             this.globalStore = requireNonNull(globalStore, "globalStore");
         }
-        
+
         public Builder with(NodeStoreChecks checks) {
             this.checks = checks;
             return this;

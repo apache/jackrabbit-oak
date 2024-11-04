@@ -52,7 +52,7 @@ public class TestACL extends AbstractAccessControlList {
                    @NotNull RestrictionProvider restrictionProvider,
                    @NotNull NamePathMapper namePathMapper,
                    @NotNull JackrabbitAccessControlEntry... entry) {
-        this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
+        this(jcrPath, restrictionProvider, namePathMapper, List.of(entry));
     }
 
     @Override

@@ -43,7 +43,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -219,7 +218,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
         PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
 
-        List<ACE> toAdd = Lists.newArrayList(principalAcl.getEntries());
+        List<ACE> toAdd = new ArrayList<>(principalAcl.getEntries());
         List<ACE> toRemove = Collections.emptyList();
         if (existing != null) {
             toAdd.removeAll(existing.getEntries());

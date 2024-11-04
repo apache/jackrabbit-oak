@@ -35,6 +35,7 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -60,8 +61,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.lang.String.valueOf;
@@ -156,8 +155,8 @@ public class DataStoreTrackerGCTest {
         // Simulate creation and active deletion after init without version gc to enable references to hang around
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
             (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
-        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = List.of(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -186,8 +185,8 @@ public class DataStoreTrackerGCTest {
         File f = folder.newFile();
         tracker.remove(f, BlobTracker.Options.ACTIVE_DELETION);
 
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
-        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = List.of(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -233,8 +232,8 @@ public class DataStoreTrackerGCTest {
 
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
             (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
-        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = List.of(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -250,17 +249,17 @@ public class DataStoreTrackerGCTest {
         DataStoreState state = init(cluster.nodeStore, 0);
 
         // Directly delete from blobstore
-        ArrayList<String> blobs = Lists.newArrayList(state.blobsPresent);
+        ArrayList<String> blobs = new ArrayList<>(state.blobsPresent);
         String removedId = blobs.remove(0);
-        ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
+        ((DataStoreBlobStore) s).deleteChunks(List.of(removedId), 0);
         state.blobsPresent = new HashSet<>(blobs);
         File f = folder.newFile();
-        writeStrings(Lists.newArrayList(removedId).iterator(), f, false);
+        writeStrings(List.of(removedId).iterator(), f, false);
         tracker.remove(f);
 
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
             (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
-        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+        List<String> addlPresent = List.of(addlAdded.get(2), addlAdded.get(3));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
 
@@ -270,7 +269,7 @@ public class DataStoreTrackerGCTest {
 
     private List<String> doActiveDelete(NodeStore nodeStore, DataStoreBlobStore blobStore, BlobIdTracker tracker,
         TemporaryFolder folder, int delIdx, int num) throws Exception {
-        List<String> set = Lists.newArrayList();
+        List<String> set = new ArrayList<>();
         NodeBuilder a = nodeStore.getRoot().builder();
         int number = 4;
         for (int i = 0; i < number; i++) {
@@ -280,11 +279,11 @@ public class DataStoreTrackerGCTest {
         }
         nodeStore.merge(a, INSTANCE, EMPTY);
 
-        List<String> deleted = Lists.newArrayList();
+        List<String> deleted = new ArrayList<>();
 
         //a = nodeStore.getRoot().builder();
         for(int idx = delIdx; idx < delIdx + num; idx++) {
-            blobStore.deleteChunks(Lists.newArrayList(set.get(idx)), 0);
+            blobStore.deleteChunks(List.of(set.get(idx)), 0);
             deleted.add(set.get(idx));
             a.child("cactive" + idx).remove();
         }
@@ -330,7 +329,7 @@ public class DataStoreTrackerGCTest {
     }
 
     private static List<String> range(int min, int max) {
-        List<String> list = newArrayList();
+        List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
             list.add(valueOf(i));
         }
@@ -339,7 +338,7 @@ public class DataStoreTrackerGCTest {
 
     private HashSet<String> addNodeSpecialChars(DocumentNodeStore ds) throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = ds.getRoot().builder();
         int toBeDeleted = 0;
@@ -350,7 +349,7 @@ public class DataStoreTrackerGCTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            List<String> ids = Lists.newArrayList(idIter);
+            List<String> ids = CollectionUtils.toList(idIter);
             if (toBeDeleted != i) {
                 set.addAll(ids);
             }
@@ -562,7 +561,7 @@ public class DataStoreTrackerGCTest {
         int number = 10;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
-        List<Integer> processed = Lists.newArrayList();
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random(47);
         for (int i = idStart; i < idStart + maxDeleted; i++) {
             int n = rand.nextInt(number);

@@ -78,6 +78,7 @@ public class Prefetcher {
             @Override
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
+                t.setDaemon(true);
                 t.setName("BlobPrefetcher-" + threadNumber.getAndIncrement());
                 return t;
             }

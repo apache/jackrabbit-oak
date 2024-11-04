@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.jetbrains.annotations.NotNull;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
     private static final Set<String> KEYWORDS = Set.of("or");

@@ -105,6 +105,13 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // "LOWER(x) IN (A, B)" implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
+        if (!f.getQueryLimits().getOptimizeInRestrictionsForFunctions()) {
+            return;
+        }
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictPropertyAsList(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, list);
+        }
     }
     
     @Override

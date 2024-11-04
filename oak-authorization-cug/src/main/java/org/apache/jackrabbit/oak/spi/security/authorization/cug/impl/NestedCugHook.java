@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -96,7 +95,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
         PropertyBuilder<String> pb = getHiddenPropertyBuilder(ps);
         if (ps != null) {
-            List<String> moveToNestedCug = Lists.newArrayList();
+            List<String> moveToNestedCug = new ArrayList<>();
             for (String p : ps.getValue(Type.STRINGS)) {
                 if (Text.isDescendant(pathWithNewCug, p)) {
                     pb.removeValue(p);

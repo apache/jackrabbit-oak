@@ -302,11 +302,11 @@ public class JsonSerializer {
 
         private final List<Pattern> nodeIncludes = newArrayList(EVERYTHING);
 
-        private final List<Pattern> nodeExcludes = newArrayList();
+        private final List<Pattern> nodeExcludes = new ArrayList<>();
 
         private final List<Pattern> propertyIncludes = newArrayList(EVERYTHING);
 
-        private final List<Pattern> propertyExcludes = newArrayList();
+        private final List<Pattern> propertyExcludes = new ArrayList<>();
 
         JsonFilter(String filter) {
             JsopTokenizer tokenizer = new JsopTokenizer(filter);
@@ -318,8 +318,8 @@ public class JsonSerializer {
                 String key = tokenizer.readString();
                 tokenizer.read(':');
 
-                List<Pattern> includes = newArrayList();
-                List<Pattern> excludes = newArrayList();
+                List<Pattern> includes = new ArrayList<>();
+                List<Pattern> excludes = new ArrayList<>();
                 readPatterns(tokenizer, includes, excludes);
 
                 if (key.equals("nodes")) {

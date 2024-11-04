@@ -38,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
@@ -48,6 +47,7 @@ import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
@@ -58,7 +58,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 public class ActiveDeletedBlobCollectorFactory {
     public interface ActiveDeletedBlobCollector {
@@ -273,7 +273,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
                                     lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp, blobDeletionTimestamp);
 
-                                    List<String> chunkIds = Lists.newArrayList(blobStore.resolveChunks(deletedBlobId));
+                                    List<String> chunkIds = CollectionUtils.toList(blobStore.resolveChunks(deletedBlobId));
                                     if (chunkIds.size() > 0) {
                                         long deleted = blobStore.countDeleteChunks(chunkIds, 0);
                                         if (deleted < 1) {

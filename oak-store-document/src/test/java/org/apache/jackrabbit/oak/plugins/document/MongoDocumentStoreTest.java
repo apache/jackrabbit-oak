@@ -116,7 +116,7 @@ public class MongoDocumentStoreTest {
         DocumentStore docStore = openDocumentStore();
         int nUpdates = 10;
         Revision r1 = new Revision(0, 0, 0);
-        List<String> ids = Lists.newArrayList();
+        List<String> ids = new ArrayList<>();
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
         for (int i = 0; i < nUpdates; i++) {
             String path = "/node" + i;

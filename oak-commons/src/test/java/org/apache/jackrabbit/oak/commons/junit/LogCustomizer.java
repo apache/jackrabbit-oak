@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.commons.junit;
 
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * The LogCustomizer allows to enable log level for a specific logger and/or
@@ -150,7 +149,7 @@ public class LogCustomizer {
     }
 
     private final Logger logger;
-    private final List<String> logs = Lists.newArrayList();
+    private final List<String> logs = new ArrayList<>();
 
     private final Level enableLevel;
     private final Level originalLevel;

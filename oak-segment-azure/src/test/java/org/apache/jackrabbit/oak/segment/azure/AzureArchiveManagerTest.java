@@ -70,7 +70,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -128,7 +127,7 @@ public class AzureArchiveManagerTest {
 
         LinkedHashMap<UUID, byte[]> recovered = new LinkedHashMap<>();
         manager.recoverEntries("data00000a.tar", recovered);
-        assertEquals(uuids.subList(0, 5), newArrayList(recovered.keySet()));
+        assertEquals(new ArrayList<>(uuids.subList(0, 5)), new ArrayList<>(recovered.keySet()));
     }
 
     @Test

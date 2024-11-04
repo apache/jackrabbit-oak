@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -39,13 +38,14 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.security.Privilege;
+
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -142,7 +142,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
     }
 
     protected String getQuery() {
-        List<String> samples = newArrayList(propVals);
+        List<String> samples = new ArrayList<>(propVals);
         return "SELECT [rep:facet(foo)], [rep:facet(bar)] FROM [nt:base] WHERE [cons] = '" + samples.get(rgen.nextInt(samples.size())) + "'";
     }
 
