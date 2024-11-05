@@ -1644,6 +1644,7 @@ public final class NodeDocument extends Document {
             return mergeSorted(changes, ValueComparator.REVERSE);
         }
     }
+
     /**
      * Collect changes in previous documents into {@code changes} visible from
      * the given {@code readRevision} and for the given {@code property}. The
