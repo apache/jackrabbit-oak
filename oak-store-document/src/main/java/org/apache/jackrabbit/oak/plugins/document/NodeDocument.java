@@ -1127,7 +1127,7 @@ public final class NodeDocument extends Document {
                 commitValue = context.getCommitValue(propRev, this);
             }
             if (commitValue == null) {
-                // then it's also not visible
+                // then it's not committed
                 continue;
             }
             if (Utils.isCommitted(commitValue)) {
