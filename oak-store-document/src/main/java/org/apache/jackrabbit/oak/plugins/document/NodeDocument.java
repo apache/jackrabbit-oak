@@ -1622,15 +1622,19 @@ public final class NodeDocument extends Document {
      * The latter is used to detect whether previous documents had any property revisions at all.
      * This method is invoked in two different ways:
      * <ul>
-     * <li>prevNoPropCache != null : this is used for the top level previous documents
-     * (those are are directly linked from the main document). For these top level previous
-     * documents we want to use the prevNoProp cache. To do that, for these cases the
+     * <li>prevNoPropCache != null : this is used in the top most invocation only and
+     * when passed causes top level previous documents to be handled via the cache.
+     * To do that, for these cases the
      * changesFor method will do iterable-yoga to sneak into the iterator() code while
      * having taken note of whether any previous document had any revision at all for the
      * given property (this later aspect is checked in getVisibleChanges in a child iteration).</li>
-     * <li>prevNoPropCache == null : this is used for all intermediate and leave previous documents.
-     * For all of those we're not interested to use the prevNoProp cache but instead we're interested
-     * to keep track of whether they had any revision for the given property.</li>
+     * <li>prevNoPropCache == null : this is used in invocations on all previous documents.
+     * In this case the method checks if there are any revisions for the given property.
+     * If there are, then the provided propRevFound AtomicBoolean is set to true.
+     * That information is then used in the top most call in this getVisibleChanges-iteration
+     * to decide whether we can cache the fact that no propery (whatsoever) was found in the
+     * given previous document (and all its children) or not. That decision is based on the
+     * AtomciBoolean being true or false.</li>
      * </ul>
      */
     @NotNull
