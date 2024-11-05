@@ -108,7 +108,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 
     @AttributeDefinition(
             name = "PrevNoProp Cache",
-            description = "Percentage of cache to be allocated towards PrepNoProp cache")
+            description = "Percentage of cache to be allocated towards PrevNoProp cache")
     int prevNoPropCachePercentage() default DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 
     @AttributeDefinition(
