@@ -298,7 +298,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             // start B
             // for MongoDocumentStore (and perhaps others), we can't use the same
             // instance by the second DocumentNodeStore, as that would mean they
-            // share the cache. And it is also the cache that is part of teh testing.
+            // share the cache. And it is also the cache that is part of the testing.
             // Hence what we need is a real second MongoDocumentStore that connects
             // to the same mongo instance (but has its own cache and thus cause
             // interesting things).
