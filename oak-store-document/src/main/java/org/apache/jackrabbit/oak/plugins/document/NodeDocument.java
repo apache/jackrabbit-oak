@@ -1620,6 +1620,18 @@ public final class NodeDocument extends Document {
     /**
      * Variation of getVisibleChanges that allows to provide a non-null propRevFound.
      * The latter is used to detect whether previous documents had any property revisions at all.
+     * This method is invoked in two different ways:
+     * <ul>
+     * <li>prevNoPropCache != null : this is used for the top level previous documents
+     * (those are are directly linked from the main document). For these top level previous
+     * documents we want to use the prevNoProp cache. To do that, for these cases the
+     * changesFor method will do iterable-yoga to sneak into the iterator() code while
+     * having taken note of whether any previous document had any revision at all for the
+     * given property (this later aspect is checked in getVisibleChanges in a child iteration).</li>
+     * <li>prevNoPropCache == null : this is used for all intermediate and leave previous documents.
+     * For all of those we're not interested to use the prevNoProp cache but instead we're interested
+     * to keep track of whether they had any revision for the given property.</li>
+     * </ul>
      */
     @NotNull
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
@@ -1724,6 +1736,11 @@ public final class NodeDocument extends Document {
         if (prevNoPropCache != null && parentPropRevFound == null) {
             // then we are in the main doc. at this point we thus need to
             // check the cache, if miss then scan prev docs and cache the result
+            //TODO: consider refactoring of the getVisibleChanges/collectVisiblePreviousChanges/changesFor
+            // logic. The way these methods create a sequence of Iterables and lambdas make
+            // for a rather complex logic that is difficult to fiddle with.
+            // It might thus be worth while to look into some loop logic rather than iteration here.
+            // Except that refactoring is likely a bigger task, hence postponed for now.
             rangeToChanges = input -> {
                     final String prevDocId = getPreviousDocId(input.high, input);
                     final StringValue cacheKey = new StringValue(property + "@" + prevDocId);
