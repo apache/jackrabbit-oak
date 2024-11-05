@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package oak.apache.jackrabbit.oak.segment.azure.tool;
+package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 

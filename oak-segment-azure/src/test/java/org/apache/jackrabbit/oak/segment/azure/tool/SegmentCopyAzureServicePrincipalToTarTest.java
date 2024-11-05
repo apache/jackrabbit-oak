@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package oak.apache.jackrabbit.oak.segment.azure.tool;
+package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;

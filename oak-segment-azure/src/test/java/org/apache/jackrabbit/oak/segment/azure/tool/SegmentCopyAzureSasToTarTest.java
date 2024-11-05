@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package oak.apache.jackrabbit.oak.segment.azure.tool;
+package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 
-public class SegmentCopyAzureToTarTest extends SegmentCopyTestBase {
 
+public class SegmentCopyAzureSasToTarTest extends SegmentCopyTestBase{
     @Override
     protected SegmentNodeStorePersistence getSrcPersistence() throws Exception {
         return getAzurePersistence();
@@ -33,8 +33,8 @@ public class SegmentCopyAzureToTarTest extends SegmentCopyTestBase {
     }
 
     @Override
-    protected String getSrcPathOrUri() {
-        return getAzurePersistencePathOrUri();
+    protected String getSrcPathOrUri(){
+        return getAzurePersistencePathOrUriSas();
     }
 
     @Override
