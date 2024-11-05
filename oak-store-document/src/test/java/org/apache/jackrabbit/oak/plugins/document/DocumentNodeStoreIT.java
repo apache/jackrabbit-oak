@@ -243,7 +243,6 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // create MANY previous docs
-        System.out.println(new Date() + " - creating MANY previous docs...");
         for (int j = 0; j < 100; j++) {
             for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
                 b1 = ns1.getRoot().builder();
@@ -252,7 +251,6 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
             }
             ns1.runBackgroundOperations();
         }
-        System.out.println(new Date() + " - done creating MANY previous docs.");
 
         // create /a as some initial content
         NodeBuilder builder = ns1.getRoot().builder();
@@ -420,7 +418,6 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         }
 
         // a bit simplistic, but that's one way to reproduce the bug
-        System.out.println(new Date() + " - success.");
     }
 
     private void assertNoPreviousDocsRead(int c, int threshold) {
