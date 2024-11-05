@@ -90,6 +90,7 @@ public final class NodeDocument extends Document {
     }
 
     static final Logger LOG = LoggerFactory.getLogger(NodeDocument.class);
+    static final Logger PREV_NO_PROP_LOG = LoggerFactory.getLogger(NodeDocument.class + ".prevNoProp");
 
     private static final LogSilencer LOG_SILENCER = new LogSilencer();
 
@@ -1037,7 +1038,7 @@ public final class NodeDocument extends Document {
                 // any in previous documents neither.
                 // This should only occur when a property is being newly
                 // added or was deleted, then fullGC-ed and now re-added.
-                LOG.trace("getNodeAtRevision : skipping as no committed revision locally for path={}, key={}", path, key);
+                PREV_NO_PROP_LOG.debug("getNodeAtRevision : skipping as no committed revision locally for path={}, key={}", path, key);
                 continue;
             }
 
@@ -1731,7 +1732,7 @@ public final class NodeDocument extends Document {
                         // (we're not interested in the actual cache value btw, as finding 
                         // a cache value actually indicates "the property does not exist 
                         // in any previous document whatsoever" - no need for value check)
-                        LOG.trace("changesFor : empty changes cache hit for cacheKey={}", cacheKey);
+                        PREV_NO_PROP_LOG.trace("changesFor : empty changes cache hit for cacheKey={}", cacheKey);
                         return Collections.emptyList();
                     }
                     // cache miss - let's do the heavy lifting then
@@ -1765,7 +1766,7 @@ public final class NodeDocument extends Document {
                             wrappee.hasNext();
                             if (!childrenPropRevFound.get()) {
                                 // then let's cache that
-                                LOG.trace("changesFor : caching empty changes for cacheKey={}", cacheKey);
+                                PREV_NO_PROP_LOG.debug("changesFor : caching empty changes for cacheKey={}", cacheKey);
                                 prevNoPropCache.put(cacheKey, StringValue.EMPTY);
                             }
                             return wrappee;
