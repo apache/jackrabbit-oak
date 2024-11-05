@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -51,12 +50,11 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.apache.jackrabbit.oak.plugins.document.util.UtilsTest.createFeature;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests DocumentNodeStore on various DocumentStore back-ends.
@@ -519,11 +517,5 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         public DiffCache getDiffCache(int clusterId) {
             return AmnesiaDiffCache.INSTANCE;
         }
-    }
-
-    private static Feature createFeature(boolean enabled) {
-        Feature cancelInvalidation = mock(Feature.class);
-        when(cancelInvalidation.isEnabled()).thenReturn(enabled);
-        return cancelInvalidation;
     }
 }

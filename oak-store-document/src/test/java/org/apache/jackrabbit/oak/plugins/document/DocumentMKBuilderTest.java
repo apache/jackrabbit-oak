@@ -20,7 +20,6 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import com.mongodb.MongoClient;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,10 +29,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.util.UtilsTest.createFeature;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 
@@ -49,12 +47,6 @@ public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
             cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE);
     private static final long DOC_CACHE_SIZE_PREV_NO_PROP_ENABLED = DOC_CACHE_SIZE_DEFAULT -
             cacheSize(DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE);
-
-    private static Feature createFeature(boolean enabled) {
-        Feature f = mock(Feature.class);
-        when(f.isEnabled()).thenReturn(enabled);
-        return f;
-    }
 
     @Parameterized.Parameters(name="{index}: prevNoPropEnabled : {0}")
     public static java.util.Collection<Boolean> params() {
