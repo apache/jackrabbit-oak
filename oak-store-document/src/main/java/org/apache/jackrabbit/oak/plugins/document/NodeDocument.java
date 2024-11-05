@@ -1044,8 +1044,7 @@ public final class NodeDocument extends Document {
 
             if (value == null && !getPreviousRanges().isEmpty()) {
                 // check revision history
-                final Cache<StringValue, StringValue> prevNoPropCache = nodeStore.getPrevNoPropCache();
-                value = getLatestValue(nodeStore, getVisibleChanges(key, readRevision, prevNoPropCache),
+                value = getLatestValue(nodeStore, getVisibleChanges(key, readRevision, nodeStore.getPrevNoPropCache()),
                         readRevision, validRevisions, lastRevs);
             }
             String propertyName = Utils.unescapePropertyName(key);
