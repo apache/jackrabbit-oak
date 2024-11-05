@@ -599,17 +599,20 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     public T memoryCacheDistribution(int nodeCachePercentage,
                                      int prevDocCachePercentage,
                                      int childrenCachePercentage,
-                                     int diffCachePercentage) {
+                                     int diffCachePercentage,
+                                     int prevNoPropCachePercentage) {
         checkArgument(nodeCachePercentage >= 0);
         checkArgument(prevDocCachePercentage >= 0);
         checkArgument(childrenCachePercentage>= 0);
         checkArgument(diffCachePercentage >= 0);
+        checkArgument(prevNoPropCachePercentage >= 0);
         checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
-                diffCachePercentage < 100);
+                diffCachePercentage + prevNoPropCachePercentage < 100);
         this.nodeCachePercentage = nodeCachePercentage;
         this.prevDocCachePercentage = prevDocCachePercentage;
         this.childrenCachePercentage = childrenCachePercentage;
         this.diffCachePercentage = diffCachePercentage;
+        this.prevNoPropCachePercentage = prevNoPropCachePercentage;
         return thisBuilder();
     }
 
@@ -622,6 +625,10 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public long getPrevNoPropCacheSize() {
+        // feature toggle overrules the prevNoPropCachePercentage config
+        if (!isPrevNoPropCacheEnabled()) {
+            return 0;
+        }
         return memoryCacheSize * prevNoPropCachePercentage / 100;
     }
 
@@ -915,7 +922,25 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
 
-    public Cache<StringValue, StringValue> buildPrevNoPropCache(DocumentNodeStore store) {
+    /**
+     * Checks the feature toggle for prevNoProp cache and returns true if that's enabled
+     * @return true if the prevNoProp feature toggle is enabled, false otherwise
+     */
+    private boolean isPrevNoPropCacheEnabled() {
+        final Feature prevNoPropFeature = getPrevNoPropCacheFeature();
+        return prevNoPropFeature != null && prevNoPropFeature.isEnabled();
+    }
+
+    /**
+     * Builds the prevNoProp cache, if the corresponding feature toggle is enabled.
+     * Returns null otherwise
+     * @return null if prevNoProp feature is disabled and size non-null, a newly built cache otherwise
+     */
+    public Cache<StringValue, StringValue> buildPrevNoPropCacheOrNull() {
+        // if feature toggle is off or the config is explicitly set to 0, then no cache
+        if (!isPrevNoPropCacheEnabled() || getPrevNoPropCacheSize() == 0) {
+            return null;
+        }
         // no persistent cache for now as this is only a tiny cache
         return buildCache("PREV_NOPROP", getPrevNoPropCacheSize(), new CopyOnWriteArraySet<>());
     }

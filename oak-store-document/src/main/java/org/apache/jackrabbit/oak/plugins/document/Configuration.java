@@ -107,6 +107,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     int diffCachePercentage() default DEFAULT_DIFF_CACHE_PERCENTAGE;
 
     @AttributeDefinition(
+            name = "PrevNoProp Cache",
+            description = "Percentage of cache to be allocated towards PrepNoProp cache")
+    int prevNoPropCachePercentage() default DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+
+    @AttributeDefinition(
             name = "LIRS Cache Segment Count",
             description = "The number of segments in the LIRS cache " +
                     "(default 16, a higher count means higher concurrency " +

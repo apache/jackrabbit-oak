@@ -71,7 +71,8 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
                     35,
                     10,
                     15,
-                    2
+                    2,
+                    1
             );
         }
 

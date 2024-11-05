@@ -496,7 +496,8 @@ public class DocumentNodeStoreService {
                         config.nodeCachePercentage(),
                         config.prevDocCachePercentage(),
                         config.childrenCachePercentage(),
-                        config.diffCachePercentage()).
+                        config.diffCachePercentage(),
+                        config.prevNoPropCachePercentage()).
                 setCacheSegmentCount(config.cacheSegmentCount()).
                 setCacheStackMoveDistance(config.cacheStackMoveDistance()).
                 setBundlingDisabled(config.bundlingDisabled()).

@@ -691,12 +691,8 @@ public final class DocumentNodeStore
 
         diffCache = builder.getDiffCache(this.clusterId);
 
-        final Feature prevNoPropFeature = builder.getPrevNoPropCacheFeature();
-        if (prevNoPropFeature == null || !prevNoPropFeature.isEnabled()) {
-            prevNoPropCache = null;
-        } else {
-            prevNoPropCache = builder.buildPrevNoPropCache(this);
-        }
+        // builder checks for feature toggle directly and returns null if disabled
+        prevNoPropCache = builder.buildPrevNoPropCacheOrNull();
 
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
