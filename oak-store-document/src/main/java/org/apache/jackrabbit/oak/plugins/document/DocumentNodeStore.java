@@ -692,7 +692,7 @@ public final class DocumentNodeStore
         diffCache = builder.getDiffCache(this.clusterId);
 
         // builder checks for feature toggle directly and returns null if disabled
-        prevNoPropCache = builder.buildPrevNoPropCacheOrNull();
+        prevNoPropCache = builder.buildPrevNoPropCache();
 
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));

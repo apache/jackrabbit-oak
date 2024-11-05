@@ -332,7 +332,7 @@ public class UtilsTest {
             assertFalse(feature.isEnabled());
         }
         assertEquals(0, builder.getPrevNoPropCacheSize());
-        assertNull(builder.buildPrevNoPropCacheOrNull());
+        assertNull(builder.buildPrevNoPropCache());
     }
 
     @Test
@@ -343,7 +343,7 @@ public class UtilsTest {
         assertTrue(b.getPrevNoPropCacheFeature().isEnabled());
         assertEquals(DEFAULT_MEMORY_CACHE_SIZE * DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE / 100,
                 b.getPrevNoPropCacheSize());
-        assertNotNull(b.buildPrevNoPropCacheOrNull());
+        assertNotNull(b.buildPrevNoPropCache());
     }
 
     public static Feature createFeature(boolean enabled) {

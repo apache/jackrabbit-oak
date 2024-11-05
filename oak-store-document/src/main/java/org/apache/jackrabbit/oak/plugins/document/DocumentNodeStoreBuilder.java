@@ -936,7 +936,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * Returns null otherwise
      * @return null if prevNoProp feature is disabled and size non-null, a newly built cache otherwise
      */
-    public Cache<StringValue, StringValue> buildPrevNoPropCacheOrNull() {
+    @Nullable
+    public Cache<StringValue, StringValue> buildPrevNoPropCache() {
         // if feature toggle is off or the config is explicitly set to 0, then no cache
         if (!isPrevNoPropCacheEnabled() || getPrevNoPropCacheSize() == 0) {
             return null;
