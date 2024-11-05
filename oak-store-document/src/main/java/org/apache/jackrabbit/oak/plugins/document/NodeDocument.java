@@ -1024,6 +1024,8 @@ public final class NodeDocument extends Document {
                     readRevision, validRevisions, lastRevs);
 
             if (value == null
+                    // only filter if prevNoProp feature toggle is enabled:
+                    && nodeStore.getPrevNoPropCache() != null
                     && !anyRevisionCommitted(local.keySet(), nodeStore, validRevisions)) {
                 // OAK-11184 : if the locally resolved value is null AND
                 // there are no committed revisions in the local map at all,
