@@ -871,6 +871,13 @@ public final class DocumentNodeStore
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}, updateLimit: {} ({})",
                 clusterId, updateLimit,
                 getClusterNodeInfoDisplayString());
+        if (prevNoPropCache == null) {
+            LOG.info("prevNoProp cache is disabled");
+        } else {
+            // unfortunate that the guava cache doesn't unveil its max size
+            // hence falling back to using the builder's original value for now.
+            LOG.info("prevNoProp cache is enabled with size: " + builder.getPrevNoPropCacheSize());
+        }
 
         if (!builder.isBundlingDisabled()) {
             bundlingConfigHandler.initialize(this, executor);
