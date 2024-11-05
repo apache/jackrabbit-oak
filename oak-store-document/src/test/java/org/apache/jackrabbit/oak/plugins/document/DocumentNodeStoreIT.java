@@ -292,6 +292,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         boolean breakpointReached = breakpointReachedSemaphore.tryAcquire(5, TimeUnit.SECONDS);
         assertTrue(breakpointReached);
 
+        DocumentNodeStore ns2 = null;
         try {
             // start B
             // for MongoDocumentStore (and perhaps others), we can't use the same
@@ -310,7 +311,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                 ds2 = ds;
             }
             CountingDocumentStore cds2 = new CountingDocumentStore(ds2);
-            DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0).clock(clock)
+            ns2 = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0).clock(clock)
                     .setPrevNoPropCacheFeature(createFeature(prevNoPropCacheEnabled))
                     .setDocumentStore(cds2).build();
 
@@ -415,6 +416,9 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         } finally {
             // in case anyone is still waiting (eg in a test failure case) :
             continueSemaphore.release();
+            if (ns2 != null) {
+                ns2.dispose();
+            }
         }
 
         // a bit simplistic, but that's one way to reproduce the bug
