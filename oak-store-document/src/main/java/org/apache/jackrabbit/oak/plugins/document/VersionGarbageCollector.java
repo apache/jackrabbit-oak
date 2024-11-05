@@ -938,9 +938,9 @@ public class VersionGarbageCollector {
                                 final Long modified = lastDoc.getModified();
                                 if (modified == null) {
                                     monitor.warn("collectFullGC : document has no _modified property : {}", doc.getId());
-                                } else if (SECONDS.toMillis(modified) < fromModifiedMs) {
-                                    monitor.warn("collectFullGC : document has older _modified than query boundary : {} (from: {}, to: {})",
-                                            modified, timestampToString(fromModifiedMs), timestampToString(toModifiedMs));
+                                } else if (modified < MILLISECONDS.toSeconds(fromModifiedMs)) {
+                                    monitor.warn("collectFullGC : document has older _modified than query boundary : {} (from: {} [{}], to: {} [{}])",
+                                            modified, fromModifiedMs, timestampToString(fromModifiedMs), toModifiedMs, timestampToString(toModifiedMs));
                                 }
                             }
                             // now remove the garbage in one go, if any
