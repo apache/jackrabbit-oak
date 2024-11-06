@@ -669,8 +669,8 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        closeFeatures(new Feature[] {prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature,
-                docStoreFullGCFeature, docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature});
+        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
+                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature);
 
         unregisterNodeStore();
     }
@@ -777,15 +777,15 @@ public class DocumentNodeStoreService {
     }
 
     /**
-     * Closes the given array of features.
+     * Closes the given varargs of features.
      * <p>
-     * This method iterates over the provided array of features and closes each one
+     * This method iterates over the provided varargs of features and closes each one
      * that is not null.
      * </p>
      *
-     * @param features an array of {@link Feature} objects to be closed.
+     * @param features a varargs of {@link Feature} objects to be closed.
      */
-    private void closeFeatures(final Feature[] features) {
+    private void closeFeatures(@NotNull final Feature... features) {
         Arrays.stream(features).filter(Objects::nonNull).forEach(Feature::close);
     }
 
