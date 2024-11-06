@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.GenerateGarbageHelper;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -44,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
@@ -216,11 +218,10 @@ public class CreateGarbageCommand implements Command, Closeable {
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                if (documentNodeStore != null) {
-                    documentNodeStore.dispose();
-                }
             });
+
             execute(closer, args);
+
         } catch (Throwable e) {
             LOG.error("Command failed", e);
             throw e;
@@ -244,8 +245,14 @@ public class CreateGarbageCommand implements Command, Closeable {
         CreateGarbageOptions options = new CreateGarbageOptions(USAGE).parse(args);
         String subCmd = options.getSubCmd();
 
+        LOG.info("Executing command: " + getClass().getName() + " with sub-command: " + subCmd);
+
         if (CreateGarbageOptions.CMD_GENERATE.equals(subCmd)) {
 
+            if (GenerateGarbageHelper.isInvalidGarbageGenerationMode(options.getGarbageType())) {
+                LOG.error("Invalid fullGCMode specified: " + options.getGarbageType() + " in: " + getClass().getName());
+                System.exit(1);
+            }
             if (options.getCreateGarbageNodesCount() <= 0) {
                 LOG.error("Invalid garbageNodesCount specified: " + options.getCreateGarbageNodesCount() + " in: " + getClass().getName());
                 System.exit(1);
@@ -272,9 +279,6 @@ public class CreateGarbageCommand implements Command, Closeable {
     @Override
     public void close() throws IOException {
         new ExecutorCloser(this.continuousRunExecutor).close();
-        if (documentNodeStore != null) {
-            documentNodeStore.dispose();
-        }
     }
 
     private List<String> generateGarbageContinuously(CreateGarbageOptions options, Closer closer) throws Exception {
@@ -289,7 +293,7 @@ public class CreateGarbageCommand implements Command, Closeable {
         Runnable task = () -> {
             if (continuousRunIndex < numberOfRuns) {
                 try {
-                    String genBasePath = createGarbage(options, continuousRunIndex, builder, startGenTimestamp);
+                    String genBasePath = createGarbage(options, closer, continuousRunIndex, builder, startGenTimestamp);
                     generatedGarbageBasePaths.add(genBasePath);
                 } catch (Exception e) {
                     LOG.error("Error generating garbage in run " + continuousRunIndex, e);
@@ -325,10 +329,10 @@ public class CreateGarbageCommand implements Command, Closeable {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         long generationTimestamp = System.currentTimeMillis();
 
-        return createGarbage(options, runIndex, builder, generationTimestamp);
+        return createGarbage(options, closer, runIndex, builder, generationTimestamp);
     }
 
-    private String createGarbage(CreateGarbageOptions options, int runIndex,
+    private String createGarbage(CreateGarbageOptions options, Closer closer, int runIndex,
                                  DocumentNodeStoreBuilder<?> builder, long timestamp) throws Exception {
 
         if (builder == null) {
@@ -336,15 +340,13 @@ public class CreateGarbageCommand implements Command, Closeable {
             System.exit(1);
         }
 
-        if (GenerateGarbageHelper.isInvalidGarbageGenerationMode(options.getGarbageType())) {
-            LOG.error("Invalid fullGCMode specified: " + options.getGarbageType() + " in: " + getClass().getName());
-            System.exit(1);
-        }
-
         String generationBasePath = GEN_BASE_PATH + timestamp + "_" + runIndex;
         documentNodeStore = builder.build();
+        closer.register(asCloseable(documentNodeStore));
 
         NodeBuilder rootNode = documentNodeStore.getRoot().builder();
+
+        System.out.println("Starting garbage generation under the root node tmp/oak-run-generated-test-garbage");
 
         if (GenerateGarbageHelper.isEmptyProps(options.getGarbageType())) {
             createGarbageEmptyProps(rootNode, options, generationBasePath);
@@ -407,7 +409,6 @@ public class CreateGarbageCommand implements Command, Closeable {
         }
         // Remove all parent nodes
         documentNodeStore.getDocumentStore().remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, deleteNodePaths);
-        documentNodeStore.merge(rootNode, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private NodeBuilder getGapOrphanLeafGarbageNode(NodeBuilder garbageRootNode, String generationBasePath, int depth, int parentIndex, int nodeIndex) {
@@ -518,15 +519,19 @@ public class CreateGarbageCommand implements Command, Closeable {
      */
     private void cleanGarbage(CreateGarbageOptions options, Closer closer) throws IOException, Exception {
 
-        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
+        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
+                setAsyncDelay(0).
+                setFullGCEnabled(false);
 
         if (builder == null) {
             System.err.println("generateGarbage mode only available for DocumentNodeStore");
             System.exit(1);
         }
 
-        System.out.println("Cleaning up all generated garbage:");
+        System.out.println("Cleaning up all generated garbage: ");
         documentNodeStore = builder.build();
+        closer.register(asCloseable(documentNodeStore));
 
         NodeBuilder rootBuilder = documentNodeStore.getRoot().builder();
 
@@ -542,10 +547,10 @@ public class CreateGarbageCommand implements Command, Closeable {
         // check that only nodes under the garbage root node are being removed
         for (String childNodePath : childNodePaths) {
             assert childNodePath.substring(2).startsWith("/" + GARBAGE_GEN_ROOT_PATH);
+            System.out.println("Removing node: " + childNodePath);
         }
 
         documentNodeStore.getDocumentStore().remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, childNodePaths);
-        documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     /**
