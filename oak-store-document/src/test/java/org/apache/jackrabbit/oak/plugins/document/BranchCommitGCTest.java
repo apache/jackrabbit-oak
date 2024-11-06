@@ -573,6 +573,7 @@ public class BranchCommitGCTest {
     public void unmergedRemoveChild() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC); // OAK-11252
         mergedBranchCommit(b -> {
             b.child("foo");
             b.child("bar");
