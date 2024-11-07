@@ -95,7 +95,8 @@ class DocumentFixtureProvider {
                     docStoreOpts.getNodeCachePercentage(),
                     docStoreOpts.getPrevDocCachePercentage(),
                     docStoreOpts.getChildrenCachePercentage(),
-                    docStoreOpts.getDiffCachePercentage()
+                    docStoreOpts.getDiffCachePercentage(),
+                    docStoreOpts.getPrevNoPropCachePercentage()
             );
         }
 

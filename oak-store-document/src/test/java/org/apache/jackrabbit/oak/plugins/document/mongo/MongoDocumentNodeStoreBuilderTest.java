@@ -115,6 +115,12 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void getPrevNoPropCacheFeatureDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getPrevNoPropCacheFeature());
+    }
+
+    @Test
     public void collectionCompressionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());
