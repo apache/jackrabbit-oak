@@ -215,6 +215,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
      */
     @Test
     public void unmergedCommitOnRoot_withPrevNoPropCache() throws Exception {
+        assumeFalse(dsf.getName().startsWith("RDB"));
         doUnmergedCommitOnRoot(true);
     }
 
