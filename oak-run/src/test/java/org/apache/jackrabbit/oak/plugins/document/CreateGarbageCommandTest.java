@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -35,6 +34,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemOut;
@@ -396,7 +396,7 @@ public class CreateGarbageCommandTest {
      */
     private static class CreateGarbageCmd implements Runnable {
 
-        private final ImmutableList<String> args;
+        private final List<String> args;
         private CreateGarbageCommand command;
         private Closer closer;
         private List<String> generatedBasePaths;
@@ -404,10 +404,12 @@ public class CreateGarbageCommandTest {
         public CreateGarbageCmd(String... args) {
             // append the default mongodb connection string if one was not provided
             if (args[0].startsWith("mongodb://")) {
-                this.args = ImmutableList.copyOf(args);
+                this.args = List.copyOf(Arrays.asList(args));
             } else {
-                this.args = ImmutableList.<String>builder().add(MongoUtils.URL)
-                        .add(args).build();
+                List<String> argsList = new ArrayList<>();
+                argsList.add(MongoUtils.URL);
+                argsList.addAll(Arrays.asList(args));
+                this.args = List.copyOf(argsList);
             }
         }
 

@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 /**
  * Helper class to generate garbage for testing purposes.
  */
-public class GenerateGarbageHelper {
+public class CreateGarbageHelper {
 
     public static boolean isInvalidGarbageGenerationMode(int fullGCMode) {
         return fullGCMode == 0;

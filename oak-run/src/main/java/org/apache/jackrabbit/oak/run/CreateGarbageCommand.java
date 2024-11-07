@@ -21,10 +21,9 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.GenerateGarbageHelper;
+import org.apache.jackrabbit.oak.plugins.document.CreateGarbageHelper;
 import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -34,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,9 +47,9 @@ import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
- * GenerateGarbageCommand generates garbage nodes in the repository in order to allow for testing fullGC functionality.
+ * CreateGarbageCommand creates garbage nodes in the repository in order to allow for testing fullGC functionality.
  */
-public class CreateGarbageCommand implements Command, Closeable {
+public class CreateGarbageCommand implements Command {
     private static final Logger LOG = LoggerFactory.getLogger(CreateGarbageCommand.class);
 
     private final ScheduledExecutorService continuousRunExecutor = Executors.newScheduledThreadPool(1);
@@ -60,8 +58,8 @@ public class CreateGarbageCommand implements Command, Closeable {
             "create-test-garbage {<jdbc-uri> | <mongodb-uri>} <sub-command> [options] ",
             "where sub-command is one of: ",
             "  clean - clean up all generated garbage under the specified root node",
-            "  generate - generate garbage nodes in the repository, under the root node tmp/oak-run-generated-test-garbage. ",
-            "           Use the --garbageType (required) option to specify the type of garbage to generate",
+            "  create - create garbage nodes in the repository, under the root node tmp/oak-run-generated-test-garbage. ",
+            "           Use the --garbageType (required) option to specify the type of garbage to create",
             "           the --garbageNodesCount option to specify the total number of garbage nodes to create,",
             "           the --garbageNodesParentCount option to specify the total number of parent nodes under which to create garbage nodes,",
             "           the --orphansDepth option to specify the depth in the tree at which to create garbage nodes,",
@@ -123,7 +121,7 @@ public class CreateGarbageCommand implements Command, Closeable {
          * Sub-command for generating garbage.
          * This is the default sub-command to run if none is specified.
          */
-        static final String CMD_GENERATE = "generate";
+        static final String CMD_CREATE = "create";
 
         /**
          * Sub-command for cleaning up all generated garbage.
@@ -176,7 +174,7 @@ public class CreateGarbageCommand implements Command, Closeable {
             if (args.size() > 0) {
                 return args.get(0);
             }
-            return CMD_GENERATE;
+            return CMD_CREATE;
         }
 
         public int getCreateGarbageNodesCount() {
@@ -204,6 +202,7 @@ public class CreateGarbageCommand implements Command, Closeable {
         }
     }
 
+    @Override
     public void execute(String... args) throws Exception {
 
         try (Closer closer = Closer.create()) {
@@ -247,9 +246,9 @@ public class CreateGarbageCommand implements Command, Closeable {
 
         LOG.info("Executing command: " + getClass().getName() + " with sub-command: " + subCmd);
 
-        if (CreateGarbageOptions.CMD_GENERATE.equals(subCmd)) {
+        if (CreateGarbageOptions.CMD_CREATE.equals(subCmd)) {
 
-            if (GenerateGarbageHelper.isInvalidGarbageGenerationMode(options.getGarbageType())) {
+            if (CreateGarbageHelper.isInvalidGarbageGenerationMode(options.getGarbageType())) {
                 LOG.error("Invalid fullGCMode specified: " + options.getGarbageType() + " in: " + getClass().getName());
                 System.exit(1);
             }
@@ -274,11 +273,6 @@ public class CreateGarbageCommand implements Command, Closeable {
         }
 
         return generateBasePaths;
-    }
-
-    @Override
-    public void close() throws IOException {
-        new ExecutorCloser(this.continuousRunExecutor).close();
     }
 
     private List<String> generateGarbageContinuously(CreateGarbageOptions options, Closer closer) throws Exception {
@@ -348,10 +342,10 @@ public class CreateGarbageCommand implements Command, Closeable {
 
         System.out.println("Starting garbage generation under the root node tmp/oak-run-generated-test-garbage");
 
-        if (GenerateGarbageHelper.isEmptyProps(options.getGarbageType())) {
+        if (CreateGarbageHelper.isEmptyProps(options.getGarbageType())) {
             createGarbageEmptyProps(rootNode, options, generationBasePath);
         }
-        else if (GenerateGarbageHelper.isGapOrphans(options.getGarbageType())) {
+        else if (CreateGarbageHelper.isGapOrphans(options.getGarbageType())) {
             createGarbageGapOrphans(rootNode, options, generationBasePath);
         }
 
@@ -489,7 +483,7 @@ public class CreateGarbageCommand implements Command, Closeable {
                 garbageRootNode.child(generationBasePath).child(GEN_PARENT_NODE_PREFIX + i).child(GEN_NODE_PREFIX + j).
                         setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, NAME);
 
-                if (GenerateGarbageHelper.isEmptyProps(options.getGarbageType())) {
+                if (CreateGarbageHelper.isEmptyProps(options.getGarbageType())) {
                     garbageRootNode.child(generationBasePath).child(GEN_PARENT_NODE_PREFIX + i).child(GEN_NODE_PREFIX + j).
                             setProperty(EMPTY_PROPERTY_NAME, "bar", STRING);
                 }
