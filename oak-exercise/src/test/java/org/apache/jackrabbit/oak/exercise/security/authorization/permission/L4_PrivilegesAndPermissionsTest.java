@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -28,7 +29,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -285,7 +285,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
         for (String path : pathPrivilegesMap.keySet()) {
             Privilege[] expectedPrivileges = pathPrivilegesMap.get(path);
-            assertEquals(ImmutableSet.of(expectedPrivileges), ImmutableSet.of(userSession.getAccessControlManager().getPrivileges(path)));
+            assertEquals(Set.of(expectedPrivileges), Set.of(userSession.getAccessControlManager().getPrivileges(path)));
         }
 
         // EXERCISE: optionally add nodes at the expected allowed path(s)

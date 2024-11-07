@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import static java.util.Collections.unmodifiableSet;
-
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.Set;
+
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * helper class that return the list of available fixtures based on the {@code nsfixtures} system
@@ -28,41 +32,49 @@ import java.util.Set;
  * See {@link FixturesHelper.Fixture} for a list of available fixtures
  */
 public final class FixturesHelper {
+
     /**
      * splitter for specifying multiple fixtures
      */
     private static final String SPLIT_ON = ","; 
+
+    private static final Logger LOG = LoggerFactory.getLogger(FixturesHelper.class);
+
+    private static final String PROPNAME = "nsfixtures";
+
     /**
      * System property to be used.
      */
-    public static final String NS_FIXTURES = "nsfixtures";
+    public static final String RAW_FIXTURES = SystemPropertySupplier.create(PROPNAME, "").loggingTo(LOG).get().trim();
 
     private FixturesHelper() { }
 
     /**
-     * default fixtures when no {@code nsfixtures} is provided
+     * default fixtures when no {@code nsfixtures} system property is provided
      */
     public enum Fixture {
        DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, SEGMENT_AWS, SEGMENT_AZURE, COMPOSITE_SEGMENT, COMPOSITE_MEM, COW_DOCUMENT
     }
 
     private static final Set<Fixture> FIXTURES;
+
+    private static final Set<Fixture> ALL_FIXTURES = Collections.unmodifiableSet(EnumSet.allOf(Fixture.class));
+
     static {
-        String raw = System.getProperty(NS_FIXTURES, "");
-        if (raw.trim().isEmpty()) {
-            FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
+        if (RAW_FIXTURES.isEmpty()) {
+            FIXTURES = ALL_FIXTURES;
         } else {
             Set<Fixture> tmp = EnumSet.noneOf(Fixture.class);
             boolean unknownFixture = false;
-            for (String f : raw.split(SPLIT_ON)) {
-                String x = f.trim().toUpperCase();
+            for (String f : RAW_FIXTURES.split(SPLIT_ON)) {
+                String x = f.trim().toUpperCase(Locale.ENGLISH);
                 try {
                     Fixture fx = Fixture.valueOf(x);
                     tmp.add(fx);
-                } catch (IllegalArgumentException e){
-                    //This fixture is not present in branches
-                    //so would need to be ignored
-                    if (!"SEGMENT_TAR".equals(x)){
+                } catch (IllegalArgumentException e) {
+                    // This fixture is not present in branches
+                    // so would need to be ignored
+                    if (!"SEGMENT_TAR".equals(x)) {
                         throw e;
                     } else {
                         unknownFixture = true;
@@ -70,19 +82,17 @@ public final class FixturesHelper {
                 }
             }
 
-            //If SEGMENT_TAR is missing (true for branches) then
-            //ensure that tmp maps to MEMORY_NS to avoid running all fixture
-            if (tmp.isEmpty() && unknownFixture){
+            // If SEGMENT_TAR is missing (true for branches) then
+            // ensure that tmp contains at least MEMORY_NS to avoid running all
+            // fixtures
+            if (tmp.isEmpty() && unknownFixture) {
                 tmp.add(Fixture.MEMORY_NS);
             }
-            
-            if (tmp.isEmpty()) {
-                FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
-            } else {
-                FIXTURES = unmodifiableSet(tmp);
-            }
-            
+
+            FIXTURES = tmp.isEmpty() ? ALL_FIXTURES : Collections.unmodifiableSet(tmp);
         }
+
+        LOG.info("Fixtures are {} (based on value of system property '{}' value '{}').", FIXTURES, PROPNAME, RAW_FIXTURES);
     }
 
     public static Set<Fixture> getFixtures() {

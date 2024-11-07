@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.security.Principal;
+import java.util.Set;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,7 +52,7 @@ public class OpenAuthenticationConfigurationTest {
         assertNotNull(ctx);
 
         Subject subject = ctx.getSubject();
-        assertEquals(new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of(creds)), subject);
+        assertEquals(new Subject(true, Set.of(), Set.of(), Set.of(creds)), subject);
     }
 
     @Test
@@ -62,7 +61,7 @@ public class OpenAuthenticationConfigurationTest {
         assertNotNull(ctx);
 
         Subject subject = ctx.getSubject();
-        assertEquals(new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of()), subject);
+        assertEquals(new Subject(true, Set.of(), Set.of(), Set.of()), subject);
     }
 
     @Test

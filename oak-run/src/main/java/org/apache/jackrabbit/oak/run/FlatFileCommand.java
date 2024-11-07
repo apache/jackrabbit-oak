@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SimpleFlatFileUtil;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
@@ -65,7 +64,7 @@ public class FlatFileCommand implements Command {
             outFileOpt = parser.accepts("out", "Name of the flatfile to create")
                     .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
             // Set of options which define action
-            actionOpts = ImmutableSet.of(flatfile);
+            actionOpts = Set.of(flatfile);
             operationNames = collectionOperationNames(actionOpts);
         }
 

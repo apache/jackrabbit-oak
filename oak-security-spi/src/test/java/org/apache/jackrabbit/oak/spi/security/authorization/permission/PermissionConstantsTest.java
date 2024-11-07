@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSIONS;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
@@ -34,17 +35,17 @@ public class PermissionConstantsTest {
 
     @Test
     public void testNtNames() {
-        assertEquals(ImmutableSet.of(NT_REP_PERMISSIONS, NT_REP_PERMISSION_STORE), PermissionConstants.PERMISSION_NODETYPE_NAMES);
+        assertEquals(Set.of(NT_REP_PERMISSIONS, NT_REP_PERMISSION_STORE), PermissionConstants.PERMISSION_NODETYPE_NAMES);
     }
 
     @Test
     public void testNodeNames() {
-        assertEquals(ImmutableSet.of(REP_PERMISSION_STORE), PermissionConstants.PERMISSION_NODE_NAMES);
+        assertEquals(Set.of(REP_PERMISSION_STORE), PermissionConstants.PERMISSION_NODE_NAMES);
     }
 
     @Test
     public void testPropertyNames() {
-        assertEquals(ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS, REP_IS_ALLOW), PermissionConstants.PERMISSION_PROPERTY_NAMES);
+        assertEquals(Set.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS, REP_IS_ALLOW), PermissionConstants.PERMISSION_PROPERTY_NAMES);
     }
 
     @Test
@@ -54,7 +55,7 @@ public class PermissionConstantsTest {
 
     @Test
     public void testDefaultReadPaths() {
-        assertEquals(ImmutableSet.of(
+        assertEquals(Set.of(
                 NamespaceConstants.NAMESPACES_PATH,
                 NodeTypeConstants.NODE_TYPES_PATH,
                 PrivilegeConstants.PRIVILEGES_PATH), PermissionConstants.DEFAULT_READ_PATHS);

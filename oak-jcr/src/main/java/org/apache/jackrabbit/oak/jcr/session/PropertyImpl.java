@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -509,7 +509,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                             "This is a single-valued property");
                 }
 
-                List<Value> converted = newArrayListWithCapacity(values.length);
+                List<Value> converted = new ArrayList<>(values.length);
                 ValueFactory factory = getValueFactory();
                 for (Value value : values) {
                     if (value != null) {

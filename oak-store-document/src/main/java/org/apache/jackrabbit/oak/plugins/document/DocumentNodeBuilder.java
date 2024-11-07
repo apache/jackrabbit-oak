@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 /**
@@ -44,7 +44,7 @@ class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
                         String name,
                         DocumentRootBuilder root) {
         super(base, name);
-        this.root = checkNotNull(root);
+        this.root = requireNonNull(root);
     }
 
     @Override
@@ -64,7 +64,7 @@ class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
 
     @Override
     public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName) {
-        checkNotNull(newParent);
+        requireNonNull(newParent);
         checkValidName(newName);
         if (isRoot() || !exists() || newParent.hasChildNode(newName)) {
             return false;

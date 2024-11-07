@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.standby.store;
 
 import static org.osgi.service.component.annotations.ReferencePolicy.STATIC;
@@ -24,7 +23,6 @@ import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentStoreProvider;
@@ -225,7 +223,7 @@ public class StandbyStoreService {
             .withSecureConnection(config.secure())
             .withReadTimeoutMs(config.standby_readtimeout())
             .withAutoClean(config.standby_autoclean())
-            .withSpoolFolder(new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()))
+            .withSpoolFolder(new File(System.getProperty("java.io.tmpdir")))
             .withSecureConnection(config.secure())
             .withSSLKeyFile(config.sslKeyFile())
             .withSSLChainFile(config.sslChainFile())

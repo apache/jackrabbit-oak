@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -30,6 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -110,7 +111,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testFilterDuplicatesHandlesNull() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser(), null, getTestUser());
+        List<User> l = Arrays.asList(getTestUser(), null, getTestUser());
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
     }
 
@@ -124,7 +125,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testGetSize3() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser());
+        List<User> l = List.of(getTestUser());
 
         // size cannot be computed from regular iterators
         assertEquals(-1, AuthorizableIterator.create(false, l.iterator(), l.iterator()).getSize());

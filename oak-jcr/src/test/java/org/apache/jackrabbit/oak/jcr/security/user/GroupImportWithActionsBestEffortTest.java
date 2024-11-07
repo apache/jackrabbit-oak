@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -37,7 +35,10 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,8 +96,8 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         assertTrue(groupAction.onMembersAddedCalled);
         assertTrue(groupAction.onMembersAddedContentIdCalled);
         assertEquals(g1.getID(), groupAction.group.getID());
-        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
-        assertEquals(ImmutableSet.of(nonExistingUUID), groupAction.memberContentIds);
+        assertEquals(Set.of(user1.getID(), user2.getID()), groupAction.memberIds);
+        assertEquals(Set.of(nonExistingUUID), groupAction.memberContentIds);
         assertFalse(groupAction.failedIds.iterator().hasNext()); // duplicate uuids are swallowed by the set in userImporter: nonExisting#add
     }
 
@@ -125,9 +126,9 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         boolean onMembersAddedContentIdCalled = false;
 
         Group group;
-        Set<String> memberIds = Sets.newHashSet();
-        Set<String> memberContentIds = Sets.newHashSet();
-        Set<String> failedIds = Sets.newHashSet();
+        Set<String> memberIds = new HashSet<>();
+        Set<String> memberContentIds = new HashSet<>();
+        Set<String> failedIds = new HashSet<>();
 
         @Override
         public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
@@ -155,7 +156,7 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
 
     private final class TestActionProvider implements AuthorizableActionProvider {
 
-        private final List<AuthorizableAction> actions = Lists.newArrayList();
+        private final List<AuthorizableAction> actions = new ArrayList<>();
 
         private void addAction(AuthorizableAction action) {
             actions.add(action);

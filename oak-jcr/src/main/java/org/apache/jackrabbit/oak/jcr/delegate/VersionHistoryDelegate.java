@@ -29,7 +29,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -39,7 +38,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 
 /**
@@ -49,7 +48,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
 
     VersionHistoryDelegate(@NotNull SessionDelegate sessionDelegate,
                            @NotNull Tree vhTree) {
-        super(sessionDelegate, checkNotNull(vhTree));
+        super(sessionDelegate, requireNonNull(vhTree));
     }
 
     public String getVersionableIdentifier() throws InvalidItemStateException {
@@ -77,7 +76,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
     @NotNull
     public VersionDelegate getVersion(@NotNull String versionName)
             throws VersionException, RepositoryException {
-        checkNotNull(versionName);
+        requireNonNull(versionName);
         Tree version = getTree().getChild(versionName);
         if (!version.exists()) {
             throw new VersionException("No such Version: " + versionName);
@@ -88,7 +87,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
     @NotNull
     public VersionDelegate getVersionByLabel(@NotNull String label)
             throws VersionException, RepositoryException {
-        checkNotNull(label);
+        requireNonNull(label);
         Tree versionLabels = getVersionLabelsTree();
         PropertyState p = versionLabels.getProperty(label);
         if (p == null) {
@@ -117,7 +116,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
     @NotNull
     public Iterable<String> getVersionLabels(@NotNull String identifier)
             throws RepositoryException {
-        checkNotNull(identifier);
+        requireNonNull(identifier);
         Tree versionLabels = getVersionLabelsTree();
         List<String> labels = new ArrayList<String>();
         for (PropertyState p : versionLabels.getProperties()) {
@@ -162,12 +161,8 @@ public class VersionHistoryDelegate extends NodeDelegate {
             }
         });
         final Tree thisTree = getTree();
-        return Iterators.transform(versions.iterator(), new Function<NodeDelegate, VersionDelegate>() {
-            @Override
-            public VersionDelegate apply(NodeDelegate nd) {
-                return VersionDelegate.create(sessionDelegate, thisTree.getChild(nd.getName()));
-            }
-        });
+        return Iterators.transform(versions.iterator(),
+                nd -> VersionDelegate.create(sessionDelegate, thisTree.getChild(nd.getName())));
     }
 
     @NotNull

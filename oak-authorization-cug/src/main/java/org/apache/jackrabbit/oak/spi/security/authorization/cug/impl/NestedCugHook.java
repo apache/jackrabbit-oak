@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -57,8 +57,8 @@ class NestedCugHook implements PostValidationHook, CugConstants {
      */
     private static final Logger log = LoggerFactory.getLogger(NestedCugHook.class);
 
-    private final Set<String> deletedCUGs = Sets.newHashSet();
-    private final Set<String> moveSources = Sets.newHashSet();
+    private final Set<String> deletedCUGs = new HashSet<>();
+    private final Set<String> moveSources = new HashSet<>();
 
     //-------------------------------------------------< PostValidationHook >---
     @NotNull
@@ -95,7 +95,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
         PropertyBuilder<String> pb = getHiddenPropertyBuilder(ps);
         if (ps != null) {
-            List<String> moveToNestedCug = Lists.newArrayList();
+            List<String> moveToNestedCug = new ArrayList<>();
             for (String p : ps.getValue(Type.STRINGS)) {
                 if (Text.isDescendant(pathWithNewCug, p)) {
                     pb.removeValue(p);
@@ -346,7 +346,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
          * need to be added to the HIDDEN_NESTED_CUGS of the nearest ancestor.
          */
         private Set<String> getCugPathsToReconnect(@NotNull NodeState before) {
-            Set<String> reconnect = Sets.newHashSet();
+            Set<String> reconnect = new HashSet<>();
             if (afterBuilder != null) {
                 for (String nestedCug : before.getStrings(HIDDEN_NESTED_CUGS)) {
                     if (!PathUtils.isAncestor(path, nestedCug)) {

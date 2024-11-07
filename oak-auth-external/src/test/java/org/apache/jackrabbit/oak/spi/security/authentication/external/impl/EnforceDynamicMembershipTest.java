@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -28,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertNotNull;
@@ -50,7 +51,7 @@ public class EnforceDynamicMembershipTest extends DynamicSyncContextTest {
         Authorizable a = userManager.getAuthorizable(PREVIOUS_SYNCED_ID);
         
         // set with different groups than defined on IDP
-        TestUserWithGroupRefs mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of(
+        TestUserWithGroupRefs mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of(
                 idp.getGroup("a").getExternalId(),
                 idp.getGroup("aa").getExternalId(),
                 idp.getGroup("secondGroup").getExternalId()));

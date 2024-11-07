@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -34,6 +34,11 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.bson.BsonBinaryReader;
+import org.bson.ByteBuf;
+import org.bson.RawBsonDocument;
+import org.bson.codecs.DecoderContext;
+import org.bson.io.ByteBufferBsonInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Receives batches of Mongo documents, converts them to node state entries, batches them in a {@link NodeStateEntryBatch}
@@ -77,11 +82,12 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
+    private final NodeDocumentCodec nodeDocumentCodec;
     private final RevisionVector rootRevision;
     private final NodeStateEntryWriter entryWriter;
     private final Predicate<String> pathPredicate;
     // Input queue
-    private final ArrayBlockingQueue<NodeDocument[]> mongoDocQueue;
+    private final ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue;
     // Output queue
     private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
     // Queue with empty (recycled) buffers
@@ -93,15 +99,17 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
+                                  NodeDocumentCodec nodeDocumentCodec,
                                   RevisionVector rootRevision,
                                   Predicate<String> pathPredicate,
                                   NodeStateEntryWriter entryWriter,
-                                  ArrayBlockingQueue<NodeDocument[]> mongoDocQueue,
+                                  ArrayBlockingQueue<RawBsonDocument[]> mongoDocQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
                                   TransformStageStatistics statsCollector) {
         this.mongoStore = mongoStore;
         this.documentNodeStore = documentNodeStore;
+        this.nodeDocumentCodec = nodeDocumentCodec;
         this.rootRevision = rootRevision;
         this.pathPredicate = pathPredicate;
         this.entryWriter = entryWriter;
@@ -116,24 +124,27 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         String originalName = Thread.currentThread().getName();
         String threadName = THREAD_NAME_PREFIX + threadId;
         Thread.currentThread().setName(threadName);
+        Stopwatch taskStartWatch = Stopwatch.createStarted();
         try {
-            LOG.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
-            Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalDocumentQueueWaitTimeMillis = 0;
             long totalEntryCount = 0;
+            int mongoObjectsProcessedSinceLastLog = 0;
             long mongoObjectsProcessed = 0;
             LOG.debug("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
             LOG.debug("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
 
-            ArrayList<NodeStateEntry> nodeStateEntries = new ArrayList<>();
+            ArrayList<DocumentNodeState> nodeStateEntries = new ArrayList<>();
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
-                NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
+                RawBsonDocument[] rawBsonDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
+                if (rawBsonDocumentBatch == PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT) {
+                    // So that other threads listening on this queue also get the sentinel
+                    mongoDocQueue.put(PipelinedMongoDownloadTask.SENTINEL_MONGO_DOCUMENT);
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
                     String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
                     String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueDelayMillis, totalDurationMillis);
@@ -149,22 +160,39 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
                             .add("totalEmptyBatchQueueWaitPercentage", totalEmptyBatchQueueWaitPercentage)
                             .build();
-                    LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
                     return new Result(threadId, totalEntryCount);
                 } else {
-                    for (NodeDocument nodeDoc : nodeDocumentBatch) {
+                    for (RawBsonDocument rawBsonDocument : rawBsonDocumentBatch) {
                         statistics.incrementMongoDocumentsTraversed();
+                        mongoObjectsProcessedSinceLastLog++;
                         mongoObjectsProcessed++;
-                        if (mongoObjectsProcessed % 50000 == 0) {
-                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                        ByteBuf byteBuffer = rawBsonDocument.getByteBuffer();
+                        // Mongo documents contain mostly Strings, so we can estimate the size by doubling the byte
+                        // buffer size. This will usually overestimate the size in memory of the document, but it
+                        // is good enough for our purposes.
+                        int sizeEstimate = byteBuffer.remaining() * 2;
+                        NodeDocument nodeDoc;
+                        try (BsonBinaryReader bsonReader = new BsonBinaryReader(new ByteBufferBsonInput(byteBuffer))) {
+                            nodeDoc = nodeDocumentCodec.decode(bsonReader, DecoderContext.builder().build());
+                        }
+                        // Check if the document was filtered by the MongoDocumentFilter of the codec.
+                        if (nodeDoc == NodeDocument.NULL) {
+                            continue;
+                        }
+                        if (mongoObjectsProcessedSinceLastLog >= 100_000) {
+                            mongoObjectsProcessedSinceLastLog = 0;
+                            LOG.info("Processing: {}, {}. Total documents: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                                    nodeDoc.getModified(), nodeDoc.getId(),
                                     mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
                                     nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
+                        nodeDoc.put(NodeDocumentCodec.SIZE_FIELD, sizeEstimate);
                         //TODO Review the cache update approach where tracker has to track *all* docs
                         // TODO: should we cache splitDocuments? Maybe this can be moved to after the check for split document
                         nodeCache.put(nodeDoc);
@@ -176,13 +204,13 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             if (nodeStateEntries.isEmpty()) {
                                 statistics.addEmptyNodeStateEntry(nodeDoc.getId());
                             } else {
-                                for (NodeStateEntry nse : nodeStateEntries) {
-                                    String path = nse.getPath();
+                                for (DocumentNodeState nse : nodeStateEntries) {
+                                    String path = nse.getPath().toString();
                                     if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
                                         statistics.incrementEntriesAccepted();
                                         totalEntryCount++;
                                         // Serialize entry
-                                        byte[] jsonBytes = entryWriter.asJson(nse.getNodeState()).getBytes(StandardCharsets.UTF_8);
+                                        byte[] jsonBytes = entryWriter.asJson(nse).getBytes(StandardCharsets.UTF_8);
                                         int entrySize;
                                         try {
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
@@ -216,10 +244,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     }
                 }
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    threadName.toUpperCase(Locale.ROOT), MetricsFormatter.createMetricsWithDurationOnly(taskStartWatch), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
@@ -238,25 +265,16 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         }
     }
 
-    private void extractNodeStateEntries(NodeDocument doc, ArrayList<NodeStateEntry> nodeStateEntries) {
+    private void extractNodeStateEntries(NodeDocument doc, ArrayList<DocumentNodeState> nodeStateEntries) {
         Path path = doc.getPath();
-        DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
+        DocumentNodeState nodeState = DocumentNodeStoreHelper.readNode(documentNodeStore, path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {
             return;
         }
-        nodeStateEntries.add(toNodeStateEntry(doc, nodeState));
+        nodeStateEntries.add(nodeState);
         for (DocumentNodeState dns : nodeState.getAllBundledNodesStates()) {
-            nodeStateEntries.add(toNodeStateEntry(doc, dns));
+            nodeStateEntries.add(dns);
         }
-    }
-
-    private NodeStateEntry toNodeStateEntry(NodeDocument doc, DocumentNodeState dns) {
-        NodeStateEntry.NodeStateEntryBuilder builder = new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
-        if (doc.getModified() != null) {
-            builder.withLastModified(doc.getModified());
-        }
-        builder.withID(doc.getId());
-        return builder.build();
     }
 }

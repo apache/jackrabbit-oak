@@ -16,7 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
+
+import co.elastic.clients.json.JsonData;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.jetbrains.annotations.NotNull;
+
 import co.elastic.clients.elasticsearch._types.Time;
+import co.elastic.clients.elasticsearch._types.mapping.DenseVectorProperty;
 import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
@@ -24,18 +35,8 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
-import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.jetbrains.annotations.NotNull;
 
-import java.io.Reader;
-import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,25 +46,6 @@ import java.util.stream.Collectors;
  * Provides utility functions around Elasticsearch indexing
  */
 class ElasticIndexHelper {
-
-    /**
-     * Mapping version that uses <a href="https://semver.org/">SemVer Specification</a> to allow changes without
-     * breaking existing queries.
-     * Changes breaking compatibility should increment the major version (indicating that a reindex is mandatory).
-     * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
-     * use the new feature).
-     * Changes that do not affect queries should increment the patch version (eg: bug fixes).
-     * <p>
-     * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
-     * actual version needs to be set in oak-search.
-     */
-    protected static final String MAPPING_VERSION;
-    static {
-        MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        if (MAPPING_VERSION == null) {
-            throw new IllegalStateException("Mapping version is not set");
-        }
-    }
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
@@ -110,12 +92,17 @@ class ElasticIndexHelper {
         );
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
+        if (indexDefinition.inferenceDefinition != null) {
+            mapInferenceDefinition(builder, indexDefinition.inferenceDefinition);
+        }
         return builder;
     }
 
     private static void mapInternalProperties(@NotNull TypeMapping.Builder builder) {
         builder.properties(FieldNames.PATH,
                         b1 -> b1.keyword(builder3 -> builder3))
+                .properties(ElasticIndexDefinition.PATH_RANDOM_VALUE,
+                        b1 -> b1.integer(b2 -> b2.docValues(true).index(false)))
                 .properties(FieldNames.ANCESTORS,
                         b1 -> b1.text(
                                 b2 -> b2.analyzer("ancestor_analyzer")
@@ -145,7 +132,8 @@ class ElasticIndexHelper {
                                                 b3 -> b3.text(b4 -> b4.analyzer("oak_analyzer"))
                                         )
                         )
-                );
+                )
+                .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")
@@ -153,6 +141,25 @@ class ElasticIndexHelper {
         // mappingBuilder.startObject(FieldNames.NULL_PROPS)
         // .field("type", "keyword")
         // .endObject();
+    }
+
+    private static void mapInferenceDefinition(@NotNull TypeMapping.Builder builder, @NotNull ElasticIndexDefinition.InferenceDefinition inferenceDefinition) {
+        // Store the inference configuration in the index metadata so that it can be used by the inference service
+        builder.meta("inference", JsonData.of(inferenceDefinition));
+
+        if (inferenceDefinition.properties != null) {
+            inferenceDefinition.properties.forEach(p -> builder.properties(p.name,
+                    b -> b.object(bo -> bo
+                            .properties("value", pb -> pb.denseVector(dv ->
+                                            dv.index(true)
+                                                    .dims(p.dims)
+                                                    .similarity(p.similarity)
+                                    )
+                            )
+                            .properties("metadata", pb -> pb.flattened(b1 -> b1))
+                    )
+            ));
+        }
     }
 
     /**
@@ -176,10 +183,6 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
-        }
-
         // collect analyzer settings
         IndexSettingsAnalysis.Builder analyzerBuilder =
                 ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
@@ -283,20 +286,13 @@ class ElasticIndexHelper {
                 ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
                 int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
 
-                Reader eknnConfig = new StringReader(
-                        "{" +
-                                "  \"type\": \"elastiknn_dense_float_vector\"," +
-                                "  \"elastiknn\": {" +
-                                "    \"dims\": " + denseVectorSize + "," +
-                                "    \"model\": \"lsh\"," +
-                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
-                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
-                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
-                                "  }" +
-                                "}");
+                DenseVectorProperty denseVectorProperty = new DenseVectorProperty.Builder()
+                    .index(true)
+                    .dims(denseVectorSize)
+                    .similarity(DEFAULT_SIMILARITY_METRIC)
+                    .build();
 
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
+                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.denseVector(denseVectorProperty));
             }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,

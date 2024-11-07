@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.api;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -84,6 +86,20 @@ public interface JackrabbitNode extends Node {
         if (hasProperty(relPath)) {
             return getProperty(relPath);
         } else {
+            return null;
+        }
+    }
+
+    /**
+     * Same as {@link #getParent()}, but instead of throwing an ItemNotFoundException or AccessDeniedException 
+     * just return {@code null}.
+     * @return the parent node, or {@code null} if there is no parent or the parent node is not accessible.
+     * @throws RepositoryException if an error occurs.
+     */
+    default @Nullable Node getParentOrNull() throws RepositoryException {
+        try {
+            return getParent();
+        } catch (ItemNotFoundException | AccessDeniedException e) {
             return null;
         }
     }

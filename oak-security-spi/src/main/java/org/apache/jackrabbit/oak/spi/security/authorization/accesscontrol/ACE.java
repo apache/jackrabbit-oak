@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -38,6 +37,7 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -174,7 +174,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(principal.getName(), privilegeBits, isAllow, restrictions);
+            hashCode = Objects.hash(principal.getName(), privilegeBits, isAllow, restrictions);
         }
         return hashCode;
     }

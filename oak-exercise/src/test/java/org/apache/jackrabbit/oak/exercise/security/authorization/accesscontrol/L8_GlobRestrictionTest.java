@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.accesscontrol;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -452,7 +452,7 @@ public class L8_GlobRestrictionTest extends AbstractSecurityTest {
         RestrictionProvider rp = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
         Restriction restriction = rp.createRestriction(path, AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(glob));
 
-        return rp.getPattern(path, ImmutableSet.of(restriction));
+        return rp.getPattern(path, Set.of(restriction));
     }
 
     private static void assertMatch(RestrictionPattern pattern, String testPath, boolean expectedResult) {

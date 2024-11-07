@@ -17,9 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper.getTemplateId;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
@@ -30,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.jcr.PropertyType;
@@ -83,7 +83,7 @@ public class DebugTars {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -107,7 +107,7 @@ public class DebugTars {
          * @return an instance of {@link Runnable}.
          */
         public DebugTars build() {
-            checkNotNull(path);
+            requireNonNull(path);
             checkArgument(!tars.isEmpty());
             return new DebugTars(this);
         }
@@ -186,7 +186,7 @@ public class DebugTars {
     }
 
     private void filterNodeStates(Set<UUID> uuids, List<String> paths, SegmentNodeState state, String path) {
-        Set<String> localPaths = newTreeSet();
+        Set<String> localPaths = new TreeSet<>();
         for (PropertyState ps : state.getProperties()) {
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;

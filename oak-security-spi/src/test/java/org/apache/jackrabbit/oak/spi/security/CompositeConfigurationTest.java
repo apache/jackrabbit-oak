@@ -300,10 +300,10 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
     @Test
     public void testGetValidators() {
-        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+        assertTrue(compositeConfiguration.getValidators(null, Set.of(), new MoveTracker()).isEmpty());
 
         addConfiguration(new SecurityConfiguration.Default());
-        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+        assertTrue(compositeConfiguration.getValidators(null, Set.of(), new MoveTracker()).isEmpty());
 
         SecurityConfiguration withValidator = new SecurityConfiguration.Default() {
             @NotNull
@@ -314,7 +314,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         };
         addConfiguration(withValidator);
 
-        assertEquals(1, compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).size());
+        assertEquals(1, compositeConfiguration.getValidators(null, Set.of(), new MoveTracker()).size());
     }
 
     @Test

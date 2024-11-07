@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
@@ -97,7 +97,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         this.file = file;
         this.dirDetails = dirDetails;
         this.uniqueKey = readUniqueKey(file);
-        this.blobFactory = checkNotNull(blobFactory);
+        this.blobFactory = requireNonNull(blobFactory);
 
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null) {
@@ -222,7 +222,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     @Override
     public void readBytes(byte[] b, int offset, int len)
             throws IOException {
-        checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
+        checkPositionIndexes(offset, offset + len, requireNonNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +

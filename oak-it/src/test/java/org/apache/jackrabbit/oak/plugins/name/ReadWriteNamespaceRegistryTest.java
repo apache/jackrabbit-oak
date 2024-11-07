@@ -16,7 +16,6 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -77,7 +77,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals(r.getPrefix("n2"), "p2");
 
         // xml namespace check
-        assertTrue(newHashSet(r.getPrefixes()).contains("xml"));
+        assertTrue(CollectionUtils.toSet(r.getPrefixes()).contains("xml"));
         try {
             r.registerNamespace("xml", "test");
             fail("Trying to register the namespace 'xml' must throw a NamespaceException.");

@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.Closeable;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.spi.commit.Observable;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -36,25 +34,25 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 public class ObserverTracker implements ServiceTrackerCustomizer {
-    private final Map<ServiceReference, Closeable> subscriptions = newHashMap();
+    private final Map<ServiceReference, Closeable> subscriptions = new HashMap<>();
     private final Observable observable;
 
     private BundleContext bundleContext;
     private ServiceTracker observerTracker;
 
     public ObserverTracker(@NotNull Observable observable) {
-        this.observable = checkNotNull(observable);
+        this.observable = requireNonNull(observable);
     }
 
     public void start(@NotNull BundleContext bundleContext) {
-        checkState(this.bundleContext == null);
-        this.bundleContext = checkNotNull(bundleContext);
+        Validate.checkState(this.bundleContext == null);
+        this.bundleContext = requireNonNull(bundleContext);
         observerTracker = new ServiceTracker(bundleContext, Observer.class.getName(), this);
         observerTracker.open();
     }
 
     public void stop() {
-        checkState(this.bundleContext != null);
+        Validate.checkState(this.bundleContext != null);
         observerTracker.close();
     }
 

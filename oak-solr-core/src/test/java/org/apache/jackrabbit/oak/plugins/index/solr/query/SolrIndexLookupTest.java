@@ -28,7 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -48,35 +47,35 @@ public class SolrIndexLookupTest {
     @Test
     public void collectPathOnRootNode() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newSolrIndexDefinition(index, "l1", of("foo"));
-        newSolrIndexDefinition(index, "l2", of("foo"));
+        newSolrIndexDefinition(index, "l1", Set.of("foo"));
+        newSolrIndexDefinition(index, "l2", Set.of("foo"));
 
         SolrIndexLookup lookup = new SolrIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
-        assertEquals(of("/oak:index/l1", "/oak:index/l2"),
+        assertEquals(Set.of("/oak:index/l1", "/oak:index/l2"),
                 lookup.collectIndexNodePaths(f));
     }
 
     @Test
     public void collectPathOnSubNode() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newSolrIndexDefinition(index, "l1", of("foo"));
+        newSolrIndexDefinition(index, "l1", Set.of("foo"));
 
         index = builder.child("a").child(INDEX_DEFINITIONS_NAME);
-        newSolrIndexDefinition(index, "l2", of("foo"));
+        newSolrIndexDefinition(index, "l2", Set.of("foo"));
 
         index = builder.child("a").child("b").child(INDEX_DEFINITIONS_NAME);
-        newSolrIndexDefinition(index, "l3", of("foo"));
+        newSolrIndexDefinition(index, "l3", Set.of("foo"));
 
         SolrIndexLookup lookup = new SolrIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
-        assertEquals(of("/oak:index/l1", "/a/oak:index/l2"),
+        assertEquals(Set.of("/oak:index/l1", "/a/oak:index/l2"),
                 lookup.collectIndexNodePaths(f));
 
         f.restrictPath("/a/b", Filter.PathRestriction.EXACT);
-        assertEquals(of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
+        assertEquals(Set.of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
                 lookup.collectIndexNodePaths(f));
     }
 

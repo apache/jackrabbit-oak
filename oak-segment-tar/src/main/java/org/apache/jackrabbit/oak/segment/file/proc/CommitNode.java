@@ -15,13 +15,13 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.file.proc;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import java.util.Arrays;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -50,7 +50,7 @@ class CommitNode extends AbstractNode {
     }
 
     private Iterable<PropertyState> getProperties(Commit entry) {
-        return Lists.newArrayList(
+        return Arrays.asList(
             PropertyStates.createProperty("timestamp", entry.getTimestamp(), Type.LONG),
             PropertyStates.createProperty("revision", entry.getRevision())
         );

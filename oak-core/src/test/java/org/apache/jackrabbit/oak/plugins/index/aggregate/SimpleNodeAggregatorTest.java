@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
@@ -29,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggreg
 
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -47,13 +47,13 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(JCR_CONTENT));
+                NT_FILE, List.of(JCR_CONTENT));
 
         String path = "/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
-        assertEquals(newArrayList("/file"), actual);
+        assertEquals(List.of("/file"), actual);
 
     }
 
@@ -68,10 +68,10 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(JCR_CONTENT));
+                NT_FILE, List.of(JCR_CONTENT));
 
         String path = "/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
         assertTrue(actual.isEmpty());
@@ -89,13 +89,13 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(INCLUDE_ALL));
+                NT_FILE, List.of(INCLUDE_ALL));
 
         String path = "/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
-        assertEquals(newArrayList("/file"), actual);
+        assertEquals(List.of("/file"), actual);
 
     }
 
@@ -110,13 +110,13 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList("*", "*/*", "*/*/*", "*/*/*/*"));
+                NT_FILE, List.of("*", "*/*", "*/*/*", "*/*/*/*"));
 
         String path = "/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
-        assertEquals(newArrayList("/file"), actual);
+        assertEquals(List.of("/file"), actual);
 
     }
 
@@ -131,10 +131,10 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(INCLUDE_ALL));
+                NT_FILE, List.of(INCLUDE_ALL));
 
         String path = "/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
         assertTrue(actual.isEmpty());
@@ -155,14 +155,14 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FOLDER, newArrayList("file")).newRuleWithName(NT_FILE,
-                newArrayList(INCLUDE_ALL));
+                NT_FOLDER, List.of("file")).newRuleWithName(NT_FILE,
+                List.of(INCLUDE_ALL));
 
         String path = "/folder/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
-        assertEquals(newArrayList("/folder/file", "/folder"), actual);
+        assertEquals(List.of("/folder/file", "/folder"), actual);
 
     }
 
@@ -180,14 +180,14 @@ public class SimpleNodeAggregatorTest {
         file.child(JCR_CONTENT);
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FOLDER, newArrayList("file")).newRuleWithName(NT_FILE,
-                newArrayList(JCR_CONTENT));
+                NT_FOLDER, List.of("file")).newRuleWithName(NT_FILE,
+                List.of(JCR_CONTENT));
 
         String path = "/folder/file/jcr:content";
-        List<String> actual = newArrayList(agg.getParents(
+        List<String> actual = CollectionUtils.toList(agg.getParents(
                 builder.getNodeState(), path));
 
-        assertEquals(newArrayList("/folder/file", "/folder"), actual);
+        assertEquals(List.of("/folder/file", "/folder"), actual);
 
     }
 

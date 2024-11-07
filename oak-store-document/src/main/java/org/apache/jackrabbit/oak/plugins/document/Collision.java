@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPropertyName;
 
@@ -60,12 +60,12 @@ class Collision {
               @NotNull Revision ourRev,
               @NotNull RevisionContext context,
               @NotNull RevisionVector startRevisions) {
-        this.document = checkNotNull(document);
-        this.theirRev = checkNotNull(theirRev);
-        this.ourOp = checkNotNull(ourOp);
-        this.ourRev = checkNotNull(ourRev);
-        this.context = checkNotNull(context);
-        this.startRevisions = checkNotNull(startRevisions);
+        this.document = requireNonNull(document);
+        this.theirRev = requireNonNull(theirRev);
+        this.ourOp = requireNonNull(ourOp);
+        this.ourRev = requireNonNull(ourRev);
+        this.context = requireNonNull(context);
+        this.startRevisions = requireNonNull(startRevisions);
     }
 
     /**

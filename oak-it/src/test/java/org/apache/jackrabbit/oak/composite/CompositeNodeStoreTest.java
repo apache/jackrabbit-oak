@@ -18,12 +18,9 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.compose;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertEquals;
@@ -37,24 +34,24 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -94,7 +91,7 @@ public class CompositeNodeStoreTest {
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
 
-    private final List<NodeStoreRegistration> registrations = newArrayList();
+    private final List<NodeStoreRegistration> registrations = new ArrayList<>();
 
     private CompositeNodeStore store;
     private NodeStore globalStore;
@@ -182,7 +179,7 @@ public class CompositeNodeStoreTest {
 
         // don't use the builder since it would fail due to too many read-write stores
         // but for the purposes of testing the general correctness it's fine
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        List<MountedNodeStore> nonDefaultStores = new ArrayList<>();
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("temp"), mountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("deep"), deepMountedStore));
         nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("empty"), emptyStore));
@@ -236,13 +233,8 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void childNodeEntryForMountIsComposite() {
-        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
-
-            @Override
-            public boolean apply(ChildNodeEntry input) {
-                return input.getName().equals("libs");
-            }
-        });
+        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(),
+                input -> input.getName().equals("libs"));
 
         assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));
     }
@@ -658,12 +650,14 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME)));
+        List<ChildNodeEntry> children = CollectionUtils.toList(filter(store.getRoot().getChildNodeEntries(),
+                x -> Objects.equals(x == null ? null : x.getName(), "new")));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 
         NodeBuilder rootBuilder = store.getRoot().builder();
-        List<String> childNames = newArrayList(filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
+        List<String> childNames = CollectionUtils.toList(filter(rootBuilder.getChildNodeNames(),
+                x -> Objects.equals(x, "new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
     }
@@ -672,7 +666,7 @@ public class CompositeNodeStoreTest {
     public void propertyIndex() throws Exception{
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 
@@ -691,7 +685,7 @@ public class CompositeNodeStoreTest {
     public void bigPropertyIndexUpdate() throws Exception{
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 

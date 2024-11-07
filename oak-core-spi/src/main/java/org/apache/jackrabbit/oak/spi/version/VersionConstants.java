@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -140,12 +139,12 @@ public interface VersionConstants extends JcrConstants {
             REP_CONFIGURATIONS
     ));
 
-    Set<String> VERSION_STORE_ROOT_NAMES = ImmutableSet.of(
+    Set<String> VERSION_STORE_ROOT_NAMES = Set.of(
             JcrConstants.JCR_VERSIONSTORAGE,
             VersionConstants.JCR_CONFIGURATIONS,
             VersionConstants.JCR_ACTIVITIES);
 
-    Set<String> VERSION_STORE_NT_NAMES = ImmutableSet.of(
+    Set<String> VERSION_STORE_NT_NAMES = Set.of(
             VersionConstants.REP_VERSIONSTORAGE,
             VersionConstants.REP_ACTIVITIES,
             VersionConstants.REP_CONFIGURATIONS

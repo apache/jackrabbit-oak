@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -38,8 +39,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 class TokenValidatorProvider extends ValidatorProvider implements TokenConstants {
 
@@ -66,7 +65,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
     @NotNull
     private static Tree verifyNotNull(@Nullable Tree tree) {
-        checkState(tree != null);
+        Validate.checkState(tree != null);
         return tree;
     }
 

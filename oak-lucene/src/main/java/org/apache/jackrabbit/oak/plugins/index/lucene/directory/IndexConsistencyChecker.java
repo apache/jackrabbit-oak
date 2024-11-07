@@ -58,7 +58,7 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class IndexConsistencyChecker {
@@ -217,9 +217,9 @@ public class IndexConsistencyChecker {
      *                    would be left as is
      */
     public IndexConsistencyChecker(NodeState rootState, String indexPath, File workDirRoot) {
-        this.rootState = checkNotNull(rootState);
-        this.indexPath = checkNotNull(indexPath);
-        this.workDirRoot = checkNotNull(workDirRoot);
+        this.rootState = requireNonNull(rootState);
+        this.indexPath = requireNonNull(indexPath);
+        this.workDirRoot = requireNonNull(workDirRoot);
     }
 
     public void setPrintStream(PrintStream printStream) {

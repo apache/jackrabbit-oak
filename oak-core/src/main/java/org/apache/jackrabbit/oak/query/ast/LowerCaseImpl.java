@@ -30,8 +30,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -60,12 +58,12 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     public String toString() {
         return "lower(" + operand + ')';
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return operand.getPropertyExistence();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return operand.getSelectors();
@@ -80,12 +78,7 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         // TODO toLowerCase(): document the Turkish locale problem
         if (p.getType().isArray()) {
             Iterable<String> lowerCase = transform(p.getValue(STRINGS),
-                    new Function<String, String>() {
-                        @Override
-                        public String apply(String input) {
-                            return input.toLowerCase();
-                        }
-                    });
+                    input -> input.toLowerCase());
             return PropertyValues.newString(lowerCase);
         } else {
             String value = p.getValue(STRING);
@@ -112,6 +105,13 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // "LOWER(x) IN (A, B)" implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
+        if (!f.getQueryLimits().getOptimizeInRestrictionsForFunctions()) {
+            return;
+        }
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictPropertyAsList(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, list);
+        }
     }
     
     @Override

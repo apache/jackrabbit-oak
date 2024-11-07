@@ -21,9 +21,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
@@ -58,9 +55,12 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
@@ -71,9 +71,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -82,6 +79,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -171,7 +169,7 @@ public class NodeDelegate extends ItemDelegate {
         // child node definitions. Iterate through them to check whether
         // there's a matching, protected one.
         if (protectedResidual) {
-            Set<String> typeNames = newHashSet();
+            Set<String> typeNames = new HashSet<>();
             for (Tree type : TreeUtil.getEffectiveType(tree, typeRoot)) {
                 typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
                 addAll(typeNames, TreeUtil.getNames(type, REP_SUPERTYPES));
@@ -299,12 +297,7 @@ public class NodeDelegate extends ItemDelegate {
     @NotNull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
         return transform(getTree().getProperties().iterator(),
-                new Function<PropertyState, PropertyDelegate>() {
-                    @Override
-                    public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionDelegate, tree, propertyState.getName());
-                    }
-                });
+                propertyState -> new PropertyDelegate(sessionDelegate, tree, propertyState.getName()));
     }
 
     /**
@@ -349,18 +342,8 @@ public class NodeDelegate extends ItemDelegate {
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
         return transform(
-                filter(iterator, new Predicate<Tree>() {
-                    @Override
-                    public boolean apply(Tree tree) {
-                        return tree.exists();
-                    }
-                }),
-                new Function<Tree, NodeDelegate>() {
-                    @Override
-                    public NodeDelegate apply(Tree tree) {
-                        return new NodeDelegate(sessionDelegate, tree);
-                    }
-                });
+                filter(iterator, tree -> tree.exists()),
+                tree -> new NodeDelegate(sessionDelegate, tree));
     }
 
     public void orderBefore(String source, String target)
@@ -395,7 +378,7 @@ public class NodeDelegate extends ItemDelegate {
 
     public void removeMixin(String typeName) throws RepositoryException {
         Tree tree = getTree();
-        Set<String> mixins = newLinkedHashSet(getNames(tree, JCR_MIXINTYPES));
+        Set<String> mixins = CollectionUtils.toLinkedSet(getNames(tree, JCR_MIXINTYPES));
         if (!mixins.remove(typeName)) {
             throw new NoSuchNodeTypeException("Mixin " + typeName +" not contained in " + getPath());
         }
@@ -403,11 +386,11 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void setMixins(Set<String> mixinNames) throws RepositoryException {
-        Set<String> existingMixins = newLinkedHashSet(getNames(tree, JCR_MIXINTYPES));
+        Set<String> existingMixins = CollectionUtils.toLinkedSet(getNames(tree, JCR_MIXINTYPES));
         if (existingMixins.isEmpty()) {
             updateMixins(mixinNames, Collections.<String>emptySet());
         } else {
-            Set<String> toRemove = newLinkedHashSet();
+            Set<String> toRemove = new LinkedHashSet<>();
             for (String name : existingMixins) {
                 if (!mixinNames.remove(name)) {
                     toRemove.add(name);
@@ -426,7 +409,7 @@ public class NodeDelegate extends ItemDelegate {
 
         if (!removedOakMixinNames.isEmpty()) {
             // 2. retrieve the updated set of mixin types, remove the mixins that should no longer be present
-            Set<String> mixinNames = newLinkedHashSet(getNames(getTree(), JCR_MIXINTYPES));
+            Set<String> mixinNames = CollectionUtils.toLinkedSet(getNames(getTree(), JCR_MIXINTYPES));
             if (mixinNames.removeAll(removedOakMixinNames)) {
                 // FIXME: add mixins to add again as the removal may change the effect of type inheritance as evaluated during #addMixin
                 mixinNames.addAll(addMixinNames);
@@ -464,7 +447,7 @@ public class NodeDelegate extends ItemDelegate {
 
             for (Tree child : tree.getChildren()) {
                 String name = child.getName();
-                Set<String> typeNames = newLinkedHashSet();
+                Set<String> typeNames = new LinkedHashSet<>();
                 for (Tree type : getNodeTypes(child, typeRoot)) {
                     typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
                     addAll(typeNames, getNames(type, REP_SUPERTYPES));
@@ -544,7 +527,7 @@ public class NodeDelegate extends ItemDelegate {
 
     private List<Tree> getNodeTypes(Tree tree, Tree typeRoot) {
         // Find applicable node types
-        List<Tree> types = newArrayList();
+        List<Tree> types = new ArrayList<>();
         String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
         if (primaryName == null) {
             primaryName = NT_BASE;

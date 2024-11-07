@@ -212,7 +212,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testCanHandleCombination() throws Exception {
-        assertFalse(filter.canHandle(ImmutableSet.of(getTestSystemUser().getPrincipal(), getTestUser().getPrincipal())));
+        assertFalse(filter.canHandle(Set.of(getTestSystemUser().getPrincipal(), getTestUser().getPrincipal())));
     }
 
     @Test

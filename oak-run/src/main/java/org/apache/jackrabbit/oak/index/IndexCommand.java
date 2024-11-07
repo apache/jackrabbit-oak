@@ -30,7 +30,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -55,9 +55,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 
 public class IndexCommand implements Command {
@@ -173,7 +173,7 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStoreFixture fixture,  IndexOptions indexOpts, Closer closer)
+    private void execute(NodeStoreFixture fixture, IndexOptions indexOpts, Closer closer)
             throws IOException, CommitFailedException {
         ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
 
@@ -184,13 +184,13 @@ public class IndexCommand implements Command {
         reindexOperation(indexOpts, extendedIndexHelper);
         importIndexOperation(indexOpts, extendedIndexHelper);
 
-        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}" , extendedIndexHelper.getIndexReporter().generateReport());
+        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}", extendedIndexHelper.getIndexReporter().generateReport());
     }
 
     private ExtendedIndexHelper createIndexHelper(NodeStoreFixture fixture,
-                                          IndexOptions indexOpts, Closer closer) throws IOException {
+                                                  IndexOptions indexOpts, Closer closer) throws IOException {
         ExtendedIndexHelper extendedIndexHelper = new ExtendedIndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
-                indexOpts.getOutDir(),  indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
+                indexOpts.getOutDir(), indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
 
         configurePreExtractionSupport(indexOpts, extendedIndexHelper);
 
@@ -206,7 +206,7 @@ public class IndexCommand implements Command {
             IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
             Set<String> indexPathsFromJson = updater.getIndexPaths();
             Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
-            if (!diff.isEmpty()){
+            if (!diff.isEmpty()) {
                 log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
             }
             indexPaths.addAll(indexPathsFromJson);
@@ -223,7 +223,7 @@ public class IndexCommand implements Command {
     }
 
     private void reindexOperation(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException, CommitFailedException {
-        if (!indexOpts.isReindex()){
+        if (!indexOpts.isReindex()) {
             return;
         }
 
@@ -241,7 +241,7 @@ public class IndexCommand implements Command {
     }
 
     private File reindex(IndexOptions idxOpts, ExtendedIndexHelper extendedIndexHelper, String checkpoint) throws IOException, CommitFailedException {
-        checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+        requireNonNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch reindexWatch = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);
@@ -252,9 +252,9 @@ public class IndexCommand implements Command {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
                 if (idxOpts.buildFlatFileStoreSeparately()) {
-                    FlatFileStore ffs = indexer.buildFlatFileStore();
-                    String pathToFFS = ffs.getFlatFileStorePath();
-                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
+                    IndexStore store = indexer.buildStore();
+                    String pathToStore = store.getStorePath();
+                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToStore);
                 }
                 indexer.reindex();
             }
@@ -305,7 +305,7 @@ public class IndexCommand implements Command {
 
     private String connectInReadWriteModeAndCreateCheckPoint(IndexOptions indexOpts) throws Exception {
         String checkpoint = indexOpts.getCheckpoint();
-        if (checkpoint != null){
+        if (checkpoint != null) {
             log.info("Using provided checkpoint [{}]", checkpoint);
             return checkpoint;
         }
@@ -419,7 +419,7 @@ public class IndexCommand implements Command {
     }
 
     private static void configureCustomizer(Options opts, Closer closer, boolean readOnlyAccess) {
-        if (opts.getCommonOpts().isDocument()){
+        if (opts.getCommonOpts().isDocument()) {
             IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);
             if (indexOpts.isReindex()) {
                 IndexDocumentBuilderCustomizer customizer = new IndexDocumentBuilderCustomizer(opts, readOnlyAccess);

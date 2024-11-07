@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -53,7 +52,7 @@ public interface PrivilegeConstants {
      * The internal names of all property definitions that are associated with
      * the {@link #NT_REP_PRIVILEGE rep:Privilege} node type
      */
-    Set<String> PRIVILEGE_PROPERTY_NAMES = ImmutableSet.of(REP_IS_ABSTRACT, REP_AGGREGATES, REP_NEXT);
+    Set<String> PRIVILEGE_PROPERTY_NAMES = Set.of(REP_IS_ABSTRACT, REP_AGGREGATES, REP_NEXT);
 
     /**
      * Internal (oak) path for the privilege store.
@@ -73,7 +72,7 @@ public interface PrivilegeConstants {
     /**
      * Node type names associated with privilege content
      */
-    Set<String> PRIVILEGE_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PRIVILEGES, NT_REP_PRIVILEGE);
+    Set<String> PRIVILEGE_NODETYPE_NAMES = Set.of(NT_REP_PRIVILEGES, NT_REP_PRIVILEGE);
 
     /**
      * Name of the privilege definition property that stores the internal representation
@@ -229,7 +228,7 @@ public interface PrivilegeConstants {
     /**
      * The internal names of all built-in privileges that are not aggregates.
      */
-    Set<String> NON_AGGREGATE_PRIVILEGES = ImmutableSet.of(
+    Set<String> NON_AGGREGATE_PRIVILEGES = Set.of(
             REP_READ_NODES, REP_READ_PROPERTIES,
                         REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES,
                         JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,

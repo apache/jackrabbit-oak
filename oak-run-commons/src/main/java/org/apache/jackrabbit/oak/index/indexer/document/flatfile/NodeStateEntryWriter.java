@@ -32,12 +32,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class NodeStateEntryWriter {
     private static final boolean SORTED_PROPERTIES = Boolean.getBoolean("oak.NodeStateEntryWriter.sort");
     private static final String OAK_CHILD_ORDER = ":childOrder";
     public static final String DELIMITER = "|";
+    public static final char DELIMITER_CHAR = '|';
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
@@ -61,7 +60,7 @@ public class NodeStateEntryWriter {
     }
 
     public String toString(String path, String nodeStateAsJson) {
-        return path + DELIMITER + nodeStateAsJson;
+        return path + DELIMITER_CHAR + nodeStateAsJson;
     }
 
     public String toString(List<String> pathElements, String nodeStateAsJson) {
@@ -69,7 +68,7 @@ public class NodeStateEntryWriter {
         StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
         sb.append('/');
         pathJoiner.appendTo(sb, pathElements);
-        sb.append(DELIMITER).append(nodeStateAsJson);
+        sb.append(DELIMITER_CHAR).append(nodeStateAsJson);
         return sb.toString();
     }
 
@@ -117,8 +116,10 @@ public class NodeStateEntryWriter {
     }
 
     private static int getDelimiterPosition(String entryLine) {
-        int indexOfPipe = entryLine.indexOf(NodeStateEntryWriter.DELIMITER);
-        checkState(indexOfPipe > 0, "Invalid path entry [%s]", entryLine);
+        int indexOfPipe = entryLine.indexOf(NodeStateEntryWriter.DELIMITER_CHAR);
+        if (indexOfPipe <= 0) {
+            throw new IllegalStateException("Invalid path entry " + entryLine);
+        }
         return indexOfPipe;
     }
 }

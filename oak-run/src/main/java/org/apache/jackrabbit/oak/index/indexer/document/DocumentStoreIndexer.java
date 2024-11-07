@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 
@@ -41,7 +40,7 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
     }
 
     protected List<NodeStateIndexerProvider> createProviders() throws IOException {
-        List<NodeStateIndexerProvider> providers = ImmutableList.of(
+        List<NodeStateIndexerProvider> providers = List.of(
                 createLuceneIndexProvider()
         );
 

@@ -22,7 +22,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeType;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
@@ -66,7 +66,7 @@ public final class Utils {
 
     @NotNull
     static String uuidFromNode(@NotNull NodeState node) {
-        PropertyState p = checkNotNull(node).getProperty(JCR_UUID);
+        PropertyState p = requireNonNull(node).getProperty(JCR_UUID);
         if (p == null) {
             throw new IllegalArgumentException("Not referenceable");
         }
@@ -85,7 +85,7 @@ public final class Utils {
     @NotNull
     static String primaryTypeOf(@NotNull NodeBuilder node)
             throws IllegalStateException {
-        String primaryType = checkNotNull(node).getName(JCR_PRIMARYTYPE);
+        String primaryType = requireNonNull(node).getName(JCR_PRIMARYTYPE);
         if (primaryType == null) {
             throw new IllegalStateException("Node does not have a jcr:primaryType");
         }

@@ -19,7 +19,8 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -30,7 +31,7 @@ public class GetHeadResponseEncoderTest {
     @Test
     public void encodeResponse() throws Exception {
         String recordId = "recordId";
-        byte[] recordIdBytes = recordId.getBytes(Charsets.UTF_8);
+        byte[] recordIdBytes = recordId.getBytes(StandardCharsets.UTF_8);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetHeadResponseEncoder());
         channel.writeOutbound(new GetHeadResponse("clientId", "recordId"));

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 
 /**
@@ -47,7 +47,7 @@ class BlockRecord extends Record {
      */
     public int read(int position, byte[] buffer, int offset, int length) {
         checkElementIndex(position, size);
-        checkNotNull(buffer);
+        requireNonNull(buffer);
         checkPositionIndexes(offset, offset + length, buffer.length);
 
         if (position + length > size) {

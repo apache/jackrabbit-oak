@@ -45,7 +45,6 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -175,9 +174,9 @@ public class TestS3DataStore {
         assumeTrue(isS3Configured());
         S3DataStore s3ds = getDataStore();
 
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
+        for (boolean fromInputStream : List.of(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
-            for (int count : Lists.newArrayList(1, 3)) {
+            for (int count : List.of(1, 3)) {
                 Map<String, String> records = Maps.newHashMap();
                 for (int i = 0; i < count; i++) {
                     String recordName = String.format("%sname.%d", prefix, i);
@@ -238,8 +237,8 @@ public class TestS3DataStore {
         S3DataStore s3ds = getDataStore();
 
         final String data = "testData";
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
-            for (String name : Lists.newArrayList(null, "")) {
+        for (boolean fromInputStream : List.of(false, true)) {
+            for (String name : Arrays.asList(null, "")) {
                 try {
                     if (fromInputStream) {
                         s3ds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), name);
@@ -263,7 +262,7 @@ public class TestS3DataStore {
         S3DataStore s3ds = getDataStore();
 
         s3ds.addMetadataRecord(randomStream(0, 10), "testRecord");
-        for (String name : Lists.newArrayList("", null)) {
+        for (String name : Arrays.asList("", null)) {
             try {
                 s3ds.getMetadataRecord(name);
                 fail("Expect to throw");
@@ -323,7 +322,7 @@ public class TestS3DataStore {
         S3DataStore s3ds = getDataStore();
 
         s3ds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("invalid", "", null)) {
+        for (String name : Arrays.asList("invalid", "", null)) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     s3ds.metadataRecordExists(name);
@@ -345,7 +344,7 @@ public class TestS3DataStore {
         S3DataStore s3ds = getDataStore();
 
         s3ds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("", null)) {
+        for (String name : Arrays.asList("", null)) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     s3ds.deleteMetadataRecord(name);

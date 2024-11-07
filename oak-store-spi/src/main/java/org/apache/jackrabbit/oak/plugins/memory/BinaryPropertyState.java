@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -33,7 +33,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
 
     public BinaryPropertyState(@NotNull String name, @NotNull Blob value) {
         super(name);
-        this.value = checkNotNull(value);
+        this.value = requireNonNull(value);
     }
 
     /**
@@ -45,7 +45,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
     public static PropertyState binaryProperty(
             @NotNull String name, @NotNull byte[] value) {
         return new BinaryPropertyState(
-                name, new ArrayBasedBlob(checkNotNull(value)));
+                name, new ArrayBasedBlob(requireNonNull(value)));
     }
 
     /**
@@ -57,7 +57,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
     public static PropertyState binaryProperty(
             @NotNull String name, @NotNull String value) {
         return new BinaryPropertyState(
-                name, new StringBasedBlob(checkNotNull(value)));
+                name, new StringBasedBlob(requireNonNull(value)));
     }
 
     /**

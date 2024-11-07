@@ -40,7 +40,7 @@ Before committing changes or submitting a patch, please make sure that the above
 build passes without errors. If you like, you can enable integration tests by default by setting the
 `OAK_INTEGRATION_TESTING` environment variable.
 
-Please also refer to the documentation [Developing with Git](./developing-with-git.html)
+Please also refer to the documentation [Developing with Git](./developing-with-git.html) and [Testing using different nodestore fixtures](./testing.html).
 
 MongoDB integration
 -------------------

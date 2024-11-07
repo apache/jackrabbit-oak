@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.composite.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -86,7 +86,7 @@ public class NonDefaultMountWriteReportingObserver implements Observer {
     // have been accumulated
     @Override
     public final synchronized void contentChanged(NodeState root, CommitInfo info) {
-        checkNotNull(root);
+        requireNonNull(root);
         if (oldState != null) {
             CountingDiff diff = new CountingDiff("/", new LinkedHashMap<>());
             root.compareAgainstBaseState(oldState, diff);

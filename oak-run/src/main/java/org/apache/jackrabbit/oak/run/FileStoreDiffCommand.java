@@ -18,13 +18,20 @@
 package org.apache.jackrabbit.oak.run;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.tool.Utils.newBasicReadOnlyBlobStore;
 
 import java.io.File;
 
+import com.google.common.io.Files;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Diff;
 import org.apache.jackrabbit.oak.segment.tool.Revisions;
 
@@ -34,7 +41,7 @@ class FileStoreDiffCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
-        OptionSpec<File> storeO = parser.nonOptions("Path to segment store (required)").ofType(File.class);
+        OptionSpec<String> pathOrURI0 = parser.nonOptions("Path/URI to segment store (required)").ofType(String.class);
         OptionSpec<File> outO = parser.accepts("output", "Output file").withRequiredArg().ofType(File.class).defaultsTo(defaultOutFile());
         OptionSpec<?> listOnlyO = parser.accepts("list", "Lists available revisions");
         OptionSpec<String> intervalO = parser.accepts("diff", "Revision diff interval. Ex '--diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '--diff=R0..HEAD'").withRequiredArg().ofType(String.class);
@@ -48,9 +55,9 @@ class FileStoreDiffCommand implements Command {
             System.exit(0);
         }
 
-        File store = storeO.value(options);
+        String pathOrURI = pathOrURI0.value(options);
 
-        if (store == null) {
+        if (pathOrURI == null) {
             parser.printHelpOn(System.out);
             System.exit(1);
         }
@@ -65,21 +72,50 @@ class FileStoreDiffCommand implements Command {
 
         int statusCode;
         if (listOnly) {
-            statusCode = Revisions.builder()
-                .withPath(store)
-                .withOutput(out)
-                .build()
-                .run();
+            if (pathOrURI.startsWith("az:")) {
+                statusCode = Revisions.builder()
+                        .withPath(pathOrURI)
+                        .withOutput(out)
+                        .build()
+                        .run(ToolUtils::readRevisions);
+            } else {
+                statusCode = Revisions.builder()
+                    .withPath(pathOrURI)
+                    .withOutput(out)
+                    .build()
+                    .run(org.apache.jackrabbit.oak.segment.tool.Utils::readRevisions);
+            }
         } else {
-            statusCode = Diff.builder()
-                .withPath(store)
-                .withOutput(out)
-                .withInterval(interval)
-                .withIncremental(incremental)
-                .withFilter(path)
-                .withIgnoreMissingSegments(ignoreSNFEs)
-                .build()
-                .run();
+            if (pathOrURI.startsWith("az:")) {
+                try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
+                    SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI, azureStorageCredentialManager);
+                    ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+                    statusCode = Diff.builder()
+                            .withPath(pathOrURI)
+                            .withReadOnlyFileStore(store)
+                            .withOutput(out)
+                            .withInterval(interval)
+                            .withIncremental(incremental)
+                            .withFilter(path)
+                            .withIgnoreMissingSegments(ignoreSNFEs)
+                            .withRevisionsProcessor(ToolUtils::readRevisions)
+                            .build()
+                            .run();
+                }
+            } else {
+                ReadOnlyFileStore store = fileStoreBuilder(new File(pathOrURI)).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+                statusCode = Diff.builder()
+                    .withPath(pathOrURI)
+                    .withReadOnlyFileStore(store)
+                    .withOutput(out)
+                    .withInterval(interval)
+                    .withIncremental(incremental)
+                    .withFilter(path)
+                    .withIgnoreMissingSegments(ignoreSNFEs)
+                    .withRevisionsProcessor(org.apache.jackrabbit.oak.segment.tool.Utils::readRevisions)
+                    .build()
+                    .run();
+            }
         }
         System.exit(statusCode);
     }

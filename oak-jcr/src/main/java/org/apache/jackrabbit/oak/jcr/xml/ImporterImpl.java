@@ -36,10 +36,7 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -299,31 +296,23 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedPropertyImporter>() {
-            @Nullable
-            @Override
-            public ProtectedPropertyImporter apply(@Nullable ProtectedItemImporter importer) {
+        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedPropertyImporter) {
                     return (ProtectedPropertyImporter) importer;
                 } else {
                     return null;
                 }
-            }
-        }), Predicates.notNull());
+            }), x -> x != null);
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedNodeImporter>() {
-            @Nullable
-            @Override
-            public ProtectedNodeImporter apply(@Nullable ProtectedItemImporter importer) {
+        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedNodeImporter) {
                     return (ProtectedNodeImporter) importer;
                 } else {
                     return null;
                 }
-            }
-        }), Predicates.notNull());
+            }), x -> x != null);
     }
 
     //-----------------------------------------------------------< Importer >---
@@ -515,7 +504,7 @@ public class ImporterImpl implements Importer {
             Reference reference = (Reference) ref;
             if (reference.isMultiple()) {
                 Iterable<String> values = reference.property.getValue(Type.STRINGS);
-                List<String> newValues = Lists.newArrayList();
+                List<String> newValues = new ArrayList<>();
                 for (String original : values) {
                     String adjusted = refTracker.get(original);
                     if (adjusted != null) {

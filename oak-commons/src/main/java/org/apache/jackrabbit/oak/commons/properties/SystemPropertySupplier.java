@@ -25,7 +25,6 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 /**
  * Utility class for consistent handling of system properties.
@@ -50,12 +49,13 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     private final Function<String, T> parser;
 
     private Logger log = LOG;
-    private Level successLogLevel = Level.INFO;
+    private String successLogLevel = "INFO";
+    private boolean hideValue = false;
+    private String hiddenReplacement = "*****";
     private Predicate<T> validator = (a) -> true;
     private Function<String, String> sysPropReader = System::getProperty;
-    private BiFunction<String, T, String> setMessageFormatter = (a, b) -> {
-        return String.format("System property %s found to be '%s'", a, b);
-    };
+    private BiFunction<String, T, String> setMessageFormatter = (a, b) -> String.format("System property %s found to be '%s'", a,
+            hideValue ? hiddenReplacement : b);
 
     private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) throws IllegalArgumentException {
         this.propName = Objects.requireNonNull(propName, "propertyName must be non-null");
@@ -97,10 +97,33 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     }
 
     /**
-     * Specify {@link Level} to use for "success" message.
+     * Specify {@link Level} to use for "success" message (defaults to "INFO")
      */
-    public SystemPropertySupplier<T> logSuccessAs(Level successLogLevel) {
-        this.successLogLevel = Objects.requireNonNull(successLogLevel);
+    public SystemPropertySupplier<T> logSuccessAs(String successLogLevel) {
+        String newLevel;
+        switch (Objects.requireNonNull(successLogLevel)) {
+            case "DEBUG":
+            case "ERROR":
+            case "INFO":
+            case "TRACE":
+            case "WARN":
+                newLevel = successLogLevel;
+                break;
+            default:
+                throw new IllegalArgumentException("unsupported log level: " + successLogLevel);
+        }
+        this.successLogLevel = newLevel;
+        return this;
+    }
+
+    /**
+     * Used to hide property value in log messages (for instance, for passwords)
+     * <p>
+     * <em>Note:</em> will have no effect when custom message formatter is used
+     * (see {@link #setMessageFormatter}).
+     */
+    public SystemPropertySupplier<T> hideValue() {
+        this.hideValue = true;
         return this;
     }
 
@@ -121,40 +144,41 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
      */
     public T get() {
 
-        T ret = defaultValue;
+        T returnValue = defaultValue;
 
         String value = sysPropReader.apply(propName);
         if (value == null) {
             log.trace("System property {} not set", propName);
         } else {
-            log.trace("System property {} set to '{}'", propName, value);
+            String displayedValue = hideValue ? hiddenReplacement : value;
+            log.trace("System property {} set to '{}'", propName, displayedValue);
             try {
                 T v = parser.apply(value);
                 if (!validator.test(v)) {
-                    log.error("Ignoring invalid value '{}' for system property {}", value, propName);
+                    log.error("Ignoring invalid value '{}' for system property {}", displayedValue, propName);
                 } else {
-                    ret = v;
+                    returnValue = v;
                 }
             } catch (NumberFormatException ex) {
-                log.error("Ignoring malformed value '{}' for system property {}", value, propName);
+                log.error("Ignoring malformed value '{}' for system property {}", displayedValue, propName);
             }
 
-            if (!ret.equals(defaultValue)) {
-                String msg = setMessageFormatter.apply(propName, ret);
+            if (!returnValue.equals(defaultValue)) {
+                String msg = setMessageFormatter.apply(propName, returnValue);
                 switch (successLogLevel) {
-                    case INFO:
+                    case "INFO":
                         log.info(msg);
                         break;
-                    case DEBUG:
+                    case "DEBUG":
                         log.debug(msg);
                         break;
-                    case ERROR:
+                    case "ERROR":
                         log.error(msg);
                         break;
-                    case TRACE:
+                    case "TRACE":
                         log.trace(msg);
                         break;
-                    case WARN:
+                    case "WARN":
                         log.warn(msg);
                         break;
                     default:
@@ -163,7 +187,7 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
             }
         }
 
-        return ret;
+        return returnValue;
     }
 
     @SuppressWarnings("unchecked")

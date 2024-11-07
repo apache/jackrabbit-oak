@@ -13,8 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.math.BigInteger;
@@ -106,7 +105,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 
@@ -555,25 +553,25 @@ public class QueryImpl implements Query {
         for (SelectorImpl s : selectors) {
             if (s.getExecutionPlan() != null &&
                     s.getExecutionPlan().getIndexPlan() != null) {
-                s.getExecutionPlan().getIndexPlan().getAdditionalMessages().forEach((level, list) -> {
+                s.getExecutionPlan().getIndexPlan().getAdditionalLogMessages().forEach((level, list) -> {
                     switch (level) {
-                        case TRACE: for (String msg : list) {
+                        case "TRACE": for (String msg : list) {
                             LOG.trace(msg);
                         }
                         break;
-                        case DEBUG: for (String msg : list) {
+                        case "DEBUG": for (String msg : list) {
                             LOG.debug(msg);
                         }
-                            break;
-                        case INFO: for (String msg : list) {
+                        break;
+                        case "INFO": for (String msg : list) {
                             LOG.info(msg);
                         }
-                            break;
-                        case WARN: for (String msg : list) {
+                        break;
+                        case "WARN": for (String msg : list) {
                             LOG.warn(msg);
                         }
                         break;
-                        case ERROR: for (String msg : list) {
+                        case "ERROR": for (String msg : list) {
                             LOG.error(msg);
                         }
                         break;
@@ -825,7 +823,7 @@ public class QueryImpl implements Query {
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
             this.query = query;
             this.delegate = delegate;
-            results = Lists.newArrayList();
+            results = new ArrayList<>();
         }
 
         @Override
@@ -1495,7 +1493,7 @@ public class QueryImpl implements Query {
     }
     
     private static String recomposeStatement(@NotNull QueryImpl query) {
-        checkNotNull(query);
+        requireNonNull(query);
         String original = query.getStatement();
         String origUpper = original.toUpperCase(Locale.ENGLISH);
         StringBuilder recomputed = new StringBuilder();
@@ -1525,8 +1523,8 @@ public class QueryImpl implements Query {
     private UnionQueryImpl newAlternativeUnionQuery(@NotNull Query left, @NotNull Query right) {
         UnionQueryImpl u = new UnionQueryImpl(
             false, 
-            checkNotNull(left, "`left` cannot be null"), 
-            checkNotNull(right, "`right` cannot be null"),
+            requireNonNull(left, "`left` cannot be null"), 
+            requireNonNull(right, "`right` cannot be null"),
             this.settings);
         u.setExplain(explain);
         u.setMeasure(measure);
@@ -1542,7 +1540,7 @@ public class QueryImpl implements Query {
             throw new IllegalStateException("QueryImpl cannot be cloned once initialised.");
         }
         
-        List<ColumnImpl> cols = newArrayList();
+        List<ColumnImpl> cols = new ArrayList<>();
         for (ColumnImpl c : columns) {
             cols.add((ColumnImpl) copyElementAndCheckReference(c));
         }

@@ -22,11 +22,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -163,7 +163,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
+        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges),
+                privilege -> nameMapper.getOakNameOrNull(privilege.getName())), x -> x != null));
     }
 
     /**
@@ -239,7 +240,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         } else if (privilegeNames.length == 1) {
             String privName = privilegeNames[0];
             if (NON_AGGREGATE_PRIVILEGES.contains(privName)) {
-                return ImmutableSet.of(privName);
+                return Set.of(privName);
             } else if (aggregation.containsKey(privName)) {
                 return aggregation.get(privName);
             } else if (AGGREGATE_PRIVILEGES.containsKey(privName)) {
@@ -261,7 +262,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     @NotNull
     private Iterable<String> extractAggregatedPrivileges(@NotNull Iterable<String> privilegeNames) {
-        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges());
+        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges()::apply);
     }
 
     @NotNull

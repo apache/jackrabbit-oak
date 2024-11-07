@@ -40,9 +40,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
@@ -84,7 +83,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         Set<String> afterKeys = getValueKeys(after, pd.valuePattern);
 
         //Remove duplicates
-        Set<String> sharedKeys = newHashSet(beforeKeys);
+        Set<String> sharedKeys = new HashSet<>(beforeKeys);
         sharedKeys.retainAll(afterKeys);
         beforeKeys.removeAll(sharedKeys);
         afterKeys.removeAll(sharedKeys);
@@ -151,8 +150,8 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         }
 
         String headBucketName = idx.getString(PROP_HEAD_BUCKET);
-        checkNotNull(headBucketName, "[%s] property not found in [%s] for index [%s]",
-                PROP_HEAD_BUCKET, idx, indexPath);
+        requireNonNull(headBucketName, String.format("[%s] property not found in [%s] for index [%s]",
+                PROP_HEAD_BUCKET, idx, indexPath));
 
         return idx.child(headBucketName);
     }

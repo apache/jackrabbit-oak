@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -46,12 +46,12 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     PropertyTemplate(int index, String name, Type<?> type) {
         this.index = index;
-        this.name = checkNotNull(name);
-        this.type = checkNotNull(type);
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
     }
 
     PropertyTemplate(PropertyState state) {
-        checkNotNull(state);
+        requireNonNull(state);
         this.index = 0;
         this.name = state.getName();
         this.type = state.getType();
@@ -73,7 +73,7 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     @Override
     public int compareTo(@NotNull PropertyTemplate template) {
-        checkNotNull(template);
+        requireNonNull(template);
         return ComparisonChain.start()
                 .compare(hashCode(), template.hashCode()) // important
                 .compare(name, template.name)

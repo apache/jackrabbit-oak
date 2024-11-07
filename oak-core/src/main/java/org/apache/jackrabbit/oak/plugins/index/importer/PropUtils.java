@@ -29,7 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 final class PropUtils {
 
@@ -42,7 +42,7 @@ final class PropUtils {
     }
 
     static String getProp(Properties p, String key) {
-        return checkNotNull(p.getProperty(key), "No property named [%s] found", key);
+        return requireNonNull(p.getProperty(key), String.format("No property named [%s] found", key));
     }
 
     static void writeTo(Properties p, File file, String comment) throws IOException {

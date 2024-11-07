@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class LuceneDoc implements LuceneDocInfo {
     final String indexPath;
@@ -32,7 +32,7 @@ class LuceneDoc implements LuceneDocInfo {
     private volatile boolean processed;
 
     public static LuceneDoc forUpdate(String indexPath, String path, Iterable<? extends IndexableField> doc){
-        return new LuceneDoc(indexPath, path, checkNotNull(doc), false);
+        return new LuceneDoc(indexPath, path, requireNonNull(doc), false);
     }
 
     public static LuceneDoc forDelete(String indexPath, String path){
@@ -40,8 +40,8 @@ class LuceneDoc implements LuceneDocInfo {
     }
 
     private LuceneDoc(String indexPath, String path, @Nullable Iterable<? extends IndexableField> doc, boolean delete) {
-        this.docPath = checkNotNull(path);
-        this.indexPath = checkNotNull(indexPath);
+        this.docPath = requireNonNull(path);
+        this.indexPath = requireNonNull(indexPath);
         this.doc = doc;
         this.delete = delete;
     }

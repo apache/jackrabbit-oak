@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -127,10 +125,10 @@ public class IndexRootDirectoryTest {
 
     @Test
     public void longFileName() throws Exception{
-        String longName = Strings.repeat("x", IndexRootDirectory.MAX_NAME_LENGTH);
+        String longName = "x".repeat(IndexRootDirectory.MAX_NAME_LENGTH);
         assertEquals(longName, IndexRootDirectory.getIndexFolderBaseName(longName));
 
-        String longName2 = Strings.repeat("x", IndexRootDirectory.MAX_NAME_LENGTH + 10);
+        String longName2 = "x".repeat(IndexRootDirectory.MAX_NAME_LENGTH + 10);
         assertEquals(longName, IndexRootDirectory.getIndexFolderBaseName(longName2));
     }
 

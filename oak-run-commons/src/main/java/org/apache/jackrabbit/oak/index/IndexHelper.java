@@ -55,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class IndexHelper implements Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -74,13 +74,13 @@ public class IndexHelper implements Closeable {
     private IndexInfoServiceImpl indexInfoService;
 
 
-    IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
+    protected IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                 File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.blobStore = blobStore;
         this.whiteboard = whiteboard;
-        this.statisticsProvider = checkNotNull(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
-        this.indexReporter = checkNotNull(WhiteboardUtils.getService(whiteboard, IndexingReporter.class));
+        this.statisticsProvider = requireNonNull(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
+        this.indexReporter = requireNonNull(WhiteboardUtils.getService(whiteboard, IndexingReporter.class));
         this.outputDir = outputDir;
         this.workDir = workDir;
         this.indexPaths = List.copyOf(indexPaths);

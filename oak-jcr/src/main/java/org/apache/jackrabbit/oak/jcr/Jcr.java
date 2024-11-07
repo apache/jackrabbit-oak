@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler.createJcrConflictHandler;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -70,13 +70,13 @@ public class Jcr {
 
     private final Oak oak;
 
-    private final Set<RepositoryInitializer> repositoryInitializers = newLinkedHashSet();
-    private final Set<QueryIndexProvider> queryIndexProviders = newLinkedHashSet();
-    private final Set<CommitHook> commitHooks = newLinkedHashSet();
-    private final Set<IndexEditorProvider> indexEditorProviders = newLinkedHashSet();
-    private final Set<EditorProvider> editorProviders = newLinkedHashSet();
-    private final Set<Editor> editors = newLinkedHashSet();
-    private final Set<Observer> observers = newLinkedHashSet();
+    private final Set<RepositoryInitializer> repositoryInitializers = new LinkedHashSet<>();
+    private final Set<QueryIndexProvider> queryIndexProviders = new LinkedHashSet<>();
+    private final Set<CommitHook> commitHooks = new LinkedHashSet<>();
+    private final Set<IndexEditorProvider> indexEditorProviders = new LinkedHashSet<>();
+    private final Set<EditorProvider> editorProviders = new LinkedHashSet<>();
+    private final Set<Editor> editors = new LinkedHashSet<>();
+    private final Set<Observer> observers = new LinkedHashSet<>();
 
     private final CompositeConflictHandler conflictHandler = createJcrConflictHandler();
     private SecurityProvider securityProvider;
@@ -134,14 +134,14 @@ public class Jcr {
     @NotNull
     public Jcr with(@NotNull Clusterable c) {
         ensureRepositoryIsNotCreated();
-        this.clusterable = checkNotNull(c);
+        this.clusterable = requireNonNull(c);
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull RepositoryInitializer initializer) {
         ensureRepositoryIsNotCreated();
-        repositoryInitializers.add(checkNotNull(initializer));
+        repositoryInitializers.add(requireNonNull(initializer));
         return this;
     }
 
@@ -152,49 +152,49 @@ public class Jcr {
     }
 
     private void ensureRepositoryIsNotCreated() {
-        checkState(repository == null && contentRepository == null,
+        Validate.checkState(repository == null && contentRepository == null,
                 "Repository was already created");
     }
 
     @NotNull
     public final Jcr with(@NotNull QueryIndexProvider provider) {
         ensureRepositoryIsNotCreated();
-        queryIndexProviders.add(checkNotNull(provider));
+        queryIndexProviders.add(requireNonNull(provider));
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull IndexEditorProvider indexEditorProvider) {
         ensureRepositoryIsNotCreated();
-        indexEditorProviders.add(checkNotNull(indexEditorProvider));
+        indexEditorProviders.add(requireNonNull(indexEditorProvider));
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull CommitHook hook) {
         ensureRepositoryIsNotCreated();
-        commitHooks.add(checkNotNull(hook));
+        commitHooks.add(requireNonNull(hook));
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull EditorProvider provider) {
         ensureRepositoryIsNotCreated();
-        editorProviders.add(checkNotNull(provider));
+        editorProviders.add(requireNonNull(provider));
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull Editor editor) {
         ensureRepositoryIsNotCreated();
-        editors.add(checkNotNull(editor));
+        editors.add(requireNonNull(editor));
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull SecurityProvider securityProvider) {
         ensureRepositoryIsNotCreated();
-        this.securityProvider = checkNotNull(securityProvider);
+        this.securityProvider = requireNonNull(securityProvider);
         return this;
     }
 
@@ -210,28 +210,28 @@ public class Jcr {
     @NotNull
     public final Jcr with(@NotNull ThreeWayConflictHandler conflictHandler) {
         ensureRepositoryIsNotCreated();
-        this.conflictHandler.addHandler(checkNotNull(conflictHandler));
+        this.conflictHandler.addHandler(requireNonNull(conflictHandler));
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull ScheduledExecutorService executor) {
         ensureRepositoryIsNotCreated();
-        this.scheduledExecutor = checkNotNull(executor);
+        this.scheduledExecutor = requireNonNull(executor);
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull Executor executor) {
         ensureRepositoryIsNotCreated();
-        this.executor = checkNotNull(executor);
+        this.executor = requireNonNull(executor);
         return this;
     }
 
     @NotNull
     public final Jcr with(@NotNull Observer observer) {
         ensureRepositoryIsNotCreated();
-        observers.add(checkNotNull(observer));
+        observers.add(requireNonNull(observer));
         return this;
     }
 
@@ -263,14 +263,14 @@ public class Jcr {
     @NotNull
     public Jcr with(@NotNull CommitRateLimiter commitRateLimiter) {
         ensureRepositoryIsNotCreated();
-        this.commitRateLimiter = checkNotNull(commitRateLimiter);
+        this.commitRateLimiter = requireNonNull(commitRateLimiter);
         return this;
     }
 
     @NotNull
     public Jcr with(@NotNull QueryLimits qs) {
         ensureRepositoryIsNotCreated();
-        this.queryEngineSettings = checkNotNull(qs);
+        this.queryEngineSettings = requireNonNull(qs);
         return this;
     }
 
@@ -284,14 +284,14 @@ public class Jcr {
     @NotNull
     public Jcr with(@NotNull String defaultWorkspaceName) {
         ensureRepositoryIsNotCreated();
-        this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
+        this.defaultWorkspaceName = requireNonNull(defaultWorkspaceName);
         return this;
     }
 
     @NotNull
     public Jcr with(@NotNull Whiteboard whiteboard) {
         ensureRepositoryIsNotCreated();
-        this.whiteboard = checkNotNull(whiteboard);
+        this.whiteboard = requireNonNull(whiteboard);
         return this;
     }
 

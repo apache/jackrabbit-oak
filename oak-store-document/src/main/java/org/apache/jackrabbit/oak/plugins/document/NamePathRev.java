@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A cache key implementation, which is a combination of a name, path and a
@@ -44,9 +44,9 @@ public final class NamePathRev implements CacheValue, Comparable<NamePathRev> {
     public NamePathRev(@NotNull String name,
                        @NotNull Path path,
                        @NotNull RevisionVector revision) {
-        this.name = checkNotNull(name);
-        this.path = checkNotNull(path);
-        this.revision = checkNotNull(revision);
+        this.name = requireNonNull(name);
+        this.path = requireNonNull(path);
+        this.revision = requireNonNull(revision);
     }
 
     @NotNull

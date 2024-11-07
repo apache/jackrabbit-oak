@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -113,7 +114,7 @@ public class GroupImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testAddMembersById() throws Exception {
-        assertEquals(ImmutableSet.of("m1", "m2", "m3"), group.addMembers("m1", "m2", "m3"));
+        assertEquals(Set.of("m1", "m2", "m3"), group.addMembers("m1", "m2", "m3"));
         verify(dlg, times(1)).addMembers("m1", "m2", "m3");
         verify(autosaveMgr, times(1)).autosave();
     }
@@ -135,7 +136,7 @@ public class GroupImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testRemoveMembersById() throws Exception {
-        assertEquals(ImmutableSet.of(getTestUser().getID()), group.removeMembers("u", getTestUser().getID()));
+        assertEquals(Set.of(getTestUser().getID()), group.removeMembers("u", getTestUser().getID()));
         verify(dlg, times(1)).removeMembers("u", getTestUser().getID());
         verify(autosaveMgr, times(1)).autosave();
     }

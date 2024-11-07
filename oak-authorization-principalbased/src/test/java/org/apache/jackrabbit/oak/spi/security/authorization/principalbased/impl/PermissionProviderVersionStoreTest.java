@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -39,6 +38,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 
 import static javax.jcr.Session.ACTION_READ;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
@@ -190,7 +190,7 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
 
         grantReadOnVersionStoreTrees();
 
-        assertTrue(Iterables.elementsEqual(ImmutableSet.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
+        assertTrue(Iterables.elementsEqual(Set.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
     }
 
     @Test

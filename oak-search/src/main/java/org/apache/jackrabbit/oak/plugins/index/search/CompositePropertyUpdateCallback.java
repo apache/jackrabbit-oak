@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Composite {@link PropertyUpdateCallback}
@@ -36,7 +36,7 @@ public class CompositePropertyUpdateCallback implements PropertyUpdateCallback{
 
     public CompositePropertyUpdateCallback(@NotNull Collection<PropertyUpdateCallback> callbacks) {
         this.callbacks = callbacks;
-        checkNotNull(callbacks);
+        requireNonNull(callbacks);
     }
 
     @Override

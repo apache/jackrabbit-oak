@@ -118,6 +118,10 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
     @Override
     public void dispose(NodeStore nodeStore) {
         try {
+            FileStore fileStore = (FileStore) components.get(nodeStore, FileStore.class.getName());
+            if (fileStore != null) {
+                fileStore.close();
+            }
             File fileStoreRoot = (File) components.get(nodeStore, FileStore.class.getName() + ":root");
             FileUtils.deleteQuietly(fileStoreRoot);
 

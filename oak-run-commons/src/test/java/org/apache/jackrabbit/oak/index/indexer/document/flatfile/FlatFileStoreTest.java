@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -55,7 +56,7 @@ public class FlatFileStoreTest {
     private void runBasicTest() throws Exception {
         List<String> paths = createTestPaths();
         FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
-        FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
+        IndexStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withPathPredicate(pathPredicate)
                 .withNodeStateEntryTraverserFactory(range -> new NodeStateEntryTraverser("NS-1", null, null,null, range) {

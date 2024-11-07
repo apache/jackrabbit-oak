@@ -19,12 +19,13 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -111,7 +112,7 @@ public class ImmutableACL extends AbstractAccessControlList {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(getOakPath(), entries);
+            hashCode = Objects.hash(getOakPath(), entries);
         }
         return hashCode;
     }
@@ -123,7 +124,7 @@ public class ImmutableACL extends AbstractAccessControlList {
         }
         if (obj instanceof ImmutableACL) {
             ImmutableACL other = (ImmutableACL) obj;
-            return Objects.equal(getOakPath(), other.getOakPath())
+            return Objects.equals(getOakPath(), other.getOakPath())
                     && entries.equals(other.entries);
         }
         return false;

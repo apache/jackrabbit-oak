@@ -49,11 +49,11 @@ import javax.jcr.security.AccessControlManager;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -105,7 +105,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         int expectedSize = (asComposite) ? 8 : 7;
         assertEquals(expectedSize, defs.size());
 
-        Set<String> stringsPropNames = ImmutableSet.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES);
+        Set<String> stringsPropNames = Set.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES);
         for (RestrictionDefinition def : defs) {
             if (REP_GLOB.equals(def.getName())) {
                 assertEquals(Type.STRING, def.getRequiredType());
@@ -131,7 +131,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetRestrictionPattern() throws Exception {
-        Map<PropertyState, RestrictionPattern> map = newHashMap();
+        Map<PropertyState, RestrictionPattern> map = new HashMap<>();
         map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
         map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
@@ -159,7 +159,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetPatternForAllSupported() throws Exception {
-        Map<PropertyState, RestrictionPattern> map = newHashMap();
+        Map<PropertyState, RestrictionPattern> map = new HashMap<>();
         String globRestriction = "/*/jcr:content";
         map.put(PropertyStates.createProperty(REP_GLOB, globRestriction), GlobPattern.create("/testPath", globRestriction));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
@@ -189,7 +189,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
     public void testGetPatternFromRestrictions() throws Exception {
         String globRestriction = "/*/jcr:content";
 
-        Map<PropertyState, RestrictionPattern> map = newHashMap();
+        Map<PropertyState, RestrictionPattern> map = new HashMap<>();
         map.put(PropertyStates.createProperty(REP_GLOB, globRestriction), GlobPattern.create("/testPath", globRestriction));
 
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
@@ -245,12 +245,12 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
     @Test
     public void testGetPatternFromRestrictionsNullPath() {
-        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, ImmutableSet.of(mock(Restriction.class))));
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, Set.of(mock(Restriction.class))));
     }
 
     @Test
     public void testGetPatternFromEmptyRestrictions() {
-        assertSame(RestrictionPattern.EMPTY, provider.getPattern("/testPath", ImmutableSet.of()));
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern("/testPath", Set.of()));
     }
 
     @Test(expected = AccessControlException.class)

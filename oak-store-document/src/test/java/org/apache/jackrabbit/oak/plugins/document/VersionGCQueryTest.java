@@ -19,13 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -51,7 +51,7 @@ public class VersionGCQueryTest {
     public final DocumentMKBuilderProvider provider = new DocumentMKBuilderProvider();
 
     private Clock clock;
-    private Set<String> prevDocIds = Sets.newHashSet();
+    private Set<String> prevDocIds = new HashSet<>();
     private DocumentStore store;
     private DocumentNodeStore ns;
 
@@ -107,7 +107,7 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+                ns, new VersionGCSupport(store), false, false, false);
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(11, stats.deletedDocGCCount);
@@ -123,7 +123,7 @@ public class VersionGCQueryTest {
         builder.child("test");
         merge(builder);
         String id = Utils.getIdFromPath("/test");
-        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(), INTERMEDIATE)) {
+        while (!store.find(Collection.NODES, id).getPreviousRanges().values().stream().anyMatch(INTERMEDIATE::test)) {
             InputStream s = new RandomStream(10 * 1024, 42);
             PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
             builder = ns.getRoot().builder();
@@ -140,7 +140,7 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+                ns, new VersionGCSupport(store), false, false, false);
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(1, stats.deletedDocGCCount);
@@ -159,7 +159,7 @@ public class VersionGCQueryTest {
     private static final Predicate<Range> INTERMEDIATE =
             new Predicate<Range>() {
         @Override
-        public boolean apply(Range input) {
+        public boolean test(Range input) {
             return input.height > 0;
         }
     };

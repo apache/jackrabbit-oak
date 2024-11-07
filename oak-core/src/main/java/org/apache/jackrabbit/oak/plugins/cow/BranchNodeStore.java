@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.cow;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -36,18 +37,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newCopyOnWriteArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 
 public class BranchNodeStore implements NodeStore, Observable {
 
@@ -63,8 +57,8 @@ public class BranchNodeStore implements NodeStore, Observable {
 
     public BranchNodeStore(NodeStore nodeStore) throws CommitFailedException {
         this.nodeStore = nodeStore;
-        this.inheritedCheckpoints = newArrayList(nodeStore.checkpoints());
-        this.checkpointMapping = newConcurrentMap();
+        this.inheritedCheckpoints = CollectionUtils.toList(nodeStore.checkpoints());
+        this.checkpointMapping = new ConcurrentHashMap<>();
 
         String cp = nodeStore.checkpoint(CHECKPOINT_LIFETIME, singletonMap("type", "copy-on-write"));
         memoryNodeStore = new MemoryNodeStore(nodeStore.retrieve(cp));
@@ -131,8 +125,8 @@ public class BranchNodeStore implements NodeStore, Observable {
     @NotNull
     @Override
     public Iterable<String> checkpoints() {
-        List<String> result = newArrayList(inheritedCheckpoints);
-        result.retainAll(newArrayList(nodeStore.checkpoints()));
+        List<String> result = new ArrayList<>(inheritedCheckpoints);
+        result.retainAll(CollectionUtils.toList(nodeStore.checkpoints()));
 
         checkpointMapping.entrySet().stream()
                 .filter(e -> memoryNodeStore.listCheckpoints().contains(e.getValue()))

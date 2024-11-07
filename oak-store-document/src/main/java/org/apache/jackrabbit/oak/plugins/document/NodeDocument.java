@@ -16,62 +16,61 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
 /**
  * A document storing data about a node.
@@ -168,7 +167,7 @@ public final class NodeDocument extends Document {
     /**
      * Whether this node is deleted. Key: revision, value: true/false.
      */
-    private static final String DELETED = "_deleted";
+    static final String DELETED = "_deleted";
 
     /**
      * Flag indicating that whether this node was ever deleted. Its just used as
@@ -227,7 +226,7 @@ public final class NodeDocument extends Document {
     /**
      * Contains revision entries for changes done by branch commits.
      */
-    private static final String BRANCH_COMMITS = "_bc";
+    static final String BRANCH_COMMITS = "_bc";
 
     /**
      * The revision set by the background document sweeper. The revision
@@ -376,7 +375,7 @@ public final class NodeDocument extends Document {
      *                     in case of being resurrected from a serialized for
      */
     public NodeDocument(@NotNull DocumentStore store, long creationTime) {
-        this.store = checkNotNull(store);
+        this.store = requireNonNull(store);
         this.creationTime = creationTime;
     }
 
@@ -607,6 +606,10 @@ public final class NodeDocument extends Document {
             if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 uniqueRevisions.add(r);
                 removeBranchCommit(op, r);
+                if (op.getId().equals(Utils.getIdFromPath(Path.ROOT))
+                        && getLocalCommitRoot().containsKey(r)) {
+                    removeCommitRoot(op, r);
+                }
             }
             if (op.getChanges().size() >= batchSize) {
                 store.findAndUpdate(Collection.NODES, op);
@@ -662,9 +665,9 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     Set<Revision> getConflictsFor(@NotNull Iterable<Revision> changes) {
-        checkNotNull(changes);
+        requireNonNull(changes);
 
-        Set<Revision> conflicts = Sets.newHashSet();
+        Set<Revision> conflicts = new HashSet<>();
         Map<Revision, String> collisions = getLocalMap(COLLISIONS);
         for (Revision r : changes) {
             String value = collisions.get(r.asTrunkRevision());
@@ -739,10 +742,10 @@ public final class NodeDocument extends Document {
         // the clusterIds to check when walking the changes
         Set<Integer> clusterIds = Collections.emptySet();
         if (!getPreviousRanges().isEmpty()) {
-            clusterIds = Sets.newHashSet();
+            clusterIds = new HashSet<>();
             for (Revision prevRev : getPreviousRanges().keySet()) {
                 if (lower.isRevisionNewer(prevRev) ||
-                        equal(prevRev, lower.getRevision(prevRev.getClusterId()))) {
+                        Objects.equals(prevRev, lower.getRevision(prevRev.getClusterId()))) {
                     clusterIds.add(prevRev.getClusterId());
                 }
             }
@@ -929,6 +932,53 @@ public final class NodeDocument extends Document {
     }
 
     /**
+     * Resolve the commit revision that holds the current value of a property based
+     * on provided readRevision if the current value is in the local
+     * map - null if the current value might be in a split doc or the node or property
+     * does not exist at all.
+     *
+     * @param nodeStore    the node store.
+     * @param readRevision the read revision.
+     * @param key          the key of the property to resolve
+     * @return a Revision if the value of the property resolves to a value based
+     *         on what's in the local document, null if the node or property does
+     *         not exist at all or the value is in a split document.
+     */
+    Revision localCommitRevisionOfProperty(@NotNull DocumentNodeStore nodeStore,
+                                           @NotNull RevisionVector readRevision,
+                                           @NotNull String key) {
+        Map<Revision, String> validRevisions = new HashMap<>();
+        Branch branch = nodeStore.getBranches().getBranch(readRevision);
+        LastRevs lastRevs = createLastRevs(readRevision,
+                nodeStore, branch, null);
+
+        Revision min = getLiveRevision(nodeStore, readRevision, validRevisions, lastRevs);
+        if (min == null) {
+            // node is deleted
+            return null;
+        }
+
+        // ignore when local map is empty (OAK-2442)
+        SortedMap<Revision, String> local = getLocalMap(key);
+        if (local.isEmpty()) {
+            return null;
+        }
+
+        // first check local map, which contains most recent values
+        Value value = getLatestValue(nodeStore, local.entrySet(),
+                readRevision, validRevisions, lastRevs);
+        if (value == null) {
+            return null;
+        }
+        // check if there may be more recent values in a previous document
+        if (requiresCompleteMapCheck(value, local, nodeStore)) {
+            return null;
+        } else {
+            return value.valueEntry.getKey();
+        }
+    }
+
+    /**
      * Returns a {@link DocumentNodeState} as seen at the given
      * <code>readRevision</code>.
      *
@@ -956,7 +1006,7 @@ public final class NodeDocument extends Document {
             return null;
         }
         Path path = getPath();
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -979,7 +1029,7 @@ public final class NodeDocument extends Document {
                         readRevision, validRevisions, lastRevs);
             }
             String propertyName = Utils.unescapePropertyName(key);
-            String v = value != null ? value.value : null;
+            String v = value != null ? value.valueEntry.getValue() : null;
             if (v != null){
                 props.add(nodeStore.createPropertyState(propertyName, v));
             }
@@ -1064,7 +1114,7 @@ public final class NodeDocument extends Document {
             value = getLatestValue(context, getDeleted().entrySet(), readRevision, validRevisions, lastRevs);
         }
 
-        return value != null && "false".equals(value.value) ? value.revision : null;
+        return value != null && "false".equals(value.valueEntry.getValue()) ? value.revision : null;
     }
 
     /**
@@ -1302,21 +1352,12 @@ public final class NodeDocument extends Document {
             }
 
             // didn't find entry -> scan through remaining head ranges
-            return filter(transform(getPreviousRanges().headMap(revision).entrySet(),
-                    new Function<Map.Entry<Revision, Range>, NodeDocument>() {
-                @Override
-                public NodeDocument apply(Map.Entry<Revision, Range> input) {
+            return filter(transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
                     if (input.getValue().includes(revision)) {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
                     return null;
-                }
-            }), new Predicate<NodeDocument>() {
-                @Override
-                public boolean apply(@Nullable NodeDocument input) {
-                    return input != null && input.getValueMap(property).containsKey(revision);
-                }
-            });
+                }), input ->input != null && input.getValueMap(property).containsKey(revision));
         }
     }
 
@@ -1344,7 +1385,7 @@ public final class NodeDocument extends Document {
         //on property that all prevDoc id would starts <depth+2>:p/path/to/node
         return new AbstractIterator<NodeDocument>(){
             private Queue<Map.Entry<Revision, Range>> previousRanges =
-                    Queues.newArrayDeque(getPreviousRanges().entrySet());
+                    CollectionUtils.toArrayDeque(getPreviousRanges().entrySet());
             @Override
             protected NodeDocument computeNext() {
                 if(!previousRanges.isEmpty()){
@@ -1375,7 +1416,7 @@ public final class NodeDocument extends Document {
             return Collections.emptyIterator();
         }
         // create a mutable copy
-        final NavigableMap<Revision, Range> ranges = Maps.newTreeMap(getPreviousRanges());
+        final NavigableMap<Revision, Range> ranges = new TreeMap<>(getPreviousRanges());
         return new AbstractIterator<NodeDocument>() {
             @Override
             protected NodeDocument computeNext() {
@@ -1483,13 +1524,8 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Revision> getChanges(@NotNull final String property,
                                   @NotNull final RevisionVector min) {
-        Predicate<Revision> p = new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return min.isRevisionNewer(input);
-            }
-        };
-        List<Iterable<Revision>> changes = Lists.newArrayList();
+        Predicate<Revision> p = input -> min.isRevisionNewer(input);
+        List<Iterable<Revision>> changes = new ArrayList<>();
         changes.add(abortingIterable(getLocalMap(property).keySet(), p));
         for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
             if (min.isRevisionNewer(e.getKey())) {
@@ -1519,16 +1555,11 @@ public final class NodeDocument extends Document {
     @NotNull
     Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
                                                             @NotNull final RevisionVector readRevision) {
-        Predicate<Map.Entry<Revision, String>> p = new Predicate<Map.Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision, String> input) {
-                return !readRevision.isRevisionNewer(input.getKey());
-            }
-        };
-        List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
+        Predicate<Map.Entry<Revision, String>> p = input -> !readRevision.isRevisionNewer(input.getKey());
+        List<Iterable<Map.Entry<Revision, String>>> changes = new ArrayList<>();
         Map<Revision, String> localChanges = getLocalMap(property);
         if (!localChanges.isEmpty()) {
-            changes.add(filter(localChanges.entrySet(), p));
+            changes.add(filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
@@ -1556,7 +1587,7 @@ public final class NodeDocument extends Document {
     private void collectVisiblePreviousChanges(@NotNull final String property,
                                                @NotNull final Revision readRevision,
                                                @NotNull final List<Iterable<Entry<Revision, String>>> changes) {
-        List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
+        List<Iterable<Map.Entry<Revision, String>>> revs = new ArrayList<>();
 
         RevisionVector readRV = new RevisionVector(readRevision);
         List<Range> ranges = new ArrayList<>();
@@ -1610,17 +1641,14 @@ public final class NodeDocument extends Document {
         if (ranges.isEmpty()) {
             return Collections.emptyList();
         }
-        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges =
-                new Function<Range, Iterable<Map.Entry<Revision, String>>>() {
-            @Override
-            public Iterable<Map.Entry<Revision, String>> apply(Range input) {
+
+        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges = input -> {
                 NodeDocument doc = getPreviousDoc(input.high, input);
                 if (doc == null) {
                     return Collections.emptyList();
                 }
                 return doc.getVisibleChanges(property, readRev);
-            }
-        };
+            };
 
         Iterable<Map.Entry<Revision, String>> changes;
         if (ranges.size() == 1) {
@@ -1633,14 +1661,9 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges));
+            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, new Predicate<Entry<Revision, String>>() {
-            @Override
-            public boolean apply(Entry<Revision, String> input) {
-                return !readRev.isRevisionNewer(input.getKey());
-            }
-        });
+        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
 
     /**
@@ -1657,6 +1680,24 @@ public final class NodeDocument extends Document {
             map = ValueMap.EMPTY;
         }
         return map;
+    }
+
+    /**
+     * Returns name of all the properties on this document
+     * <p>
+     * Note: property names returned are escaped
+     *
+     * @return Set of all property names (escaped)
+     * @see Utils#unescapePropertyName(String)
+     * @see Utils#escapePropertyName(String)
+     */
+    @NotNull
+    Set<String> getPropertyNames() {
+        return data
+                .keySet()
+                .stream()
+                .filter(Utils::isPropertyName)
+                .collect(toSet());
     }
 
     /**
@@ -1719,36 +1760,31 @@ public final class NodeDocument extends Document {
     @NotNull
     RevisionVector getSweepRevisions() {
         return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
-                new Function<String, Revision>() {
-                    @Override
-                    public Revision apply(String s) {
-                        return Revision.fromString(s);
-                    }
-                }));
+                s -> Revision.fromString(s)));
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------
 
     public static void setChildrenFlag(@NotNull UpdateOp op,
                                        boolean hasChildNode) {
-        checkNotNull(op).set(CHILDREN_FLAG, hasChildNode);
+        requireNonNull(op).set(CHILDREN_FLAG, hasChildNode);
     }
 
     public static void setModified(@NotNull UpdateOp op,
                                    @NotNull Revision revision) {
-        checkNotNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(checkNotNull(revision).getTimestamp()));
+        requireNonNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(requireNonNull(revision).getTimestamp()));
     }
 
     public static void setRevision(@NotNull UpdateOp op,
                                    @NotNull Revision revision,
                                    @NotNull String commitValue) {
-        checkNotNull(op).setMapEntry(REVISIONS,
-                checkNotNull(revision), checkNotNull(commitValue));
+        requireNonNull(op).setMapEntry(REVISIONS,
+                requireNonNull(revision), requireNonNull(commitValue));
     }
 
     public static void unsetRevision(@NotNull UpdateOp op,
                                      @NotNull Revision revision) {
-        checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
+        requireNonNull(op).unsetMapEntry(REVISIONS, requireNonNull(revision));
     }
 
     public static boolean isRevisionsEntry(String name) {
@@ -1769,7 +1805,7 @@ public final class NodeDocument extends Document {
 
     public static void removeRevision(@NotNull UpdateOp op,
                                       @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(REVISIONS, requireNonNull(revision));
     }
 
     /**
@@ -1782,18 +1818,18 @@ public final class NodeDocument extends Document {
     public static void addCollision(@NotNull UpdateOp op,
                                     @NotNull Revision revision,
                                     @NotNull Revision other) {
-        checkNotNull(op).setMapEntry(COLLISIONS, checkNotNull(revision),
+        requireNonNull(op).setMapEntry(COLLISIONS, requireNonNull(revision),
                 other.toString());
     }
 
     public static void removeCollision(@NotNull UpdateOp op,
                                        @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(COLLISIONS, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(COLLISIONS, requireNonNull(revision));
     }
 
     public static void setLastRev(@NotNull UpdateOp op,
                                   @NotNull Revision revision) {
-        checkNotNull(op).setMapEntry(LAST_REV,
+        requireNonNull(op).setMapEntry(LAST_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
@@ -1801,18 +1837,18 @@ public final class NodeDocument extends Document {
     public static void setCommitRoot(@NotNull UpdateOp op,
                                      @NotNull Revision revision,
                                      int commitRootDepth) {
-        checkNotNull(op).setMapEntry(COMMIT_ROOT, checkNotNull(revision),
+        requireNonNull(op).setMapEntry(COMMIT_ROOT, requireNonNull(revision),
                 String.valueOf(commitRootDepth));
     }
 
     public static void removeCommitRoot(@NotNull UpdateOp op,
                                         @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
+        requireNonNull(op).removeMapEntry(COMMIT_ROOT, revision);
     }
 
     public static void unsetCommitRoot(@NotNull UpdateOp op,
                                        @NotNull Revision revision) {
-        checkNotNull(op).unsetMapEntry(COMMIT_ROOT, revision);
+        requireNonNull(op).unsetMapEntry(COMMIT_ROOT, revision);
     }
 
     public static void setDeleted(@NotNull UpdateOp op,
@@ -1823,71 +1859,71 @@ public final class NodeDocument extends Document {
             //possibly we can avoid that
             setDeletedOnce(op);
         }
-        checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision), String.valueOf(deleted));
+        requireNonNull(op).setMapEntry(DELETED, requireNonNull(revision), String.valueOf(deleted));
     }
 
     public static void setDeletedOnce(@NotNull UpdateOp op) {
-        checkNotNull(op).set(DELETED_ONCE, Boolean.TRUE);
+        requireNonNull(op).set(DELETED_ONCE, Boolean.TRUE);
     }
 
     public static void removeDeleted(@NotNull UpdateOp op,
                                      @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(DELETED, revision);
+        requireNonNull(op).removeMapEntry(DELETED, revision);
     }
 
     public static void setPrevious(@NotNull UpdateOp op,
                                    @NotNull Range range) {
-        checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(range).high,
+        requireNonNull(op).setMapEntry(PREVIOUS, requireNonNull(range).high,
                 range.getLowValue());
     }
 
     public static void removePrevious(@NotNull UpdateOp op,
                                       @NotNull Range range) {
-        removePrevious(op, checkNotNull(range).high);
+        removePrevious(op, requireNonNull(range).high);
     }
 
     public static void removePrevious(@NotNull UpdateOp op,
                                       @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(PREVIOUS, requireNonNull(revision));
     }
 
     public static void setStalePrevious(@NotNull UpdateOp op,
                                         @NotNull Revision revision,
                                         int height) {
-        checkNotNull(op).setMapEntry(STALE_PREV,
-                checkNotNull(revision), String.valueOf(height));
+        requireNonNull(op).setMapEntry(STALE_PREV,
+                requireNonNull(revision), String.valueOf(height));
     }
 
     public static void removeStalePrevious(@NotNull UpdateOp op,
                                            @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(STALE_PREV, checkNotNull(revision));
+        requireNonNull(op).removeMapEntry(STALE_PREV, requireNonNull(revision));
     }
 
     public static void setHasBinary(@NotNull UpdateOp op) {
-        checkNotNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
+        requireNonNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
     }
 
     public static void setBranchCommit(@NotNull UpdateOp op,
                                        @NotNull Revision revision) {
-        checkNotNull(op).setMapEntry(BRANCH_COMMITS,
+        requireNonNull(op).setMapEntry(BRANCH_COMMITS,
                 revision, String.valueOf(true));
     }
 
     public static void removeBranchCommit(@NotNull UpdateOp op,
                                           @NotNull Revision revision) {
-        checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
+        requireNonNull(op).removeMapEntry(BRANCH_COMMITS, revision);
     }
 
     public static void setSweepRevision(@NotNull UpdateOp op,
                                         @NotNull Revision revision) {
-        checkNotNull(op).setMapEntry(SWEEP_REV,
+        requireNonNull(op).setMapEntry(SWEEP_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
 
     public static void hasLastRev(@NotNull UpdateOp op,
                                   @NotNull Revision revision) {
-        checkNotNull(op).equals(LAST_REV,
+        requireNonNull(op).equals(LAST_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
@@ -1938,10 +1974,10 @@ public final class NodeDocument extends Document {
         // overlay with unsaved last modified from this instance
         lastRevs.update(pendingLastRev);
         // collect clusterIds
-        SortedSet<Revision> mostRecentChanges = Sets.newTreeSet(REVERSE);
+        SortedSet<Revision> mostRecentChanges = new TreeSet<>(REVERSE);
         mostRecentChanges.addAll(getLocalRevisions().keySet());
         mostRecentChanges.addAll(getLocalCommitRoot().keySet());
-        Set<Integer> clusterIds = Sets.newHashSet();
+        Set<Integer> clusterIds = new HashSet<>();
         for (Revision r : getLocalRevisions().keySet()) {
             clusterIds.add(r.getClusterId());
         }
@@ -2051,7 +2087,7 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     private Path getPathAtDepth(@NotNull String depth) {
-        if (checkNotNull(depth).equals("0")) {
+        if (requireNonNull(depth).equals("0")) {
             return Path.ROOT;
         }
         Path p = getPath();
@@ -2234,7 +2270,7 @@ public final class NodeDocument extends Document {
             }
 
             if (isValidRevision(context, propRev, commitValue, readRevision, validRevisions)) {
-                return new Value(commitRev, entry.getValue());
+                return new Value(commitRev, entry);
             }
         }
         return null;
@@ -2344,14 +2380,16 @@ public final class NodeDocument extends Document {
 
         final Revision revision;
         /**
-         * The value of a property at the given revision. A {@code null} value
+         * valueEntry contains both the underlying (commit) revision and
+         * the (String) value of a property. valueEntry is never null.
+         * valueEntry.getValue() being {@code null}
          * indicates the property was removed.
          */
-        final String value;
+        final Map.Entry<Revision, String> valueEntry;
 
-        Value(@NotNull Revision revision, @Nullable String value) {
-            this.revision = checkNotNull(revision);
-            this.value = value;
+        Value(@NotNull Revision mergeRevision, @NotNull Map.Entry<Revision, String> valueEntry) {
+            this.revision = requireNonNull(mergeRevision);
+            this.valueEntry = valueEntry;
         }
     }
 

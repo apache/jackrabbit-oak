@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -157,17 +157,17 @@ public class SessionDelegate {
             @NotNull ThreadLocal<Long> threadSaveCount,
             @NotNull StatisticManager statisticManager,
             @NotNull Clock clock) {
-        this.contentSession = checkNotNull(contentSession);
-        this.securityProvider = checkNotNull(securityProvider);
+        this.contentSession = requireNonNull(contentSession);
+        this.securityProvider = requireNonNull(securityProvider);
         this.root = contentSession.getLatestRoot();
         this.namespaces = new SessionNamespaces(this.root);
-        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
-        this.refreshStrategy = Composite.create(checkNotNull(refreshStrategy),
+        this.saveCountRefresh = new SaveCountRefresh(requireNonNull(threadSaveCount));
+        this.refreshStrategy = Composite.create(requireNonNull(refreshStrategy),
                 refreshAtNextAccess, saveCountRefresh, new RefreshNamespaces(
                         namespaces));
         this.idManager = new IdentifierManager(root);
-        this.clock = checkNotNull(clock);
-        checkNotNull(statisticManager);
+        this.clock = requireNonNull(clock);
+        requireNonNull(statisticManager);
         this.sessionStats = new SessionStats(contentSession.toString(),
                 contentSession.getAuthInfo(), clock, refreshStrategy, this, statisticManager);
         this.sessionCounters = sessionStats.getCounters();
@@ -632,7 +632,7 @@ public class SessionDelegate {
             if (root instanceof PermissionAware) {
                 permissionProvider = ((PermissionAware) root).getPermissionProvider();
             } else {
-                permissionProvider = checkNotNull(securityProvider)
+                permissionProvider = requireNonNull(securityProvider)
                                 .getConfiguration(AuthorizationConfiguration.class)
                                 .getPermissionProvider(root, getWorkspaceName(), getAuthInfo().getPrincipals());
                 refreshPermissionProvider = true;

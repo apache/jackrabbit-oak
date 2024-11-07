@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
+import java.sql.Connection;
+
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBTestPropSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,27 +42,19 @@ public abstract class RDBBlobStoreFixture {
 
     public abstract boolean isAvailable();
 
-    public static final RDBBlobStoreFixture RDB_DB2 = new MyFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
-            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
-            "rdb-db2-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_MYSQL = new MyFixture("RDB-MySQL", System.getProperty("rdb-mysql-jdbc-url",
-            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"), System.getProperty(
-            "rdb-mysql-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_ORACLE = new MyFixture("RDB-Oracle", System.getProperty("rdb-oracle-jdbc-url",
-            "jdbc:oracle:thin:@localhost:1521:orcl"), System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
-            "rdb-oracle-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_MSSQL = new MyFixture("RDB-MSSql", System.getProperty("rdb-mssql-jdbc-url",
-            "jdbc:sqlserver://localhost:1433;databaseName=OAK"), System.getProperty("rdb-mssql-jdbc-user", "sa"),
-            System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_H2 = new MyFixture("RDB-H2(file)", System.getProperty("rdb-h2-jdbc-url",
-            "jdbc:h2:file:./target/hs-bs-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
-            "rdb-h2-jdbc-passwd", ""));
-    public static final RDBBlobStoreFixture RDB_DERBY = new MyFixture("RDB-Derby(embedded)", System.getProperty(
-            "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-bs-test;create=true"),
-            System.getProperty("rdb-derby-jdbc-user", "sa"), System.getProperty("rdb-derby-jdbc-passwd", ""));
-    public static final RDBBlobStoreFixture RDB_PG = new MyFixture("RDB-Postgres", System.getProperty("rdb-postgres-jdbc-url",
-            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
-            "rdb-postgres-jdbc-passwd", "geheim"));
+    public static final MyFixture RDB_DB2 = new MyFixture("RDB-DB2", RDBTestPropSupplier.DB2);
+
+    public static final MyFixture RDB_DERBY = new MyFixture("RDB-Derby(embedded)", RDBTestPropSupplier.DERBY);
+
+    public static final MyFixture RDB_H2 = new MyFixture("RDB-H2(file)", RDBTestPropSupplier.H2);
+
+    public static final MyFixture RDB_MSSQL = new MyFixture("RDB-MSSql", RDBTestPropSupplier.MSSQL);
+
+    public static final MyFixture RDB_MYSQL = new MyFixture("RDB-MySQL", RDBTestPropSupplier.MYSQL);
+
+    public static final MyFixture RDB_ORACLE = new MyFixture("RDB-Oracle", RDBTestPropSupplier.ORACLE);
+
+    public static final MyFixture RDB_PG = new MyFixture("RDB-Postgres", RDBTestPropSupplier.POSTGRES);
 
     public String toString() {
         return getClass().getSimpleName() + ": "+ getName();
@@ -76,8 +72,12 @@ public abstract class RDBBlobStoreFixture {
             try {
                 dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
-                LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.info("Database instance not available at {} because of '{}', skipping tests...", url, ex.getMessage());
             }
+        }
+
+        public MyFixture(String name, RDBTestPropSupplier db) {
+            this(name, db.url.loggingTo(LOG).get(), db.username.loggingTo(LOG).get(), db.passwd.loggingTo(LOG).get());
         }
 
         public RDBDataSourceWrapper getDataSource() {
@@ -97,7 +97,18 @@ public abstract class RDBBlobStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            return dataSource != null;
+            if (dataSource == null) {
+                return false;
+            } else {
+                try (RDBConnectionHandler ch = new RDBConnectionHandler(dataSource); Connection c = ch.getRWConnection()) {
+                    ch.closeConnection(c);
+                    return true;
+                } catch (Throwable t) {
+                    LOG.info("Datasource failure for {} because of {}, skipping tests...", name,
+                            t.getMessage() == null ? t : t.getMessage());
+                    return false;
+                }
+            }
         }
 
         @Override

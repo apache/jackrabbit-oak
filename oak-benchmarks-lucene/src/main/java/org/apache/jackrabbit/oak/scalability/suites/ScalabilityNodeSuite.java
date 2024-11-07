@@ -18,9 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +33,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -206,7 +204,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
     public ScalabilityNodeSuite(Boolean storageEnabled) {
         this.storageEnabled = storageEnabled;
-        this.nodeTypes = newArrayList();
+        this.nodeTypes = new ArrayList<>();
     }
 
     @Override
@@ -263,7 +261,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             // define lucene index on properties
             case LUCENE_FILE:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
                         new String[]{FILTER_PROP, DATE_PROP},
@@ -272,7 +270,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
                 Map<String, String> propMap = Maps.newHashMap();
@@ -305,8 +303,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         }
 
         // recreate paths created in this run
-        searchRootPaths = newArrayList();
-        searchDescPaths = newArrayList();
+        searchRootPaths = new ArrayList<>();
+        searchDescPaths = new ArrayList<>();
 
         // create the blob load for this iteration
         createLoad(context);
@@ -358,7 +356,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         SynchronizedDescriptiveStatistics writeStats = new SynchronizedDescriptiveStatistics();
 
-        List<Thread> loadThreads = newArrayList();
+        List<Thread> loadThreads = new ArrayList<>();
         for (int idx = 0; idx < LOADERS; idx++) {
             /* Each loader will write to a directory of the form load-idx */
             Thread t =
@@ -410,7 +408,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             context.startProfiler();
         }
         //Execute the benchmark with the number threads configured 
-        List<Thread> threads = newArrayListWithCapacity(TESTERS);
+        List<Thread> threads = new ArrayList<>(TESTERS);
         for (int idx = 0; idx < TESTERS; idx++) {
             Thread t = new Thread("Tester-" + idx) {
                 @Override

@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -82,7 +82,7 @@ public class AccessControlTest extends AbstractCugTest {
                 "/content2/rep:cugPolicy"
         );
 
-        pp = createCugPermissionProvider(ImmutableSet.of(PathUtils.ROOT_PATH), EveryonePrincipal.getInstance(), getTestGroupPrincipal(), getTestUser().getPrincipal());
+        pp = createCugPermissionProvider(Set.of(PathUtils.ROOT_PATH), EveryonePrincipal.getInstance(), getTestGroupPrincipal(), getTestUser().getPrincipal());
     }
 
     @Test
@@ -157,7 +157,7 @@ public class AccessControlTest extends AbstractCugTest {
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
-        PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(getTestGroupPrincipal()));
+        PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(getTestGroupPrincipal()));
         for (String acPath : acPaths) {
             boolean canReadAc = Text.isDescendantOrEqual("/content", acPath);
             Tree acTree = root.getTree(acPath);

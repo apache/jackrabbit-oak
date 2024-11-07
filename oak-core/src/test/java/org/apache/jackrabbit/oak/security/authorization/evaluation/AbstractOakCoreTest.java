@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
@@ -139,7 +139,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
                                    boolean isAllow,
                                    @NotNull String... privilegeNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
+        JackrabbitAccessControlList acl = requireNonNull(AccessControlUtils.getAccessControlList(acMgr, path));
         acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
         acMgr.setPolicy(path, acl);
         root.commit();

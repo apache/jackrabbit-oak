@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -38,8 +39,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
@@ -117,9 +118,9 @@ public final class BufferedOakDirectory extends Directory {
                 BlobFactory.getBlobStoreBlobFactory(blobStore) :
                 BlobFactory.getNodeBuilderBlobFactory(builder);
         this.blobDeletionCallback = blobDeletionCallback;
-        this.dataNodeName = checkNotNull(dataNodeName);
-        this.definition = checkNotNull(definition);
-        this.base = new OakDirectory(checkNotNull(builder), dataNodeName,
+        this.dataNodeName = requireNonNull(dataNodeName);
+        this.definition = requireNonNull(definition);
+        this.base = new OakDirectory(requireNonNull(builder), dataNodeName,
                 definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
         reopenBuffered();
     }
@@ -127,7 +128,7 @@ public final class BufferedOakDirectory extends Directory {
     @Override
     public String[] listAll() throws IOException {
         LOG.debug("[{}]listAll()", definition.getIndexPath());
-        Set<String> all = Sets.newTreeSet();
+        Set<String> all = new TreeSet<>();
         all.addAll(asList(base.listAll()));
         all.addAll(asList(buffered.listAll()));
         all.removeAll(bufferedForDelete);

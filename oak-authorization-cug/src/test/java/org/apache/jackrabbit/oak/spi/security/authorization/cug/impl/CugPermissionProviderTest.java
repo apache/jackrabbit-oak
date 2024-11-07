@@ -129,7 +129,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
 
         root.commit();
 
-        cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        cugPermProvider = createCugPermissionProvider(Set.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
@@ -427,7 +427,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testGetPrivilegesAtCug() {
-        Set<String> expected = ImmutableSet.of(
+        Set<String> expected = Set.of(
                 PrivilegeConstants.JCR_READ,
                 PrivilegeConstants.REP_READ_NODES,
                 PrivilegeConstants.REP_READ_PROPERTIES);
@@ -445,9 +445,9 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testGetPrivilegesAtCug2() {
-        PermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), testGroupPrincipal);
+        PermissionProvider pp = createCugPermissionProvider(Set.of(SUPPORTED_PATH), testGroupPrincipal);
 
-        Set<String> expected = ImmutableSet.of(
+        Set<String> expected = Set.of(
                 PrivilegeConstants.JCR_READ,
                 PrivilegeConstants.REP_READ_NODES,
                 PrivilegeConstants.REP_READ_PROPERTIES);
@@ -539,6 +539,15 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
     @Test
     public void testHasPrivilegesNullPath() {
         assertFalse(cugPermProvider.hasPrivileges(null, PrivilegeConstants.JCR_READ));
+    }
+
+    /**
+     * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
+     */
+    @Test
+    public void testHasOneNullPrivilege() {
+        final Tree tree = root.getTree(PathUtils.ROOT_PATH);
+        assertFalse(cugPermProvider.hasPrivileges(tree, PrivilegeConstants.JCR_READ, null, PrivilegeConstants.JCR_WRITE));
     }
 
     /**

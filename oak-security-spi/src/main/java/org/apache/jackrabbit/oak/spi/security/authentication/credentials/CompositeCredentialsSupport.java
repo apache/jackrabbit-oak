@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -24,9 +26,6 @@ import java.util.function.Supplier;
 import javax.jcr.Credentials;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -54,11 +53,11 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     public Set<Class> getCredentialClasses() {
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         if (all.isEmpty()) {
-            return ImmutableSet.of();
+            return Set.of();
         } else if (all.size() == 1) {
             return all.iterator().next().getCredentialClasses();
         } else {
-            Set<Class> classes = newHashSet();
+            Set<Class> classes = new HashSet<>();
             for (CredentialsSupport c : all) {
                 classes.addAll(c.getCredentialClasses());
             }
@@ -88,7 +87,7 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
         } else if (all.size() == 1) {
             return all.iterator().next().getAttributes(credentials);
         } else {
-            Map<String, Object> attrs = newHashMap();
+            Map<String, Object> attrs = new HashMap<>();
             for (CredentialsSupport c : all) {
                 attrs.putAll(c.getAttributes(credentials));
             }

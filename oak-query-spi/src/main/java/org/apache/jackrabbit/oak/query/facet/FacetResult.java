@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.query.facet;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -34,12 +32,15 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.reverseOrder;
 import static java.util.Comparator.comparingInt;
+
+import java.util.ArrayList;
 
 /**
  * A facet result is a wrapper for {@link javax.jcr.query.QueryResult} capable of returning information about facets
@@ -109,7 +110,7 @@ public class FacetResult {
     private void parseJson(String dimension, String jsonFacetString) {
         JsopTokenizer jsopTokenizer = new JsopTokenizer(jsonFacetString);
         List<Facet> facets = perDimFacets.get(dimension);
-        Map<String, Facet> facetsMap = Maps.newLinkedHashMap();
+        Map<String, Facet> facetsMap = new LinkedHashMap<>();
         if (facets != null) {
             for (Facet facet : facets) {
                 if (!facetsMap.containsKey(facet.getLabel())) {
@@ -134,7 +135,7 @@ public class FacetResult {
                 label = null;
             }
         }
-        facets = Lists.newArrayList(facetsMap.values());
+        facets = new ArrayList<>(facetsMap.values());
         Collections.sort(facets, reverseOrder(comparingInt(Facet::getCount)));
         perDimFacets.put(dimension, facets);
     }

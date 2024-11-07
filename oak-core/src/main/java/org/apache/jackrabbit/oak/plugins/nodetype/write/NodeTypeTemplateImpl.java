@@ -32,8 +32,10 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -44,9 +46,6 @@ import javax.jcr.nodetype.NodeTypeExistsException;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -99,8 +98,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
         PropertyDefinition[] pds = definition.getDeclaredPropertyDefinitions();
         if (pds != null) {
-            propertyDefinitionTemplates =
-                    Lists.newArrayListWithCapacity(pds.length);
+            propertyDefinitionTemplates = new ArrayList<>(pds.length);
             for (PropertyDefinition pd : pds) {
                 propertyDefinitionTemplates.add(
                         new PropertyDefinitionTemplateImpl(mapper, pd));
@@ -109,8 +107,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
         NodeDefinition[] nds = definition.getDeclaredChildNodeDefinitions();
         if (nds != null) {
-            nodeDefinitionTemplates =
-                    Lists.newArrayListWithCapacity(nds.length);
+            nodeDefinitionTemplates = new ArrayList<>(nds.length);
             for (NodeDefinition nd : nds) {
                 nodeDefinitionTemplates.add(
                         new NodeDefinitionTemplateImpl(mapper, nd));
@@ -181,7 +178,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     private static void writeItemDefinitions(@NotNull Tree nodeTypeTree, @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
                                              @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
         // first remove existing
-        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName))) {
+        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName)::test)) {
             t.remove();
         }
         // now write definitions
@@ -214,7 +211,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
         }
 
         @Override
-        public boolean apply(Tree t) {
+        public boolean test(Tree t) {
             String s = t.getName();
             return s.equals(name) || s.startsWith(name + "[");
         }
@@ -299,7 +296,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     @Override
     public List<? extends PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
         if (propertyDefinitionTemplates == null) {
-            propertyDefinitionTemplates = Lists.newArrayList();
+            propertyDefinitionTemplates = new ArrayList<>();
         }
         return propertyDefinitionTemplates;
     }
@@ -317,7 +314,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     @Override
     public List<? extends NodeDefinitionTemplate> getNodeDefinitionTemplates() {
         if (nodeDefinitionTemplates == null) {
-            nodeDefinitionTemplates = Lists.newArrayList();
+            nodeDefinitionTemplates = new ArrayList<>();
         }
         return nodeDefinitionTemplates;
     }

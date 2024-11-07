@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.MAX_ELEMENTS;
@@ -35,8 +32,11 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +56,6 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 import ch.qos.logback.classic.Level;
@@ -70,7 +68,7 @@ public class DefaultSegmentWriterTest {
 
     private static final String HELLO_WORLD = "Hello, World!";
 
-    private final byte[] bytes = HELLO_WORLD.getBytes(Charsets.UTF_8);
+    private final byte[] bytes = HELLO_WORLD.getBytes(StandardCharsets.UTF_8);
 
     private static final int SMALL_BINARIES_INLINE_THRESHOLD = 4;
 
@@ -104,7 +102,7 @@ public class DefaultSegmentWriterTest {
         InputStream stream = new ByteArrayInputStream(bytes);
         RecordId valueId = writer.writeStream(stream);
         SegmentBlob blob = new SegmentBlob(null, valueId);
-        assertEquals(HELLO_WORLD, IOUtils.toString(blob.getNewStream(), Charsets.UTF_8));
+        assertEquals(HELLO_WORLD, IOUtils.toString(blob.getNewStream(), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -117,14 +115,14 @@ public class DefaultSegmentWriterTest {
             for (int i = 0; i + n <= bytes.length; i++) {
                 Arrays.fill(bytes, i, i + n, (byte) '.');
                 assertEquals(n, block.read(i, bytes, i, n));
-                assertEquals(HELLO_WORLD, new String(bytes, Charsets.UTF_8));
+                assertEquals(HELLO_WORLD, new String(bytes, StandardCharsets.UTF_8));
             }
         }
 
         // Check reading with a too long length
         byte[] large = new byte[bytes.length * 2];
         assertEquals(bytes.length, block.read(0, large, 0, large.length));
-        assertEquals(HELLO_WORLD, new String(large, 0, bytes.length, Charsets.UTF_8));
+        assertEquals(HELLO_WORLD, new String(large, 0, bytes.length, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -183,7 +181,7 @@ public class DefaultSegmentWriterTest {
 
     @Test
     public void testListWithLotsOfReferences() throws IOException { // OAK-1184
-        List<RecordId> list = newArrayList();
+        List<RecordId> list = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             list.add(new RecordId(store.fileStore().getSegmentIdProvider().newBulkSegmentId(), 0));
         }
@@ -217,7 +215,7 @@ public class DefaultSegmentWriterTest {
         MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.<String, RecordId>of()));
         MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
         MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId, "two", blockId)));
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
         }
@@ -259,7 +257,7 @@ public class DefaultSegmentWriterTest {
         assertFalse(iterator.hasNext());
         assertNull(many.getEntry("foo"));
 
-        Map<String, RecordId> changes = newHashMap();
+        Map<String, RecordId> changes = new HashMap<>();
         changes.put("key0", null);
         changes.put("key1000", blockId);
         MapRecord modified = new MapRecord(store.fileStore().getReader(), writer.writeMap(many, changes));
@@ -351,7 +349,7 @@ public class DefaultSegmentWriterTest {
     public void testMapRemoveNonExisting() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        Map<String, RecordId> changes = newHashMap();
+        Map<String, RecordId> changes = new HashMap<>();
         changes.put("one", null);
         MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, changes));
         assertEquals(0, zero.size());
@@ -360,7 +358,7 @@ public class DefaultSegmentWriterTest {
     @Test
     public void testWorstCaseMap() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
         char[] key = new char[2];
         for (int i = 0; i <= MapRecord.BUCKETS_PER_LEVEL; i++) {
             key[0] = (char) ('A' + i);
@@ -390,12 +388,11 @@ public class DefaultSegmentWriterTest {
                 // 16516 = (Segment.MEDIUM_LIMIT - 1 + 2 + 3)
                 // 1 byte per char, 2 byte to store the length and 3 bytes for the
                 // alignment to the integer boundary
-                writer.writeString(Strings.repeat("abcdefghijklmno".substring(k, k + 1),
-                    SegmentTestConstants.MEDIUM_LIMIT - 1));
+                writer.writeString("abcdefghijklmno".substring(k, k + 1).repeat(SegmentTestConstants.MEDIUM_LIMIT - 1));
             }
 
             // adding 14280 bytes. 1 byte per char, and 2 bytes to store the length
-            RecordId x = writer.writeString(Strings.repeat("x", 14278));
+            RecordId x = writer.writeString("x".repeat(14278));
             // writer.length == 262052
 
             // Adding 765 bytes (255 recordIds)

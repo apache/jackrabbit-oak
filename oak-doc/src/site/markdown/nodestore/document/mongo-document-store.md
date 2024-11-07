@@ -38,7 +38,7 @@ Oak Release | MongoDB version
 1.6.14 or newer | 3.6.x
 1.8.0 - 1.8.6 | 3.4.x
 1.8.7 or newer | 3.6.x
-1.22.x or newer | 4.0.x
+1.22.x or newer | 5.0.x
 1.62.0 or newer | 5.0 (soon 6.0)
 
 For production deployments use a replica-set with at least three mongod

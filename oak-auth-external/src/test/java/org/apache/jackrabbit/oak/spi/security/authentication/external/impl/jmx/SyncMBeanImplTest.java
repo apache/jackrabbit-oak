@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
@@ -637,7 +638,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         result = syncMBean.listOrphanedUsers();
         assertEquals(2, result.length);
-        assertEquals(ImmutableSet.of("thirdUser", "g"), ImmutableSet.copyOf(result));
+        assertEquals(Set.of("thirdUser", "g"), ImmutableSet.copyOf(result));
     }
 
     @Test
@@ -669,7 +670,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         result = createThrowingSyncMBean(true).listOrphanedUsers();
         assertEquals(2, result.length);
-        assertEquals(ImmutableSet.of("thirdUser", "g"), ImmutableSet.copyOf(result));
+        assertEquals(Set.of("thirdUser", "g"), ImmutableSet.copyOf(result));
     }
 
     @Test

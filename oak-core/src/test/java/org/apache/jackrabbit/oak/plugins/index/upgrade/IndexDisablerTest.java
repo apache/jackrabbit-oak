@@ -23,9 +23,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
@@ -39,7 +39,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class IndexDisablerTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
@@ -124,7 +127,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexDisabling_typeNotExist() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode"));
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex/@oak:BarType"), Type.STRINGS);
@@ -138,7 +141,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexDisabling_typeExist() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode", "oak:BarType"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode", "oak:BarType"));
 
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
@@ -154,7 +157,7 @@ public class IndexDisablerTest {
         PropertyState declaringNodeType = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").getProperty(DECLARING_NODE_TYPES);
         assertEquals(Type.NAMES, declaringNodeType.getType());
 
-        Set<String> names = Sets.newHashSet(declaringNodeType.getValue(Type.NAMES));
+        Set<String> names = CollectionUtils.toSet(declaringNodeType.getValue(Type.NAMES));
         assertThat(names, containsInAnyOrder("oak:TestNode"));
     }
 
@@ -216,7 +219,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexToBeDisabled_TypeNotExists() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode"));
         recreateDisabler();
 
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
@@ -229,7 +232,7 @@ public class IndexDisablerTest {
     @Test
     public void nodeTypeIndexToBeDisabled_TypeExists() throws Exception{
         createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode"));
+                "fooIndex", true, false, Set.of("foo"), asList("oak:TestNode"));
         recreateDisabler();
 
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,

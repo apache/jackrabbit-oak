@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -41,8 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * {@code DocViewImportHandler} processes Document View XML SAX events
@@ -83,7 +80,7 @@ class DocViewImportHandler extends TargetImportHandler {
      */
     private Iterable<String> parseNames(String value) throws SAXException {
         String[] names = value.split("\\p{Space}+");
-        List<String> qnames = Lists.newArrayListWithCapacity(names.length);
+        List<String> qnames = new ArrayList<>(names.length);
         for (String name : names) {
             try {
                 qnames.add(new NameInfo(name).getRepoQualifiedName());

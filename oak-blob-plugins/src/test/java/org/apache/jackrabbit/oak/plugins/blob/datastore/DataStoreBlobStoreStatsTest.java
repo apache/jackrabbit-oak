@@ -481,7 +481,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteRecordStats() throws Exception {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withDeleteDelay(1010));
         DataRecord record = dsbs.addRecord(getTestInputStream());
-        List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
+        List<String> chunkIds = List.of(record.getIdentifier().toString());
         long modifiedBefore = tomorrow();
 
         long deleteCount = stats.getDeleteCount();
@@ -504,7 +504,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteRecordErrorStats() throws Exception {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnDeleteRecord());
         DataRecord record = dsbs.addRecord(getTestInputStream());
-        List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
+        List<String> chunkIds = List.of(record.getIdentifier().toString());
         long modifiedBefore = tomorrow();
 
         long deleteErrorCount = stats.getDeleteErrorCount();

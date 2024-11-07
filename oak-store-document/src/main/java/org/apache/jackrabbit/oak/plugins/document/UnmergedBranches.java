@@ -32,8 +32,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>UnmergedBranches</code> contains all un-merged branches of a DocumentMK
@@ -121,9 +121,9 @@ class UnmergedBranches {
     Branch create(@NotNull RevisionVector base,
                   @NotNull Revision initial,
                   @Nullable Object guard) {
-        checkArgument(!checkNotNull(base).isBranch(),
+        checkArgument(!requireNonNull(base).isBranch(),
                 "base is not a trunk revision: %s", base);
-        checkArgument(checkNotNull(initial).isBranch(),
+        checkArgument(requireNonNull(initial).isBranch(),
                 "initial is not a branch revision: %s", initial);
         SortedSet<Revision> commits = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
         commits.add(initial);

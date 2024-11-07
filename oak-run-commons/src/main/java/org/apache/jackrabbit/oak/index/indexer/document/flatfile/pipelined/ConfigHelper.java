@@ -18,11 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class ConfigHelper {
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigHelper.class);
 
     public static int getSystemPropertyAsInt(String name, int defaultValue) {
         int result = Integer.getInteger(name, defaultValue);
@@ -47,5 +52,19 @@ public class ConfigHelper {
 
         LOG.info("Config {}={}", name, value);
         return value;
+    }
+
+    /**
+     * white space at the start/end of the string or at the start/end of the parts delimited by separator are trimmed
+     */
+    public static List<String> getSystemPropertyAsStringList(String name, String defaultValue, char separator) {
+        String result = System.getProperty(name, defaultValue);
+        List<String> parts = splitString(result, separator);
+        LOG.info("Config {}={}", name, parts);
+        return parts;
+    }
+
+    private static List<String> splitString(String str, char separator) {
+        return str.isBlank() ? List.of() : Arrays.stream(StringUtils.split(str, separator)).map(String::trim).collect(Collectors.toList());
     }
 }

@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,8 +30,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
@@ -54,8 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
 
@@ -137,7 +137,7 @@ public class NRTIndex implements Closeable {
     }
 
     public LuceneIndexWriter getWriter() throws IOException {
-        checkState(!closed);
+        Validate.checkState(!closed);
         if (nrtIndexWriter == null) {
             nrtIndexWriter = createWriter();
         }
@@ -150,8 +150,8 @@ public class NRTIndex implements Closeable {
      * returned.
      */
     public synchronized List<LuceneIndexReader> getReaders() {
-        checkState(!closed);
-        checkState(!previousModeEnabled);
+        Validate.checkState(!closed);
+        Validate.checkState(!previousModeEnabled);
         DirectoryReader latestReader = createReader(dirReader);
         //reader not changed i.e. no change in index
         //reuse old readers
@@ -159,7 +159,7 @@ public class NRTIndex implements Closeable {
             return readers;
         }
 
-        List<LuceneIndexReader> newReaders = Lists.newArrayListWithCapacity(2);
+        List<LuceneIndexReader> newReaders = new ArrayList<>(2);
         if (latestReader != null) {
             newReaders.add(new NRTReader(latestReader, directory));
         }
@@ -302,7 +302,7 @@ public class NRTIndex implements Closeable {
      */
     @Nullable
     private synchronized DirectoryReader createReader(DirectoryReader dirReader) {
-        checkState(!closed);
+        Validate.checkState(!closed);
         //Its possible that readers are obtained
         //before anything gets indexed
         if (indexWriter == null) {
@@ -363,7 +363,7 @@ public class NRTIndex implements Closeable {
         private final Directory directory;
 
         public NRTReader(IndexReader indexReader, Directory directory) {
-            this.indexReader = checkNotNull(indexReader);
+            this.indexReader = requireNonNull(indexReader);
             this.directory = directory;
         }
 

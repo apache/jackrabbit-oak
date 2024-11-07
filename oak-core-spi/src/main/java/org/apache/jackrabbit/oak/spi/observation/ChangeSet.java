@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.spi.observation;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -220,7 +220,7 @@ public final class ChangeSet {
     }
 
     private static Set<String> readArrayAsSet(JsopReader reader) {
-        Set<String> values = Sets.newHashSet();
+        Set<String> values = new HashSet<>();
         reader.read('[');
         for (boolean first = true; !reader.matches(']'); first = false) {
             if (!first) {

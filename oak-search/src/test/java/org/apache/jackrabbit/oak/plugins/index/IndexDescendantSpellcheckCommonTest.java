@@ -29,9 +29,9 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
+import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -136,7 +136,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
         QueryResult result = queryManager.createQuery(query, Query.JCR_SQL2).execute();
         RowIterator rows = result.getRows();
 
-        Set<String> suggestions = newHashSet();
+        Set<String> suggestions = new HashSet<>();
         while (rows.hasNext()) {
             suggestions.add(rows.nextRow().getValue("spellcheck").getString());
         }
@@ -160,7 +160,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     public void noDescendantSuggestsAll() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", null),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+                Set.of("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
@@ -168,7 +168,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     public void rootIndexWithDescendantConstraint() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
-                newHashSet("test2", "test3"));
+                Set.of("test2", "test3"));
     }
 
     @Test
@@ -181,7 +181,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
         //Without path restriction indexing, descendant clause shouldn't be respected
         validateSpellchecks(
                 createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+                Set.of("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
@@ -189,7 +189,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     public void unambiguousSubtreeIndexWithDescendantConstraint() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_BASE, "taste", "/content3"),
-                newHashSet("test5", "test6"));
+                Set.of("test5", "test6"));
     }
 
     //OAK-3994
@@ -197,7 +197,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     public void unambiguousSubtreeIndexWithSubDescendantConstraint() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_BASE, "taste", "/content3/sC"),
-                newHashSet("test6"));
+                Set.of("test6"));
     }
 
     private static void assertEventually(Runnable r) {

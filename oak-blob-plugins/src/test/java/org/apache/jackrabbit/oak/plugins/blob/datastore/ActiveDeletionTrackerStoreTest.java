@@ -21,16 +21,18 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.ActiveDeletionTracker;
 import org.junit.After;
@@ -42,7 +44,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
@@ -108,7 +109,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertEquals("incorrect elements after filtering", Sets.newHashSet(range(7, 10)), Sets.newHashSet(filtered));
+        assertEquals("incorrect elements after filtering", CollectionUtils.toSet(range(7, 10)), CollectionUtils.toSet(filtered));
     }
 
     @Test
@@ -117,7 +118,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertTrue("More elements after filtering", Lists.newArrayList(filtered).isEmpty());
+        assertTrue("More elements after filtering", CollectionUtils.toList(filtered).isEmpty());
     }
 
     @Test
@@ -127,7 +128,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilterFile = create(toFilter, folder);
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
-        assertEquals("Incorrect elements after filtering", range(0, 4), Lists.newArrayList(filtered));
+        assertEquals("Incorrect elements after filtering", range(0, 4), CollectionUtils.toList(filtered));
     }
 
     @Test
@@ -138,20 +139,20 @@ public class ActiveDeletionTrackerStoreTest {
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
         assertEquals("Incorrect elements after filtering",
-            range(0, 4), Lists.newArrayList(filtered));
+            range(0, 4), CollectionUtils.toList(filtered));
     }
 
     @Test
     public void reconcileAll() throws Exception {
         Set<String> initAdd = add(tracker, range(0, 20), folder);
-        List toReconcile = Lists.newArrayList();
+        List<String> toReconcile = new ArrayList<>();
 
         File toFilter = create(toReconcile, folder);
 
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", new HashSet<>(toReconcile), retrieved);
     }
 
     @Test
@@ -164,7 +165,7 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", new HashSet<>(toReconcile), retrieved);
     }
 
     @Test
@@ -177,7 +178,7 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", new HashSet<>(toReconcile), retrieved);
     }
 
     @Test
@@ -190,7 +191,7 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", new HashSet<>(toReconcile), retrieved);
     }
 
     @Test
@@ -205,7 +206,7 @@ public class ActiveDeletionTrackerStoreTest {
         File f = folder.newFile();
         FileIOUtils.writeStrings(ints.iterator(), f, false);
         store.track(f);
-        return Sets.newHashSet(ints);
+        return new HashSet<>(ints);
     }
 
     private static File create(List<String> ints, TemporaryFolder folder) throws IOException {
@@ -222,7 +223,7 @@ public class ActiveDeletionTrackerStoreTest {
     }
 
     private static List<String> range(int min, int max) {
-        List<String> list = newArrayList();
+        List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
             list.add(Strings.padStart(valueOf(i), 2, '0'));
         }

@@ -26,14 +26,13 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.FULL_MATCH;
@@ -62,7 +61,7 @@ public final class MountInfo implements Mount {
 
     public MountInfo(String name, boolean readOnly, List<String> pathsSupportingFragments,
               List<String> includedPaths) {
-        this.name = checkNotNull(name, "Mount name must not be null");
+        this.name = requireNonNull(name, "Mount name must not be null");
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
@@ -141,7 +140,7 @@ public final class MountInfo implements Mount {
 
     private static TreeSet<String> cleanCopy(Collection<String> includedPaths) {
         // ensure that paths don't have trailing slashes - this triggers an assertion in PathUtils isAncestor
-        return newTreeSet(transform(includedPaths, SANITIZE_PATH));
+        return CollectionUtils.toTreeSet(transform(includedPaths, SANITIZE_PATH::apply));
     }
 
     public Set<String> getPathsSupportingFragments() {

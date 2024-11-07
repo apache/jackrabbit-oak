@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -42,7 +42,7 @@ public class StringUtils {
      */
     @NotNull
     public static String convertBytesToHex(@NotNull byte[] value) {
-        checkNotNull(value);
+        requireNonNull(value);
         int len = value.length;
         char[] buff = new char[len + len];
         char[] hex = HEX;
@@ -62,7 +62,7 @@ public class StringUtils {
      */
     @NotNull
     public static byte[] convertHexToBytes(@NotNull String s) {
-        checkNotNull(s);
+        requireNonNull(s);
         int len = s.length();
         checkArgument(len % 2 == 0);
 

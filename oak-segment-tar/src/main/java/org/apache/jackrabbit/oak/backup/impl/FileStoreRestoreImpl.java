@@ -67,7 +67,6 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
             GCGeneration gen = head.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     store.getSegmentIdProvider(),
-                    store.getReader(),
                     "r",
                     gen
             );

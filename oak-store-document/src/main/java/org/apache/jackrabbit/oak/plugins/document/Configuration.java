@@ -34,7 +34,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -259,6 +262,24 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     String[] persistentCacheIncludes() default {"/"};
 
     @AttributeDefinition(
+            name = "Full GC Include Paths",
+            description = "Paths which should be included in full garbage collection. " +
+                    "Include and exclude paths can overlap. Exclude paths will take precedence. " +
+                    "Note that this value can be overridden with a system property " +
+                    "'oak.documentstore.fullGCIncludePaths' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.fullGCIncludePaths=/content::/var")
+    String[] fullGCIncludePaths() default {"/"};
+
+    @AttributeDefinition(
+            name = "Full GC Exclude Paths",
+            description = "Paths which should be excluded from full Garbage collection. " +
+                    "Include and exclude paths can overlap. Exclude paths will take precedence. " +
+                    "Note that this value can be overridden with a system property " +
+                    "'oak.documentstore.fullGCExcludePaths' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.fullGCExcludePaths=/content::/var")
+    String[] fullGCExcludePaths() default {};
+
+    @AttributeDefinition(
             name = "Lease check mode",
             description = "The lease check mode. 'STRICT' is the default and " +
                     "will stop the DocumentNodeStore as soon as the lease " +
@@ -305,4 +326,51 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "can be reused after a recovery, 0 or negative for no delay. Default: " + DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS +
                     " (milliseconds).")
     long clusterIdReuseDelayAfterRecoveryMillis() default DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC",
+            description = "Boolean value indicating whether Full GC should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_FULL_GC_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCEnabled'")
+    boolean fullGCEnabled() default DEFAULT_FULL_GC_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Embedded Verification for Full GC",
+            description = "Boolean value indicating whether Embedded Verification (i.e. verify the document after " +
+                    "applying changes in memory before any database calls) for Full GC should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_EMBEDDED_VERIFICATION_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.embeddedVerificationEnabled'")
+    boolean embeddedVerificationEnabled() default DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC Mode",
+            description = "Integer value indicating which Full GC mode should be enabled for " +
+                    "document node store. The Default value is " + DEFAULT_FULL_GC_MODE +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCMode'. " +
+                    "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled " +
+                    "is set to true, the fullGCMode will be ignored.")
+    int fullGCMode() default DEFAULT_FULL_GC_MODE;
+
+    @AttributeDefinition(
+            name = "Delay factor for a Full GC run",
+            description = "A Full GC run has a gap of this delay factor to reduce continuous load on system." +
+                    "It allows the FullGC thread to stop by (fullGC batch run time * delayFactor) period after each batch." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR)
+    double fullGCDelayFactor() default DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+
+    @AttributeDefinition(
+            name = "Batch Size to fetch data for each FullGC cycle",
+            description = "Integer value indicating the number of documents to fetch from database in a single query to check for Full GC." +
+                    "It should be a factor of fullGCProgressSize for better performance " +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE)
+    int fullGCBatchSize() default DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+
+    @AttributeDefinition(
+            name = "Progress Size for FullGC cycle",
+            description = "Integer value indicating the number of documents to check for garbage in each Full GC cycle." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE)
+    int fullGCProgressSize() default DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 }

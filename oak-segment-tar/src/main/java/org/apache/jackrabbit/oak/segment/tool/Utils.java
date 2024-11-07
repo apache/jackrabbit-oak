@@ -14,34 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.jetbrains.annotations.NotNull;
 
-final class Utils {
+public final class Utils {
 
     private static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 
@@ -64,29 +61,28 @@ final class Utils {
                 .buildReadOnly();
     }
 
-    static BlobStore newBasicReadOnlyBlobStore() {
+    public static BlobStore newBasicReadOnlyBlobStore() {
         return new BasicReadOnlyBlobStore();
     }
 
-    static List<String> readRevisions(File store) {
+    public static List<String> readRevisions(String path) {
+        return readRevisions(new File(path));
+    }
+
+    public static List<String> readRevisions(File store) {
         JournalFile journal = new LocalJournalFile(store, "journal.log");
 
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
-                Iterator<String> revisionIterator = Iterators.transform(journalReader, new Function<JournalEntry, String>() {
-                    @NotNull
-                    @Override
-                    public String apply(JournalEntry entry) {
-                        return entry.getRevision();
-                    }
-                });
-                return newArrayList(revisionIterator);
+                Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                        entry -> entry.getRevision());
+                return CollectionUtils.toList(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return newArrayList();
+        return new ArrayList<>();
     }
 
     private static File isValidFileStoreOrFail(File store) {

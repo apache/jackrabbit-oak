@@ -191,8 +191,10 @@ public class ElasticCustomAnalyzer {
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toList());
             } catch (Exception e) {
-                LOG.warn("Unable introspect lucene internal factories to perform transformations. " +
-                        "Current configuration will be used", e);
+                LOG.warn("Unable to introspect Lucene internal factories for transformations. " +
+                        "If using an Elasticsearch-specific factory, consider using a Lucene-compatible one for backward compatibility. " +
+                        "Current configuration will be used. Error: {}", e.getMessage());
+                LOG.debug("Error details: ", e);
                 name = normalize(t.getName());
                 transformers = List.of();
             }

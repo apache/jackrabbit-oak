@@ -55,8 +55,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -139,7 +138,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     public void fulltextIndexCost() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = getIndexDefinitionNodeBuilder(index, indexName,
-                of(TYPENAME_STRING));
+                Set.of(TYPENAME_STRING));
         TestUtil.useV2(defn);
 
         long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;

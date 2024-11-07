@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -27,6 +26,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -37,7 +37,6 @@ import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
@@ -52,7 +51,7 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         // disabling MemoryFixture, as that runs into an OutOfMemoryError
 //        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 

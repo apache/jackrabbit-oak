@@ -30,13 +30,13 @@ import java.util.Random;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -420,9 +420,8 @@ public abstract class AbstractDataStoreTest {
         rec = ds.addRecord(new ByteArrayInputStream(data));
         list.add(rec.getIdentifier());
 
-        Iterator<DataIdentifier> itr = Sets.newHashSet(ds.getAllIdentifiers()).iterator();
-        while (itr.hasNext()) {
-            assertTrue("record found on list", list.remove(itr.next()));
+        for (DataIdentifier dataIdentifier : CollectionUtils.toSet(ds.getAllIdentifiers())) {
+            assertTrue("record found on list", list.remove(dataIdentifier));
         }
         Assert.assertEquals(0, list.size());
     }

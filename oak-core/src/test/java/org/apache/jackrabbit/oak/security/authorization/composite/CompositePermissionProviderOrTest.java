@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -42,6 +41,7 @@ import org.junit.runners.Parameterized;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
@@ -77,7 +77,7 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, "Extra verification of supported permissions in 'isGranted'" },
                 new Object[] { false, "No verification of supported permissions in 'isGranted'" });
     }    

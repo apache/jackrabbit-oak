@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
@@ -32,17 +30,19 @@ import com.mongodb.WriteConcernException;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.connection.ServerVersion;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * Provides static utility methods for MongoDB.
@@ -138,10 +138,10 @@ class MongoUtils {
      */
     static boolean hasIndex(MongoCollection<?> collection, String... fields)
             throws MongoException {
-        Set<String> uniqueFields = Sets.newHashSet(fields);
+        Set<String> uniqueFields = CollectionUtils.toSet(fields);
         for (Document info : collection.listIndexes()) {
             Document key = (Document) info.get("key");
-            Set<String> indexFields = Sets.newHashSet(key.keySet());
+            Set<String> indexFields = new HashSet<>(key.keySet());
             if (uniqueFields.equals(indexFields)) {
                 return true;
             }
@@ -204,5 +204,39 @@ class MongoUtils {
      */
     static int getNodeNameLimit(final @NotNull MongoStatus status) {
         return status.isVersion(4, 2) ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
+    }
+
+    /**
+     * Invoke mongo's explain command with the provided query and an optional hint.
+     * @param mongoDb the mongo database object with which to run the explain command
+     * @param collection the mongo collection used by the find command
+     * @param query the query for which to do an explain
+     * @param hint a hint or null
+     * @return
+     */
+    static BasicDBObject explain(@NotNull MongoDatabase mongoDb,
+            @NotNull MongoCollection<BasicDBObject> collection, @NotNull Bson query,
+            @Nullable Bson hint) {
+        BasicDBObject explainCommand = new BasicDBObject("explain",
+                new BasicDBObject("find", collection.getNamespace().getCollectionName())
+                        .append("filter", query)
+                        .append("hint",  hint == null ? new BasicDBObject() : hint));
+        return new BasicDBObject(mongoDb.runCommand(explainCommand, BasicDBObject.class));
+    }
+
+    /**
+     * Extract the queryPlanner.winningPlan from the provided explain result,
+     * or return null if the explain result isn't formatted as expected
+     * @param explainResult the explain result
+     * @return queryPlanner.winningPlan or null if the explain result isn't
+     * formatted as expected
+     */
+    static BasicDBObject getWinningPlan(BasicDBObject explainResult) {
+        try {
+            BasicDBObject queryPlanner = (BasicDBObject) explainResult.get("queryPlanner");
+            return (BasicDBObject) queryPlanner.get("winningPlan");
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

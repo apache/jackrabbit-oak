@@ -108,6 +108,8 @@ public class WhiteboardUtils {
             table.put("type", JmxUtil.quoteValueIfRequired(type));
             table.put("name", JmxUtil.quoteValueIfRequired(name));
 
+            // ensure the MBean is tracked by the Aries JMX Whiteboard
+            // https://aries.apache.org/documentation/modules/jmx.html#_whiteboard_support
             ImmutableMap.Builder properties = ImmutableMap.builder();
             properties.put("jmx.objectname", new ObjectName(JMX_OAK_DOMAIN, table));
             properties.putAll(attrs);

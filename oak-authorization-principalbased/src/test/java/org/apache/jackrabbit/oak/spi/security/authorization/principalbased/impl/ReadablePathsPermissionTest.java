@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -62,7 +63,7 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         assertFalse(paths.isEmpty());
 
         readablePaths = Iterators.cycle(paths);
-        Set<String> childPaths = Sets.newHashSet();
+        Set<String> childPaths = new HashSet<>();
         for (String path : paths) {
             Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(), Tree::getPath));
         }

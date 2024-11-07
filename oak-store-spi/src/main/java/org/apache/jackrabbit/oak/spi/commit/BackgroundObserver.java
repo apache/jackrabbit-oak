@@ -16,24 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
-import static org.apache.jackrabbit.guava.common.collect.Queues.newArrayBlockingQueue;
 
 import java.io.Closeable;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -152,11 +150,11 @@ public class BackgroundObserver implements Observer, Closeable {
             @NotNull Executor executor,
             int queueLength,
             @NotNull UncaughtExceptionHandler exceptionHandler) {
-        this.observer = checkNotNull(observer);
-        this.executor = checkNotNull(executor);
-        this.exceptionHandler = checkNotNull(exceptionHandler);
+        this.observer = requireNonNull(observer);
+        this.executor = requireNonNull(executor);
+        this.exceptionHandler = requireNonNull(exceptionHandler);
         this.maxQueueLength = queueLength;
-        this.queue = newArrayBlockingQueue(maxQueueLength);
+        this.queue = new ArrayBlockingQueue<>(maxQueueLength);
     }
 
     public BackgroundObserver(
@@ -237,22 +235,14 @@ public class BackgroundObserver implements Observer, Closeable {
 
             @Override
             public int getLocalEventCount() {
-                return size(filter(queue, new Predicate<ContentChange>() {
-                    @Override
-                    public boolean apply(ContentChange input) {
-                        return !input.info.isExternal();
-                    }
-                }));
+                return size(filter(queue,
+                        input -> !input.info.isExternal()));
             }
 
             @Override
             public int getExternalEventCount() {
-                return size(filter(queue, new Predicate<ContentChange>() {
-                    @Override
-                    public boolean apply(ContentChange input) {
-                        return input.info.isExternal();
-                    }
-                }));
+                return size(filter(queue,
+                        input -> input.info.isExternal()));
             }
         };
     }
@@ -264,9 +254,9 @@ public class BackgroundObserver implements Observer, Closeable {
      */
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-        checkState(!stopped);
-        checkNotNull(root);
-        checkNotNull(info);
+        Validate.checkState(!stopped);
+        requireNonNull(root);
+        requireNonNull(info);
 
         if (alwaysCollapseExternalEvents && info.isExternal() && last != null && last.info.isExternal()) {
             // This is an external change. If the previous change was
@@ -285,7 +275,6 @@ public class BackgroundObserver implements Observer, Closeable {
 
         if (full && last != null) { // last is only null at the beginning
             // queue is full.
-            
             // when the change can't be added to the queue because it's full
             // remove the last entry and add an explicit overflow entry instead.
             queue.remove(last);
@@ -311,7 +300,7 @@ public class BackgroundObserver implements Observer, Closeable {
     //------------------------------------------------------------< internal >---
 
     private static Logger getLogger(@NotNull Observer observer) {
-        return LoggerFactory.getLogger(checkNotNull(observer).getClass());
+        return LoggerFactory.getLogger(requireNonNull(observer).getClass());
     }
 
     

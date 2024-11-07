@@ -62,9 +62,9 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         if (tree == null) {
-            return ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT);
+            return Set.of(JCR_NAMESPACE_MANAGEMENT);
         } else {
-            return ImmutableSet.of(REP_READ_NODES);
+            return Set.of(REP_READ_NODES);
         }
     }
 

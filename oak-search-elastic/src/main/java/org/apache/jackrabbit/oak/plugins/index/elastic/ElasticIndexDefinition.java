@@ -24,12 +24,13 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -100,6 +101,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String DYNAMIC_BOOST_FULLTEXT = ":dynamic-boost-ft";
 
     /**
+     * Precomputed random value based on the path of the document
+     */
+    public static final String PATH_RANDOM_VALUE = ":path-random-value";
+
+    /**
+     * Hidden property to store the last updated timestamp
+     */
+    public static final String LAST_UPDATED = ":lastUpdated";
+
+    /**
      * Dynamic properties are fields that are not explicitly defined in the index mapping and are added on the fly when a document is indexed.
      * Examples: aggregations with relative nodes, regex properties (to be supported), etc.
      */
@@ -108,7 +119,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
 
-    public static final String ELASTIKNN = "elastiknn";
+    public static final String INFERENCE = ":inference";
 
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
@@ -118,14 +129,19 @@ public class ElasticIndexDefinition extends IndexDefinition {
     // MLT queries, when no fields are specified, do not use the entire document but only a maximum of
     // max_query_terms (default 25). Even increasing this value, the query could produce not so relevant
     // results (eg: based on the :fulltext content). To work this around, we can specify DYNAMIC_BOOST_FULLTEXT
-    // field as first field since it usually contains relevant terms. This will make sure that the MLT queries
-    // give more priority to the terms in this field while the rest (*) are considered secondary.
+    // field with overridden mlt params and increased boost since it usually contains relevant terms. This will make sure
+    // that the MLT queries give more priority to the terms in this field while the rest (*) are considered secondary.
+    // TODO: we can further improve search relevance by using the actual tags combined with the weights using a function query.
+    //      Right now, we are just matching the tags without looking at the weights. Therefore, a tag can be matched in a field with a lower weight.
     private static final String[] SIMILARITY_TAGS_FIELDS_DEFAULT = new String[] {
-            DYNAMIC_BOOST_FULLTEXT, "*"
+            "mlt.fl=" + DYNAMIC_BOOST_FULLTEXT + "&mlt.mintf=1&mlt.qf=3",
+            "mlt.fl=*&mlt.mintf=2"
     };
 
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
+
+    protected static final String INFERENCE_CONFIG = "inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
 
@@ -135,6 +151,22 @@ public class ElasticIndexDefinition extends IndexDefinition {
         };
         Arrays.sort(NOT_ANALYZED_TYPES); // need for binary search
         isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
+    }
+
+    /**
+     * Mapping version that uses <a href="https://semver.org/">SemVer Specification</a> to allow changes without
+     * breaking existing queries.
+     * Changes breaking compatibility should increment the major version (indicating that a reindex is mandatory).
+     * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
+     * use the new feature).
+     * Changes that do not affect queries should increment the patch version (eg: bug fixes).
+     * <p>
+     * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
+     * actual version needs to be set in oak-search.
+     */
+    public static final ElasticSemVer MAPPING_VERSION;
+    static {
+        MAPPING_VERSION = ElasticSemVer.fromString(FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH));
     }
 
     private final String indexPrefix;
@@ -152,6 +184,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final String dynamicMapping;
     public final boolean failOnError;
     public final long indexNameSeed;
+    public final InferenceDefinition inferenceDefinition;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
@@ -162,7 +195,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
         this.indexPrefix = indexPrefix;
-        this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
+        // the alias contains the internal mapping major version. In case of a breaking change, an index with the new version can
+        // be created without affecting the existing queries of an instance running with the old version.
+        // This strategy has been introduced from version 1. For compatibility reasons, the alias is not changed for the first version.
+        if (MAPPING_VERSION.getMajor() > 1) {
+            this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath() + "_v" + MAPPING_VERSION.getMajor());
+        } else {
+            this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
+        }
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -183,7 +223,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> Stream.concat(StreamSupport.stream(rule.getProperties().spliterator(), false),
+                .flatMap(rule -> Stream.concat(CollectionUtils.toStream(rule.getProperties()),
                         rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> {
@@ -208,6 +248,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsProperties = propertiesByName.values().stream()
                 .flatMap(List::stream)
                 .filter(pd -> pd.similarityTags).collect(Collectors.toList());
+
+        if (defn.hasChildNode(INFERENCE_CONFIG)) {
+            this.inferenceDefinition = new InferenceDefinition(defn.getChildNode(INFERENCE_CONFIG));
+        } else {
+            this.inferenceDefinition = null;
+        }
     }
 
     @Nullable
@@ -323,6 +369,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
+     * Checks if the ElasticIndexDefinition allows external updates.
+     * Definitions including the inference config are considered externally modifiable.
+     *
+     * @return true if the definition allows external updates, false otherwise
+     */
+    public boolean isExternallyModifiable() {
+        return this.inferenceDefinition != null;
+    }
+
+    /**
      * Class to help with {@link ElasticIndexDefinition} creation.
      * The built object represents the index definition only without the node structure.
      */
@@ -348,6 +404,248 @@ public class ElasticIndexDefinition extends IndexDefinition {
         @Override
         protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new ElasticIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
+        }
+    }
+
+    /**
+     * Represents the inference configuration for an Elasticsearch index definition.
+     * This class holds the properties and queries used for inference.
+     */
+    public static class InferenceDefinition {
+
+        /**
+         * List of properties used for inference.
+         */
+        public List<Property> properties;
+
+        /**
+         * List of queries used for inference.
+         */
+        public List<Query> queries;
+
+        public InferenceDefinition() { }
+
+        /**
+         * Constructs an InferenceDefinition from a given NodeState.
+         *
+         * @param inferenceNode the NodeState containing the inference configuration
+         */
+        public InferenceDefinition(NodeState inferenceNode) {
+            if (inferenceNode.hasChildNode("properties")) {
+                this.properties = CollectionUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
+                        .map(cne -> new Property(cne.getName(), cne.getNodeState()))
+                        .collect(Collectors.toList());
+            }
+            if (inferenceNode.hasChildNode("queries")) {
+                this.queries = CollectionUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
+                        .map(cne -> new Query(cne.getName(), cne.getNodeState()))
+                        .collect(Collectors.toList());
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            InferenceDefinition that = (InferenceDefinition) o;
+            return Objects.equals(properties, that.properties) && Objects.equals(queries, that.queries);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(properties, queries);
+        }
+
+        /**
+         * Represents a property used for inference.
+         */
+        public static class Property {
+            /**
+             * The name of the property. It will be prefixed with "{@link ElasticIndexDefinition#INFERENCE}." when stored in the index.
+             */
+            public String name;
+            /**
+             * The model used for inference. Default is "semantic". This will be used by the inference service to determine the model to use.
+             */
+            public String model;
+            /**
+             * The fields used for inference. These fields will be used to generate the vector for the inference.
+             */
+            public List<String> fields;
+            /**
+             * The number of dimensions for the vector generated for the inference.
+             */
+            public int dims;
+            /**
+             * The similarity function used for the inference. Default is "cosine".
+             */
+            public String similarity;
+
+            // Jackson requires a no-arg constructor for deserialization.
+            @SuppressWarnings("unused")
+            protected Property() {
+                // Default constructor for Jackson deserialization only.
+            }
+
+            /**
+             * Constructs a Property from a given NodeState.
+             *
+             * @param name the name of the property
+             * @param inferenceNode the NodeState containing the property configuration
+             */
+            public Property(String name, NodeState inferenceNode) {
+                this.name = ElasticIndexDefinition.INFERENCE + "." + name;
+                this.model = getOptionalValue(inferenceNode, "model", "semantic");
+                this.fields = Arrays.asList(getOptionalValues(inferenceNode, "fields", Type.STRINGS, String.class, new String[0]));
+                this.dims = getOptionalValue(inferenceNode, "dims", 1024);
+                this.similarity = getOptionalValue(inferenceNode, "similarity", "cosine");
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Property property = (Property) o;
+                return dims == property.dims && Objects.equals(name, property.name) &&
+                        Objects.equals(model, property.model) &&
+                        Objects.equals(fields, property.fields) &&
+                        Objects.equals(similarity, property.similarity);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(name, model, fields, dims, similarity);
+            }
+        }
+
+        /**
+         * Represents a query used for inference.
+         */
+        public static class Query {
+            /**
+             * The name of the query.
+             */
+            public String name;
+            /**
+             * The service URL used for the query.
+             */
+            public String serviceUrl;
+            /**
+             * The model used for the query. Default is "semantic". It needs to match with one of the models used for the properties.
+             */
+            public String model;
+            /**
+             * The prefix used for the query. If the input string starts with this prefix, the query will be executed. Default is null (no prefix).
+             */
+            public String prefix;
+            /**
+             * The minimum number of terms required for the query to be executed. Default is 2.
+             */
+            public int minTerms;
+            /**
+             * The number of candidates to be returned by the query. Default is 100.
+             */
+            public int numCandidates;
+            /**
+             * The type of the query. Default is "hybrid". Currently not used
+             */
+            public String type; // this can be hybrid or vector
+            /**
+             * The similarity threshold used for the query. Default is 0.5.
+             */
+            public float similarityThreshold;
+            /**
+             * The timeout for the query in milliseconds. Default is 5000.
+             */
+            public long timeout;
+
+            // Jackson requires a no-arg constructor for deserialization.
+            @SuppressWarnings("unused")
+            protected Query() {
+                // Default constructor for Jackson deserialization only.
+            }
+
+            /**
+             * Constructs a Query from a given NodeState.
+             *
+             * @param name the name of the query
+             * @param queryNode the NodeState containing the query configuration
+             */
+            public Query(String name, NodeState queryNode) {
+                this.name = name;
+                this.serviceUrl = getOptionalValue(queryNode, "serviceUrl", null);
+                this.model = getOptionalValue(queryNode, "model", "semantic");
+                this.prefix = getOptionalValue(queryNode, "prefix", null);
+                this.minTerms = getOptionalValue(queryNode, "minTerms", 2);
+                this.numCandidates = getOptionalValue(queryNode, "numCandidates", 100);
+                this.type = getOptionalValue(queryNode, "type", "hybrid");
+                this.similarityThreshold = getOptionalValue(queryNode, "similarityThreshold", 0.5f);
+                this.timeout = getOptionalValue(queryNode, "timeout", 5000L);
+            }
+
+            /**
+             * Returns {@code true} if the input string is eligible for this query.
+             * @param input the input string
+             * @return {@code true} if the input string is eligible for this query
+             */
+            public boolean isEligibleForInput(String input) {
+                return prefix == null || input.startsWith(prefix);
+            }
+
+            /**
+             * Rewrites the input string by removing the prefix.
+             *
+             * @param input the input string
+             * @return the rewritten input string
+             */
+            public String rewrite(String input) {
+                return prefix == null ? input : input.substring(prefix.length());
+            }
+
+            /**
+             * Checks if the input string has the minimum number of terms required for this query.
+             *
+             * @param input the input string
+             * @return true if the input string has the minimum number of terms
+             */
+            public boolean hasMinTerms(String input) {
+                return minTerms <= input.split("\\s+").length;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Query query = (Query) o;
+                return minTerms == query.minTerms && numCandidates == query.numCandidates &&
+                        Objects.equals(name, query.name) &&
+                        Objects.equals(serviceUrl, query.serviceUrl) &&
+                        Objects.equals(model, query.model) &&
+                        Objects.equals(prefix, query.prefix) &&
+                        Objects.equals(type, query.type) &&
+                        similarityThreshold == query.similarityThreshold &&
+                        timeout == query.timeout;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(name, serviceUrl, model, prefix, minTerms, numCandidates, type, similarityThreshold, timeout);
+            }
+
+            @Override
+            public String toString() {
+                return "Query{" +
+                        "name='" + name + '\'' +
+                        ", serviceUrl='" + serviceUrl + '\'' +
+                        ", model='" + model + '\'' +
+                        ", prefix='" + prefix + '\'' +
+                        ", minTerms=" + minTerms +
+                        ", numCandidates=" + numCandidates +
+                        ", type='" + type + '\'' +
+                        ", similarityThreshold=" + similarityThreshold +
+                        ", timeout=" + timeout +
+                        '}';
+            }
         }
     }
 }

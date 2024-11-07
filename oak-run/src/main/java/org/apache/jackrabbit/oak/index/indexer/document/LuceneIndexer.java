@@ -35,14 +35,20 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexer.class);
+
     private final IndexDefinition definition;
     private final FulltextBinaryTextExtractor binaryTextExtractor;
     private final NodeBuilder definitionBuilder;
     private final LuceneIndexWriter indexWriter;
     private final IndexingProgressReporter progressReporter;
     private FacetsConfig facetsConfig;
+
+    private final IndexerStatisticsTracker indexerStatisticsTracker = new IndexerStatisticsTracker(LOG);
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
                          NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
@@ -52,6 +58,12 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
         this.indexWriter = indexWriter;
         this.definitionBuilder = builder;
         this.progressReporter = progressReporter;
+    }
+
+    @Override
+    public void onIndexingStarting() {
+        indexerStatisticsTracker.onIndexingStarting();
+        binaryTextExtractor.resetStartTime();
     }
 
     @Override
@@ -77,10 +89,14 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             return false;
         }
 
+        long startEntryNanos = System.nanoTime();
         LuceneDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
         Document doc = maker.makeDocument(entry.getNodeState());
+        long endEntryMakeDocumentNanos = System.nanoTime();
+
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
+            indexerStatisticsTracker.onEntryEnd(entry.getPath(), startEntryNanos, endEntryMakeDocumentNanos);
             progressReporter.indexUpdate(definition.getIndexPath());
             return true;
         }
@@ -99,7 +115,14 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     }
 
     @Override
+    public String getIndexName() {
+        return definition.getIndexName();
+    }
+
+    @Override
     public void close() throws IOException {
+        LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
+        binaryTextExtractor.logStats();
         indexWriter.close(System.currentTimeMillis());
     }
 

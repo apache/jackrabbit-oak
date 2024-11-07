@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -137,7 +136,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
 
     @Test
     public void testAddMembers() throws Exception {
-        assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.addMembers(getTestUser().getID()));
+        assertEquals(Set.of(getTestUser().getID()), everyoneGroup.addMembers(getTestUser().getID()));
     }
 
     @Test
@@ -159,7 +158,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
 
     @Test
     public void testRemoveMembers() throws Exception {
-        assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.removeMembers(getTestUser().getID()));
+        assertEquals(Set.of(getTestUser().getID()), everyoneGroup.removeMembers(getTestUser().getID()));
     }
 
     @Test

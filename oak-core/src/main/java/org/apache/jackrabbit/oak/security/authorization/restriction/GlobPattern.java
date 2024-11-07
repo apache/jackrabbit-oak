@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Objects;
+
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@code GlobPattern} defines a simplistic pattern matching. It consists
@@ -90,7 +91,7 @@ final class GlobPattern implements RestrictionPattern {
     private final Pattern pattern;
 
     private GlobPattern(@NotNull String path, @NotNull String restriction)  {
-        this.path = checkNotNull(path);
+        this.path = requireNonNull(path);
         this.restriction = restriction;
 
         if (!restriction.isEmpty()) {
@@ -151,7 +152,7 @@ final class GlobPattern implements RestrictionPattern {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(path, restriction);
+        return Objects.hash(path, restriction);
     }
 
     @Override

@@ -39,6 +39,7 @@ public class LuceneIndexWriterConfig {
             IndexWriterConfig.DISABLE_AUTO_FLUSH);
     private final int ramPerThreadHardLimitMB = Integer.getInteger(RAM_PER_THREAD_HARD_LIMIT_MB_KEY,
             IndexWriterConfig.DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB);
+    private final int threadCount;
 
     public LuceneIndexWriterConfig() {
         this(IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB);
@@ -46,6 +47,12 @@ public class LuceneIndexWriterConfig {
 
     public LuceneIndexWriterConfig(double ramBufferSizeMB) {
         this.ramBufferSizeMB = ramBufferSizeMB;
+        this.threadCount = 1;
+    }
+
+    public LuceneIndexWriterConfig(double ramBufferSizeMB, int threadCount) {
+        this.ramBufferSizeMB = ramBufferSizeMB;
+        this.threadCount = threadCount;
     }
 
     public double getRamBufferSizeMB() {
@@ -58,5 +65,9 @@ public class LuceneIndexWriterConfig {
 
     public int getRamPerThreadHardLimitMB() {
         return ramPerThreadHardLimitMB;
+    }
+
+    public int getThreadCount() {
+        return threadCount;
     }
 }

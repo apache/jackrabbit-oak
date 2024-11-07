@@ -253,5 +253,6 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         assertEquals(2, docs);
         markDocumentsForCleanup();
         dns.dispose();
+        removeMe.add(nodeName);
     }
 }

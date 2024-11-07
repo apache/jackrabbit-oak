@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -28,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
@@ -55,7 +52,7 @@ class CommitsTracker {
     private final String[] threadGroups;
     private final int otherWritersLimit;
     private final ConcurrentMap<String, Commit> queuedWritersMap;
-    private final Queue<Commit> commits = newConcurrentLinkedQueue();
+    private final Queue<Commit> commits = new ConcurrentLinkedQueue<>();
 
     /*
      * Read access via getCurrentWriter() happens usually on a separate thread, thus volatile
@@ -188,7 +185,7 @@ class CommitsTracker {
     }
 
     public Map<String, Long> getCommitsCountPerGroupLastMinute() {
-        Map<String, Long> commitsPerGroup = newHashMap();
+        Map<String, Long> commitsPerGroup = new HashMap<>();
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.getQueued() > t) {

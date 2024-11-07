@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
@@ -32,7 +32,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.fillExternalChanges;
@@ -122,7 +121,7 @@ abstract class ExternalChange {
             changeSetBuilder = new ChangeSetBuilder(
                     store.getChangeSetMaxItems(), store.getChangeSetMaxDepth());
             RevisionVector headRevision = store.getHeadRevision();
-            Set<Revision> externalChanges = newHashSet();
+            Set<Revision> externalChanges = new HashSet<>();
             for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
                 int machineId = e.getKey();
                 if (machineId == clusterId) {

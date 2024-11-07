@@ -317,13 +317,8 @@ public final class PathUtils {
         } else if (isAbsolutePath(subPath)) {
             throw new IllegalArgumentException("Cannot append absolute path " + subPath);
         }
-        StringBuilder buff = new StringBuilder(parentPath.length() + subPath.length() + 1);
-        buff.append(parentPath);
-        if (!denotesRootPath(parentPath)) {
-            buff.append('/');
-        }
-        buff.append(subPath);
-        return buff.toString();
+        String separator = denotesRootPath(parentPath) ? "" : "/";
+        return parentPath + separator + subPath;
     }
 
     /**
@@ -372,11 +367,26 @@ public final class PathUtils {
         if (denotesRoot(ancestor)) {
             if (denotesRoot(path)) {
                 return false;
+            } else {
+                return path.startsWith(ancestor);
             }
         } else {
-            ancestor += "/";
+            // Equivalent to path.startsWith(ancestor + "/") but avoids allocating a new string
+            return path.startsWith(ancestor) && path.length() > ancestor.length() && path.charAt(ancestor.length()) == '/';
         }
-        return path.startsWith(ancestor);
+    }
+
+    /**
+     * Check if a path is a direct ancestor of another path.
+     *
+     * @param ancestor the ancestor path
+     * @param path     the potential direct offspring path
+     * @return true if the path is a direct offspring of the ancestor
+     */
+    public static boolean isDirectAncestor(String ancestor, String path) {
+        int lastSlashInPath = path.lastIndexOf('/');
+        return ((PathUtils.denotesRoot(ancestor) && lastSlashInPath == 0) || lastSlashInPath == ancestor.length())
+                && isAncestor(ancestor, path);
     }
 
     /**

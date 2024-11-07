@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
@@ -128,7 +128,7 @@ public class BundlingHandlerTest {
     private BundlingHandler childHandler(BundlingHandler parent, NodeState parentState, String childPath) {
         BundlingHandler result = parent;
         NodeState state = parentState;
-        for (String name : PathUtils.elements(checkNotNull(childPath))) {
+        for (String name : PathUtils.elements(requireNonNull(childPath))) {
             state = state.getChildNode(name);
             result = result.childAdded(name, state);
         }
@@ -137,7 +137,7 @@ public class BundlingHandlerTest {
 
     private NodeBuilder childBuilder(NodeBuilder parent, String childPath) {
         NodeBuilder result = parent;
-        for (String name : PathUtils.elements(checkNotNull(childPath))) {
+        for (String name : PathUtils.elements(requireNonNull(childPath))) {
             result = result.child(name);
         }
         return result;

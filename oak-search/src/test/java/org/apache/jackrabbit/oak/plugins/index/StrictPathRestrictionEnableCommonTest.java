@@ -31,7 +31,6 @@ import org.junit.Test;
 import javax.jcr.Node;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -60,8 +59,8 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
     @Test
     public void pathIncludeWithPathRestrictionsEnabled() throws Exception {
 
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
+        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -79,8 +78,8 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
 
     @Test
     public void pathExcludeWithPathRestrictionsEnabled() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        Tree idx = createIndex("test1", Set.of("propa", "propb"));
+        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");

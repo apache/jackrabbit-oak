@@ -24,10 +24,10 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -131,14 +131,14 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
                 PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable().diff(denied).unmodifiable();
                 assertEquals(expected, pbp.getBits(privNames));
             } else {
-                assertEquals(path, ImmutableSet.of(JCR_ALL), privNames);
+                assertEquals(path, Set.of(JCR_ALL), privNames);
             }
         }
     }
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        Set<String> expected = ImmutableSet.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
+        Set<String> expected = Set.of(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
         assertEquals(expected, cppTestUser.getPrivileges(null));
     }
 
@@ -282,13 +282,13 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testIsGrantedAction() throws Exception {
-        Set<String> denied = ImmutableSet.of(Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY);
+        Set<String> denied = Set.of(Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY);
 
         for (String p : defActionsGranted.keySet()) {
             String[] actions = defActionsGranted.get(p);
 
             if (testProvider.isSupported(p)) {
-                Set<String> expected = Sets.newHashSet(actions);
+                Set<String> expected = CollectionUtils.toSet(actions);
                 expected.removeAll(denied);
 
                 boolean canSetProperty = TreeLocation.create(readOnlyRoot, p).getProperty() != null;

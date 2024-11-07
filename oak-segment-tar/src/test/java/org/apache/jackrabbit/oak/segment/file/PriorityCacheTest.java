@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static java.lang.Integer.valueOf;
@@ -31,8 +30,6 @@ import java.util.Random;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 public class PriorityCacheTest {
 
@@ -146,12 +143,7 @@ public class PriorityCacheTest {
         }
 
         assertEquals(500, cache.size());
-        cache.purgeGenerations(new Predicate<Integer>() {
-            @Override
-            public boolean apply(Integer generation) {
-                return generation <= 2;
-            }
-        });
+        cache.purgeGenerations(generation -> generation <= 2);
         assertEquals(200, cache.size());
     }
 

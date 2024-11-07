@@ -200,7 +200,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
         @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
-            return ImmutableSet.of(TestCredentials.class);
+            return Set.of(TestCredentials.class);
         }
 
         @Nullable

@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
@@ -45,12 +44,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
@@ -138,6 +136,9 @@ public class DocumentNodeStoreService {
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
+    static final boolean DEFAULT_FULL_GC_ENABLED = false;
+    static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
+    static final int DEFAULT_FULL_GC_MODE = 0;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -146,6 +147,9 @@ public class DocumentNodeStoreService {
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
     public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
     public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
+    public static final double DEFAULT_FGC_DELAY_FACTOR = 2;
+    public static final int DEFAULT_FGC_BATCH_SIZE = 1000;
+    public static final int DEFAULT_FGC_PROGRESS_SIZE = 10000;
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
@@ -187,6 +191,15 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
     private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
+    /**
+     * Feature toggle name to enable full GC for Mongo Document Store
+     */
+    private static final String FT_NAME_FULL_GC = "FT_FULL_GC_OAK-10199";
+
+    /**
+     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
+     */
+    private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -225,6 +238,8 @@ public class DocumentNodeStoreService {
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
+    private Feature docStoreFullGCFeature;
+    private Feature docStoreEmbeddedVerificationFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -261,6 +276,8 @@ public class DocumentNodeStoreService {
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
+        docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
+        docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -287,9 +304,9 @@ public class DocumentNodeStoreService {
         if (documentStoreType == DocumentStoreType.RDB) {
             RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
             configureBuilder(builder);
-            checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
+            requireNonNull(dataSource, String.format("DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE));
             if (!customBlobStore) {
-                checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
+                requireNonNull(blobDataSource, String.format("DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE));
                 builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
@@ -359,7 +376,7 @@ public class DocumentNodeStoreService {
             loggingGCMonitor = new LoggingGCMonitor(vgcLogger);
         }
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
-                newArrayList(gcMonitor, loggingGCMonitor)));
+                List.of(gcMonitor, loggingGCMonitor)));
         mkBuilder.setRevisionGCMaxAge(TimeUnit.SECONDS.toMillis(config.versionGcMaxAgeInSecs()));
 
         nodeStore = mkBuilder.build();
@@ -480,7 +497,17 @@ public class DocumentNodeStoreService {
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
+                setDocStoreFullGCFeature(docStoreFullGCFeature).
+                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setFullGCEnabled(config.fullGCEnabled()).
+                setFullGCIncludePaths(config.fullGCIncludePaths()).
+                setFullGCExcludePaths(config.fullGCExcludePaths()).
+                setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
+                setFullGCMode(config.fullGCMode()).
+                setFullGCBatchSize(config.fullGCBatchSize()).
+                setFullGCProgressSize(config.fullGCProgressSize()).
+                setFullGCDelayFactor(config.fullGCDelayFactor()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
@@ -528,8 +555,8 @@ public class DocumentNodeStoreService {
 
         //Set blobstore before setting the document store
         if (customBlobStore && !isWrappingCustomBlobStore()) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
-                    "initialized", CUSTOM_BLOB_STORE);
+            requireNonNull(blobStore, String.format("Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE));
             builder.setBlobStore(blobStore);
         }
 
@@ -548,10 +575,10 @@ public class DocumentNodeStoreService {
 
     private Predicate<Path> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
         if (Arrays.equals(config.persistentCacheIncludes(), new String[]{"/"})) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
 
         Set<Path> paths = new HashSet<>();
@@ -633,6 +660,14 @@ public class DocumentNodeStoreService {
 
         if (cancelInvalidationFeature != null) {
             cancelInvalidationFeature.close();
+        }
+
+        if (docStoreFullGCFeature != null) {
+            docStoreFullGCFeature.close();
+        }
+
+        if (docStoreEmbeddedVerificationFeature != null) {
+            docStoreEmbeddedVerificationFeature.close();
         }
 
         unregisterNodeStore();
@@ -951,7 +986,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final Registration reg) {
-        checkNotNull(reg);
+        requireNonNull(reg);
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -961,7 +996,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final AbstractServiceTracker t) {
-        checkNotNull(t);
+        requireNonNull(t);
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -1005,6 +1040,10 @@ public class DocumentNodeStoreService {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
                 lastResult = s.toString();
+                if (s.skippedFullGCDocsCount > 0) {
+                    LOGGER.warn("Version Garbage Collector's FullGC skipped {} documents due to error,"
+                            + " see logs for more details", s.skippedFullGCDocsCount);
+                }
             } catch (Exception e) {
                 lastResult = e;
                 LOGGER.warn("Error occurred while executing the Version Garbage Collector", e);

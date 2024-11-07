@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -93,7 +92,7 @@ public class AwsArchiveManagerTest {
 
         LinkedHashMap<UUID, byte[]> recovered = new LinkedHashMap<>();
         manager.recoverEntries("data00000a.tar", recovered);
-        assertEquals(uuids.subList(0, 5), newArrayList(recovered.keySet()));
+        assertEquals(uuids.subList(0, 5), new ArrayList<>(recovered.keySet()));
     }
 
     @Test

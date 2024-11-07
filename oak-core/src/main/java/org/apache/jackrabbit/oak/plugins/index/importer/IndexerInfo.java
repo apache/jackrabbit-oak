@@ -28,8 +28,8 @@ import java.util.Properties;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the index data created by oak-run tooling on the file system.
@@ -66,7 +66,7 @@ public class IndexerInfo {
 
     public IndexerInfo(File rootDir, String checkpoint) {
         this.rootDir = rootDir;
-        this.checkpoint = checkNotNull(checkpoint);
+        this.checkpoint = requireNonNull(checkpoint);
     }
 
     public void save() throws IOException {

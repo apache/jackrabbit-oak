@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.util.Iterator;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -41,10 +41,10 @@ final class AuthorizableWrapper<T extends Authorizable> implements Function<T, T
     }
 
     static Iterator<Authorizable> createIterator(Iterator<Authorizable> dlgs, AutoSaveEnabledManager mgr) {
-        return Iterators.transform(dlgs, new AuthorizableWrapper<>(mgr));
+        return Iterators.transform(dlgs, new AuthorizableWrapper<Authorizable>(mgr)::apply);
     }
 
     static Iterator<Group> createGroupIterator(Iterator<Group> dlgs, AutoSaveEnabledManager mgr) {
-        return Iterators.transform(dlgs, new AuthorizableWrapper<>(mgr));
+        return Iterators.transform(dlgs, new AuthorizableWrapper<Group>(mgr)::apply);
     }
 }

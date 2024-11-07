@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ValueFormatException;
@@ -49,8 +49,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
         super(sessionDelegate);
-        this.parent = checkNotNull(parent);
-        this.name = checkNotNull(name);
+        this.parent = requireNonNull(parent);
+        this.name = requireNonNull(name);
         this.state = parent.getProperty(name);
     }
 

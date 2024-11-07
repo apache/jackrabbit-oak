@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility to generate and compare password hashes.
@@ -94,7 +94,7 @@ public final class PasswordUtil {
     public static String buildPasswordHash(@NotNull String password,
                                            @Nullable String algorithm,
                                            int saltSize, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        checkNotNull(password);
+        requireNonNull(password);
         if (iterations < NO_ITERATIONS) {
             iterations = DEFAULT_ITERATIONS;
         }
@@ -118,7 +118,7 @@ public final class PasswordUtil {
      */
     public static String buildPasswordHash(@NotNull String password,
                                            @NotNull ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        checkNotNull(config);
+        requireNonNull(config);
         String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
         int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
         int saltSize = config.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);

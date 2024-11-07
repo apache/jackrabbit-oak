@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 /**
  * Helper class to handle modifications to the hidden
@@ -47,8 +45,8 @@ final class ChildOrderDiff {
      * reorder happened; {@code false} otherwise.
      */
     static boolean isReordered(@NotNull PropertyState before, @NotNull PropertyState after) {
-        Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
-        Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
+        Set<String> afterNames = CollectionUtils.toLinkedSet(after.getValue(Type.NAMES));
+        Set<String> beforeNames = CollectionUtils.toLinkedSet(before.getValue(Type.NAMES));
 
         // drop all newly added values from 'afterNames'
         afterNames.retainAll(beforeNames);

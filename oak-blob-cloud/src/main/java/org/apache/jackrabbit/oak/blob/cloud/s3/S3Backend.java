@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
@@ -30,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -89,16 +91,14 @@ import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.lang.Thread.currentThread;
 
@@ -239,22 +239,18 @@ public class S3Backend extends AbstractSharedBackend {
 
             presignedDownloadURIVerifyExists =
                     PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
-            
+
             // Initialize reference key secret
             getOrCreateReferenceKey();
-            
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.error("Error ", e);
             Map<String, Object> filteredMap = Maps.newHashMap();
             if (properties != null) {
-                filteredMap = Maps.filterKeys(Utils.asMap(properties), new Predicate<String>() {
-                    @Override public boolean apply(String input) {
-                        return !input.equals(S3Constants.ACCESS_KEY) &&
-                            !input.equals(S3Constants.SECRET_KEY);
-                    }
-                });
+                filteredMap = Maps.filterKeys(Utils.asMap(properties),
+                        input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
             }
             throw new DataStoreException("Could not initialize S3 from " + filteredMap, e);
         } finally {
@@ -441,13 +437,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers()
             throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(
-            new Function<S3ObjectSummary, DataIdentifier>() {
-                @Override
-                public DataIdentifier apply(S3ObjectSummary input) {
-                    return new DataIdentifier(getIdentifierName(input.getKey()));
-                }
-        });
+        return new RecordsIterator<DataIdentifier>(input -> new DataIdentifier(getIdentifierName(input.getKey())));
     }
 
     @Override
@@ -642,14 +632,8 @@ public class S3Backend extends AbstractSharedBackend {
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
         return new RecordsIterator<DataRecord>(
-            new Function<S3ObjectSummary, DataRecord>() {
-                @Override
-                public DataRecord apply(S3ObjectSummary input) {
-                    return new S3DataRecord(backend, s3service, bucket,
-                        new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator);
-                }
-            });
+                input -> new S3DataRecord(backend, s3service, bucket, new DataIdentifier(getIdentifierName(input.getKey())),
+                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator));
     }
 
     @Override
@@ -830,7 +814,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
@@ -968,7 +952,7 @@ public class S3Backend extends AbstractSharedBackend {
                 String uploadId = uploadToken.getUploadId().get();
                 ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
                 PartListing listing = s3service.listParts(listPartsRequest);
-                List<PartETag> eTags = Lists.newArrayList();
+                List<PartETag> eTags = new ArrayList<>();
                 long size = 0L;
                 Date lastModified = null;
                 for (PartSummary partSummary : listing.getParts()) {
@@ -1072,7 +1056,7 @@ public class S3Backend extends AbstractSharedBackend {
         Function<S3ObjectSummary, T> transformer;
 
         public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
-            queue = Lists.newLinkedList();
+            queue = new LinkedList<>();
             this.transformer = transformer;
         }
 
@@ -1115,14 +1099,9 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = Lists.newArrayList(
+                List<S3ObjectSummary> listing = CollectionUtils.toList(
                     filter(prevObjectListing.getObjectSummaries(),
-                        new Predicate<S3ObjectSummary>() {
-                            @Override
-                            public boolean apply(S3ObjectSummary input) {
-                                return !input.getKey().startsWith(META_KEY_PREFIX);
-                            }
-                        }));
+                            input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 
                 // After filtering no elements
                 if (listing.isEmpty()) {

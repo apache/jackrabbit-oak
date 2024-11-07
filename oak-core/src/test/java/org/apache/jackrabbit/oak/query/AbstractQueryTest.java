@@ -63,7 +63,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -345,8 +345,8 @@ public abstract class AbstractQueryTest {
     }
 
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
-        for (String p : checkNotNull(expected)) {
-            assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
+        for (String p : requireNonNull(expected)) {
+            assertTrue("Expected path " + p + " not found, got " + actual, requireNonNull(actual)
                     .contains(p));
         }
         assertEquals("Result set size is different: " + actual, expected.size(),
@@ -358,7 +358,7 @@ public abstract class AbstractQueryTest {
     }
 
     protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {
-        ((QueryEngineImpl) qe).setQuerySelectionMode(checkNotNull(querySelectionMode));
+        ((QueryEngineImpl) qe).setQuerySelectionMode(requireNonNull(querySelectionMode));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {
@@ -513,7 +513,7 @@ public abstract class AbstractQueryTest {
      */
     private static PropertyState readArrayProperty(String name, JsopReader reader) {
         int type = PropertyType.STRING;
-        List<Object> values = Lists.newArrayList();
+        List<Object> values = new ArrayList<>();
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();

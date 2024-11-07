@@ -25,7 +25,7 @@ public class RecordIdData {
 
     private final int recordNumber;
 
-    RecordIdData(int segmentReference, int recordNumber) {
+    public RecordIdData(int segmentReference, int recordNumber) {
         this.segmentReference = segmentReference;
         this.recordNumber = recordNumber;
     }

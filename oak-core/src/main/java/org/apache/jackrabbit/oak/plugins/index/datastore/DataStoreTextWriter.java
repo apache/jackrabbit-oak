@@ -24,14 +24,15 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
@@ -42,9 +43,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * TextWriter implementation which just stores the extracted text
@@ -109,7 +109,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         } else {
             File textFile = getFile(blobId);
             if (textFile.exists()) {
-                String text = Files.toString(textFile, Charsets.UTF_8);
+                String text = Files.toString(textFile, StandardCharsets.UTF_8);
                 result = new ExtractedText(ExtractionResult.SUCCESS, text);
             }
         }
@@ -124,13 +124,13 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     @Override
     public void write(@NotNull String blobId,@NotNull String text) throws IOException {
         checkIfReadOnlyModeEnabled();
-        checkNotNull(blobId, "BlobId cannot be null");
-        checkNotNull(text, "Text passed for [%s] was null", blobId);
+        requireNonNull(blobId, "BlobId cannot be null");
+        requireNonNull(text, String.format("Text passed for [%s] was null", blobId));
 
         File textFile = getFile(stripLength(blobId));
         ensureParentExists(textFile);
         //TODO should we compress
-        Files.write(text, textFile, Charsets.UTF_8);
+        Files.write(text, textFile, StandardCharsets.UTF_8);
     }
 
     @Override
@@ -211,7 +211,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private void checkIfReadOnlyModeEnabled() {
-        checkState(!readOnlyMode, "Read only mode enabled");
+        Validate.checkState(!readOnlyMode, "Read only mode enabled");
     }
 
     private Callable<Set<String>> createLoader(final String fileName) {
@@ -230,9 +230,9 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private Set<String> loadFromFile(File file) throws IOException {
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = new HashSet<>();
         if (file.exists()) {
-            result.addAll(Files.readLines(file, Charsets.UTF_8));
+            result.addAll(Files.readLines(file, StandardCharsets.UTF_8));
         }
         return result;
     }
@@ -242,7 +242,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
             return;
         }
         File file = new File(directory, fileName);
-        BufferedWriter bw = Files.newWriter(file, Charsets.UTF_8);
+        BufferedWriter bw = Files.newWriter(file, StandardCharsets.UTF_8);
         for (String id : blobIds) {
             bw.write(id);
             bw.newLine();
@@ -307,7 +307,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
                 return loader.call();
             } catch (Exception e) {
                 log.warn("Error occurred while loading the state via {}", loader, e);
-                return Sets.newHashSet();
+                return new HashSet<>();
             }
         }
     }

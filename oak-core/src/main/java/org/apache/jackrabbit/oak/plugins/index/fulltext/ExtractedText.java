@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.fulltext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -73,7 +73,7 @@ public class ExtractedText {
 
     private void checkState() {
         if (extractionResult == ExtractionResult.SUCCESS){
-            checkNotNull(extractedText, "extractedText must not be null for SUCCESS");
+            requireNonNull(extractedText, "extractedText must not be null for SUCCESS");
         }
     }
 }

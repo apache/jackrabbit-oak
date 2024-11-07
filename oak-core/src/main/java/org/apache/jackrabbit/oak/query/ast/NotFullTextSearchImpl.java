@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
@@ -25,10 +25,9 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.jetbrains.annotations.NotNull;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
-    private static final Set<String> KEYWORDS = ImmutableSet.of("or");
+    private static final Set<String> KEYWORDS = Set.of("or");
     private static final Splitter SPACE_SPLITTER = Splitter.on(' ').omitEmptyStrings().trimResults();
 
     public NotFullTextSearchImpl(String selectorName, String propertyName,
@@ -61,7 +60,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
     }
 
     private static boolean isKeyword(@NotNull String term) {
-        return KEYWORDS.contains(checkNotNull(term).toLowerCase());
+        return KEYWORDS.contains(requireNonNull(term).toLowerCase());
     }
 
     @Override

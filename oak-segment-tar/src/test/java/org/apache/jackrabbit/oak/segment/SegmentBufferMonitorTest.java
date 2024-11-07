@@ -15,10 +15,8 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferMonitor.DIRECT_BUFFER_CAPACITY;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferMonitor.DIRECT_BUFFER_COUNT;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferMonitor.HEAP_BUFFER_CAPACITY;
@@ -27,6 +25,7 @@ import static org.apache.jackrabbit.oak.stats.SimpleStats.Type.COUNTER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,7 +42,7 @@ import org.junit.Test;
 
 public class SegmentBufferMonitorTest {
 
-    private final Map<String, CounterStats> stats = newHashMap();
+    private final Map<String, CounterStats> stats = new HashMap<>();
 
     private final SegmentBufferMonitor segmentBufferMonitor = new SegmentBufferMonitor(new StatisticsProvider() {
         @Override

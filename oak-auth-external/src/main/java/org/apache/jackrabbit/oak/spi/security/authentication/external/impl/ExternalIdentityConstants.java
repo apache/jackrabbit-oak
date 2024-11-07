@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 
 /**
@@ -74,7 +73,7 @@ public interface ExternalIdentityConstants {
     /**
      * The set of served property names defined by this interface.
      */
-    Set<String> RESERVED_PROPERTY_NAMES = ImmutableSet.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
+    Set<String> RESERVED_PROPERTY_NAMES = Set.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
 
     /**
      * Configuration parameter to enable special protection of external IDs

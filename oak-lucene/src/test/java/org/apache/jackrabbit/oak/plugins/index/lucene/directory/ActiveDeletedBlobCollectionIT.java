@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -57,11 +56,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -90,7 +90,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
-        List<Object[]> result = Lists.newArrayList();
+        List<Object[]> result = new ArrayList<>();
         result.add(new Object[]{DataStoreType.WITHOUT_FDS});
         result.add(new Object[]{DataStoreType.WITH_FDS});
         return result;
@@ -152,7 +152,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Test
     public void simpleAsyncIndexUpdateBasedBlobCollection() throws Exception {
-        createIndex("test1", of("propa"));
+        createIndex("test1", Set.of("propa"));
         root.getTree("/oak:index/counter").remove();
         root.commit();
         asyncIndexUpdate.run();
@@ -190,7 +190,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Test
     public void dontDeleteIfIndexingFailed() throws Exception {
-        createIndex("test1", of("propa"));
+        createIndex("test1", Set.of("propa"));
         root.getTree("/oak:index/counter").remove();
         root.commit();
         asyncIndexUpdate.run();

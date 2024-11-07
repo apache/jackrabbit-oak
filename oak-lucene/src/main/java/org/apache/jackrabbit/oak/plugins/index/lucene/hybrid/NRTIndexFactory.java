@@ -42,8 +42,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 public class NRTIndexFactory implements Closeable{
     /**
@@ -68,7 +68,7 @@ public class NRTIndexFactory implements Closeable{
 
     public NRTIndexFactory(IndexCopier indexCopier, Clock clock, long refreshDeltaInSecs,
                            StatisticsProvider statisticsProvider) {
-        this.indexCopier = checkNotNull(indexCopier);
+        this.indexCopier = requireNonNull(indexCopier);
         this.clock = clock;
         this.refreshDeltaInSecs = refreshDeltaInSecs;
         this.statisticsProvider = statisticsProvider;

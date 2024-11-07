@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Reference;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
+import java.util.Objects;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
@@ -38,7 +38,7 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name = FileDataStoreService.NAME)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, name = FileDataStoreService.NAME)
 public class FileDataStoreService extends AbstractDataStoreService {
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore";
 
@@ -63,7 +63,7 @@ public class FileDataStoreService extends AbstractDataStoreService {
         // return CachingFDS when cacheSize > 0
         if (cacheSize > 0) {
             String fsBackendPath = PropertiesUtil.toString(config.get(PATH), null);
-            Preconditions.checkNotNull(fsBackendPath, "Cannot create " +
+            Objects.requireNonNull(fsBackendPath, "Cannot create " +
                     "FileDataStoreService with caching. [{path}] property not configured.");
 
             config.remove(PATH);

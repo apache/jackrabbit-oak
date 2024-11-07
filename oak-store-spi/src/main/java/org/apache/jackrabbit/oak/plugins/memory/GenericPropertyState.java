@@ -22,8 +22,8 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.PATH;
@@ -41,8 +41,8 @@ public class GenericPropertyState extends SinglePropertyState<String> {
     public GenericPropertyState(
             @NotNull String name, @NotNull String value, @NotNull Type<?> type) {
         super(name);
-        this.value = checkNotNull(value);
-        this.type = checkNotNull(type);
+        this.value = requireNonNull(value);
+        this.type = requireNonNull(type);
         checkArgument(!type.isArray());
     }
 

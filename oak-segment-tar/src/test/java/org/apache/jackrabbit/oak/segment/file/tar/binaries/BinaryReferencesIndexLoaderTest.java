@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class BinaryReferencesIndexLoaderTest {
     }
 
     private static byte[] bytes(String s) {
-        return s.getBytes(Charsets.UTF_8);
+        return s.getBytes(StandardCharsets.UTF_8);
     }
 
     private static int checksum(Buffer buffer) {

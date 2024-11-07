@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
@@ -40,6 +39,8 @@ import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -142,10 +143,10 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         assertTrue(ac instanceof CompositeAuthorizationConfiguration);
         assertEquals(2, ((CompositeAuthorizationConfiguration) ac).getConfigurations().size());
 
-        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestSystemUser().getPrincipal()));
+        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(getTestSystemUser().getPrincipal()));
         assertTrue(pp instanceof PrincipalBasedPermissionProvider);
 
-        pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestUser().getPrincipal()));
+        pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(getTestUser().getPrincipal()));
         assertTrue(pp instanceof PermissionProviderImpl);
     }
 }

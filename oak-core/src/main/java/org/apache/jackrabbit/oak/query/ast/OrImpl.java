@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,8 +35,6 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An "or" condition.
@@ -64,7 +60,7 @@ public class OrImpl extends ConstraintImpl {
     public ConstraintImpl simplify() {
         // Use LinkedHashSet to eliminate duplicate constraints while keeping
         // the ordering for test cases (and clients?) that depend on it
-        LinkedHashSet<ConstraintImpl> simplified = newLinkedHashSet();
+        LinkedHashSet<ConstraintImpl> simplified = new LinkedHashSet<>();
         boolean changed = false; // keep track of changes in simplification
 
         for (ConstraintImpl constraint : constraints) {
@@ -82,8 +78,7 @@ public class OrImpl extends ConstraintImpl {
             }
         }
 
-        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in =
-                newLinkedHashMap();
+        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in = new LinkedHashMap<>();
         Iterator<ConstraintImpl> iterator = simplified.iterator();
         while (iterator.hasNext()) {
             ConstraintImpl simple = iterator.next();
@@ -92,7 +87,7 @@ public class OrImpl extends ConstraintImpl {
                 DynamicOperandImpl o = ((ComparisonImpl) simple).getOperand1();
                 LinkedHashSet<StaticOperandImpl> values = in.get(o);
                 if (values == null) {
-                    values = newLinkedHashSet();
+                    values = new LinkedHashSet<>();
                     in.put(o, values);
                 }
                 values.add(((ComparisonImpl) simple).getOperand2());
@@ -102,7 +97,7 @@ public class OrImpl extends ConstraintImpl {
                 DynamicOperandImpl o = ((InImpl) simple).getOperand1();
                 LinkedHashSet<StaticOperandImpl> values = in.get(o);
                 if (values == null) {
-                    values = newLinkedHashSet();
+                    values = new LinkedHashSet<>();
                     in.put(o, values);
                 }
                 values.addAll(((InImpl) simple).getOperand2());
@@ -118,14 +113,14 @@ public class OrImpl extends ConstraintImpl {
                         entry.getKey(), EQUAL, values.iterator().next()));
             } else {
                 simplified.add(new InImpl(
-                        entry.getKey(), newArrayList(values)));
+                        entry.getKey(), new ArrayList<>(values)));
             }
         }
 
         if (simplified.size() == 1) {
             return simplified.iterator().next();
         } else if (changed) {
-            return new OrImpl(newArrayList(simplified));
+            return new OrImpl(new ArrayList<>(simplified));
         } else {
             return this;
         }
@@ -134,7 +129,7 @@ public class OrImpl extends ConstraintImpl {
     @Override
     ConstraintImpl not() {
         // not (X or Y) == (not X) and (not Y)
-        List<ConstraintImpl> list = newArrayList();
+        List<ConstraintImpl> list = new ArrayList<>();
         for (ConstraintImpl constraint : getConstraints()) {
             list.add(new NotImpl(constraint));
         }
@@ -148,7 +143,7 @@ public class OrImpl extends ConstraintImpl {
         Set<PropertyExistenceImpl> result = null;
         for (ConstraintImpl constraint : constraints) {
             if (result == null) {
-                result = newHashSet(constraint.getPropertyExistenceConditions());
+                result = new HashSet<>(constraint.getPropertyExistenceConditions());
             } else {
                 result.retainAll(constraint.getPropertyExistenceConditions());
             }
@@ -158,7 +153,7 @@ public class OrImpl extends ConstraintImpl {
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        List<FullTextExpression> list = newArrayList();
+        List<FullTextExpression> list = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             FullTextExpression expression = constraint.getFullTextConstraint(s);
             if (expression != null) {
@@ -174,7 +169,7 @@ public class OrImpl extends ConstraintImpl {
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        Set<SelectorImpl> result = newHashSet();
+        Set<SelectorImpl> result = new HashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getSelectors());
         }
@@ -247,10 +242,10 @@ public class OrImpl extends ConstraintImpl {
      */
     private void restrictPushDownInList(SelectorImpl s) {
         DynamicOperandImpl operand = null;
-        LinkedHashSet<StaticOperandImpl> values = newLinkedHashSet();
+        LinkedHashSet<StaticOperandImpl> values = new LinkedHashSet<>();
  
         boolean multiPropertyOr = false;
-        List<AndImpl> ands = newArrayList();
+        List<AndImpl> ands = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             Set<SelectorImpl> selectors = constraint.getSelectors();
             if (selectors.size() != 1 || !selectors.contains(s)) {
@@ -313,7 +308,7 @@ public class OrImpl extends ConstraintImpl {
             }
         }
 
-        InImpl in = new InImpl(operand, newArrayList(values));
+        InImpl in = new InImpl(operand, new ArrayList<>(values));
         in.setQuery(query);
         in.restrictPushDown(s);
     }
@@ -350,7 +345,7 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public AstElement copyOf() {
-        List<ConstraintImpl> clone = newArrayList();
+        List<ConstraintImpl> clone = new ArrayList<>();
         for (ConstraintImpl c : constraints) {
             clone.add((ConstraintImpl) copyElementAndCheckReference(c));
         }
@@ -359,7 +354,7 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public Set<ConstraintImpl> convertToUnion() {
-        Set<ConstraintImpl> result = Sets.newHashSet();
+        Set<ConstraintImpl> result = new HashSet<>();
         for (ConstraintImpl c : getConstraints()) {
             Set<ConstraintImpl> converted = c.convertToUnion(); 
             if (converted.isEmpty()) {

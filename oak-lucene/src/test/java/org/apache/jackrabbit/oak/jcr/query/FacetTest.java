@@ -27,6 +27,7 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,6 @@ import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 
 /**
@@ -642,7 +642,7 @@ public class FacetTest extends AbstractQueryTest {
         facetResult = new FacetResult(qm.createQuery(query, Query.JCR_SQL2).execute());
 
         assertNotNull(facetResult);
-        assertEquals(newHashSet("text"), facetResult.getDimensions());
+        assertEquals(Set.of("text"), facetResult.getDimensions());
 
         facets = facetResult.getFacets("text");
         assertEquals(1, facets.size());
@@ -838,17 +838,17 @@ public class FacetTest extends AbstractQueryTest {
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
 
-        assertEquals("Unexpected dimensions", newHashSet("text"), facetResult.getDimensions());
+        assertEquals("Unexpected dimensions", Set.of("text"), facetResult.getDimensions());
 
         List<FacetResult.Facet> facets = facetResult.getFacets("text");
 
-        Set<String> facetLabels = newHashSet();
+        Set<String> facetLabels = new HashSet<>();
         for (FacetResult.Facet facet : facets) {
             assertEquals("Unexpected facet count for " + facet.getLabel(), 1, facet.getCount());
             facetLabels.add(facet.getLabel());
         }
 
-        assertEquals("Unexpected facet labels", newHashSet("t1", "t2", "t3"), facetLabels);
+        assertEquals("Unexpected facet labels", Set.of("t1", "t2", "t3"), facetLabels);
     }
 
     /**
@@ -913,7 +913,7 @@ public class FacetTest extends AbstractQueryTest {
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
 
-        assertEquals("Unexpected dimensions", newHashSet("text"), facetResult.getDimensions());
+        assertEquals("Unexpected dimensions", Set.of("text"), facetResult.getDimensions());
 
         List<FacetResult.Facet> facets = facetResult.getFacets("text");
         assertEquals("Incorrect facet label list size", 2, facets.size());

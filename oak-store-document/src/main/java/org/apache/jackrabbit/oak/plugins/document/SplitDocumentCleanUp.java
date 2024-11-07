@@ -16,22 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
-import org.apache.jackrabbit.oak.plugins.document.util.LogSilencer;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.INTERMEDIATE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.NONE;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements a split document cleanup.
@@ -48,7 +47,7 @@ public class SplitDocumentCleanUp implements Closeable {
     protected final DocumentStore store;
     protected final Iterable<NodeDocument> splitDocGarbage;
     protected final VersionGCStats stats;
-    protected final List<String> idsToBeDeleted = Lists.newArrayList();
+    protected final List<String> idsToBeDeleted = new ArrayList<>();
     protected int deleteCount;
 
     protected SplitDocumentCleanUp(DocumentStore store,

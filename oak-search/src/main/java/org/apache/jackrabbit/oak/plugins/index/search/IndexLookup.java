@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -52,7 +52,7 @@ public class IndexLookup {
     }
 
     public Collection<String> collectIndexNodePaths(Filter filter, boolean recurse) {
-        Set<String> paths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
 
         collectIndexNodePaths(root, "/", paths);
 

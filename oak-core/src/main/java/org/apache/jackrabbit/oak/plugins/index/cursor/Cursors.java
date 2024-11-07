@@ -25,8 +25,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * This utility class provides factory methods to create commonly used types of
@@ -104,7 +104,7 @@ public class Cursors {
      * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
      */
     public static Cursor newAncestorCursor(Cursor c, int level, QueryLimits settings) {
-        checkNotNull(c);
+        requireNonNull(c);
         checkArgument(level >= 1);
         return new AncestorCursor(c, level, settings);
     }

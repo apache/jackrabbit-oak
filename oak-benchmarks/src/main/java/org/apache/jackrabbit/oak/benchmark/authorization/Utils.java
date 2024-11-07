@@ -48,7 +48,7 @@ public class Utils {
         } else if (len == size) {
             return objects;
         } else {
-            Set s = new HashSet(len);
+            Set s = new HashSet<>(len);
             while (s.size() < len) {
                 int index = (int) Math.floor(size * Math.random());
                 s.add(objects.get(index));

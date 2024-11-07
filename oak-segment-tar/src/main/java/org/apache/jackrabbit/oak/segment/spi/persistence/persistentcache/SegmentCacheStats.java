@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -61,8 +61,8 @@ public class SegmentCacheStats extends AbstractCacheStats {
                              @NotNull Supplier<Long> evictionCount) {
         super(name);
         this.maximumWeight = maximumWeight;
-        this.elementCount = checkNotNull(elementCount);
-        this.currentWeight = checkNotNull(currentWeight);
+        this.elementCount = requireNonNull(elementCount);
+        this.currentWeight = requireNonNull(currentWeight);
         this.evictionCount = evictionCount;
     }
 

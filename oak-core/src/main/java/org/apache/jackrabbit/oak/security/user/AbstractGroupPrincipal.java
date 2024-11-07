@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -105,6 +104,6 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
                 throw new IllegalStateException(msg, e);
             }
         });
-        return Iterators.asEnumeration(Iterators.filter(principals, Predicates.<Object>notNull()));
+        return Iterators.asEnumeration(Iterators.filter(principals, x -> x != null));
     }
 }

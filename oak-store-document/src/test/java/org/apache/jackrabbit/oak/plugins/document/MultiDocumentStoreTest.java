@@ -112,7 +112,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
     public void concurrentBatchUpdate() throws Exception {
         final CountDownLatch ready = new CountDownLatch(2);
         final CountDownLatch go = new CountDownLatch(1);
-        final List<String> ids = Lists.newArrayList();
+        final List<String> ids = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             ids.add(Utils.getIdFromPath("/node-" + i));
         }
@@ -127,7 +127,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             @Override
             public void run() {
                 try {
-                    List<UpdateOp> ops = Lists.newArrayList();
+                    List<UpdateOp> ops = new ArrayList<>();
                     for (String id : ids) {
                         UpdateOp op = new UpdateOp(id, true);
                         op.set("_t1", "value");
@@ -151,7 +151,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             @Override
             public void run() {
                 try {
-                    List<UpdateOp> ops = Lists.newArrayList();
+                    List<UpdateOp> ops = new ArrayList<>();
                     for (String id : ids) {
                         UpdateOp op = new UpdateOp(id, true);
                         op.set("_t2", "value");
@@ -212,7 +212,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         // modify doc via ds2 with batch createOrUpdate
         op = new UpdateOp(id, false);
         op.set("_ds2", 1);
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         ops.add(op);
         for (int i = 0; i < 10; i++) {
             // add more ops to make sure a batch

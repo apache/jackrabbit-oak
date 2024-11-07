@@ -87,14 +87,14 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     public void testGetPrivileges() throws Exception {
         for (String p : NODE_PATHS) {
             assertTrue(cpp.getPrivileges(readOnlyRoot.getTree(p)).isEmpty());
-            assertEquals(ImmutableSet.of(JCR_ALL), cppO.getPrivileges(readOnlyRoot.getTree(p)));
+            assertEquals(Set.of(JCR_ALL), cppO.getPrivileges(readOnlyRoot.getTree(p)));
         }
     }
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
         assertTrue(cpp.getPrivileges(null).isEmpty());
-        assertEquals(ImmutableSet.of(JCR_ALL), cppO.getPrivileges(null));
+        assertEquals(Set.of(JCR_ALL), cppO.getPrivileges(null));
     }
 
     @Test

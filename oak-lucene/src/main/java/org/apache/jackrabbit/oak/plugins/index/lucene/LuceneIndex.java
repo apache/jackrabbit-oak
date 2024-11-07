@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,11 +31,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -98,7 +98,6 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -153,10 +152,9 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  */
 public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
-    private static final Logger LOG = LoggerFactory
-            .getLogger(LuceneIndex.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
-    private static double MIN_COST = 2.2;
+    private static final double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -210,7 +208,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         }
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
-            LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
+            LOG.warn("More than one relative parent for query {}", filter.getQueryStatement());
             // there are multiple "parents", as in
             // "contains(a/x, 'hello') and contains(b/x, 'world')"
             return Collections.emptyList();
@@ -254,7 +252,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
         LuceneIndexNode index = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
-        checkState(index != null, "The Lucene index is not available");
+        Validate.checkState(index != null, "The Lucene index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             Set<String> relPaths = getRelativePaths(ft);
@@ -300,8 +298,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final int parentDepth = getDepth(parent);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator itr = new LuceneResultRowIterator() {
-            private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
-            private final Set<String> seenPaths = Sets.newHashSet();
+            private final Deque<LuceneResultRow> queue = new ArrayDeque<>();
+            private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
@@ -364,7 +362,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 ScoreDoc lastDocToRecord = null;
 
                 LuceneIndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
-                checkState(indexNode != null);
+                Validate.checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),
@@ -498,7 +496,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             @Override
             public long getSize() {
                 LuceneIndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
-                checkState(indexNode != null);
+                Validate.checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),

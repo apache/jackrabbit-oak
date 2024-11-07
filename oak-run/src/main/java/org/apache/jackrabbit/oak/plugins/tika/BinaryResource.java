@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.tika;
 
 import org.apache.jackrabbit.guava.common.io.ByteSource;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -37,11 +37,11 @@ class BinaryResource {
                           @Nullable String encoding,
                           String path,
                           String blobId) {
-        this.byteSource = checkNotNull(byteSource, "ByteSource must be provided");
+        this.byteSource = requireNonNull(byteSource, "ByteSource must be provided");
         this.mimeType = mimeType;
         this.encoding = encoding;
-        this.path = checkNotNull(path, "Path must be provided");
-        this.blobId = checkNotNull(blobId, "BlobId must be specified");
+        this.path = requireNonNull(path, "Path must be provided");
+        this.blobId = requireNonNull(blobId, "BlobId must be specified");
     }
 
     public ByteSource getByteSource() {

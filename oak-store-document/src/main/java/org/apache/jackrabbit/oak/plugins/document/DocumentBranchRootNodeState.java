@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * The root node state of a persisted branch.
@@ -39,7 +39,7 @@ class DocumentBranchRootNodeState extends DocumentNodeState {
                                 int memory) {
         super(store, path, lastRevision, rootRevision, false, bundlingContext, memory);
         this.store = store;
-        this.branch = checkNotNull(branch);
+        this.branch = requireNonNull(branch);
     }
 
     @NotNull

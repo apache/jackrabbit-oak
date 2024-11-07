@@ -168,7 +168,7 @@ public class AsyncConflictsIT extends DocumentClusterIT {
 
     @Override
     protected Set<IndexEditorProvider> additionalIndexEditorProviders() {
-        return ImmutableSet.of((IndexEditorProvider) new LuceneIndexEditorProvider());
+        return Set.of((IndexEditorProvider) new LuceneIndexEditorProvider());
     }
 
     @Override

@@ -75,5 +75,10 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
+    public ExtractedTextCache getTextCache() {
+        return textCache;
+    }
+
+    @Override
     public void close() {}
 }

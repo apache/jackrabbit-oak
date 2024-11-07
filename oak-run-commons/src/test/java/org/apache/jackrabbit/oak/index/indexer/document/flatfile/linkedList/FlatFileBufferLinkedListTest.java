@@ -144,10 +144,10 @@ public class FlatFileBufferLinkedListTest {
     public void memUsage() {
         Assert.assertEquals("Empty list must be estimate 0", 0, list.estimatedMemoryUsage());
 
-        list.add(new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(20).build());
+        list.add(testNode("/", 20));
         Assert.assertEquals(20, list.estimatedMemoryUsage());
 
-        list.add(new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(30).build());
+        list.add(testNode("/", 30));
         Assert.assertEquals(50, list.estimatedMemoryUsage());
 
         list.remove();
@@ -157,8 +157,8 @@ public class FlatFileBufferLinkedListTest {
     @Test
     public void memLimit() {
         list = new FlatFileBufferLinkedList(10);
-        NodeStateEntry e10Bytes = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(10).build();
-        NodeStateEntry e1Byte = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(1).build();
+        NodeStateEntry e10Bytes = testNode("/", 10);
+        NodeStateEntry e1Byte = testNode("/", 1);
 
         list.add(e10Bytes); //this should succeed
 
@@ -181,7 +181,11 @@ public class FlatFileBufferLinkedListTest {
         Assert.assertTrue("Adding an item should be available", list.iterator().hasNext());
     }
 
-    private NodeStateEntry testNode(String n) {
+    protected NodeStateEntry testNode(String n) {
         return new NodeStateEntryBuilder(EMPTY_NODE, n).build();
+    }
+
+    protected NodeStateEntry testNode(String n, long memoryUsage) {
+        return new NodeStateEntryBuilder(EMPTY_NODE, n).withMemUsage(memoryUsage).build();
     }
 }

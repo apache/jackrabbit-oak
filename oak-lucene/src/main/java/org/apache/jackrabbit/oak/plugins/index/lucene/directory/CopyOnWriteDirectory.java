@@ -24,9 +24,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -50,8 +52,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class CopyOnWriteDirectory extends FilterDirectory {
@@ -70,7 +71,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final Directory remote;
     private final Directory local;
     private final Executor executor;
-    private final ConcurrentMap<String, COWFileReference> fileMap = newConcurrentMap();
+    private final ConcurrentMap<String, COWFileReference> fileMap = new ConcurrentHashMap<>();
     private final Set<String> deletedFilesLocal = Sets.newConcurrentHashSet();
     private final Set<String> skippedFiles = Sets.newConcurrentHashSet();
 
@@ -406,7 +407,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         @Override
         public IndexInput openInput(IOContext context) throws IOException {
-            if (checkIfLocalValid() && !IndexCopier.REMOTE_ONLY.contains(name)) {
+            if (checkIfLocalValid() && Objects.nonNull(name) && !IndexCopier.REMOTE_ONLY.contains(name)) {
                 indexCopier.readFromLocal(false);
                 return local.openInput(name, context);
             }
@@ -441,7 +442,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                      log.warn("COWRemoteFileReference::file ({}) differs in length. local: {}; remote: {}, init-remote-length",
                              name, localFileLength, remoteFileLength);
                  }
-            } else if (!IndexCopier.REMOTE_ONLY.contains(name)) {
+            } else if (Objects.nonNull(name) && !IndexCopier.REMOTE_ONLY.contains(name)) {
                 log.warn("COWRemoteFileReference::local file ({}) doesn't exist", name);
             }
 

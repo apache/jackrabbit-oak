@@ -50,7 +50,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     private String path = "/testPath";
     private PrincipalManager principalManager;
     private Principal testPrincipal = new PrincipalImpl("test");
-    Set<Principal> principals = ImmutableSet.of(testPrincipal);
+    Set<Principal> principals = Set.of(testPrincipal);
 
     private CugExclude exclude = new CugExclude.Default();
 
@@ -105,7 +105,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testCreateWithDuplicateName() {
-        Set<Principal> duplication = ImmutableSet.of(testPrincipal, () -> testPrincipal.getName());
+        Set<Principal> duplication = Set.of(testPrincipal, () -> testPrincipal.getName());
         assertEquals(2, duplication.size());
 
         CugPolicyImpl cugPolicy = createCugPolicy(duplication);
@@ -212,7 +212,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testRemovePrincipals() throws Exception {
-        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance()));
+        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, Set.of(testPrincipal, EveryonePrincipal.getInstance()));
 
         assertFalse(cug.removePrincipals(new PrincipalImpl("unknown")));
         assertTrue(cug.removePrincipals(testPrincipal, EveryonePrincipal.getInstance(), new PrincipalImpl("unknown")));

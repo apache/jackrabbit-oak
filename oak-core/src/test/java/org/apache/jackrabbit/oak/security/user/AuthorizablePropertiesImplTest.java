@@ -155,7 +155,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testGetNamesCurrent2() throws Exception {
         Iterator<String> names = properties.getNames(".");
 
-        Set<String> expected = ImmutableSet.of("prop", "mvProp");
+        Set<String> expected = Set.of("prop", "mvProp");
         assertEquals(expected, ImmutableSet.copyOf(names));
     }
 
@@ -168,7 +168,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testGetNamesRelPath() throws Exception {
         Iterator<String> names = properties.getNames("relPath");
 
-        Set<String> expected = ImmutableSet.of("prop", "mvProp");
+        Set<String> expected = Set.of("prop", "mvProp");
         assertEquals(expected, ImmutableSet.copyOf(names));
     }
 

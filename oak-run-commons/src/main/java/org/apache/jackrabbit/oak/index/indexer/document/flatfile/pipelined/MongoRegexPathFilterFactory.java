@@ -55,6 +55,10 @@ public class MongoRegexPathFilterFactory {
                     '}';
         }
 
+        public String prettyPrint() {
+            return "{included=" + included + ", excluded=" + excluded + "}";
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -136,7 +140,7 @@ public class MongoRegexPathFilterFactory {
         }
 
         if (customExcludedPaths.stream().anyMatch(PathUtils::denotesRoot)) {
-            LOG.warn("Ignoring custom excluded paths setting, root cannot be excluded: {}",  customExcludedPaths);
+            LOG.warn("Ignoring custom excluded paths setting, root cannot be excluded: {}", customExcludedPaths);
         } else if (!isRootPath(finalIncludedPathsRoots)) {
             LOG.info("Ignoring custom excluded paths because included paths did not resolve to root. Mongo filters: {}", finalIncludedPathsRoots);
         } else {
@@ -170,9 +174,9 @@ public class MongoRegexPathFilterFactory {
             return indexExcludedPaths;
         }
 
-        var excludedUnion = new HashSet<>(indexExcludedPaths);
+        HashSet<String> excludedUnion = new HashSet<>(indexExcludedPaths);
         excludedUnion.addAll(customExcludedPaths);
-        var mergedExcludes = new ArrayList<String>();
+        ArrayList<String> mergedExcludes = new ArrayList<>();
         for (String testPath : excludedUnion) {
             // Add a path only if it is not a subpath of any other path in the list
             if (excludedUnion.stream().noneMatch(p -> PathUtils.isAncestor(p, testPath))) {

@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class TextExtractorTest {
     }
 
     private static class MapTextWriter implements TextWriter {
-        final Map<String, String> data = Maps.newConcurrentMap();
+        final Map<String, String> data = new ConcurrentHashMap<>();
 
         @Override
         public void write(String blobId, String text) throws IOException {

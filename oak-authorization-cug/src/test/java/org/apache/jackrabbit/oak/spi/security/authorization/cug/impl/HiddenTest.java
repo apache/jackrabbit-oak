@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -35,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -60,7 +61,7 @@ public class HiddenTest extends AbstractCugTest {
         hiddenTree = readOnlyRoot.getTree("/oak:index/acPrincipalName/:index");
         assertTrue(hiddenTree.exists());
 
-        pp = createCugPermissionProvider(ImmutableSet.of("/"), EveryonePrincipal.getInstance());
+        pp = createCugPermissionProvider(Set.of("/"), EveryonePrincipal.getInstance());
     }
 
     @Test
@@ -132,7 +133,7 @@ public class HiddenTest extends AbstractCugTest {
             acMgr.setPolicy("/", acl);
             root.commit();
 
-            PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+            PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), Set.of(EveryonePrincipal.getInstance()));
 
             assertFalse(combined.hasPrivileges(hiddenTree, PrivilegeConstants.JCR_READ));
             assertTrue(combined.getPrivileges(hiddenTree).isEmpty());

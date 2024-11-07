@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -44,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -77,7 +76,7 @@ public class PropertyIndexDeprecatedTest {
     @Test
     public void deprecated() throws Exception {
         NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), 
-                "foo", true, false, ImmutableSet.of("foo"), null);
+                "foo", true, false, Set.of("foo"), null);
         index.setProperty(IndexConstants.INDEX_DEPRECATED, false);
         commit();
         for (int i = 0; i < MANY; i++) {

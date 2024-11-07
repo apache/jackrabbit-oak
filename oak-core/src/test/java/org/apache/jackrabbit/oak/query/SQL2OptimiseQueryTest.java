@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -162,9 +162,9 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
                                                @NotNull List<String> optimised,
                                                @NotNull List<String> cheapest) {
         // checks that all the three list are the expected content
-        assertThat(checkNotNull(original), is(checkNotNull(expected)));        
-        assertThat(checkNotNull(optimised), is(expected));
-        assertThat(checkNotNull(cheapest), is(expected));
+        assertThat(requireNonNull(original), is(requireNonNull(expected)));        
+        assertThat(requireNonNull(optimised), is(expected));
+        assertThat(requireNonNull(cheapest), is(expected));
         
         // check that all the three lists contains the same. Paranoid but still a fast check
         assertThat(original, is(optimised));
@@ -174,9 +174,9 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
 
     private static Tree addChildWithProperty(@NotNull Tree father, @NotNull String name,
                                              @NotNull String propName, @NotNull String propValue) {
-        Tree t = checkNotNull(father).addChild(checkNotNull(name));
+        Tree t = requireNonNull(father).addChild(requireNonNull(name));
         t.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, NAME);
-        t.setProperty(checkNotNull(propName), checkNotNull(propValue));
+        t.setProperty(requireNonNull(propName), requireNonNull(propValue));
         return t;
     }
     

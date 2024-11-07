@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.osgi.framework.ServiceReference;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
@@ -70,6 +71,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -131,8 +133,32 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         if (hasDynamicGroups()) {
             return Collections.emptySet();
         } else {
-            return ImmutableSet.of(new PrincipalImpl(principalName));
+            return Set.of(new PrincipalImpl(principalName));
         }
+    }
+
+    @Test
+    public void testProviderConstructor() {
+        //Created mainly to fulfill the coverage requirements
+        SyncConfigTracker emptySync = mock(SyncConfigTracker.class);
+        when(emptySync.getIdpNamesWithDynamicGroups()).thenReturn(Collections.emptySet());
+        when(emptySync.getServiceReferences()).thenReturn(new ServiceReference[0]);
+        ExternalGroupPrincipalProvider emptyIDPProvider = new ExternalGroupPrincipalProvider(root,
+                getUserManager(root),
+                getNamePathMapper(),
+                emptySync);
+
+        verify(emptySync).getIdpNamesWithDynamicGroups();
+
+        SyncConfigTracker syncWithDynGroups = mock(SyncConfigTracker.class);
+        when(syncWithDynGroups.getIdpNamesWithDynamicGroups()).thenReturn(Collections.singleton(idp.getName()));
+        when(syncWithDynGroups.getServiceReferences()).thenReturn(new ServiceReference[0]);
+        ExternalGroupPrincipalProvider providerWithIDPNames = new ExternalGroupPrincipalProvider(root,
+                getUserManager(root),
+                getNamePathMapper(),
+                syncWithDynGroups);
+
+        verify(syncWithDynGroups).getIdpNamesWithDynamicGroups();
     }
 
     @Test
@@ -537,7 +563,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testFindPrincipalsFiltersDuplicates() throws Exception {
         ExternalGroup gr = idp.getGroup("a");
-        ExternalUser otherUser = new TestUser("anotherUser", ImmutableSet.of(gr.getExternalId()));
+        ExternalUser otherUser = new TestUser("anotherUser", Set.of(gr.getExternalId()));
         sync(otherUser);
 
         Set<Principal> expected = new HashSet<>();

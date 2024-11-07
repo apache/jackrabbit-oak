@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
@@ -53,8 +52,8 @@ public class PropertyIndexAsyncReindex implements
      */
     public PropertyIndexAsyncReindex(@NotNull AsyncIndexUpdate async,
             @NotNull Executor executor) {
-        this.async = checkNotNull(async);
-        this.executor = checkNotNull(executor);
+        this.async = requireNonNull(async);
+        this.executor = requireNonNull(executor);
     }
 
     @NotNull

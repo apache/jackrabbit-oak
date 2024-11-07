@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.upgrade;
 
 import java.util.ArrayList;
@@ -24,18 +23,18 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.SUPERSEDED_INDEX_PATHS;
@@ -122,7 +121,7 @@ public class IndexDisabler {
                 NodeBuilder nodeTypeIndexBuilder = child(rootBuilder, nodeTypeIndexPath);
                 PropertyState declaringNodeTypes = nodeTypeIndexBuilder.getProperty(DECLARING_NODE_TYPES);
                 if (nodeTypeIndexBuilder.exists() && declaringNodeTypes != null){
-                    Set<String> existingTypes = Sets.newHashSet(declaringNodeTypes.getValue(Type.NAMES));
+                    Set<String> existingTypes = CollectionUtils.toSet(declaringNodeTypes.getValue(Type.NAMES));
                     if (existingTypes.remove(nodeTypeName)) {
                         disabledIndexes.add(indexPath);
                         nodeTypeIndexBuilder.setProperty(DECLARING_NODE_TYPES, existingTypes, Type.NAMES);
@@ -152,7 +151,7 @@ public class IndexDisabler {
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.getChildNode(name);
         }
         return nb;

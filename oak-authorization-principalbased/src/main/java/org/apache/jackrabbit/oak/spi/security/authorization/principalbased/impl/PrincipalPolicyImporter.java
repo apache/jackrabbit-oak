@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -56,7 +57,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NODE_PATH;
 
 /**
@@ -110,7 +110,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
     //------------------------------------------< ProtectedPropertyImporter >---
     @Override
     public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) throws RepositoryException {
-        checkState(initialized);
+        Validate.checkState(initialized);
 
         if (!Utils.isPrincipalPolicyTree(parent) || !isValidPrincipalProperty(protectedPropInfo, def)) {
             return false;
@@ -142,7 +142,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     @Override
     public void propertiesCompleted(@NotNull Tree protectedParent) throws RepositoryException {
-        checkState(initialized);
+        Validate.checkState(initialized);
 
         // make sure also an empty policy (with entries) is being written (see also #end(Tree) below)
         if (policy != null) {
@@ -158,7 +158,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
     //----------------------------------------------< ProtectedNodeImporter >---
     @Override
     public boolean start(@NotNull Tree protectedParent) {
-        checkState(initialized);
+        Validate.checkState(initialized);
 
         // the policy node was added during the regular import (it's parent must not be protected)
         // and the principal-name property must have been processed by the ProtectedPropertyImporter
@@ -167,7 +167,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     @Override
     public void end(@NotNull Tree protectedParent) throws RepositoryException {
-        checkState(policy != null);
+        Validate.checkState(policy != null);
 
         if (isValidProtectedParent(protectedParent, policy)) {
             getAccessControlManager().setPolicy(policy.getPath(), policy);
@@ -180,7 +180,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     @Override
     public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
-        checkState(policy != null);
+        Validate.checkState(policy != null);
         String ntName = getOakName(childInfo.getPrimaryTypeName());
         if (NT_REP_PRINCIPAL_ENTRY.equals(ntName)) {
             if (entry != null) {
@@ -199,7 +199,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     @Override
     public void endChildInfo() throws RepositoryException {
-        checkState(policy != null);
+        Validate.checkState(policy != null);
         if (entry != null) {
             entry.applyTo(policy);
             // reset the child entry
@@ -270,11 +270,11 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         }
 
         private void addRestrictions(@NotNull List<PropInfo> propInfos) throws RepositoryException {
-            checkState(restrictions.isEmpty() && mvRestrictions.isEmpty(), "Multiple restriction nodes.");
+            Validate.checkState(restrictions.isEmpty() && mvRestrictions.isEmpty(), "Multiple restriction nodes.");
             for (PropInfo prop : propInfos) {
                 String restrictionName = prop.getName();
                 if (REP_NODE_PATH.equals(getOakName(restrictionName))) {
-                    checkState(effectivePath == null, "Attempt to overwrite rep:effectivePath property with rep:nodePath restriction.");
+                    Validate.checkState(effectivePath == null, "Attempt to overwrite rep:effectivePath property with rep:nodePath restriction.");
                     log.debug("Extracting rep:effectivePath from rep:nodePath restriction.");
                     effectivePath = extractEffectivePath(prop);
                 } else {

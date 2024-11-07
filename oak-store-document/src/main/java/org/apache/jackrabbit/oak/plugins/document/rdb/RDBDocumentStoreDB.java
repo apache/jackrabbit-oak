@@ -37,8 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
  * Defines variation in the capabilities of different RDBs.
  */
@@ -124,32 +122,7 @@ public enum RDBDocumentStoreDB {
     POSTGRES("PostgreSQL", RDBCommonVendorSpecificCode.POSTGRES) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            String result = RDBJDBCTools.versionCheck(md, 9, 5, 9, 4, description);
-
-            if (result.isEmpty()) {
-                // special case: we need 9.4.1208 or newer (see OAK-3977)
-                if (md.getDriverMajorVersion() == 9 && md.getDriverMinorVersion() == 4) {
-                    String versionString = md.getDriverVersion();
-                    String scanfor = "9.4.";
-                    int p = versionString.indexOf(scanfor);
-                    if (p >= 0) {
-                        StringBuilder build = new StringBuilder();
-                        for (char c : versionString.substring(p + scanfor.length()).toCharArray()) {
-                            if (c >= '0' && c <= '9') {
-                                build.append(c);
-                            } else {
-                                break;
-                            }
-                        }
-                        if (Integer.parseInt(build.toString()) < 1208) {
-                            result = "Unsupported " + description + " driver version: " + md.getDriverVersion() + ", found build "
-                                    + build + ", but expected at least build 1208";
-                        }
-                    }
-                }
-            }
-
-            return result;
+            return RDBJDBCTools.versionCheck(md, 13, 0, 42, 7, description);
         }
 
         @Override
@@ -230,7 +203,7 @@ public enum RDBDocumentStoreDB {
     DB2("DB2", RDBCommonVendorSpecificCode.DB2) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return RDBJDBCTools.versionCheck(md, 10, 5, description);
+            return RDBJDBCTools.versionCheck(md, 11, 5, 4, 26, description);
         }
 
         @Override
@@ -728,7 +701,7 @@ public enum RDBDocumentStoreDB {
     }
 
     public List<String> getIndexCreationStatements(String tableName, int level) {
-        List<String> result = Lists.newArrayList();
+        List<String> result = new ArrayList<>();
         result.add("create index " + tableName + "_MOD on " + tableName + " (MODIFIED)");
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");

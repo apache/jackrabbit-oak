@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -56,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -117,8 +117,8 @@ public class IndexPlannerTest {
 
     @Test
     public void planForSortField() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", createFilter("nt:base"),
             ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
@@ -128,7 +128,7 @@ public class IndexPlannerTest {
 
     @Test
     public void noPlanForSortOnlyByScore() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", createFilter("nt:file"),
             ImmutableList.of(new OrderEntry("jcr:score", Type.LONG, OrderEntry.Order.ASCENDING)));
@@ -137,7 +137,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQueryNonFulltextIndex() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
@@ -147,8 +147,8 @@ public class IndexPlannerTest {
 
     @Test
     public void noApplicableRule() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:folder"), STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:folder"), STRINGS));
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -165,8 +165,8 @@ public class IndexPlannerTest {
     public void nodeTypeInheritance() throws Exception{
         //Index if for nt:hierarchyNode and query is for nt:folder
         //as nt:folder extends nt:hierarchyNode we should get a plan
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:hierarchyNode"), STRINGS));
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:folder");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -176,7 +176,7 @@ public class IndexPlannerTest {
 
     @Test
     public void noMatchingProperty() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -185,7 +185,7 @@ public class IndexPlannerTest {
     }
     @Test
     public void matchingProperty() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -198,7 +198,7 @@ public class IndexPlannerTest {
 
     @Test
     public void purePropertyIndexAndPathRestriction() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
@@ -209,7 +209,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fulltextIndexAndPathRestriction() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -228,9 +228,9 @@ public class IndexPlannerTest {
 
     @Test
     public void fulltextIndexAndNodeTypeRestriction() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
@@ -249,7 +249,7 @@ public class IndexPlannerTest {
     public void pureNodeTypeWithEvaluatePathRestrictionEnabled() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = newLuceneIndexDefinition(index, "lucene",
-            of(TYPENAME_STRING));
+            Set.of(TYPENAME_STRING));
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         TestUtil.useV2(defn);
 
@@ -266,9 +266,9 @@ public class IndexPlannerTest {
 
     @Test
     public void purePropertyIndexAndNodeTypeRestriction() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES);
 
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
@@ -279,7 +279,7 @@ public class IndexPlannerTest {
 
     @Test
     public void purePropertyIndexAndNodeTypeRestriction2() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -296,9 +296,9 @@ public class IndexPlannerTest {
 
     @Test
     public void purePropertyIndexAndNodeTypeRestriction3() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
@@ -318,7 +318,7 @@ public class IndexPlannerTest {
     public void worksWithIndexFormatV2Onwards() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
-            of(TYPENAME_STRING));
+            Set.of(TYPENAME_STRING));
         //Dummy data node to ensure that LuceneIndexDefinition does not consider it
         //as a fresh indexing case
         nb.child(INDEX_DATA_CHILD_NAME);
@@ -332,7 +332,7 @@ public class IndexPlannerTest {
 
     @Test
     public void propertyIndexCost() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         FulltextIndexPlanner.setUseActualEntryCount(false);
@@ -352,7 +352,7 @@ public class IndexPlannerTest {
 
     @Test
     public void propertyIndexCost2() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.COST_PER_ENTRY, 2.0);
         defn.setProperty(FulltextIndexConstants.COST_PER_EXECUTION, 3.0);
 
@@ -371,7 +371,7 @@ public class IndexPlannerTest {
 
     @Test
     public void propertyIndexCostActualOverriddenByEntryCount() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         long entryCount = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
         defn.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, entryCount);
 
@@ -388,7 +388,7 @@ public class IndexPlannerTest {
 
     @Test
     public void propertyIndexCostActualByDefault() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
 
@@ -405,7 +405,7 @@ public class IndexPlannerTest {
     public void fulltextIndexCost() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = newLuceneIndexDefinition(index, "lucene",
-            of(TYPENAME_STRING));
+            Set.of(TYPENAME_STRING));
         TestUtil.useV2(defn);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
@@ -421,7 +421,7 @@ public class IndexPlannerTest {
 
     @Test
     public void nullPropertyCheck() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
 
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
@@ -434,7 +434,7 @@ public class IndexPlannerTest {
     @Test
     public void nullPropertyCheck2() throws Exception{
         root = registerTestNodeType(builder).getNodeState();
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         NodeBuilder rules = defn.child(INDEX_RULES);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
             .setProperty(FulltextIndexConstants.PROP_NAME, "foo")
@@ -457,8 +457,8 @@ public class IndexPlannerTest {
 
     @Test
     public void noPathRestHasQueryPath() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a"), Type.STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, Set.of("/test/a"), Type.STRINGS));
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
@@ -470,8 +470,8 @@ public class IndexPlannerTest {
 
     @Test
     public void hasPathRestHasMatchingQueryPaths() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a", "/test/b"), Type.STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, Set.of("/test/a", "/test/b"), Type.STRINGS));
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
@@ -483,7 +483,7 @@ public class IndexPlannerTest {
 
     @Test
     public void hasPathRestHasNoExplicitQueryPaths() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
@@ -495,7 +495,7 @@ public class IndexPlannerTest {
 
     @Test
     public void noPlanForFulltextQueryAndOnlyAnalyzedProperties() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -513,9 +513,9 @@ public class IndexPlannerTest {
 
     @Test
     public void noPlanForNodeTypeQueryAndOnlyAnalyzedProperties() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
@@ -663,7 +663,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_RelativePath1() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
@@ -677,7 +677,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_IndexAllProps() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("allProps"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -696,7 +696,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_IndexAllProps_NodePathQuery() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("allProps"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -717,7 +717,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_IndexAllProps_AggregatedNodePathQuery() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("allProps"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -736,7 +736,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_IndexAllProps_NodePathQuery_NoPlan() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -755,7 +755,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_NonAnalyzedProp_NoPlan() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "bar"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -777,7 +777,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_RelativePropertyPaths() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "bar"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -805,7 +805,7 @@ public class IndexPlannerTest {
 
     @Test
     public void fullTextQuery_DisjointPropertyPaths() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "bar"), "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -998,7 +998,7 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
         // Evaluates path restriction
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async")
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async")
             .setProperty(EVALUATE_PATH_RESTRICTION, true);
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -1006,7 +1006,7 @@ public class IndexPlannerTest {
         assertTrue(plan.getSupportsPathRestriction());
 
         // Doesn't evaluate path restriction
-        defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async")
+        defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async")
             .setProperty(EVALUATE_PATH_RESTRICTION, false);
         node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo1"));
         planner = new FulltextIndexPlanner(node, "/foo1", filter, Collections.<OrderEntry>emptyList());
@@ -1262,7 +1262,7 @@ public class IndexPlannerTest {
     private LuceneIndexNode createSuggestionOrSpellcheckIndex(String nodeType,
                                                               boolean enableSuggestion,
                                                               boolean enableSpellcheck) throws Exception {
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         defn.setProperty(DECLARING_NODE_TYPES, nodeType);
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -1292,8 +1292,8 @@ public class IndexPlannerTest {
     //------ Cost via doc count per field plan tests
     @Test
     public void noRestrictionWithSingleSortableField() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
         LuceneIndexNode node = createIndexNode(definition);
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"),
@@ -1307,8 +1307,8 @@ public class IndexPlannerTest {
 
     @Test
     public void noRestrictionWithTwoSortableFields() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
-        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo", "bar"), STRINGS));
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "bar"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo", "bar"), STRINGS));
         LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
         LuceneIndexNode node = createIndexNode(definition);
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"),
@@ -1322,7 +1322,7 @@ public class IndexPlannerTest {
 
     @Test
     public void useNumDocsOnFieldForCost() throws Exception {
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "foo1", "foo2"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "foo1", "foo2"), "async");
         long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
@@ -1405,7 +1405,7 @@ public class IndexPlannerTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -1477,7 +1477,7 @@ public class IndexPlannerTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -1522,7 +1522,7 @@ public class IndexPlannerTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -1950,8 +1950,8 @@ public class IndexPlannerTest {
 
     @NotNull
     private static NodeBuilder getNode(@NotNull NodeBuilder node, @NotNull String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            node = node.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            node = node.getChildNode(requireNonNull(name));
         }
         return node;
     }

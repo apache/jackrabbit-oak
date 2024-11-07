@@ -66,7 +66,7 @@ public class MergeSortedIteratorsTest {
     }
 
     private List<Integer> sort(List<Integer>... lists) {
-        List<Iterator<Integer>> iterators = Lists.newArrayList();
+        List<Iterator<Integer>> iterators = new ArrayList<>();
         for (List<Integer> list : lists) {
             iterators.add(list.iterator());
         }

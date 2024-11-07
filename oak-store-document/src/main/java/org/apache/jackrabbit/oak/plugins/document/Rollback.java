@@ -20,10 +20,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
@@ -70,8 +70,8 @@ class Rollback {
              @NotNull String commitRootId,
              int batchSize) {
         this.revision = revision;
-        this.changed = checkNotNull(changed);
-        this.commitRootId = checkNotNull(commitRootId);
+        this.changed = requireNonNull(changed);
+        this.commitRootId = requireNonNull(commitRootId);
         this.batchSize = batchSize;
     }
 
@@ -84,7 +84,7 @@ class Rollback {
      * @throws DocumentStoreException if any of the operations fails.
      */
     void perform(@NotNull DocumentStore store) throws DocumentStoreException {
-        checkNotNull(store);
+        requireNonNull(store);
         List<UpdateOp> reverseOps = new ArrayList<>();
         for (UpdateOp op : changed) {
             UpdateOp reverse = op.getReverseOperation();
@@ -95,7 +95,7 @@ class Rollback {
             reverse.setNew(false);
             reverseOps.add(reverse);
         }
-        for (List<UpdateOp> ops : partition(reverseOps, batchSize)) {
+        for (List<UpdateOp> ops : CollectionUtils.partitionList(reverseOps, batchSize)) {
             store.createOrUpdate(NODES, ops);
         }
         removeCollisionMarker(store, commitRootId);

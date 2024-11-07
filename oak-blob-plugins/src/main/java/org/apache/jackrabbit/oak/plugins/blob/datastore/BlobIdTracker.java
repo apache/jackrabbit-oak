@@ -23,19 +23,20 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
@@ -46,10 +47,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
 import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
@@ -76,7 +74,6 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.GENERATION;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.IN_PROCESS;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.REFS;
-
 
 /**
  * Tracks the blob ids available or added in the blob store using the {@link BlobIdStore} .
@@ -271,8 +268,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(transform(refRecords, new Function<DataRecord, File>() {
-                @Override public File apply(DataRecord input) {
+            List<File> refFiles = CollectionUtils.toList(transform(refRecords, input -> {
                     InputStream inputStream = null;
                     try {
                         inputStream = input.getStream();
@@ -283,8 +279,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                         closeQuietly(inputStream);
                     }
                     return null;
-                }
-            }));
+                }));
             LOG.info("Retrieved all blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Merge all the downloaded files in to the local store
@@ -400,7 +395,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         public void track(File recs) throws IOException {
             lock.lock();
             try {
-                append(Lists.newArrayList(recs), delFile, false);
+                append(new ArrayList<>(Arrays.asList(recs)), delFile, false);
                 sort(delFile);
             } finally {
                 lock.unlock();
@@ -509,13 +504,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
             // Retrieve the process file if it exists
             processFile = FileTreeTraverser.breadthFirst(rootDir)
-                    .filter(file -> IN_PROCESS.filter().apply(file))
+                    .filter(file -> IN_PROCESS.filter().test(file))
                     .findFirst()
                     .orElse(null);
 
             // Get the List of all generations available.
             generations = synchronizedList(FileTreeTraverser.breadthFirst(rootDir)
-                    .filter(file -> GENERATION.filter().apply(file))
+                    .filter(file -> GENERATION.filter().test(file))
                     .collect(toList()));
 
             // Close/rename any existing in process
@@ -678,7 +673,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             close();
 
             processFile = new File(rootDir, prefix + IN_PROCESS.getFileNameSuffix());
-            writer = newWriter(processFile, UTF_8);
+            writer = newWriter(processFile, StandardCharsets.UTF_8);
             LOG.info("Created new process file and writer over {} ", processFile.getAbsolutePath());
         }
 
@@ -694,7 +689,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             File added = createTempFile("added", null);
             writeStrings(recs, added, false);
             // Merge the file with the references
-            merge(Lists.newArrayList(added), false);
+            merge(new ArrayList<>(Arrays.asList(added)), false);
         }
 
         /**
@@ -705,7 +700,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          */
         protected void addRecords(File recs) throws IOException {
             // Merge the file with the references
-            merge(Lists.newArrayList(recs), false);
+            merge(new ArrayList<>(Arrays.asList(recs)), false);
         }
 
         /**
@@ -765,7 +760,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
                 @Override Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override public boolean test(File input) {
                             return input.getName().endsWith(workingCopySuffix) && input.getName().startsWith(fileNamePrefix);
                         }
                     };
@@ -778,7 +773,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
                 @Override Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override public boolean test(File input) {
                             return input.getName().startsWith(fileNamePrefix)
                                 && input.getName().contains(genFileNameSuffix)
                                 && !input.getName().endsWith(workingCopySuffix);
@@ -793,7 +788,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
                 @Override Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override public boolean test(File input) {
                             return input.getName().endsWith(mergedFileSuffix)
                                 && input.getName().startsWith(fileNamePrefix);
                         }
@@ -816,7 +811,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
              * @return a predicate to select particular file types
              */
             Predicate<File> filter() {
-                return alwaysTrue();
+                return x -> true;
             }
         }
     }

@@ -21,7 +21,11 @@ Caching Results of Principal Resolution
 ### General
 
 Since Oak 1.3.4 this `UserPrincipalProvider` optionally allows for temporary
-caching of the principal resolution mainly to optimize login performance (OAK-3003).
+caching of the principal resolution mainly to optimize login performance (OAK-3003). 
+
+Since Oak 1.72 this
+feature is also available for `ExternalGroupPrincipalProvider` (OAK-11026) caching the principal resolution for
+those dynamic groups that have been added to local groups.
 
 This cache contains the result of the group principal resolution as performed by
 `PrincipalProvider.getPrincipals(String userId)`and `PrincipalProvider.getGroupMembership(Principal)`
@@ -38,6 +42,9 @@ The following configuration option is supported:
 
 - Cache Expiration (`cacheExpiration`): Specifying a long greater 0 enables the
   caching.
+- Cache Max Stale (`cacheMaxStale`): Specifying a long greater 0 allows to
+  specify a maximum time in milliseconds which a stale principal cache can be served if another thread is writing the
+  cache. Only used if `cacheExpiration` is set to a value greater than 0.
 
 NOTE: It is important that the configured expiration time balances between login
 performance and cache invalidation to reflect changes made to the group membership.
@@ -66,7 +73,12 @@ in a cache if the following conditions are met:
 
 The cache itself consists of a tree named `rep:cache` with the built-in node type
 `rep:Cache`, which defines a mandatory, protected `rep:expiration` property and
-may have additional protected, residual properties.
+may have additional protected properties. These properties are maintained and
+updated by the `CachedMembershipReader` implementation available through `UserConfiguration.getCachedMembershipReader`
+however each `PrincipalProvider` implementation is responsible to name the properties where values will be stored
+and providing the cache content to be stored. For example, `UserPrincipalProvider` stores the cache content in `rep:principalNames` 
+property while `ExternalGroupPrincipalProvider` stores the cache content in `rep:externalLocalPrincipalNames` property as only
+local group names are cached.
 
 Subsequent calls will read the names of the group principals from the cache until
 the cache expires. Once expired the default resolution will be performed again in
@@ -74,12 +86,12 @@ order to update the cache.
 
 ##### Limitation to System Calls
 
-The creation and maintenance of this caches as well as the shortcut upon reading
+The creation and maintenance of these caches as well as the shortcut upon reading
 is limited to system internal sessions for security reasons: The cache must always
 be filled with the comprehensive list of group principals (as required upon login)
 as must any subsequent call never expose principal information that might not
 be accessible in the non-cache scenario where access to principals is protected
-by regular permission evalution.
+by regular permission evaluation.
 
 <a name="validation"></a>
 ##### Validation
@@ -126,13 +138,13 @@ the expected way.
 
 #### Interaction With User Management
 
-The cache is created and maintained by the `PrincipalProvider` implementation as
-exposed by the optional `UserConfiguration.getUserPrincipalProvider` call and
+The cache is created and maintained by the `CachedMembershipReader` implementation as
+exposed by the optional `UserConfiguration.getCachedMembershipReader` call and
 will therefore only effect the results provided by the principal management API.
 
 Regular Jackrabbit user management API calls are not affected by this cache and
 vice versa; i.e. changes made using the user management API have no immediate
-effect on the cache and will not trigger it's invalidation.
+effect on the cache and will not trigger its invalidation.
 
 In other words user management API calls will always read from the revision of the
 content repository that is associated with the give JCR `Session` (and Oak

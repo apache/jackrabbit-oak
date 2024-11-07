@@ -107,7 +107,7 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
         UserManager umMock = when(mock(UserManager.class).getAuthorizable(any(Principal.class))).thenReturn(mockAuthorizable).getMock();
 
         Set<Principal> membership = createPrincipalProvider(umMock).getMembershipPrincipals(new PrincipalImpl("userPrincipal"));
-        assertEquals(ImmutableSet.of(EveryonePrincipal.getInstance()), membership);
+        assertEquals(Set.of(EveryonePrincipal.getInstance()), membership);
     }
 
     @Test

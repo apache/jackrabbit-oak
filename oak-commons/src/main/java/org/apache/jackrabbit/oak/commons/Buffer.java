@@ -206,6 +206,10 @@ final public class Buffer {
     public short getShort(int pos) {
         return buffer.getShort(pos);
     }
+    
+    public short getShort() {
+        return buffer.getShort();
+    }
 
     public Buffer duplicate() {
         return new Buffer(buffer.duplicate());

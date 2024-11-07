@@ -25,7 +25,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -44,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 /**
  * Test the Property2 index mechanism.
@@ -67,7 +68,7 @@ public class PropertyIndexDisabledTest {
     @Test
     public void disabled() throws Exception {
         NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), 
-                "foo", true, false, ImmutableSet.of("foo"), null);
+                "foo", true, false, Set.of("foo"), null);
         index.setProperty(IndexConstants.USE_IF_EXISTS, "/");
         commit();
         for (int i = 0; i < MANY; i++) {

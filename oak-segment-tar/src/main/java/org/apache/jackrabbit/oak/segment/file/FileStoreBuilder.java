@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.Objects.requireNonNull;
 import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
@@ -35,10 +31,10 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
@@ -69,7 +65,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
-    
+
     private static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
@@ -136,7 +132,7 @@ public class FileStoreBuilder {
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
 
     @NotNull
-    private final Set<IOMonitor> ioMonitors = newHashSet();
+    private final Set<IOMonitor> ioMonitors = new HashSet<>();
 
     @NotNull
     private RemoteStoreMonitor remoteStoreMonitor;
@@ -159,7 +155,7 @@ public class FileStoreBuilder {
     }
 
     private FileStoreBuilder(@NotNull File directory) {
-        this.directory = checkNotNull(directory);
+        this.directory = requireNonNull(directory);
         this.gcListener.registerGCMonitor(new LoggingGCMonitor(LOG));
         this.persistence = new TarPersistence(directory);
     }
@@ -172,7 +168,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withBlobStore(@NotNull BlobStore blobStore) {
-        this.blobStore = checkNotNull(blobStore);
+        this.blobStore = requireNonNull(blobStore);
         return this;
     }
 
@@ -303,7 +299,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withGCMonitor(@NotNull GCMonitor gcMonitor) {
-        this.gcListener.registerGCMonitor(checkNotNull(gcMonitor));
+        this.gcListener.registerGCMonitor(requireNonNull(gcMonitor));
         return this;
     }
 
@@ -315,7 +311,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withStatisticsProvider(@NotNull StatisticsProvider statisticsProvider) {
-        this.statsProvider = checkNotNull(statisticsProvider);
+        this.statsProvider = requireNonNull(statisticsProvider);
         return this;
     }
 
@@ -327,7 +323,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withGCOptions(SegmentGCOptions gcOptions) {
-        this.gcOptions = checkNotNull(gcOptions);
+        this.gcOptions = requireNonNull(gcOptions);
         return this;
     }
 
@@ -339,13 +335,13 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withSnfeListener(@NotNull SegmentNotFoundExceptionListener snfeListener) {
-        this.snfeListener = checkNotNull(snfeListener);
+        this.snfeListener = requireNonNull(snfeListener);
         return this;
     }
 
     @NotNull
     public FileStoreBuilder withIOMonitor(@NotNull IOMonitor ioMonitor) {
-        ioMonitors.add(checkNotNull(ioMonitor));
+        ioMonitors.add(requireNonNull(ioMonitor));
         return this;
     }
 
@@ -435,7 +431,7 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStore build() throws InvalidFileStoreVersionException, IOException {
-        checkState(!built, "Cannot re-use builder");
+        Validate.checkState(!built, "Cannot re-use builder");
         built = true;
         directory.mkdirs();
         TarRevisions revisions = new TarRevisions(persistence);
@@ -474,8 +470,8 @@ public class FileStoreBuilder {
      */
     @NotNull
     public ReadOnlyFileStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
-        checkState(!built, "Cannot re-use builder");
-        checkState(directory.exists() && directory.isDirectory(),
+        Validate.checkState(!built, "Cannot re-use builder");
+        Validate.checkState(directory.exists() && directory.isDirectory(),
                 "%s does not exist or is not a directory", directory);
         built = true;
         ReadOnlyRevisions revisions = new ReadOnlyRevisions(persistence);
@@ -625,21 +621,11 @@ public class FileStoreBuilder {
         }
 
         void evictOldGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation < newGeneration;
-                }
-            });
+            evictCaches(generation -> generation < newGeneration);
         }
 
         void evictGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation == newGeneration;
-                }
-            });
+            evictCaches(generation -> generation == newGeneration);
         }
     }
 }

@@ -305,7 +305,7 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
         root.commit();
         permissionProvider.refresh();
 
-        Set<String> expectedPrivNames = ImmutableSet.of(JCR_READ);
+        Set<String> expectedPrivNames = Set.of(JCR_READ);
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
@@ -317,30 +317,30 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
         root.commit();
         permissionProvider.refresh();
 
-        expectedPrivNames = ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL);
+        expectedPrivNames = Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL);
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
         for (Tree child : policyTree.getChildren()) {
-            assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+            assertEquals(Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
         }
 
         setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_MODIFY_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        expectedPrivNames = ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        expectedPrivNames = Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
         for (Tree child : policyTree.getChildren()) {
             String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
             if (contentPath.equals(effectivePath)) {
-                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+                assertEquals(Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
             } else if (childPath.equals(effectivePath)) {
-                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+                assertEquals(Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
             } else if (child2Path.equals(effectivePath)) {
-                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+                assertEquals(Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
             }
         }
     }

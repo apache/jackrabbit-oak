@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -37,8 +38,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Rule;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * A set of simple tests.
@@ -86,7 +85,7 @@ public class SimpleTest {
         UpdateOp op = n.asOperation(rev.getRevision(ns.getClusterId()));
         // mark as commit root
         NodeDocument.setRevision(op, rev.getRevision(ns.getClusterId()), "c");
-        assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
+        assertTrue(s.create(Collection.NODES, List.of(op)));
         DocumentNodeState n2 = ns.getNode(Path.fromString("/test"), rev);
         assertNotNull(n2);
         PropertyState p = n2.getProperty("name");

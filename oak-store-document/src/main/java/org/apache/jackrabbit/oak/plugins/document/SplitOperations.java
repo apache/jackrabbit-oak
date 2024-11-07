@@ -20,13 +20,18 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -34,17 +39,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.guava.common.collect.Sets.filter;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
@@ -69,7 +68,7 @@ class SplitOperations {
     private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 1000);
     private static final Predicate<Long> BINARY_FOR_SPLIT_THRESHOLD = new Predicate<Long>() {
         @Override
-        public boolean apply(Long input) {
+        public boolean test(Long input) {
             // only force trigger split for binaries bigger than 4k
             return input > 4096;
         }
@@ -102,21 +101,16 @@ class SplitOperations {
                             @NotNull final RevisionVector headRev,
                             @NotNull final Function<String, Long> binarySize,
                             int numRevsThreshold) {
-        this.doc = checkNotNull(doc);
-        this.context = checkNotNull(context);
-        this.binarySize = checkNotNull(binarySize);
+        this.doc = requireNonNull(doc);
+        this.context = requireNonNull(context);
+        this.binarySize = requireNonNull(binarySize);
         this.path = doc.getPath();
         this.id = doc.getId();
-        this.headRevision = checkNotNull(headRev).getRevision(context.getClusterId());
+        this.headRevision = requireNonNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
-        this.nodeExistsAtHeadRevision = Suppliers.memoize(new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                return doc.getLiveRevision(context, headRev,
+        this.nodeExistsAtHeadRevision = Suppliers.memoize(() -> doc.getLiveRevision(context, headRev,
                         Maps.<Revision, String>newHashMap(),
-                        new LastRevs(headRev)) != null;
-            }
-        });
+                        new LastRevs(headRev)) != null);
     }
 
     /**
@@ -158,11 +152,11 @@ class SplitOperations {
         if (!considerSplit()) {
             return Collections.emptyList();
         }
-        splitOps = Lists.newArrayList();
-        mostRecentRevs = Sets.newHashSet();
-        splitRevs = Sets.newHashSet();
+        splitOps = new ArrayList<>();
+        mostRecentRevs = new HashSet<>();
+        splitRevs = new HashSet<>();
         garbage = Maps.newHashMap();
-        changes = Sets.newHashSet();
+        changes = new HashSet<>();
         committedChanges = Maps.newHashMap();
         
         collectLocalChanges(committedChanges, changes);
@@ -233,7 +227,7 @@ class SplitOperations {
     }
 
     private boolean hasBinaryPropertyForSplit(Iterable<String> values) {
-        return doc.hasBinary() && any(transform(values, binarySize), BINARY_FOR_SPLIT_THRESHOLD);
+        return doc.hasBinary() && CollectionUtils.toStream(values).map(binarySize).anyMatch(BINARY_FOR_SPLIT_THRESHOLD);
     }
 
     /**
@@ -443,7 +437,7 @@ class SplitOperations {
     private void collectLocalChanges(
             Map<String, NavigableMap<Revision, String>> committedLocally,
             Set<Revision> changes) {
-        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED::test)) {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
             committedLocally.put(property, splitMap);
@@ -481,7 +475,7 @@ class SplitOperations {
         }
         Set<Revision> revisions = garbage.get(property);
         if (revisions == null) {
-            revisions = Sets.newHashSet();
+            revisions = new HashSet<>();
             garbage.put(property, revisions);
         }
         if (revisions.add(rev)) {
@@ -533,7 +527,7 @@ class SplitOperations {
         for (Map.Entry<String, Set<Revision>> entry : garbage.entrySet()) {
             for (Revision r : entry.getValue()) {
                 main.removeMapEntry(entry.getKey(), r);
-                if (PROPERTY_OR_DELETED.apply(entry.getKey())) {
+                if (PROPERTY_OR_DELETED.test(entry.getKey())) {
                     NodeDocument.removeCommitRoot(main, r);
                     NodeDocument.removeRevision(main, r);
                     NodeDocument.removeBranchCommit(main, r);
@@ -598,12 +592,12 @@ class SplitOperations {
 
     private static void setSplitDocType(@NotNull UpdateOp op,
                                         @NotNull SplitDocType type) {
-        checkNotNull(op).set(NodeDocument.SD_TYPE, type.type);
+        requireNonNull(op).set(NodeDocument.SD_TYPE, type.type);
     }
 
     private static void setSplitDocMaxRev(@NotNull UpdateOp op,
                                           @NotNull Revision maxRev) {
-        checkNotNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
+        requireNonNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
     }
 
 }

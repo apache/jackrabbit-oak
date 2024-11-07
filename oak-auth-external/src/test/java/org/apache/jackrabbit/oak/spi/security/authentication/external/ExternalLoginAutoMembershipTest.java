@@ -295,7 +295,7 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
             // as auto-membership is not configured on this setup.
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
 
-            Set<Principal> expected = ImmutableSet.of(EveryonePrincipal.getInstance(), userManager.getAuthorizable(USER_ID).getPrincipal());
+            Set<Principal> expected = Set.of(EveryonePrincipal.getInstance(), userManager.getAuthorizable(USER_ID).getPrincipal());
             assertEquals(expected, principals);
 
             assertFalse(principals.contains(new PrincipalImpl(NON_EXISTING_NAME)));

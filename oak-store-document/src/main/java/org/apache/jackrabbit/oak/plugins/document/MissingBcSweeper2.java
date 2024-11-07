@@ -16,20 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Maps.immutableEntry;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -37,9 +39,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
  * The {@code MissingBcSweeper2} is used for the so-called sweep2, which is
@@ -88,8 +87,8 @@ final class MissingBcSweeper2 {
                     CommitValueResolver commitValueResolver,
                     List<Integer> includedClusterIds,
                     AtomicBoolean isDisposed) {
-        this.context = checkNotNull(context);
-        this.commitValueResolver = checkNotNull(commitValueResolver);
+        this.context = requireNonNull(context);
+        this.commitValueResolver = requireNonNull(commitValueResolver);
         this.executingClusterId = context.getClusterId();
         this.includedClusterIds = includedClusterIds == null ? new LinkedList<>() : Collections.unmodifiableList(includedClusterIds);
         this.headRevision= context.getHeadRevision();
@@ -108,7 +107,7 @@ final class MissingBcSweeper2 {
     void sweep2(@NotNull Iterable<NodeDocument> documents,
                    @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        performSweep2(documents, checkNotNull(listener));
+        performSweep2(documents, requireNonNull(listener));
     }
 
     //----------------------------< internal >----------------------------------
@@ -123,7 +122,7 @@ final class MissingBcSweeper2 {
 
         Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
         for (List<Map.Entry<Path, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
-            Map<Path, UpdateOp> updates = newHashMap();
+            Map<Path, UpdateOp> updates = new HashMap<>();
             for (Map.Entry<Path, UpdateOp> entry : batch) {
                 updates.put(entry.getKey(), entry.getValue());
             }
@@ -161,12 +160,7 @@ final class MissingBcSweeper2 {
                 }
                 return immutableEntry(doc.getPath(), sweepOne(doc));
             }
-        }), new Predicate<Map.Entry<Path, UpdateOp>>() {
-            @Override
-            public boolean apply(Map.Entry<Path, UpdateOp> input) {
-                return input.getValue() != null;
-            }
-        });
+        }::apply), input -> input.getValue() != null);
     }
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
@@ -177,7 +171,7 @@ final class MissingBcSweeper2 {
         // as that's what was left out by the original sweep1:
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS)) {
+        for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();

@@ -16,21 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +35,11 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -86,10 +83,10 @@ public class TarReader implements Closeable {
      * @return An instance of {@link TarReader}.
      */
     static TarReader open(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
-        SortedMap<Character, String> sorted = newTreeMap();
+        SortedMap<Character, String> sorted = new TreeMap<>();
         sorted.putAll(files);
 
-        List<String> list = newArrayList(sorted.values());
+        List<String> list = new ArrayList<>(sorted.values());
         Collections.reverse(list);
 
         TarReader reader = openFirstFileWithValidIndex(list, archiveManager);
@@ -99,7 +96,7 @@ public class TarReader implements Closeable {
 
         // no generation has a valid index, so recover as much as we can
         log.warn("Could not find a valid tar index in {}, recovering...", list);
-        LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+        LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
         for (String file : sorted.values()) {
             collectFileEntries(file, entries, true, archiveManager);
         }
@@ -130,7 +127,7 @@ public class TarReader implements Closeable {
             log.info("Could not find a valid tar index in {}, recovering read-only", archiveName);
             // collecting the entries (without touching the original file) and
             // writing them into an artificial tar file '.ro.bak'
-            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+            LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
             collectFileEntries(archiveName, entries, false, segmentArchiveManager);
             String bakFile = findAvailGen(archiveName, ".ro.bak", segmentArchiveManager);
             generateTarFile(entries, bakFile, recovery, segmentArchiveManager);
@@ -388,7 +385,7 @@ public class TarReader implements Closeable {
         }
 
         references.forEach((generation, full, compacted, segment, reference) -> {
-            if (skipGeneration.apply(newGCGeneration(generation, full, compacted))) {
+            if (skipGeneration.test(newGCGeneration(generation, full, compacted))) {
                 return;
             }
             collector.accept(reference);
@@ -491,7 +488,7 @@ public class TarReader implements Closeable {
         String name = archive.getName();
         log.debug("Cleaning up {}", name);
 
-        Set<UUID> cleaned = newHashSet();
+        Set<UUID> cleaned = new HashSet<>();
         int afterSize = 0;
         int beforeSize = 0;
         int afterCount = 0;
@@ -559,7 +556,7 @@ public class TarReader implements Closeable {
                 continue;
             }
 
-            Set<UUID> vertices = newHashSet();
+            Set<UUID> vertices = new HashSet<>();
 
             for (UUID vertex : e.getValue()) {
                 if (cleaned.contains(vertex)) {

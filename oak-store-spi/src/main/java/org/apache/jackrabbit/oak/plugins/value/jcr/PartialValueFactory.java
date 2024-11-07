@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -33,7 +34,6 @@ import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -97,8 +97,8 @@ public class PartialValueFactory {
      */
     public PartialValueFactory(@NotNull NamePathMapper namePathMapper,
                                @NotNull BlobAccessProvider blobAccessProvider) {
-        this.namePathMapper = checkNotNull(namePathMapper);
-        this.blobAccessProvider = checkNotNull(blobAccessProvider);
+        this.namePathMapper = requireNonNull(namePathMapper);
+        this.blobAccessProvider = requireNonNull(blobAccessProvider);
     }
 
     @NotNull
@@ -137,7 +137,7 @@ public class PartialValueFactory {
      */
     @NotNull
     public List<Value> createValues(@NotNull PropertyState property) {
-        List<Value> values = Lists.newArrayList();
+        List<Value> values = new ArrayList<>();
         for (int i = 0; i < property.count(); i++) {
             values.add(newValue(property, i, namePathMapper, getBlobAccessProvider()));
         }

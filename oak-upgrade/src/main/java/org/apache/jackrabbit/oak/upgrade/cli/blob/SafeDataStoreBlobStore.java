@@ -31,7 +31,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This implementation of the DataStoreBlobStore won't throw an exception if
@@ -48,7 +48,7 @@ public class SafeDataStoreBlobStore extends DataStoreBlobStore {
 
     @Override
     public String getReference(@NotNull String encodedBlobId) {
-        checkNotNull(encodedBlobId);
+        requireNonNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
         if (InMemoryDataRecord.isInstance(blobId)) {

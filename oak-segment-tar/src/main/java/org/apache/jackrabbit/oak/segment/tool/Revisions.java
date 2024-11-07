@@ -17,8 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.tool.Utils.readRevisions;
+import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +43,7 @@ public class Revisions {
      */
     public static class Builder {
 
-        private File path;
+        private String path;
 
         private File out;
 
@@ -58,8 +57,8 @@ public class Revisions {
          * @param path the path to an existing segment store.
          * @return this builder.
          */
-        public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+        public Builder withPath(String path) {
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -71,7 +70,7 @@ public class Revisions {
          * @return this builder.
          */
         public Builder withOutput(File out) {
-            this.out = checkNotNull(out);
+            this.out = requireNonNull(out);
             return this;
         }
 
@@ -81,14 +80,14 @@ public class Revisions {
          * @return an instance of {@link Runnable}.
          */
         public Revisions build() {
-            checkNotNull(path);
-            checkNotNull(out);
+            requireNonNull(path);
+            requireNonNull(out);
             return new Revisions(this);
         }
 
     }
 
-    private final File path;
+    private final String path;
 
     private final File out;
 
@@ -97,9 +96,9 @@ public class Revisions {
         this.out = builder.out;
     }
 
-    public int run() {
+    public int run(RevisionsProcessor p) {
         try {
-            listRevisions();
+            listRevisions(p);
             return 0;
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -107,11 +106,11 @@ public class Revisions {
         }
     }
 
-    private void listRevisions() throws IOException {
+    private void listRevisions(RevisionsProcessor p) throws IOException {
         System.out.println("Store " + path);
         System.out.println("Writing revisions to " + out);
 
-        List<String> revs = readRevisions(path);
+        List<String> revs = p.process(path);
 
         if (revs.isEmpty()) {
             System.out.println("No revisions found.");
@@ -123,6 +122,11 @@ public class Revisions {
                 pw.println(r);
             }
         }
+    }
+
+    @FunctionalInterface
+    public interface RevisionsProcessor {
+        List<String> process(String path);
     }
 
 }

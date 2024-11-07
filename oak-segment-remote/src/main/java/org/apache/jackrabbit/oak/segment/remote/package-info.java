@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 @Internal(since = "1.0.0")
-@Version("1.2.0")
+@Version("1.3.0")
 package org.apache.jackrabbit.oak.segment.remote;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;

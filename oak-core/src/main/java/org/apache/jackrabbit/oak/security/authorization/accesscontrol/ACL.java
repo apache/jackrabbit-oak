@@ -30,8 +30,8 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
@@ -43,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 abstract class ACL extends AbstractAccessControlList {
 
@@ -164,8 +164,8 @@ abstract class ACL extends AbstractAccessControlList {
     private boolean internalAddEntry(@NotNull ACE entry) throws RepositoryException {
         final String principalName = entry.getPrincipal().getName();
         final Set<Restriction> restrictions = entry.getRestrictions();
-        List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, ace ->
-                principalName.equals(checkNotNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
+        List<ACE> subList = CollectionUtils.toList(Iterables.filter(entries, ace ->
+                principalName.equals(requireNonNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
 
         boolean addEntry = true;
         for (ACE existing : subList) {

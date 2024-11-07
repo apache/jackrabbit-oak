@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class ExternalObserverBuilder {
     private static final Logger log = LoggerFactory.getLogger(ExternalIndexObserver.class);
@@ -47,10 +47,10 @@ public class ExternalObserverBuilder {
     public ExternalObserverBuilder(IndexingQueue indexingQueue, IndexTracker indexTracker,
                                    StatisticsProvider statisticsProvider,
                                    Executor executor, int queueSize) {
-        this.indexingQueue = checkNotNull(indexingQueue);
-        this.indexTracker = checkNotNull(indexTracker);
-        this.statisticsProvider = checkNotNull(statisticsProvider);
-        this.executor = checkNotNull(executor);
+        this.indexingQueue = requireNonNull(indexingQueue);
+        this.indexTracker = requireNonNull(indexTracker);
+        this.statisticsProvider = requireNonNull(statisticsProvider);
+        this.executor = requireNonNull(executor);
         this.queueSize = queueSize;
     }
 

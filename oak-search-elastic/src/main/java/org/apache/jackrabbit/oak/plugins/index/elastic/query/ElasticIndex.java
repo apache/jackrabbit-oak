@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
@@ -33,9 +35,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
 class ElasticIndex extends FulltextIndex {
     private static final Predicate<NodeState> ELASTICSEARCH_INDEX_DEFINITION_PREDICATE =
@@ -63,8 +62,12 @@ class ElasticIndex extends FulltextIndex {
     @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
-            ElasticIndexStatistics indexStatistics = acquireIndexNode(plan).getIndexStatistics();
-            return indexStatistics.getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+            ElasticIndexNode indexNode = acquireIndexNode(plan);
+            try {
+                return indexNode.getIndexStatistics().getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+            } finally {
+                indexNode.release();
+            }
         };
     }
 

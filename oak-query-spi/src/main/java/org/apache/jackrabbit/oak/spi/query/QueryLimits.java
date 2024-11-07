@@ -29,12 +29,32 @@ public interface QueryLimits {
 
     boolean getFullTextComparisonWithoutIndex();
 
+    /**
+     * See OAK-10532. This method is used for backward compatibility
+     * (bug compatibility) only.
+     *
+     * @return true, except when backward compatibility for OAK-10532 is enabled
+     */
+    default boolean getImprovedIsNullCost() {
+        return true;
+    }
+
+    /**
+     * See OAK-11214. This method is used for backward compatibility
+     * (bug compatibility) only.
+     *
+     * @return true, except when backward compatibility for OAK-11214 is enabled
+     */
+    default public boolean getOptimizeInRestrictionsForFunctions() {
+        return true;
+    }
+
     boolean getFailTraversal();
 
     default String getStrictPathRestriction() {
         return StrictPathRestriction.DISABLE.name();
     }
-    
+
     /**
      * Retrieve the java package names / full qualified class names which should be
      * ignored when finding the class starting a query
@@ -43,4 +63,5 @@ public interface QueryLimits {
     default @NotNull String[] getIgnoredClassNamesInCallTrace() {
         return new String[] {};
     }
+
 }

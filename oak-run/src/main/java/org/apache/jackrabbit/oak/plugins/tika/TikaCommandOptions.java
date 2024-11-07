@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -89,7 +87,7 @@ public class TikaCommandOptions implements OptionsBean {
         populateAction = parser.accepts("populate", "Populates extraction store based on supplied indexed data and csv file");
         extractAction = parser.accepts("extract", "Performs the text extraction based on the csv file");
 
-        operationNames = ImmutableSet.of("report", "generate", "populate", "extract");
+        operationNames = Set.of("report", "generate", "populate", "extract");
     }
 
     @Override

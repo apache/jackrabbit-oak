@@ -219,7 +219,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
 
     @Test(expected = AccessDeniedException.class)
     public void testGetEffectiveByPrincipalNoAccess() throws RepositoryException {
-        testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal));
+        testAcMgr.getEffectivePolicies(Set.of(systemPrincipal));
     }
 
     @Test
@@ -253,26 +253,26 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         testRoot.refresh();
 
         // read-access-control is only granted for the principalpolicy itself
-        assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+        assertPolicies(testAcMgr.getEffectivePolicies(Set.of(systemPrincipal)), ImmutableACL.class, 1, 2);
 
         // grant testuser read-access control on /oak:content
         grant(testPrincipal, testContentJcrPath, JCR_READ_ACCESS_CONTROL);
         root.commit();
         testRoot.refresh();
-        assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+        assertPolicies(testAcMgr.getEffectivePolicies(Set.of(systemPrincipal)), ImmutableACL.class, 1, 2);
 
         // additionally grant testuser read-access control on null
         grant(testPrincipal, null, JCR_READ_ACCESS_CONTROL);
         root.commit();
         testRoot.refresh();
-        assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+        assertPolicies(testAcMgr.getEffectivePolicies(Set.of(systemPrincipal)), ImmutableACL.class, 1, 2);
 
         // make sure test-user has read-accesscontrol permission on any readable-path
         grant(testPrincipal, PathUtils.ROOT_PATH, JCR_READ_ACCESS_CONTROL);
         root.commit();
         testRoot.refresh();
 
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal));;
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Set.of(systemPrincipal));;
         assertPolicies(effective, ImmutableACL.class, 2, 2);
         assertTrue(effective[1] instanceof ReadPolicy);
     }
@@ -422,7 +422,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
     @Test(expected = AccessDeniedException.class)
     public void testHasPrivilegeSystemUser() throws Exception {
         // test session has no access
-        testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT));
+        testAcMgr.hasPrivileges(testContentJcrPath, Set.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT));
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -432,7 +432,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         root.commit();
         testRoot.refresh();
 
-        testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT));
+        testAcMgr.hasPrivileges(testContentJcrPath, Set.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT));
     }
 
     @Test
@@ -442,7 +442,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         root.commit();
         testRoot.refresh();
 
-        assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+        assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, Set.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
     }
 
     @Test
@@ -454,23 +454,23 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         testRoot.refresh();
 
         // default model lacks jcr:nodeTypeManagement privilege -> not granted
-        assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+        assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, Set.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
 
         addDefaultEntry(testContentJcrPath, systemPrincipal, JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
         root.commit();
         testRoot.refresh();
 
         // once default model grants permissions as well -> granted
-        assertTrue(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+        assertTrue(testAcMgr.hasPrivileges(testContentJcrPath, Set.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
 
         // but combination read/nt-mgt is not granted because jcr:read is missing on principal-based setup.
-        assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_READ, JCR_NODE_TYPE_MANAGEMENT)));
+        assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, Set.of(systemPrincipal), privilegesFromNames(JCR_READ, JCR_NODE_TYPE_MANAGEMENT)));
     }
 
     @Test(expected = AccessDeniedException.class)
     public void testGetPrivilegeSystemUser() throws Exception {
         // test session has no access
-        testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal));
+        testAcMgr.getPrivileges(null, Set.of(systemPrincipal));
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -480,7 +480,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         root.commit();
         testRoot.refresh();
 
-        testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal));
+        testAcMgr.getPrivileges(null, Set.of(systemPrincipal));
     }
 
     @Test
@@ -490,7 +490,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         root.commit();
         testRoot.refresh();
 
-        assertEquals(0, testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal)).length);
+        assertEquals(0, testAcMgr.getPrivileges(null, Set.of(systemPrincipal)).length);
     }
 
     @Test
@@ -502,7 +502,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         testRoot.refresh();
 
         // default model lacks jcr:nodeTypeManagement privilege -> not granted
-        assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal)));
+        assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null, Set.of(systemPrincipal)));
 
         addDefaultEntry(null, systemPrincipal, JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT);
         root.commit();
@@ -510,7 +510,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
 
         // once default model grants namespace-mgt privilege as well -> granted
         // but not rep:privilegeMgt because the principal-based model doesn't grant that one
-        assertArrayEquals(privilegesFromNames(JCR_NAMESPACE_MANAGEMENT), testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal)));
+        assertArrayEquals(privilegesFromNames(JCR_NAMESPACE_MANAGEMENT), testAcMgr.getPrivileges(null, Set.of(systemPrincipal)));
     }
 
     @Test

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -26,14 +25,14 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import static org.apache.jackrabbit.guava.common.collect.Collections2.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
 
 /**
@@ -70,19 +69,13 @@ public class VersionHook implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
-        Set<String> existingVersionables = newHashSet();
+        Set<String> existingVersionables = new HashSet<>();
 
-        List<EditorProvider> providers = newArrayList();
+        List<EditorProvider> providers = new ArrayList<>();
         providers.add(new VersionEditorProvider());
         providers.add(new VersionableCollector.Provider(existingVersionables));
         providers.add(new OrphanedVersionCleaner.Provider(existingVersionables));
 
-        return compose(transform(providers, new Function<EditorProvider, CommitHook>() {
-            @Nullable
-            @Override
-            public CommitHook apply(@Nullable EditorProvider input) {
-                return new EditorHook(input);
-            }
-        })).processCommit(before, after, info);
+        return compose(transform(providers, input -> new EditorHook(input))).processCommit(before, after, info);
     }
 }

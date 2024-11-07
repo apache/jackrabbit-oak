@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.ArrayList;
@@ -77,15 +77,15 @@ public class GlobbingPathFilter implements EventFilter {
         // OAK-5589 : for internal constructor case don't copy the pattern, refer to the same one
         // this will work fine given the public constructors make a copy and internally we're
         // never fiddling with the pattern list
-        this.pattern = checkNotNull(pattern);
-        this.patternMap = checkNotNull(patternMap);
+        this.pattern = requireNonNull(pattern);
+        this.patternMap = requireNonNull(patternMap);
     }
 
     public GlobbingPathFilter(@NotNull String pattern, Map<String, Pattern> patternMap) {
         // OAK-5589 : use the fastest way to create a List based on an unknown deep pattern
         this.pattern = new ArrayList<String>(10);
-        Iterators.addAll(this.pattern, elements(checkNotNull(pattern)).iterator());
-        this.patternMap = checkNotNull(patternMap);
+        Iterators.addAll(this.pattern, elements(requireNonNull(pattern)).iterator());
+        this.patternMap = requireNonNull(patternMap);
     }
 
     /** for testing only - use variant which passes the patternMap for productive code **/

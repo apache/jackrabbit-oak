@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -36,9 +37,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Supplier;
+
 
 /**
  * Instances of this class manage the deduplication caches used by the {@link
@@ -116,7 +115,7 @@ public abstract class WriterCacheManager {
     public WriterCacheManager withAccessTracking(
             @NotNull String name,
             @NotNull StatisticsProvider statisticsProvider) {
-        return new AccessTrackingCacheManager(checkNotNull(name), checkNotNull(statisticsProvider), this);
+        return new AccessTrackingCacheManager(requireNonNull(name), requireNonNull(statisticsProvider), this);
     }
 
     /**
@@ -247,7 +246,7 @@ public abstract class WriterCacheManager {
                 @NotNull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
-            this.nodeCache = memoize(nodeCacheFactory);
+            this.nodeCache = memoize(nodeCacheFactory::get);
         }
 
         /**
@@ -263,17 +262,17 @@ public abstract class WriterCacheManager {
         }
 
         private static class Generations<T> implements Iterable<T> {
-            private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
+            private final ConcurrentMap<Integer, Supplier<T>> generations = new ConcurrentHashMap<>();
             private final Supplier<T> cacheFactory;
 
             Generations(@NotNull Supplier<T> cacheFactory) {
-                this.cacheFactory = checkNotNull(cacheFactory);
+                this.cacheFactory = requireNonNull(cacheFactory);
             }
 
             T getGeneration(final int generation) {
                 // Preemptive check to limit the number of wasted (Memoizing)Supplier instances
                 if (!generations.containsKey(generation)) {
-                    generations.putIfAbsent(generation, memoize(cacheFactory));
+                    generations.putIfAbsent(generation, memoize(cacheFactory::get));
                 }
                 return generations.get(generation).get();
             }
@@ -281,18 +280,14 @@ public abstract class WriterCacheManager {
             @NotNull
             @Override
             public Iterator<T> iterator() {
-                return transform(generations.values().iterator(), new Function<Supplier<T>, T>() {
-                    @Nullable @Override
-                    public T apply(Supplier<T> cacheFactory) {
-                        return cacheFactory.get();
-                    }
-                });
+                return transform(generations.values().iterator(),
+                        cacheFactory -> cacheFactory.get());
             }
 
             void evictGenerations(@NotNull Predicate<Integer> evict) {
                 Iterator<Integer> it = generations.keySet().iterator();
                 while (it.hasNext()) {
-                    if (evict.apply(it.next())) {
+                    if (evict.test(it.next())) {
                         it.remove();
                     }
                 }

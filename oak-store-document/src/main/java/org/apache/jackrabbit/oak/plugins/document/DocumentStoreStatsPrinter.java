@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.osgi.service.component.annotations.Component;
@@ -59,7 +57,7 @@ public class DocumentStoreStatsPrinter implements InventoryPrinter {
 
     private void printTitle(PrintWriter pw, String title) {
         pw.println(title);
-        pw.println(Strings.repeat("=", title.length()));
+        pw.println("=".repeat(title.length()));
     }
 
     private void print(PrintWriter pw, Map<String, String> data) {

@@ -15,10 +15,8 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState.binaryPropertyFromBlob;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -32,6 +30,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -174,7 +173,7 @@ public class ClassicCompactorTest {
     }
 
     private static List<Blob> createBlobs(NodeStore nodeStore, int... sizes) throws IOException {
-        List<Blob> blobs = newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         for (int size : sizes) {
             blobs.add(createBlob(nodeStore, size));
         }

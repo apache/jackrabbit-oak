@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -203,7 +202,7 @@ public class ResurrectNodeAfterRevisionGCTest
         UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
         op.set("p", 0);
         op.set(NodeDocument.MODIFIED_IN_SECS, 50);
-        assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
+        assertTrue(ds1.create(Collection.NODES, List.of(op)));
         NodeDocument doc = ds2.find(Collection.NODES, op.getId());
         assertNotNull(doc);
         assertEquals(0L, doc.get("p"));
@@ -213,9 +212,9 @@ public class ResurrectNodeAfterRevisionGCTest
         // recreate with different value for 'p'
         op.set("p", 1);
         op.set(NodeDocument.MODIFIED_IN_SECS, 55);
-        assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
+        assertTrue(ds1.create(Collection.NODES, List.of(op)));
 
-        inv.perform(ds2, Lists.newArrayList(op.getId()));
+        inv.perform(ds2, List.of(op.getId()));
         doc = ds2.find(Collection.NODES, op.getId());
         assertNotNull(doc);
         assertEquals(1L, doc.get("p"));
@@ -225,7 +224,7 @@ public class ResurrectNodeAfterRevisionGCTest
     private void resurrectInvalidate(Invalidate inv) throws Exception {
         UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
         op.set("p", 0);
-        assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
+        assertTrue(ds1.create(Collection.NODES, List.of(op)));
         NodeDocument doc = ds2.find(Collection.NODES, op.getId());
         assertNotNull(doc);
         assertEquals(0L, doc.get("p"));
@@ -233,9 +232,9 @@ public class ResurrectNodeAfterRevisionGCTest
         ds1.remove(Collection.NODES, op.getId());
         // recreate with different value for 'p'
         op.set("p", 1);
-        assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
+        assertTrue(ds1.create(Collection.NODES, List.of(op)));
 
-        inv.perform(ds2, Lists.newArrayList(op.getId()));
+        inv.perform(ds2, List.of(op.getId()));
         doc = ds2.find(Collection.NODES, op.getId());
         assertNotNull(doc);
         assertEquals(1L, doc.get("p"));

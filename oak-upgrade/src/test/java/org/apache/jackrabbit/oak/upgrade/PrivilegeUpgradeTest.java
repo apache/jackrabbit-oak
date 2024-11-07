@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,12 +35,12 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ADD_CHILD_NODES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
@@ -91,7 +92,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Test
     public void verifyPrivileges() throws RepositoryException {
-        Set<String> nonAggregatePrivileges = newHashSet(
+        Set<String> nonAggregatePrivileges = CollectionUtils.toSet(
             REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
             REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
             JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
@@ -102,19 +103,19 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
         Map<String, Set<String>> aggregatePrivileges = Maps.newHashMap();
         aggregatePrivileges.put(JCR_READ,
-                ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES));
+                Set.of(REP_READ_NODES, REP_READ_PROPERTIES));
         aggregatePrivileges.put(JCR_MODIFY_PROPERTIES,
-                ImmutableSet.of(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
+                Set.of(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
         aggregatePrivileges.put(JCR_WRITE,
-                ImmutableSet.of(JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
+                Set.of(JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
                         REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES,
                         JCR_REMOVE_NODE));
         aggregatePrivileges.put(REP_WRITE,
-                ImmutableSet.of(JCR_WRITE, JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES,
+                Set.of(JCR_WRITE, JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES,
                         REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES,
                         JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT));
         aggregatePrivileges.put(JCR_ALL,
-                ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
+                Set.of(REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
                         REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
                         JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
                         JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
@@ -123,9 +124,9 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
                         REP_INDEX_DEFINITION_MANAGEMENT, JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE,
                         "test:privilege", "test:privilege2", "test:aggregate", "test:aggregate2"));
         aggregatePrivileges.put("test:aggregate",
-                ImmutableSet.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege"));
+                Set.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege"));
         aggregatePrivileges.put("test:aggregate2",
-                ImmutableSet.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege", "test:privilege2", "test:aggregate"));
+                Set.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege", "test:privilege2", "test:aggregate"));
 
         JackrabbitSession session = createAdminSession();
         try {
@@ -141,7 +142,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
                         assertTrue("Miss match in aggregate privilege " + privilege.getName() +
                                 " expected " + expected +
                                 " actual " + Arrays.toString(actual),
-                            newHashSet(expected).equals(newHashSet(actual)));
+                            new HashSet<>(expected).equals(CollectionUtils.toSet(actual)));
                     }
                 } else {
                     nonAggregatePrivileges.remove(privilege.getName());

@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 
 import org.jetbrains.annotations.NotNull;
@@ -122,7 +122,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      * @return {@code true} if this version can read, {@code false} otherwise.
      */
     public boolean canRead(FormatVersion other) {
-        return compareTo(checkNotNull(other)) >= 0;
+        return compareTo(requireNonNull(other)) >= 0;
     }
 
     /**
@@ -138,7 +138,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     @NotNull
     public static FormatVersion versionOf(@NotNull DocumentStore store)
             throws DocumentStoreException {
-        checkNotNull(store);
+        requireNonNull(store);
         FormatVersion v = V0;
         Document d = store.find(SETTINGS, VERSION_ID);
         if (d != null) {
@@ -177,7 +177,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      */
     public boolean writeTo(@NotNull DocumentStore store)
             throws DocumentStoreException {
-        checkNotNull(store);
+        requireNonNull(store);
         FormatVersion v = versionOf(store);
         if (v == this) {
             // already on this version
@@ -187,7 +187,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
             // never downgrade
             throw unableToWrite("Version " + this + " cannot read " + v);
         }
-        List<Integer> active = Lists.newArrayList();
+        List<Integer> active = new ArrayList<>();
         for (ClusterNodeInfoDocument d : ClusterNodeInfoDocument.all(store)) {
             if (d.isActive()) {
                 active.add(d.getClusterId());
@@ -199,7 +199,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
         if (v == V0) {
             UpdateOp op = new UpdateOp(VERSION_ID, true);
             op.set(PROP_VERSION, toString());
-            if (!store.create(SETTINGS, Lists.newArrayList(op))) {
+            if (!store.create(SETTINGS, List.of(op))) {
                 throw concurrentUpdate();
             }
         } else {
@@ -259,7 +259,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
 
     @Override
     public int compareTo(@NotNull FormatVersion other) {
-        checkNotNull(other);
+        requireNonNull(other);
         return ComparisonChain.start()
                 .compare(major, other.major)
                 .compare(minor, other.minor)

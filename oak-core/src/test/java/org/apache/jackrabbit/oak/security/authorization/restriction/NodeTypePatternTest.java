@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 
 public class NodeTypePatternTest extends AbstractSecurityTest {
 
-    private final Set<String> ntNames = ImmutableSet.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FOLDER);
+    private final Set<String> ntNames = Set.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FOLDER);
 
     private final NodeTypePattern pattern = new NodeTypePattern(ntNames);
 
@@ -102,9 +102,9 @@ public class NodeTypePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new NodeTypePattern(ImmutableSet.of(JcrConstants.NT_UNSTRUCTURED)));
-        assertNotEquals(pattern, new NodeTypePattern(ImmutableSet.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FILE)));
-        assertNotEquals(pattern, new NodeTypePattern(ImmutableSet.of(JcrConstants.NT_VERSION)));
+        assertNotEquals(pattern, new NodeTypePattern(Set.of(JcrConstants.NT_UNSTRUCTURED)));
+        assertNotEquals(pattern, new NodeTypePattern(Set.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FILE)));
+        assertNotEquals(pattern, new NodeTypePattern(Set.of(JcrConstants.NT_VERSION)));
         assertNotEquals(pattern, new ItemNamePattern(ntNames));
     }
 

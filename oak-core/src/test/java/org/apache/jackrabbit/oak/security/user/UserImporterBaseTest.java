@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
@@ -48,6 +47,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -173,7 +174,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
 
     @NotNull
     PropInfo createPropInfo(@Nullable String name, final String... values) {
-        List<TextValue> txtValues = Lists.newArrayList();
+        List<TextValue> txtValues = new ArrayList<>();
         for (final String v : values) {
             txtValues.add(new TextValue() {
                 @Override

@@ -37,7 +37,6 @@ import javax.jcr.Node
 import javax.jcr.Session
 import javax.jcr.query.*
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT
 import static org.apache.jackrabbit.JcrConstants.NT_FILE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME
@@ -72,7 +71,7 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         session.save()
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
+                NT_FILE, new ArrayList<>(Arrays.asList(JCR_CONTENT, JCR_CONTENT + "/*")));
         getRegistry ( ).registerService ( QueryIndex.NodeAggregator.class.name, agg, null )
 
         //The lucene index is set to synched mode

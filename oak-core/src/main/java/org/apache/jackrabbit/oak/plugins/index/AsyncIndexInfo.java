@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class AsyncIndexInfo {
     private final String name;
@@ -32,7 +32,7 @@ public class AsyncIndexInfo {
     private final IndexStatsMBean statsMBean;
 
     public AsyncIndexInfo(String name, long lastIndexedTo, long leaseExpiryTime, boolean running, @Nullable IndexStatsMBean statsMBean) {
-        this.name = checkNotNull(name);
+        this.name = requireNonNull(name);
         this.lastIndexedTo = lastIndexedTo;
         this.leaseExpiryTime = leaseExpiryTime;
         this.running = running;

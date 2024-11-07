@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -49,8 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
@@ -122,11 +122,9 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
 
     private static final long BUCKET_SIZE = 100;
 
-    private static final List<String> actions = Lists
-        .newArrayList("act1", "act2", "act3", "act4", "act5", "act6", "act7", "act8", "act9",
+    private static final List<String> actions = List.of("act1", "act2", "act3", "act4", "act5", "act6", "act7", "act8", "act9",
             "act10");
-    private static final List<String> objects = Lists
-        .newArrayList("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7", "obj8", "obj9",
+    private static final List<String> objects = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7", "obj8", "obj9",
             "obj10");
 
     private final Random random = new Random(29);
@@ -145,8 +143,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         root.addNode(ROOT_NODE_NAME);
         session.save();
 
-        users = Lists.newArrayList();
-        groups = Lists.newArrayList();
+        users = new ArrayList<>();
+        groups = new ArrayList<>();
 
         if (CUSTOM_TYPE) {
             NodeTypeUtils.createNodeType(session, CUSTOM_ACT_NODE_TYPE,
@@ -196,7 +194,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
             // define lucene index on properties
             case LUCENE_FILE:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
                         new String[]{SOURCE_ID, CREATED},
@@ -205,7 +203,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
                 Map<String, String> propMap = Maps.newHashMap();
@@ -502,7 +500,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
          */
         private void createRelationships(Authorizable user, Node relationshipsParentNode,
             Node activitiesParentNode) throws RepositoryException {
-            List<Integer> usersIdx = Lists.newArrayList();
+            List<Integer> usersIdx = new ArrayList<>();
             for (int count = 0; count < users.size(); count++) {
                 usersIdx.add(count);
             }

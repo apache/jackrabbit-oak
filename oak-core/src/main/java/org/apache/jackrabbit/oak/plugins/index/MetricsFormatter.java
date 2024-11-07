@@ -16,46 +16,62 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
+import java.util.concurrent.TimeUnit;
+
 public class MetricsFormatter {
-    private final JsopBuilder jsopBuilder = new JsopBuilder();
-    private boolean isWritable = true;
+
+    public static String createMetricsWithDurationOnly(Stopwatch taskStartWatch) {
+        return createMetricsWithDurationOnly(taskStartWatch.elapsed(TimeUnit.SECONDS));
+    }
+
+    public static String createMetricsWithDurationOnly(long totalDurationSeconds) {
+        return MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(totalDurationSeconds))
+                .add("durationSeconds", totalDurationSeconds)
+                .build();
+    }
+
     public static MetricsFormatter newBuilder() {
         return new MetricsFormatter();
     }
+
+    private final JsopBuilder jsopBuilder = new JsopBuilder();
+    private boolean isWritable = true;
 
     private MetricsFormatter() {
         jsopBuilder.object();
     }
 
     public MetricsFormatter add(String key, String value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public MetricsFormatter add(String key, int value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public MetricsFormatter add(String key, long value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public MetricsFormatter add(String key, boolean value) {
-        Preconditions.checkState(isWritable, "Formatter already built, in read-only mode");
+        Validate.checkState(isWritable, "Formatter already built, in read-only mode");
         jsopBuilder.key(key).value(value);
         return this;
     }
 
     public String build() {
-        if (isWritable){
+        if (isWritable) {
             jsopBuilder.endObject();
             isWritable = false;
         }

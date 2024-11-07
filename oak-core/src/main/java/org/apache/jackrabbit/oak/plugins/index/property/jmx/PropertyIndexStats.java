@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,7 +37,6 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -162,8 +162,8 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
 
     private String[] determineIndexedPaths(Iterable<? extends ChildNodeEntry> values,
                                            final int maxDepth, int maxPathCount) {
-        Set<String> paths = Sets.newHashSet();
-        Set<String> intermediatePaths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
+        Set<String> intermediatePaths = new HashSet<>();
         int maxPathLimitBreachedAtLevel = -1;
         topLevel:
         for (ChildNodeEntry cne : values) {
@@ -205,7 +205,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
         //If max limit for path is reached then we can safely
         //say about includedPaths upto depth = level at which limit reached - 1
         //As for that level we know *all* the path roots
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = new HashSet<>();
         int safeDepth = maxPathLimitBreachedAtLevel - 1;
         if (safeDepth > 0) {
             for (String path : intermediatePaths) {

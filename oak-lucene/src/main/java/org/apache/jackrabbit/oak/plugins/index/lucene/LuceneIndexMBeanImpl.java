@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -94,7 +95,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
@@ -110,10 +110,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
         super(LuceneIndexMBean.class);
-        this.indexTracker = checkNotNull(indexTracker);
-        this.nodeStore = checkNotNull(nodeStore);
+        this.indexTracker = requireNonNull(indexTracker);
+        this.nodeStore = requireNonNull(nodeStore);
         this.indexPathService = indexPathService;
-        this.workDir = checkNotNull(workDir);
+        this.workDir = requireNonNull(workDir);
         this.propertyIndexCleaner = cleaner;
     }
 
@@ -440,7 +440,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             if (indexNode != null) {
                 log.info("Dumping Lucene directory content for [{}] to [{}]", sourcePath, destPath);
                 Directory source = getDirectory(getPrimaryReader(indexNode.getPrimaryReaders()));
-                checkNotNull(source, "IndexSearcher not backed by DirectoryReader");
+                requireNonNull(source, "IndexSearcher not backed by DirectoryReader");
                 Directory dest = FSDirectory.open(new File(destPath));
                 for (String file : source.listAll()) {
                     source.copy(dest, file, file, IOContext.DEFAULT);
@@ -547,7 +547,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
             throws IOException {
-        Set<String> paths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
         int startDepth = getStartDepth(searcher, maxLevel);
         if (startDepth < 0){
             return createMsg("startDepth cannot be determined after search for upto maxLevel ["+maxLevel+"]");
@@ -585,7 +585,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         //If max limit for path is reached then we can safely
         //say about includedPaths upto depth = level at which limit reached - 1
         //As for that level we know *all* the path roots
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = new HashSet<>();
         int safeDepth = maxPathLimitBreachedAtLevel - 1;
         if (safeDepth > 0) {
             for (String path : paths) {

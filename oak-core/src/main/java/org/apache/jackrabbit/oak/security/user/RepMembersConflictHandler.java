@@ -57,7 +57,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
             @NotNull PropertyState theirs) {
         if (isRepMembersProperty(theirs)) {
-            mergeChange(parent, ours, theirs, ImmutableSet.of());
+            mergeChange(parent, ours, theirs, Set.of());
             return Resolution.MERGED;
         } else {
             return Resolution.IGNORED;

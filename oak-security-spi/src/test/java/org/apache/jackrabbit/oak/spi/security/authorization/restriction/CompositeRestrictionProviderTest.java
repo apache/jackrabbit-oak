@@ -75,7 +75,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     private final AbstractRestrictionProvider rp1 = spy(createRestrictionProvider(GLOB_RESTRICTION.getDefinition(), NT_PREFIXES_RESTRICTION.getDefinition()));
     private final AbstractRestrictionProvider rp2 = spy(createRestrictionProvider(MANDATORY_BOOLEAN_RESTRICTION.getDefinition(), LONGS_RESTRICTION.getDefinition()));
 
-    private final Set<String> supported = ImmutableSet.of(
+    private final Set<String> supported = Set.of(
             MANDATORY_BOOLEAN_RESTRICTION.getDefinition().getName(),
             LONGS_RESTRICTION.getDefinition().getName(),
             REP_PREFIXES,
@@ -106,7 +106,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
             @Override
             public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
                 if (toRead != null) {
-                    return ImmutableSet.of(toRead);
+                    return Set.of(toRead);
                 } else {
                     return super.readRestrictions(oakPath, aceTree);
                 }
@@ -168,7 +168,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testNewInstance() {
-        RestrictionProvider crp = CompositeRestrictionProvider.newInstance(ImmutableSet.of(rp1, rp2));
+        RestrictionProvider crp = CompositeRestrictionProvider.newInstance(Set.of(rp1, rp2));
         RestrictionProvider crp2 = CompositeRestrictionProvider.newInstance(rp1, rp2);
 
         assertEquals(crp.getSupportedRestrictions("/testPath"), crp2.getSupportedRestrictions("/testPath"));
@@ -282,7 +282,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testWriteRestrictions() throws Exception {
         Tree aceTree = getAceTree();
-        provider.writeRestrictions("/test", aceTree, ImmutableSet.of(LONGS_RESTRICTION, GLOB_RESTRICTION));
+        provider.writeRestrictions("/test", aceTree, Set.of(LONGS_RESTRICTION, GLOB_RESTRICTION));
         verify(rp1, times(1)).writeRestrictions("/test", aceTree, Collections.singleton(GLOB_RESTRICTION));
         verify(rp2, times(1)).writeRestrictions("/test", aceTree, Collections.singleton(LONGS_RESTRICTION));
     }
@@ -365,7 +365,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testGetRestrictionPatternEmptyComposite() {
-        assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance().getPattern("/test", ImmutableSet.of(GLOB_RESTRICTION)));
+        assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance().getPattern("/test", Set.of(GLOB_RESTRICTION)));
     }
 
 
@@ -373,7 +373,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     public void testGetRestrictionPatternSingleEmpty() {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(
                 createRestrictionProvider(RestrictionPattern.EMPTY, null)).
-                getPattern("/test", ImmutableSet.of(GLOB_RESTRICTION)));
+                getPattern("/test", Set.of(GLOB_RESTRICTION)));
     }
 
     @Test

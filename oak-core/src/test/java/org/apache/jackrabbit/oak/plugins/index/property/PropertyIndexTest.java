@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
@@ -45,6 +44,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -85,9 +85,7 @@ import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Test the Property2 index mechanism.
@@ -106,7 +104,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         // disable the estimation
         index.setProperty("entryCount", -1);        
         NodeState before = builder.getNodeState();
@@ -157,7 +155,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         // disable the estimation
         index.setProperty("entryCount", -1);
         builder.setProperty(COUNT_PROPERTY_NAME, (long) MANY * 2, Type.LONG);
@@ -208,7 +206,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         NodeState before = builder.getNodeState();
 
         // 100 nodes in the index:
@@ -260,7 +258,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -280,9 +278,9 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
-        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+        assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
+        assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
         assertEquals(MANY, find(lookup, "foo", "xyz", f).size());
         assertEquals(MANY + 2, find(lookup, "foo", null, f).size());
 
@@ -300,7 +298,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -316,12 +314,12 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("a"), find(lookup, "foo", "abc", f));
     }
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return Sets.newHashSet(lookup.query(filter, name, value == null ? null
+        return CollectionUtils.toSet(lookup.query(filter, name, value == null ? null
                 : PropertyValues.newString(value)));
     }
 
@@ -332,7 +330,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo", "extrafoo"),
+                "fooIndex", true, false, Set.of("foo", "extrafoo"),
                 null);
         NodeState before = builder.getNodeState();
 
@@ -354,14 +352,14 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
-        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+        assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
+        assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
         assertEquals(MANY, find(lookup, "foo", "xyz", f).size());
-        assertEquals(ImmutableSet.of("a"), find(lookup, "extrafoo", "pqr", f));
+        assertEquals(Set.of("a"), find(lookup, "extrafoo", "pqr", f));
 
         try {
-            assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo", f));
+            assertEquals(Set.of(), find(lookup, "pqr", "foo", f));
             fail();
         } catch (IllegalArgumentException e) {
             // expected: no index for "pqr"
@@ -381,10 +379,10 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         createIndexDefinition(index, "fooIndex", true, false,
-                ImmutableSet.of("foo", "extrafoo"),
-                ImmutableSet.of(NT_UNSTRUCTURED));
+                Set.of("foo", "extrafoo"),
+                Set.of(NT_UNSTRUCTURED));
         createIndexDefinition(index, "fooIndexFile", true, false,
-                ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
+                Set.of("foo"), Set.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -402,12 +400,12 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
-        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+        assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
+        assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
 
         try {
-            assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo", f));
+            assertEquals(Set.of(), find(lookup, "pqr", "foo", f));
             fail();
         } catch (IllegalArgumentException e) {
             // expected: no index for "pqr"
@@ -435,10 +433,10 @@ public class PropertyIndexTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         createIndexDefinition(
                 index, "fooIndex", true, false,
-                ImmutableSet.of("foo", "extrafoo"), null);
+                Set.of("foo", "extrafoo"), null);
         createIndexDefinition(
                 index, "fooIndexFile", true, false,
-                ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
+                Set.of("foo"), Set.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -457,12 +455,12 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
-        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+        assertEquals(Set.of("a", "b"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("b"), find(lookup, "foo", "def", f));
+        assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
 
         try {
-            assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo", f));
+            assertEquals(Set.of(), find(lookup, "pqr", "foo", f));
             fail();
         } catch (IllegalArgumentException e) {
             // expected: no index for "pqr"
@@ -478,7 +476,7 @@ public class PropertyIndexTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder indexDef = createIndexDefinition(
                 index, "fooIndex", true, false,
-                ImmutableSet.of("foo"), null);
+                Set.of("foo"), null);
         indexDef.setProperty(IndexConstants.VALUE_PATTERN, "(a.*|b)");
         NodeState before = builder.getNodeState();
 
@@ -505,9 +503,9 @@ public class PropertyIndexTest {
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "a", f));
-        assertEquals(ImmutableSet.of("a1"), find(lookup, "foo", "a1", f));
-        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "b", f));
+        assertEquals(Set.of("a"), find(lookup, "foo", "a", f));
+        assertEquals(Set.of("a1"), find(lookup, "foo", "a1", f));
+        assertEquals(Set.of("b"), find(lookup, "foo", "b", f));
 
         // expected: no index for "is not null"
         assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
@@ -535,7 +533,7 @@ public class PropertyIndexTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder indexDef = createIndexDefinition(
                 index, "fooIndex", true, false,
-                ImmutableSet.of("foo"), null);
+                Set.of("foo"), null);
         indexDef.setProperty(IndexConstants.VALUE_EXCLUDED_PREFIXES, "test");
         valuePatternExclude0(builder);
     }
@@ -548,7 +546,7 @@ public class PropertyIndexTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder indexDef = createIndexDefinition(
                 index, "fooIndex", true, false,
-                ImmutableSet.of("foo"), null);
+                Set.of("foo"), null);
         PropertyState ps = PropertyStates.createProperty(
                 IndexConstants.VALUE_EXCLUDED_PREFIXES,
                 Arrays.asList("test"),
@@ -583,9 +581,9 @@ public class PropertyIndexTest {
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "a", f));
-        assertEquals(ImmutableSet.of("a1"), find(lookup, "foo", "a1", f));
-        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "b", f));
+        assertEquals(Set.of("a"), find(lookup, "foo", "a", f));
+        assertEquals(Set.of("a1"), find(lookup, "foo", "a1", f));
+        assertEquals(Set.of("b"), find(lookup, "foo", "b", f));
 
         // expected: no index for "is not null", "= 'test'", "like 't%'"
         assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
@@ -625,7 +623,7 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         createIndexDefinition(
                 builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"), null);
+                "fooIndex", true, true, Set.of("foo"), null);
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
@@ -643,7 +641,7 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         createIndexDefinition(
                 builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"), null);
+                "fooIndex", true, true, Set.of("foo"), null);
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
@@ -668,8 +666,8 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"),
-                ImmutableSet.of("typeFoo"));
+                "fooIndex", true, true, Set.of("foo"),
+                Set.of("typeFoo"));
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
@@ -687,8 +685,8 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"),
-                ImmutableSet.of("typeFoo"));
+                "fooIndex", true, true, Set.of("foo"),
+                Set.of("typeFoo"));
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
@@ -706,8 +704,8 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, true, ImmutableSet.of("foo"),
-                ImmutableSet.of("typeFoo"));
+                "fooIndex", true, true, Set.of("foo"),
+                Set.of("typeFoo"));
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
@@ -745,8 +743,8 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+                true, false, Set.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -760,7 +758,7 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("test/a"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("test/a"), find(lookup, "foo", "abc", f));
     }
 
     @Test
@@ -770,8 +768,8 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+                true, false, Set.of("foo"), null);
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -786,7 +784,7 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("test/b"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("test/b"), find(lookup, "foo", "abc", f));
 
         //no path restriction, opt out
         PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
@@ -810,9 +808,9 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
-        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+                true, false, Set.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/test/a/b"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -827,7 +825,7 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("test/a"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of("test/a"), find(lookup, "foo", "abc", f));
 
         //no path restriction, opt out
         PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
@@ -857,9 +855,9 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
-        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+                true, false, Set.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a/b"), Type.STRINGS));
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -889,9 +887,9 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
-        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+                true, false, Set.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/test/a/b"), Type.STRINGS));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -914,7 +912,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -944,8 +942,8 @@ public class PropertyIndexTest {
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed,mip);
-        assertEquals(ImmutableSet.of("a", "b/x", "a/x", "m", "m/n", "m/n/o"), find(lookup, "foo", "abc", f));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+        assertEquals(Set.of("a", "b/x", "a/x", "m", "m/n", "m/n/o"), find(lookup, "foo", "abc", f));
+        assertEquals(Set.of(), find(lookup, "foo", "ghi", f));
 
         assertTrue(getNode(indexed, "/oak:index/foo/:index").exists());
 
@@ -980,7 +978,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -1014,7 +1012,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
+                true, true, Set.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -1055,7 +1053,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
+                true, true, Set.of("foo"), null);
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
@@ -1098,7 +1096,7 @@ public class PropertyIndexTest {
         // Add index definition
         NodeBuilder builder = root.builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         // disable the estimation
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();

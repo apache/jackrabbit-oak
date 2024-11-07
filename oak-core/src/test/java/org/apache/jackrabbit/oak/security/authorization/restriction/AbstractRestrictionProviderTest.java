@@ -114,7 +114,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
         Tree aceTree = getAceTree();
 
-        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.of(r));
+        restrictionProvider.writeRestrictions(testPath, aceTree, Set.of(r));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
         Tree restr = aceTree.getChild(REP_RESTRICTIONS);
@@ -126,7 +126,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         PropertyState ps = PropertyStates.createProperty(REP_GLOB, valueFactory.createValue(false));
         Tree aceTree = getAceTree();
 
-        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.of(new RestrictionImpl(ps, false)));
+        restrictionProvider.writeRestrictions(testPath, aceTree, Set.of(new RestrictionImpl(ps, false)));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
         Tree restr = aceTree.getChild(REP_RESTRICTIONS);

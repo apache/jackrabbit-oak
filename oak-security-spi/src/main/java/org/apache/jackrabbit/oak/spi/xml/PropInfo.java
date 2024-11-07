@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -25,7 +26,6 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
@@ -163,7 +163,7 @@ public class PropInfo {
         if (values.isEmpty()) {
             return Collections.emptyList();
         } else {
-            List<Value> vs = Lists.newArrayListWithCapacity(values.size());
+            List<Value> vs = new ArrayList<>(values.size());
             for (TextValue value : values) {
                 vs.add(value.getValue(targetType));
             }

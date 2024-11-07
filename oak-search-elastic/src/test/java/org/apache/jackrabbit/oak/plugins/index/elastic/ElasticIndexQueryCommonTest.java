@@ -52,7 +52,7 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         String query = "explain select [jcr:path] from [nt:base] where " +
                 "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
 
-        String explainWithoutSimilarityTags = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"must\":[{\"more_like_this\":{\"fields\":[\":dynamic-boost-ft\",\"*\"],\"include\":true,\"like\":[{\"_id\":\"/test/a\",\"per_field_analyzer\":{\"_ignored\":\"keyword\"}}],\"min_doc_freq\":0,\"min_term_freq\":0}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
+        String explainWithoutSimilarityTags = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"should\":[{\"more_like_this\":{\"boost\":3.0,\"include\":true,\"like\":[{\"fields\":[\":dynamic-boost-ft\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}},{\"more_like_this\":{\"include\":true,\"like\":[{\"fields\":[\"*\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World");
@@ -71,7 +71,7 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         // similarity tags enabled, but no similarity tags properties configured, should not be present in the explain output
         assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, false));
 
-        String explainWithSimilarityTags = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"must\":[{\"more_like_this\":{\"fields\":[\":dynamic-boost-ft\",\"*\"],\"include\":true,\"like\":[{\"_id\":\"/test/a\",\"per_field_analyzer\":{\"_ignored\":\"keyword\"}}],\"min_doc_freq\":0,\"min_term_freq\":0}}],\"should\":[{\"more_like_this\":{\"boost\":0.5,\"fields\":[\":simTags\"],\"like\":[{\"_id\":\"/test/a\"}],\"min_doc_freq\":1,\"min_term_freq\":1}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
+        String explainWithSimilarityTags = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"should\":[{\"more_like_this\":{\"boost\":3.0,\"include\":true,\"like\":[{\"fields\":[\":dynamic-boost-ft\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}},{\"more_like_this\":{\"include\":true,\"like\":[{\"fields\":[\"*\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}},{\"more_like_this\":{\"boost\":0.5,\"fields\":[\":simTags\"],\"like\":[{\"_id\":\"/test/a\"}],\"min_doc_freq\":1,\"min_term_freq\":1}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
         Tree properties = indexDefn.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base").getChild("properties");
         Tree simProp = TestUtil.enableForFullText(properties, "simProp", false);
         simProp.setProperty(FulltextIndexConstants.PROP_SIMILARITY_TAGS, true);

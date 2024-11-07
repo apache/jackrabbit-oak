@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -52,7 +52,7 @@ public abstract class AbstractMutableTree extends AbstractTree {
             NodeBuilder parentBuilder = parent.getNodeBuilder();
             PropertyState order = parentBuilder.getProperty(OAK_CHILD_ORDER);
             if (order != null) {
-                List<String> names = newArrayListWithCapacity(order.count());
+                List<String> names = new ArrayList<>(order.count());
                 for (String n : order.getValue(NAMES)) {
                     if (!n.equals(name)) {
                         names.add(n);
@@ -75,7 +75,7 @@ public abstract class AbstractMutableTree extends AbstractTree {
             nodeBuilder.setChildNode(name);
             PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
             if (order != null) {
-                List<String> names = newArrayListWithCapacity(order.count() + 1);
+                List<String> names = new ArrayList<>(order.count() + 1);
                 for (String n : order.getValue(NAMES)) {
                     if (!n.equals(name)) {
                         names.add(n);
@@ -123,7 +123,7 @@ public abstract class AbstractMutableTree extends AbstractTree {
         }
 
         // perform the reorder
-        List<String> names = newArrayListWithCapacity(10000);
+        List<String> names = new ArrayList<>(10000);
         NodeBuilder builder = parent.getNodeBuilder();
         boolean found = false;
 
@@ -170,25 +170,25 @@ public abstract class AbstractMutableTree extends AbstractTree {
 
     @Override
     public void setProperty(@NotNull PropertyState property) {
-        checkArgument(!isHidden(checkNotNull(property).getName()));
+        checkArgument(!isHidden(requireNonNull(property).getName()));
         getNodeBuilder().setProperty(property);
     }
 
     @Override
     public <T> void setProperty(@NotNull String name, @NotNull T value) throws IllegalArgumentException {
-        checkArgument(!isHidden(checkNotNull(name)));
-        getNodeBuilder().setProperty(name, checkNotNull(value));
+        checkArgument(!isHidden(requireNonNull(name)));
+        getNodeBuilder().setProperty(name, requireNonNull(value));
     }
 
     @Override
     public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type)
             throws IllegalArgumentException {
-        checkArgument(!isHidden(checkNotNull(name)));
-        getNodeBuilder().setProperty(name, checkNotNull(value), checkNotNull(type));
+        checkArgument(!isHidden(requireNonNull(name)));
+        getNodeBuilder().setProperty(name, requireNonNull(value), requireNonNull(type));
     }
 
     @Override
     public void removeProperty(@NotNull String name) {
-        getNodeBuilder().removeProperty(checkNotNull(name));
+        getNodeBuilder().removeProperty(requireNonNull(name));
     }
 }

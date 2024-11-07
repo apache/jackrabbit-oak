@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.JcrConstants;
@@ -33,9 +31,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+
+import java.util.function.Function;
 
 class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
     private static final Logger log = LoggerFactory.getLogger(NodeStoreBinaryResourceProvider.class);
@@ -50,8 +49,8 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
     public FluentIterable<BinaryResource> getBinaries(String path) {
         return new OakTreeTraverser()
                 .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)))
-                .transform(new TreeToBinarySource())
-                .filter(notNull());
+                .transform(new TreeToBinarySource()::apply)
+                .filter(x -> x != null);
     }
 
     private class TreeToBinarySource implements Function<Tree, BinaryResource> {
