@@ -20,10 +20,11 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Function;
+
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
@@ -49,8 +50,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
@@ -237,7 +237,7 @@ public class IdentifierManager {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return Iterators.concat(transform(result.getRows().iterator(), new RowToPaths()));
+                return Iterators.concat(transform(result.getRows().iterator(), new RowToPaths()::apply));
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {
@@ -271,8 +271,8 @@ public class IdentifierManager {
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
                             if (propertyName == null) {
                                 return filter(
-                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()),
-                                        notNull());
+                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
+                                        x -> x != null);
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that
                                 // the search found the correct one
@@ -318,7 +318,7 @@ public class IdentifierManager {
                             QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), (Function<ResultRow, Tree>) row -> row.getTree(null));
+            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), row -> row.getTree(null));
             return Iterables.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
             );
         } catch (ParseException e) {

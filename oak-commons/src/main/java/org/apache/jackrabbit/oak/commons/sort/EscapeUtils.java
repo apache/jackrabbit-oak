@@ -19,10 +19,9 @@
 
 package org.apache.jackrabbit.oak.commons.sort;
 
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 import org.jetbrains.annotations.Nullable;
+
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkState;
 
 /**
  * Utility class to escape '\n', '\r', '\' char

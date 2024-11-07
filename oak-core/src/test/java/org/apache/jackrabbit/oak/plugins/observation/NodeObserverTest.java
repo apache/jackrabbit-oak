@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,7 +63,7 @@ public class NodeObserverTest {
         builder.getChildNode("m").getChildNode("n").setChildNode("new").setProperty("p", "3");
         nodeObserver.contentChanged(builder.getNodeState(), CommitInfo.EMPTY);
 
-        assertEquals(ImmutableMap.of("/m/n/new", ImmutableSet.of("p")), nodeObserver.added);
+        assertEquals(ImmutableMap.of("/m/n/new", Set.of("p")), nodeObserver.added);
         assertTrue(nodeObserver.deleted.isEmpty());
         assertTrue(nodeObserver.changed.isEmpty());
         assertTrue(nodeObserver.properties.isEmpty());
@@ -76,7 +76,7 @@ public class NodeObserverTest {
         nodeObserver.contentChanged(builder.getNodeState(), CommitInfo.EMPTY);
 
         assertTrue(nodeObserver.added.isEmpty());
-        assertEquals(ImmutableMap.of("/m/n/o", ImmutableSet.of("q")), nodeObserver.deleted);
+        assertEquals(ImmutableMap.of("/m/n/o", Set.of("q")), nodeObserver.deleted);
         assertTrue(nodeObserver.changed.isEmpty());
         assertTrue(nodeObserver.properties.isEmpty());
     }
@@ -89,7 +89,7 @@ public class NodeObserverTest {
 
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
-        assertEquals(ImmutableMap.of("/m/n", ImmutableSet.of("p")), nodeObserver.changed);
+        assertEquals(ImmutableMap.of("/m/n", Set.of("p")), nodeObserver.changed);
         assertEquals(ImmutableMap.of("/m/n", ImmutableMap.of("extra", "42")), nodeObserver.properties);
     }
 
@@ -132,10 +132,10 @@ public class NodeObserverTest {
     //------------------------------------------------------------< TestNodeObserver >---
 
     private static class TestNodeObserver extends NodeObserver {
-        private final Map<String, Set<String>> added = newHashMap();
-        private final Map<String, Set<String>> deleted = newHashMap();
-        private final Map<String, Set<String>> changed = newHashMap();
-        private final Map<String, Map<String, String>> properties = newHashMap();
+        private final Map<String, Set<String>> added = new HashMap<>();
+        private final Map<String, Set<String>> deleted = new HashMap<>();
+        private final Map<String, Set<String>> changed = new HashMap<>();
+        private final Map<String, Map<String, String>> properties = new HashMap<>();
 
         protected TestNodeObserver(String path, String... propertyNames) {
             super(path, propertyNames);
@@ -149,9 +149,9 @@ public class NodeObserverTest {
                 @NotNull Set<String> changed,
                 @NotNull Map<String, String> properties,
                 @NotNull CommitInfo commitInfo) {
-            this.added.put(path, newHashSet(added));
+            this.added.put(path, new HashSet<>(added));
             if (!properties.isEmpty()) {
-                this.properties.put(path, newHashMap(properties));
+                this.properties.put(path, new HashMap<>(properties));
             }
         }
 
@@ -163,9 +163,9 @@ public class NodeObserverTest {
                 @NotNull Set<String> changed,
                 @NotNull Map<String, String> properties,
                 @NotNull CommitInfo commitInfo) {
-            this.deleted.put(path, newHashSet(deleted));
+            this.deleted.put(path, new HashSet< >(deleted));
             if (!properties.isEmpty()) {
-                this.properties.put(path, newHashMap(properties));
+                this.properties.put(path, new HashMap<>(properties));
             }
         }
 
@@ -177,9 +177,9 @@ public class NodeObserverTest {
                 @NotNull Set<String> changed,
                 @NotNull Map<String, String> properties,
                 @NotNull CommitInfo commitInfo) {
-            this.changed.put(path, newHashSet(changed));
+            this.changed.put(path, new HashSet<>(changed));
             if (!properties.isEmpty()) {
-                this.properties.put(path, newHashMap(properties));
+                this.properties.put(path, new HashMap<>(properties));
             }
         }
 

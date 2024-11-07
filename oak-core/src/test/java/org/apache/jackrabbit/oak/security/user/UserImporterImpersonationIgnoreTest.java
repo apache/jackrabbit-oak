@@ -34,6 +34,7 @@ import org.junit.Test;
 import javax.jcr.RepositoryException;
 
 import java.security.Principal;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -120,7 +121,7 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(ImmutableSet.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(Set.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
     }
 
     @Test

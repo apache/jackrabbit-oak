@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,6 +34,7 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectionRepoStats;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -155,17 +156,17 @@ public class SharedBlobStoreGCTest {
         cluster1.gc.collectGarbage(true);
         cluster2.gc.collectGarbage(true);
     
-        Set<String> actualRepoIds = Sets.newHashSet();
+        Set<String> actualRepoIds = new HashSet<>();
         actualRepoIds.add(cluster1.repoId);
         actualRepoIds.add(cluster2.repoId);
     
-        Set<Integer> actualNumBlobs = Sets.newHashSet();
+        Set<Integer> actualNumBlobs = new HashSet<>();
         actualNumBlobs.add(cluster1.initBlobs.size());
         actualNumBlobs.add(cluster2.initBlobs.size());
     
         List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
-        Set<Integer> observedNumBlobs = Sets.newHashSet();
-        Set<String> observedRepoIds = Sets.newHashSet();
+        Set<Integer> observedNumBlobs = new HashSet<>();
+        Set<String> observedRepoIds = new HashSet<>();
         for (GarbageCollectionRepoStats stat : statsList) {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
@@ -261,13 +262,13 @@ public class SharedBlobStoreGCTest {
         Cluster cluster3 = new Cluster(ds3, cluster2.repoId, 120);
         cluster3.init();
 
-        Set<String> actualRepoIds = Sets.newHashSet();
+        Set<String> actualRepoIds = new HashSet<>();
         actualRepoIds.add(cluster1.repoId);
         actualRepoIds.add(cluster2.repoId);
 
         log.debug("Initialized {}", cluster3);
 
-        Set<String> observedRepoIds = Sets.newHashSet();
+        Set<String> observedRepoIds = new HashSet<>();
         List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
         for (GarbageCollectionRepoStats stat : statsList) {
             assertEquals(0, stat.getNumLines());
@@ -285,14 +286,14 @@ public class SharedBlobStoreGCTest {
         cluster3.gc.collectGarbage(true);
 
 
-        Set<Integer> actualNumBlobs = Sets.newHashSet();
+        Set<Integer> actualNumBlobs = new HashSet<>();
         actualNumBlobs.add(cluster1.initBlobs.size());
         actualNumBlobs.add(cluster2.initBlobs.size());
         actualNumBlobs.add(cluster3.initBlobs.size());
 
         statsList = cluster1.gc.getStats();
-        Set<Integer> observedNumBlobs = Sets.newHashSet();
-        observedRepoIds = Sets.newHashSet();
+        Set<Integer> observedNumBlobs = new HashSet<>();
+        observedRepoIds = new HashSet<>();
         for (GarbageCollectionRepoStats stat : statsList) {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
@@ -356,7 +357,7 @@ public class SharedBlobStoreGCTest {
 
             int number = 10;
             // track the number of the assets to be deleted
-            List<Integer> deletes = Lists.newArrayList();
+            List<Integer> deletes = new ArrayList<>();
             Random rand = new Random(47);
             for (int i = 0; i < 5; i++) {
                 int n = rand.nextInt(number);
@@ -417,7 +418,7 @@ public class SharedBlobStoreGCTest {
 
         private HashSet<String> addNodeSpecialChars() throws Exception {
             List<String> specialCharSets =
-                Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+                List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
             HashSet<String> set = new HashSet<String>();
             NodeBuilder a = ds.getRoot().builder();
             for (int i = 0; i < specialCharSets.size(); i++) {
@@ -427,7 +428,7 @@ public class SharedBlobStoreGCTest {
                 Iterator<String> idIter =
                     ((GarbageCollectableBlobStore) ds.getBlobStore())
                         .resolveChunks(b.toString());
-                set.addAll(Lists.newArrayList(idIter));
+                set.addAll(CollectionUtils.toList(idIter));
             }
             ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             return set;
@@ -438,7 +439,7 @@ public class SharedBlobStoreGCTest {
             GarbageCollectableBlobStore store = (GarbageCollectableBlobStore) ds.getBlobStore();
             Iterator<String> cur = store.getAllChunkIds(0);
 
-            Set<String> existing = Sets.newHashSet();
+            Set<String> existing = new HashSet<>();
             while (cur.hasNext()) {
                 existing.add(cur.next());
             }

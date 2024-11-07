@@ -64,7 +64,7 @@ import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * UserManagerImpl...

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
@@ -26,7 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeS
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -37,7 +36,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,9 +43,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -61,10 +61,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Implements (most) DB interactions used in {@link RDBDocumentStore}.
@@ -86,7 +83,7 @@ public class RDBDocumentStoreJDBC {
     private final int queryHitsLimit, queryTimeLimit;
 
     private static final Long INITIALMODCOUNT = Long.valueOf(1);
-    
+
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -142,7 +139,7 @@ public class RDBDocumentStoreJDBC {
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> allIds) throws SQLException {
         int count = 0;
 
-        for (List<String> ids : Lists.partition(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> ids : CollectionUtils.partitionList(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
             PreparedStatement stmt;
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
             String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
@@ -432,7 +429,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static <T extends Document> void assertNoDuplicatedIds(List<T> documents) {
-        if (newHashSet(transform(documents, idExtractor)).size() < documents.size()) {
+        if (CollectionUtils.toSet(transform(documents, Document::getId)).size() < documents.size()) {
             throw new IllegalArgumentException("There are duplicated ids in the document list");
         }
     }
@@ -667,6 +664,7 @@ public class RDBDocumentStoreJDBC {
             internalClose();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void finalize() throws Throwable {
             try {
@@ -734,7 +732,7 @@ public class RDBDocumentStoreJDBC {
         PreparedStatement stmt = connection.prepareStatement(query.toString());
 
         int si = 1;
-        if (minId != null) {
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             setIdInStatement(tmd, stmt, si++, minId);
         }
         if (maxId != null) {
@@ -984,11 +982,17 @@ public class RDBDocumentStoreJDBC {
         SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
     }
 
+    // some DBs do not accept null character as string
+    private static boolean shouldSkipGreaterthanClauseForId(String id) {
+        return id != null && !"\u0000".equals(id);
+    }
+
     private static String buildWhereClause(String minId, String maxId, List<String> excludeKeyPatterns, List<QueryCondition> conditions) {
         StringBuilder result = new StringBuilder();
 
         String whereSep = "";
-        if (minId != null) {
+
+        if (shouldSkipGreaterthanClauseForId(minId)) {
             result.append("ID > ?");
             whereSep = " and ";
         }
@@ -1052,12 +1056,7 @@ public class RDBDocumentStoreJDBC {
 
     private static String getIdFromRS(RDBTableMetaData tmd, ResultSet rs, int idx) throws SQLException {
         if (tmd.isIdBinary()) {
-            try {
-                return new String(rs.getBytes(idx), "UTF-8");
-            } catch (UnsupportedEncodingException ex) {
-                LOG.error("UTF-8 not supported", ex);
-                throw asDocumentStoreException(ex, "UTF-8 not supported");
-            }
+            return new String(rs.getBytes(idx), StandardCharsets.UTF_8);
         } else {
             return rs.getString(idx);
         }
@@ -1069,7 +1068,7 @@ public class RDBDocumentStoreJDBC {
                 stmt.setBytes(idx, UTF8Encoder.encodeAsByteArray(id));
             } else {
                 if (!UTF8Encoder.canEncode(id)) {
-                    throw new IOException("can not encode as UTF-8");
+                    throw new IOException("can not encode as valid UTF-8");
                 }
                 stmt.setString(idx, id);
             }
@@ -1119,19 +1118,7 @@ public class RDBDocumentStoreJDBC {
 
     private static <T extends Document> List<T> sortDocuments(Collection<T> documents) {
         List<T> result = new ArrayList<T>(documents);
-        Collections.sort(result, new Comparator<T>() {
-            @Override
-            public int compare(T o1, T o2) {
-                return Strings.nullToEmpty(o1.getId()).compareTo(Strings.nullToEmpty(o2.getId()));
-            }
-        });
+        Collections.sort(result, (o1, o2) ->  Objects.toString(o1.getId(), "").compareTo(Objects.toString(o2.getId(), "")));
         return result;
     }
-
-    private static final Function<Document, String> idExtractor = new Function<Document, String>() {
-        @Override
-        public String apply(Document input) {
-            return input.getId();
-        }
-    };
 }

@@ -33,8 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
@@ -62,8 +61,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
  * on first access and skips all subsequent executions.</p>
  *
  */
-@Component
-@Service(MountedNodeStoreChecker.class)
+@Component(service = {MountedNodeStoreChecker.class})
 public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<UniqueIndexNodeStoreChecker.Context> {
     
     private static final Logger LOG = LoggerFactory.getLogger(UniqueIndexNodeStoreChecker.class);

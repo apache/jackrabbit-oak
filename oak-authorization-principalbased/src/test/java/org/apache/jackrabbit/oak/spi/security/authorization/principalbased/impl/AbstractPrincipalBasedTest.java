@@ -54,7 +54,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -177,7 +177,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     boolean addDefaultEntry(@Nullable String path, @NotNull Principal principal, @Nullable Map<String, Value> restr, @Nullable Map<String, Value[]> mvRestr, @NotNull String... privNames) throws Exception {
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(jacm, path);
-        checkNotNull(acl);
+        requireNonNull(acl);
 
         boolean mod = acl.addEntry(principal, privilegesFromNames(privNames), true, restr, mvRestr);
         jacm.setPolicy(acl.getPath(), acl);

@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 
 import java.io.Closeable;
@@ -97,7 +97,7 @@ public class LockBasedScheduler implements Scheduler {
 
     public static LockBasedSchedulerBuilder builder(@NotNull Revisions revisions, @NotNull SegmentReader reader,
             @NotNull SegmentNodeStoreStats stats) {
-        return new LockBasedSchedulerBuilder(checkNotNull(revisions), checkNotNull(reader), checkNotNull(stats));
+        return new LockBasedSchedulerBuilder(requireNonNull(revisions), requireNonNull(reader), requireNonNull(stats));
     }
 
     private static final Logger log = LoggerFactory.getLogger(LockBasedScheduler.class);
@@ -325,7 +325,7 @@ public class LockBasedScheduler implements Scheduler {
     @Override
     public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         checkArgument(lifetime > 0);
-        checkNotNull(properties);
+        requireNonNull(properties);
         String name = UUID.randomUUID().toString();
         try {
             CPCreator cpc = new CPCreator(name, lifetime, properties);
@@ -353,7 +353,7 @@ public class LockBasedScheduler implements Scheduler {
 
     @Override
     public boolean removeCheckpoint(String name) {
-        checkNotNull(name);
+        requireNonNull(name);
 
         // try 5 times
         for (int i = 0; i < 5; i++) {

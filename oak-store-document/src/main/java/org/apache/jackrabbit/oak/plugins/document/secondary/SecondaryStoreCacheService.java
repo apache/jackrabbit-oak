@@ -16,18 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.Executor;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
@@ -112,9 +111,9 @@ public class SecondaryStoreCacheService {
             policy = ReferencePolicy.DYNAMIC)
     private volatile DocumentNodeStore documentNodeStore;
 
-    private final List<Registration> oakRegs = Lists.newArrayList();
+    private final List<Registration> oakRegs = new ArrayList<>();
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();
 
     private Whiteboard whiteboard;
 

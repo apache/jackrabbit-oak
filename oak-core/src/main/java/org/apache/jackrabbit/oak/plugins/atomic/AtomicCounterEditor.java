@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.atomic;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -194,7 +194,7 @@ public class AtomicCounterEditor extends DefaultEditor {
                                @Nullable ScheduledExecutorService executor,
                                @Nullable NodeStore store,
                                @Nullable Whiteboard board) {
-        this("", checkNotNull(builder), instanceId, executor, store, board);
+        this("", requireNonNull(builder), instanceId, executor, store, board);
     }
 
     private AtomicCounterEditor(final String path, 
@@ -203,7 +203,7 @@ public class AtomicCounterEditor extends DefaultEditor {
                                 @Nullable ScheduledExecutorService executor,
                                 @Nullable NodeStore store,
                                 @Nullable Whiteboard board) {
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.path = path;
         this.instanceId = Strings.isNullOrEmpty(instanceId) ? null : instanceId;
         this.executor = executor;
@@ -221,7 +221,7 @@ public class AtomicCounterEditor extends DefaultEditor {
                                                   final String path,
                                                   final NodeBuilder builder) {
         boolean process = false;
-        PropertyState mixin = checkNotNull(builder).getProperty(JCR_MIXINTYPES);
+        PropertyState mixin = requireNonNull(builder).getProperty(JCR_MIXINTYPES);
         if (mixin != null && PROP_INCREMENT.equals(property.getName()) &&
                 Iterators.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER)) {
             if (LONG.equals(property.getType())) {
@@ -363,17 +363,17 @@ public class AtomicCounterEditor extends DefaultEditor {
                                 long delay,
                                 @NotNull CommitHook hook) {
             this.start = System.currentTimeMillis();
-            p = checkNotNull(path);
+            p = requireNonNull(path);
             rev = revision;
-            s = checkNotNull(store);
-            this.exec = checkNotNull(exec);
+            s = requireNonNull(store);
+            this.exec = requireNonNull(exec);
             this.delay = delay;
-            this.hook = checkNotNull(hook);
+            this.hook = requireNonNull(hook);
             this.name = UUID.randomUUID().toString();
         }
 
         private ConsolidatorTask(@NotNull ConsolidatorTask task, long delay) {
-            checkNotNull(task);
+            requireNonNull(task);
             this.p = task.p;
             this.rev = task.rev;
             this.s = task.s;
@@ -431,7 +431,7 @@ public class AtomicCounterEditor extends DefaultEditor {
         
         private void dumpNode(@NotNull NodeBuilder b, String path) {
             if (LOG.isTraceEnabled()) {
-                checkNotNull(b);
+                requireNonNull(b);
                 StringBuilder s = new StringBuilder();
                 for (PropertyState p : b.getProperties()) {
                     s.append(p).append("\n");
@@ -504,8 +504,8 @@ public class AtomicCounterEditor extends DefaultEditor {
     }
     
     private static NodeBuilder builderFromPath(@NotNull NodeBuilder ancestor, @NotNull String path) {
-        NodeBuilder b = checkNotNull(ancestor);
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        NodeBuilder b = requireNonNull(ancestor);
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             b = b.getChildNode(name);
         }
         return b;
@@ -520,7 +520,7 @@ public class AtomicCounterEditor extends DefaultEditor {
      * @return true if the sum of the hidden counters does not match the exposed one.
      */
     static boolean isConsolidate(@NotNull NodeBuilder b) {
-        checkNotNull(b);
+        requireNonNull(b);
         PropertyState counter = b.getProperty(PROP_COUNTER);
         if (counter == null) {
             counter = LongPropertyState.createLongProperty(PROP_COUNTER, 0);

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.standalone;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +33,6 @@ import javax.jcr.RepositoryException;
 import javax.servlet.ServletContext;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -146,7 +145,7 @@ public class RepositoryInitializer {
 
     private List<String> copyConfigs(File repoHomeDir, List<String> configFileNames)
             throws IOException, RepositoryException {
-        List<String> filePaths = Lists.newArrayList();
+        List<String> filePaths = new ArrayList<>();
         for (String configName : configFileNames) {
             File dest = new File(repoHomeDir, configName);
             Resource source = new ClassPathResource("config-templates/" + configName);
@@ -158,7 +157,7 @@ public class RepositoryInitializer {
 
 
     private List<String> determineConfigFileNamesToCopy() {
-        List<String> configNames = Lists.newArrayList();
+        List<String> configNames = new ArrayList<>();
         configNames.add("repository-config.json");
 
         //Mongo mode can be selected via --mongo

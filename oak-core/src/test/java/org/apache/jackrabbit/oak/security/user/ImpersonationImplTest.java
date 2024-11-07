@@ -171,7 +171,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
 
-        Set<String> expected = ImmutableSet.of(impersonator.getPrincipal().getName(), principal2.getName());
+        Set<String> expected = Set.of(impersonator.getPrincipal().getName(), principal2.getName());
         assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(impersonator.getPrincipal());
@@ -179,7 +179,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
 
-        expected = ImmutableSet.of(principal2.getName());
+        expected = Set.of(principal2.getName());
         assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(principal2);

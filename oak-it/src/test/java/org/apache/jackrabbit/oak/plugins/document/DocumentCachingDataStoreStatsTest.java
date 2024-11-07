@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedDataStoreCacheStatsMBean;
@@ -41,7 +42,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -123,7 +123,7 @@ public class DocumentCachingDataStoreStatsTest {
     private DocumentNodeStoreService documentNodeStoreService;
 
     private void registerDocumentNodeStoreService(boolean customBlobStore) {
-        Map<String, Object> properties = newHashMap();
+        Map<String, Object> properties = new HashMap<>();
 
         properties.put("mongouri", MongoUtils.URL);
         properties.put("db", MongoUtils.DB);

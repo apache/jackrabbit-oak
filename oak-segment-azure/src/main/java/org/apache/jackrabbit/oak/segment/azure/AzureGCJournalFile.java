@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import org.apache.commons.io.IOUtils;
@@ -25,6 +24,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,7 +42,7 @@ public class AzureGCJournalFile implements GCJournalFile {
             if (!gcJournal.exists()) {
                 gcJournal.createOrReplace();
             }
-            gcJournal.appendText(line + "\n", Charsets.UTF_8.name(), null, null, null);
+            gcJournal.appendText(line + "\n", StandardCharsets.UTF_8.name(), null, null, null);
         } catch (StorageException e) {
             throw new IOException(e);
         }

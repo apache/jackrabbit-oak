@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -31,7 +31,6 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -63,7 +62,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
                     Executors.newCachedThreadPool());
 
-            List<ListenableFuture<?>> futures = Lists.newArrayList();
+            List<ListenableFuture<?>> futures = new ArrayList<>();
             for (int k = 0; k < 20; k ++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
@@ -101,7 +100,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
                     Executors.newCachedThreadPool());
 
-            List<ListenableFuture<?>> futures = Lists.newArrayList();
+            List<ListenableFuture<?>> futures = new ArrayList<>();
             for (int k = 0; k < 20; k ++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override

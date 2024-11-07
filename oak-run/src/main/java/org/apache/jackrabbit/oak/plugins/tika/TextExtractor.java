@@ -24,6 +24,7 @@ import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
+import org.apache.tika.exception.WriteLimitReachedException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.WriteOutContentHandler;
@@ -279,7 +280,7 @@ class TextExtractor implements Closeable {
         } catch (Throwable t) {
             // Capture and report any other full text extraction problems.
             // The special STOP exception is used for normal termination.
-            if (!handler.isWriteLimitReached(t)) {
+            if (!WriteLimitReachedException.isWriteLimitReached(t)) {
                 parserErrorCount.incrementAndGet();
                 String format = "Failed to extract text from a binary property: {}. "
                         + "This is quite common, and usually nothing to worry about.";

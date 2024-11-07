@@ -27,6 +27,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.azure.tool.AzureCheck;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
 class CheckCommand implements Command {
@@ -38,9 +39,9 @@ class CheckCommand implements Command {
             .withOptionalArg()
             .ofType(Boolean.class)
             .defaultsTo(true);
-        OptionSpec<File> journal = parser.accepts("journal", "journal file")
+        OptionSpec<String> journal = parser.accepts("journal", "journal file")
             .withRequiredArg()
-            .ofType(File.class);
+            .ofType(String.class);
         OptionSpec<Long> notify = parser.accepts("notify", "number of seconds between progress notifications")
             .withRequiredArg()
             .ofType(Long.class)
@@ -61,9 +62,22 @@ class CheckCommand implements Command {
             .withValuesSeparatedBy(',')
             .defaultsTo("all");
         OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
-        OptionSpec<File> dir = parser.nonOptions()
-            .describedAs("path")
-            .ofType(File.class);
+        OptionSpec<String> dir = parser.nonOptions()
+            .describedAs("Path/URI to TAR/remote segment store (required)")
+            .ofType(String.class);
+        OptionSpec<Boolean> failFast = parser.accepts("fail-fast", "eagerly fail if first path/revision checked is inconsistent (default: false)")
+                .withOptionalArg()
+                .ofType(Boolean.class)
+                .defaultsTo(false);
+        OptionSpec<String> persistentCachePath = parser.accepts("persistent-cache-path", "Path/URI to persistent cache where " +
+                        "resulting segments will be written")
+                .withRequiredArg()
+                .ofType(String.class);
+        OptionSpec<Integer> persistentCacheSizeGb = parser.accepts("persistent-cache-size-gb", "Size in GB (defaults to 50 GB) for "
+                        + "the persistent disk cache")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(50);
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(dir).isEmpty()) {
@@ -74,27 +88,56 @@ class CheckCommand implements Command {
             printUsageAndExit(parser, "Too many Segment Store paths specified");
         }
 
-        Check.Builder builder = Check.builder()
-            .withPath(options.valueOf(dir))
-            .withMmap(mmapArg.value(options))
-            .withDebugInterval(notify.value(options))
-            .withCheckBinaries(options.has(bin))
-            .withCheckHead(shouldCheckHead(options, head, cp))
-            .withCheckpoints(toCheckpointsSet(options, head, cp))
-            .withFilterPaths(toSet(options, filter))
-            .withIOStatistics(options.has(ioStatistics))
-            .withOutWriter(new PrintWriter(System.out, true))
-            .withErrWriter(new PrintWriter(System.err, true));
+        int code;
+        if (options.valueOf(dir).startsWith("az:")) {
+            AzureCheck.Builder builder = AzureCheck.builder()
+                    .withPath(options.valueOf(dir))
+                    .withDebugInterval(notify.value(options))
+                    .withCheckBinaries(options.has(bin))
+                    .withCheckHead(shouldCheckHead(options, head, cp))
+                    .withCheckpoints(toCheckpointsSet(options, head, cp))
+                    .withFilterPaths(toSet(options, filter))
+                    .withIOStatistics(options.has(ioStatistics))
+                    .withOutWriter(new PrintWriter(System.out, true))
+                    .withErrWriter(new PrintWriter(System.err, true))
+                    .withFailFast(failFast.value(options));
 
-        if (options.has(journal)) {
-            builder.withJournal(journal.value(options));
+            if (options.has(last)) {
+                builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
+            }
+
+            if (options.has(persistentCachePath)) {
+                builder.withPersistentCachePath(persistentCachePath.value(options));
+                builder.withPersistentCacheSizeGb(persistentCacheSizeGb.value(options));
+            }
+
+            code = builder.build().run();
+        } else {
+            Check.Builder builder = Check.builder()
+                    .withPath(new File(options.valueOf(dir)))
+                    .withMmap(mmapArg.value(options))
+                    .withDebugInterval(notify.value(options))
+                    .withCheckBinaries(options.has(bin))
+                    .withCheckHead(shouldCheckHead(options, head, cp))
+                    .withCheckpoints(toCheckpointsSet(options, head, cp))
+                    .withFilterPaths(toSet(options, filter))
+                    .withIOStatistics(options.has(ioStatistics))
+                    .withOutWriter(new PrintWriter(System.out, true))
+                    .withErrWriter(new PrintWriter(System.err, true))
+                    .withFailFast(failFast.value(options));
+
+            if (options.has(journal)) {
+                builder.withJournal(new File(journal.value(options)));
+            }
+
+            if (options.has(last)) {
+                builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
+            }
+
+            code = builder.build().run();
         }
 
-        if (options.has(last)) {
-            builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
-        }
-
-        System.exit(builder.build().run());
+        System.exit(code);
     }
 
     private void printUsageAndExit(OptionParser parser, String... messages) throws IOException {

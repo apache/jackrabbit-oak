@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
@@ -90,7 +88,7 @@ class FullSizeDeltaEstimationStrategy implements EstimationStrategy {
     }
 
     private boolean previousIsTail(Context context) {
-        List<GCJournalEntry> entries = newArrayList(context.getGCJournal().readAll());
+        List<GCJournalEntry> entries = new ArrayList<>(context.getGCJournal().readAll());
         if (entries.isEmpty()) {
             // We should not get here but if we do the condition is vacuously true
             return true;

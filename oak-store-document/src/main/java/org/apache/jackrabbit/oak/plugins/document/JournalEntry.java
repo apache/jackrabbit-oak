@@ -17,17 +17,18 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -44,8 +45,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
 /**
@@ -134,7 +135,7 @@ public final class JournalEntry extends Document {
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");
 
-        final DiffCache.Entry entry = checkNotNull(diffCache).newEntry(from, to, false);
+        final DiffCache.Entry entry = requireNonNull(diffCache).newEntry(from, to, false);
 
         final Iterator<String> it = changedPaths.iterator();
         if (!it.hasNext()) {
@@ -279,8 +280,8 @@ public final class JournalEntry extends Document {
                                    @Nullable ChangeSetBuilder changeSetBuilder,
                                    @Nullable JournalPropertyHandler journalPropertyHandler)
             throws IOException {
-        checkNotNull(path);
-        checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
+        requireNonNull(path);
+        checkArgument(requireNonNull(from).getClusterId() == requireNonNull(to).getClusterId());
 
         if (from.compareRevisionTime(to) >= 0) {
             return 0;
@@ -603,7 +604,7 @@ public final class JournalEntry extends Document {
     }
 
     private Iterable<JournalEntry> getLinkedEntries(final String name) {
-        final List<String> ids = Lists.newArrayList();
+        final List<String> ids = new ArrayList<>();
         String bc = (String) get(name);
         if (bc != null) {
             for (String id : bc.split(",")) {
@@ -648,7 +649,7 @@ public final class JournalEntry extends Document {
     }
 
     static String asId(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         String s = String.format(REVISION_FORMAT, revision.getClusterId(), revision.getTimestamp(), revision.getCounter());
         if (revision.isBranch()) {
             s = "b" + s;
@@ -701,7 +702,7 @@ public final class JournalEntry extends Document {
 
         TreeNode(MapFactory mapFactory, TreeNode parent, String name) {
             checkArgument(!name.contains("/"),
-                    "name must not contain '/': {}", name);
+                    "name must not contain '/': %s", name);
 
             this.mapFactory = mapFactory;
             this.parent = parent;
@@ -824,7 +825,7 @@ public final class JournalEntry extends Document {
         MapFactory CONCURRENT = new MapFactory() {
             @Override
             public Map<String, TreeNode> newMap() {
-                return Maps.newConcurrentMap();
+                return new ConcurrentHashMap<>();
             }
         };
 

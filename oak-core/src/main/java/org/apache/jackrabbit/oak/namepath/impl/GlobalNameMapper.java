@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.namepath.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
@@ -116,7 +116,7 @@ public class GlobalNameMapper implements NameMapper {
     @Override @NotNull
     public String getJcrName(@NotNull String oakName) {
         // Sanity checks, can be turned to assertions if needed for performance
-        checkNotNull(oakName);
+        requireNonNull(oakName);
         checkArgument(!isHiddenName(oakName), oakName);
         checkArgument(!isExpandedName(oakName), oakName);
 

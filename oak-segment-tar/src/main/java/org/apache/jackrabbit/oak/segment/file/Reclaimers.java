@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +42,7 @@ class Reclaimers {
         return new Predicate<GCGeneration>() {
 
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return false;
             }
         };
@@ -75,7 +75,7 @@ class Reclaimers {
             @NotNull final GCGeneration referenceGeneration,
             int retainedGenerations) {
 
-        switch (checkNotNull(lastGCType)) {
+        switch (requireNonNull(lastGCType)) {
             case FULL:
                 return newOldFullReclaimer(referenceGeneration, retainedGenerations);
             case TAIL:
@@ -91,7 +91,7 @@ class Reclaimers {
         return new Predicate<GCGeneration>() {
 
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return isOldFull(generation) || (isOld(generation) && !generation.isCompacted());
             }
 
@@ -121,7 +121,7 @@ class Reclaimers {
         return new Predicate<GCGeneration>() {
 
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return isOld(generation) && !sameCompactedTail(generation);
             }
 
@@ -156,7 +156,7 @@ class Reclaimers {
     static Predicate<GCGeneration> newExactReclaimer(@NotNull final GCGeneration referenceGeneration) {
         return new Predicate<GCGeneration>() {
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return generation.equals(referenceGeneration);
             }
             @Override

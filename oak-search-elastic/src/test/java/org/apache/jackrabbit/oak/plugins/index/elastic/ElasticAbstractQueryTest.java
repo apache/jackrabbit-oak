@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import co.elastic.clients.elasticsearch.core.GetRequest;
+import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
@@ -52,7 +54,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
@@ -70,6 +71,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
     protected ElasticConnection esConnection;
 
+    protected ElasticIndexTracker indexTracker;
     // This is instantiated during repo creation but not hooked up to the async indexing lane
     // This can be used by the extending classes to trigger the async index update as per need (not having to wait for async indexing cycle)
     protected AsyncIndexUpdate asyncIndexUpdate;
@@ -139,14 +141,14 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
+        indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         nodeStore = getNodeStore();
 
-        asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, compose(List.of(
                 editorProvider,
                 new NodeCounterEditorProvider()
         )));
@@ -175,7 +177,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     protected void assertEventually(Runnable r) {
-        ElasticTestUtils.assertEventually(r,
+        TestUtil.assertEventually(r,
                 ((useAsyncIndexing() ? DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS * 1000L : 0) + BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 
@@ -251,6 +253,28 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         try {
             return esConnection.getClient().get(get, ObjectNode.class).source();
         } catch (ElasticsearchException | IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected void updateDocument(Tree index, String id, ObjectNode doc) {
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
+        try {
+            esConnection.getClient().update(b -> b
+                    .index(esIdxDef.getIndexAlias())
+                    .id(id)
+                    .doc(doc), ObjectNode.class);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public IndexMappingRecord getMapping(Tree index) {
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
+        try {
+            return esConnection.getClient().indices().getMapping(i -> i.index(esIdxDef.getIndexAlias()))
+                    .result().entrySet().stream().findFirst().get().getValue();
+        } catch (IOException e) {
             throw new IllegalStateException(e);
         }
     }

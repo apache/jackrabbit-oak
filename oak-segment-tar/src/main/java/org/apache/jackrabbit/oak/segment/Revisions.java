@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.guava.common.base.Function;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.NotNull;
 

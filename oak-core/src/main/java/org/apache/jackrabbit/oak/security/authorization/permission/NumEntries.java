@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 
 final class NumEntries {
@@ -33,7 +34,7 @@ final class NumEntries {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(size, isExact);
+        return Objects.hash(size, isExact);
     }
 
     @Override

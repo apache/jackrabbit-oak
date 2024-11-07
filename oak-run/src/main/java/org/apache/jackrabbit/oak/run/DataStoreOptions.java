@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
@@ -25,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -119,7 +117,7 @@ public class DataStoreOptions implements OptionsBean {
             "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
+        actionOpts = Set.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
         operationNames = collectionOperationNames(actionOpts);
     }
 

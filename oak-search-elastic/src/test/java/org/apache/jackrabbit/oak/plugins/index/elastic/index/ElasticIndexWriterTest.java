@@ -75,7 +75,7 @@ public class ElasticIndexWriterTest {
 
         ArgumentCaptor<ElasticDocument> esDocumentCaptor = ArgumentCaptor.forClass(ElasticDocument.class);
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
-        verify(bulkProcessorHandlerMock).update(idCaptor.capture(), esDocumentCaptor.capture());
+        verify(bulkProcessorHandlerMock).index(idCaptor.capture(), esDocumentCaptor.capture());
 
         assertEquals("/foo", idCaptor.getValue());
         assertEquals("/foo", esDocumentCaptor.getValue().path);
@@ -99,7 +99,7 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/foo");
         indexWriter.deleteDocuments("/bar");
 
-        verify(bulkProcessorHandlerMock, times(2)).update(anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, times(2)).index(anyString(), any(ElasticDocument.class));
         verify(bulkProcessorHandlerMock, times(2)).delete(anyString());
     }
 
@@ -110,7 +110,7 @@ public class ElasticIndexWriterTest {
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
-        verify(bulkProcessorHandlerMock).update(idCaptor.capture(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock).index(idCaptor.capture(), any(ElasticDocument.class));
 
         String id = idCaptor.getValue();
         assertThat(id, not(generatedPath));
@@ -121,6 +121,13 @@ public class ElasticIndexWriterTest {
     public void closeBulkProcessor() throws IOException {
         indexWriter.close(System.currentTimeMillis());
         verify(bulkProcessorHandlerMock).close();
+    }
+
+    @Test
+    public void externallyModifiableIndexes() throws IOException {
+        when(indexDefinitionMock.isExternallyModifiable()).thenReturn(true);
+        indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
+        verify(bulkProcessorHandlerMock).update(anyString(), any(ElasticDocument.class));
     }
 
 }

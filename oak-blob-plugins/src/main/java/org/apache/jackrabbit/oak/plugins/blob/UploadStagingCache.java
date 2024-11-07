@@ -23,10 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -34,11 +36,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -84,7 +84,7 @@ public class UploadStagingCache implements Closeable {
     protected static final String UPLOAD_STAGING_DIR = "upload";
 
     //Rough estimate of the in-memory key, value pair
-    private final Weigher<String, File> memWeigher = new Weigher<String, File>() {
+    private final Weigher<String, File> memWeigher = new Weigher<>() {
         @Override public int weigh(String key, File value) {
             return (StringUtils.estimateMemoryUsage(key) +
                 StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
@@ -171,9 +171,9 @@ public class UploadStagingCache implements Closeable {
                 .newScheduledThreadPool(2, new NamedThreadFactory("oak-ds-cache-scheduled-thread"));
         }
 
-        this.map = Maps.newConcurrentMap();
-        this.attic = Maps.newConcurrentMap();
-        this.retryQueue = new LinkedBlockingQueue<String>();
+        this.map = new ConcurrentHashMap<>();
+        this.attic = new ConcurrentHashMap<>();
+        this.retryQueue = new LinkedBlockingQueue<>();
         this.uploadCacheSpace = new File(dir, "upload");
         this.uploader = uploader;
         if (statisticsProvider == null) {
@@ -205,7 +205,7 @@ public class UploadStagingCache implements Closeable {
         }
         return new UploadStagingCache() {
             @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
-                return Optional.absent();
+                return Optional.empty();
             }
 
             @Override protected void invalidate(String key) {
@@ -241,9 +241,9 @@ public class UploadStagingCache implements Closeable {
         List<File> files;
         try {
             uploadCacheSpace.mkdirs();
-            files = java.nio.file.Files.find(uploadCacheSpace.toPath(), Integer.MAX_VALUE, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile())
-                    .map(Path::toFile)
-                    .collect(Collectors.toList());
+            try (Stream<Path> stream = java.nio.file.Files.find(uploadCacheSpace.toPath(), Integer.MAX_VALUE, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile())) {
+                files = stream.map(Path::toFile).collect(Collectors.toList());
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -324,7 +324,7 @@ public class UploadStagingCache implements Closeable {
                 return Optional.of(result);
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     private synchronized boolean existsOrNotExistsMoveFile(File source, File destination, AtomicLong currentSize,
@@ -359,26 +359,21 @@ public class UploadStagingCache implements Closeable {
 
         try {
             // create an async job
-            ListenableFuture<Integer> future = executor.submit(new Callable<Integer>() {
-                @Override public Integer call() throws Exception {
-                    try {
-                        final TimerStats.Context uploadContext = cacheStats.startUpLoaderTimer();
+            ListenableFuture<Integer> future = executor.submit(() -> {
+                try (TimerStats.Context uploadContext = cacheStats.startUpLoaderTimer()) {
 
-                        uploader.write(id, upload);
-                        LOG.debug("File added to backend [{}]", upload);
+                    uploader.write(id, upload);
+                    LOG.debug("File added to backend [{}]", upload);
 
-                        uploadContext.stop();
-
-                        return 1;
-                    } catch (Exception e) {
-                        LOG.error("Error adding file to backend", e);
-                        throw e;
-                    }
+                    return 1;
+                } catch (Exception e) {
+                    LOG.error("Error adding file to backend", e);
+                    throw e;
                 }
             });
 
             // Add a callback to the returned Future object for handling success and error
-            Futures.addCallback(future, new FutureCallback<Integer>() {
+            Futures.addCallback(future, new FutureCallback<>() {
                 @Override public void onSuccess(@Nullable Integer r) {
                     LOG.info("Successfully added [{}], [{}]", id, upload);
 
@@ -555,7 +550,7 @@ public class UploadStagingCache implements Closeable {
         public void run() {
             LOG.debug("Retry job started");
             int count = 0;
-            List<String> entries = Lists.newArrayList();
+            List<String> entries = new ArrayList<>();
             retryQueue.drainTo(entries);
             for (String key : entries) {
                 File file = map.get(key);

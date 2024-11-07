@@ -35,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     private String[] principalNames = new String[] {"a","b","c","test"};
-    private Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("test"));
+    private Set<Principal> principals = Set.of(new PrincipalImpl("test"));
 
     @Override
     CugExclude createInstance() {
@@ -65,7 +65,7 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
         Set<Principal> all = new HashSet<>();
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);
-            assertTrue(exclude.isExcluded(ImmutableSet.of(p)));
+            assertTrue(exclude.isExcluded(Set.of(p)));
 
             all.add(p);
             assertTrue(exclude.isExcluded(all));
@@ -76,7 +76,7 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
     public void testExcludeAnother() {
         Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
         activate(m);
-        assertFalse(exclude.isExcluded(ImmutableSet.of(new PrincipalImpl("another"))));
+        assertFalse(exclude.isExcluded(Set.of(new PrincipalImpl("another"))));
     }
 
     @Test
@@ -87,8 +87,8 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);
-            assertFalse(exclude.isExcluded(ImmutableSet.of(p)));
+            assertFalse(exclude.isExcluded(Set.of(p)));
         }
-        assertTrue(exclude.isExcluded(ImmutableSet.of(new PrincipalImpl("other"))));
+        assertTrue(exclude.isExcluded(Set.of(new PrincipalImpl("other"))));
     }
 }

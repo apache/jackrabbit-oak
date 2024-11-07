@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
 
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -46,7 +45,7 @@ public class UpdateUtils {
     public static void applyChanges(@NotNull Document doc,
                                     @NotNull UpdateOp update) {
         doc.put(Document.ID, update.getId());
-        for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
+        for (Entry<Key, Operation> e : requireNonNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();
             switch (op.type) {
@@ -144,7 +143,7 @@ public class UpdateUtils {
                         value = null;
                     }
                 }
-                boolean equal = Objects.equal(value, c.value);
+                boolean equal = Objects.equals(value, c.value);
                 if (c.type == Condition.Type.EQUALS && !equal) {
                     return false;
                 } else if (c.type == Condition.Type.NOTEQUALS && equal) {

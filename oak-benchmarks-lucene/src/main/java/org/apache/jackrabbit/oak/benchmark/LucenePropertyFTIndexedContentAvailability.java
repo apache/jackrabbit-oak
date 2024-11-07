@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import java.io.File;
+import java.util.Set;
 import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
@@ -93,7 +93,7 @@ public class LucenePropertyFTIndexedContentAvailability extends PropertyFullText
                        .with(new LuceneIndexEditorProvider())
                        .with((new LuceneInitializerHelper("luceneGlobal", storageEnabled)).async())
                        // the WikipediaImporter set a property `title`
-                       .with(new FullTextPropertyInitialiser("luceneTitle", of("title"), LuceneIndexConstants.TYPE_LUCENE).async())
+                       .with(new FullTextPropertyInitialiser("luceneTitle", Set.of("title"), LuceneIndexConstants.TYPE_LUCENE).async())
                        .withAsyncIndexing("async", 5);
                     return new Jcr(oak);
                 }

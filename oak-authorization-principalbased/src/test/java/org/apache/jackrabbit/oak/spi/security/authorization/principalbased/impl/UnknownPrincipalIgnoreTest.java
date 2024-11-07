@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -28,6 +27,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.security.AccessControlPolicy;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -63,7 +64,7 @@ public class UnknownPrincipalIgnoreTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetEffectivePolicies() throws Exception {
-        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(getTestSystemUser().getPrincipal(), new PrincipalImpl("unknown")));
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(Set.of(getTestSystemUser().getPrincipal(), new PrincipalImpl("unknown")));
         assertEquals(0, policies.length);
     }
 }

@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,9 +53,9 @@ class MapEntry extends AbstractChildNodeEntry
             @NotNull String name,
             @NotNull RecordId key,
             @Nullable RecordId value) {
-        this.reader = checkNotNull(reader);
-        this.name = checkNotNull(name);
-        this.key = checkNotNull(key);
+        this.reader = requireNonNull(reader);
+        this.name = requireNonNull(name);
+        this.key = requireNonNull(key);
         this.value = value;
     }
 
@@ -72,7 +72,7 @@ class MapEntry extends AbstractChildNodeEntry
             @NotNull String name,
             @NotNull RecordId key,
             @NotNull RecordId value) {
-        return new MapEntry(reader, name, key, checkNotNull(value));
+        return new MapEntry(reader, name, key, requireNonNull(value));
     }
 
     /**
@@ -117,7 +117,7 @@ class MapEntry extends AbstractChildNodeEntry
 
     @Override @NotNull
     public SegmentNodeState getNodeState() {
-        checkState(value != null);
+        Validate.checkState(value != null);
         return reader.readNode(value);
     }
 
@@ -136,7 +136,7 @@ class MapEntry extends AbstractChildNodeEntry
     @NotNull
     @Override
     public RecordId getValue() {
-        checkState(value != null);
+        Validate.checkState(value != null);
         return value;
     }
 

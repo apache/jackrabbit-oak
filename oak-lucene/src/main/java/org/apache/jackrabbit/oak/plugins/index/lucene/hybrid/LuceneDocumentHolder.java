@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -31,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class LuceneDocumentHolder implements JournalProperty {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
@@ -48,7 +46,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     private boolean schedulingDone;
 
     public LuceneDocumentHolder(@NotNull IndexingQueue documentQueue, int inMemoryDocsLimit) {
-        this.documentQueue = checkNotNull(documentQueue);
+        this.documentQueue = requireNonNull(documentQueue);
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
@@ -66,7 +64,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     public void add(boolean sync, LuceneDoc doc) {
-        doc = checkNotNull(doc);
+        doc = requireNonNull(doc);
         //First try adding to queue in non blocking manner
         if (documentQueue.addIfNotFullWithoutWait(doc)){
             if (sync){
@@ -117,9 +115,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
-        return Iterables.transform(docs.entries(), new Function<Map.Entry<String, String>, LuceneDocInfo>() {
-            @Override
-            public LuceneDocInfo apply(final Map.Entry<String, String> input) {
+        return Iterables.transform(docs.entries(), input -> {
                 return new LuceneDocInfo() {
                     @Override
                     public String getIndexPath() {
@@ -131,7 +127,6 @@ public class LuceneDocumentHolder implements JournalProperty {
                         return input.getValue();
                     }
                 };
-            }
-        });
+            });
     }
 }

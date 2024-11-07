@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.Set;
 
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -50,19 +51,19 @@ public class AbstractGroupActionTest {
 
     @Test
     public void testMembersAdded() throws Exception {
-        groupAction.onMembersAdded(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        groupAction.onMembersAdded(group, Set.of("user1", "user2"), Set.of(), root, namePathMapper);
         verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersAddedContentId() throws Exception {
-        groupAction.onMembersAddedContentId(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        groupAction.onMembersAddedContentId(group, Set.of("user1", "user2"), Set.of(), root, namePathMapper);
         verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersRemoved() throws Exception {
-        groupAction.onMembersRemoved(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        groupAction.onMembersRemoved(group, Set.of("user1", "user2"), Set.of(), root, namePathMapper);
         verifyNoInteractions(group, user, root, namePathMapper);
     }
 }

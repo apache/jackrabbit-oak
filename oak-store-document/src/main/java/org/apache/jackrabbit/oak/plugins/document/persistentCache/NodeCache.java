@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
@@ -27,6 +25,7 @@ import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
@@ -36,7 +35,6 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -46,20 +44,17 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWri
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.h2.mvstore.MVMap;
-import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 
 class NodeCache<K extends CacheValue, V extends  CacheValue>
         implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
-    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
+    private static final Set<RemovalCause> EVICTION_CAUSES = Set.of(COLLECTED, EXPIRED, SIZE);
 
     private final PersistentCache cache;
     private final PersistentCacheStats stats;
@@ -125,7 +120,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         map.removeReadMap(generation);
         stats.removeReadGeneration(generation);
     }
-    
+
     private V readIfPresent(K key) {
         return async ? asyncReadIfPresent(key) : syncReadIfPresent(key);
     }
@@ -162,10 +157,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     private void broadcast(final K key, final V value) {
-        cache.broadcast(type, new Function<WriteBuffer, Void>() {
-            @Override
-            @Nullable
-            public Void apply(@Nullable WriteBuffer buffer) {
+        cache.broadcast(type, buffer -> {
                 keyType.write(buffer, key);
                 if (value == null) {
                     buffer.put((byte) 0);
@@ -174,8 +166,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
                     valueType.write(buffer, value);
                 }
                 return null;
-            }
-        });
+            });
     }
 
     private void write(final K key, final V value) {
@@ -229,13 +220,13 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public V get(K key,
             Callable<? extends V> valueLoader)
             throws ExecutionException {
-            
+
         // Get stats covered in getIfPresent
         V value = getIfPresent(key);
         if (value != null) {
             return value;
         }
-        
+
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
@@ -250,7 +241,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         } catch (ExecutionException e) {
             stats.markException();
             throw e;
-         }        
+         }
     }
 
     @Override
@@ -259,7 +250,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         Iterable<K> typedKeys = (Iterable<K>) keys;
         memCacheMetadata.incrementAll(keys);
         ImmutableMap<K, V> result = memCache.getAllPresent(keys);
-        memCacheMetadata.removeAll(filter(typedKeys, not(in(result.keySet()))));
+        memCacheMetadata.removeAll(filter(typedKeys, x -> !result.keySet().contains(x)));
         return result;
     }
 
@@ -353,7 +344,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
      */
     @Override
     public void evicted(K key, V value, RemovalCause cause) {
-        if (async && EVICTION_CAUSES.contains(cause) && value != null) {
+        if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
             boolean qualifiesToPersist = true;
             if (metadata != null && metadata.isReadFromPersistentCache()) {

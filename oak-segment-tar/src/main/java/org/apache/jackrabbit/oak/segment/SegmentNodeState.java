@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -36,11 +35,12 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -85,8 +85,8 @@ public class SegmentNodeState extends Record implements NodeState {
         MeterStats readStats
     ) {
         super(id);
-        this.reader = checkNotNull(reader);
-        this.writer = checkNotNull(memoize(writer));
+        this.reader = requireNonNull(reader);
+        this.writer = requireNonNull(memoize(writer::get));
         this.blobStore = blobStore;
         this.readStats = readStats;
     }
@@ -199,7 +199,7 @@ public class SegmentNodeState extends Record implements NodeState {
     @Override
     public boolean hasProperty(@NotNull String name) {
         readStats.mark();
-        checkNotNull(name);
+        requireNonNull(name);
         Template template = getTemplate();
         switch (name) {
             case JCR_PRIMARYTYPE:
@@ -214,7 +214,7 @@ public class SegmentNodeState extends Record implements NodeState {
     @Override @Nullable
     public PropertyState getProperty(@NotNull String name) {
         readStats.mark();
-        checkNotNull(name);
+        requireNonNull(name);
         Template template = getTemplate();
         PropertyState property = null;
         if (JCR_PRIMARYTYPE.equals(name)) {
@@ -253,8 +253,7 @@ public class SegmentNodeState extends Record implements NodeState {
         readStats.mark();
         Template template = getTemplate();
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
-        List<PropertyState> list =
-                newArrayListWithCapacity(propertyTemplates.length + 2);
+        List<PropertyState> list = new ArrayList<>(propertyTemplates.length + 2);
 
         PropertyState primaryType = template.getPrimaryType();
         if (primaryType != null) {
@@ -410,7 +409,7 @@ public class SegmentNodeState extends Record implements NodeState {
             return singletonList(reader.readString(id));
         }
 
-        List<String> values = newArrayListWithCapacity(size);
+        List<String> values = new ArrayList<>(size);
         ListRecord list = new ListRecord(id, size);
         for (RecordId value : list.getEntries()) {
             values.add(reader.readString(value));

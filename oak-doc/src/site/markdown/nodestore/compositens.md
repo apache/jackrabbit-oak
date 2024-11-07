@@ -24,9 +24,22 @@ The `CompositeNodeStore` is a `NodeStore` implementation that wraps multiple `No
 and exposes them through a single API. It is possible, for instance, to store all data in a 
 `DocumentNodeStore` instance and relocate `/libs` and `/apps` in a `SegmentNodeStore` instance.
 
-Each node stored wrapped by the composite node store instance is called a _mount_. The
+Each node store wrapped by the composite node store instance is called a _mount_. The
 `CompositeNodeStore` can be configured with one or more mounts, each owning a defined set
 of paths, and a _default mount_, owning the rest of the repository.
+
+## Mounts
+
+The mounts are identified via their mount name. 
+The mount name is used to map a `MountInfoProviderService` implementation to a `NodeStore` implementation. For that the `MountInfoProviderService`'s `name` property is prefixed by `composite-mount-` in order to find the `NodeStore` with the respective `role` property value.
+
+The mount name for the _default mount_ is always `composite-global` and mapped to the `NodeStore`'s `role` property with that value (it is *not* prefixed by `composite-mount-`).
+
+Each non-default mount defines a number of entry path's which are used from the underlying `NodeStore`. Other parts outside the `mountPaths` are hidden.
+
+## Seed
+
+In order to pre-populate the empty default store one can use the seed mount. That is automatically copied over to the default `NodeStore` if the latter is not yet initialized as Composite default store (i.e. is lacking the `:composite` child node below its root). This happens at most once!
 
 ## Design limitations
 
@@ -36,7 +49,7 @@ The implementation allows for a default mount, which is read-write, and for any 
 additional mounts, which are read-only. This limitation is by design and is not expected to
 be removed in future Oak version.
 
-There are two major aspects to this limitation
+There are two major reasons for this limitation
 
 1. Having a commit run accross two or more multiple node stores is complicated in terms of
 implementation. Atomic commits will be very hard to ensure in a performant manner across
@@ -75,3 +88,7 @@ is not enfored via permissions, it may not be queried via `Session.hasPermission
 read-only status is surfaced via `Session.hasCapability`. See [OAK-6563][OAK-6563] for details.
 
 [OAK-6563]: https://issues.apache.org/jira/browse/OAK-6563
+
+## Bootstrapping
+
+In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then it one can write to it).

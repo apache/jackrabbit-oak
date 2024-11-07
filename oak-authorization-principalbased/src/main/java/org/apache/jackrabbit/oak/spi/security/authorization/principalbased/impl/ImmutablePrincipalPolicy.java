@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
@@ -31,9 +30,10 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessControlList {
-    
+
     private final Principal principal;
 
     private int hashCode;
@@ -68,7 +68,7 @@ class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessCo
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(principal, getOakPath(), getEntries());
+            hashCode = Objects.hash(principal, getOakPath(), getEntries());
         }
         return hashCode;
     }
@@ -80,7 +80,7 @@ class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessCo
         }
         if (obj instanceof ImmutablePrincipalPolicy) {
             ImmutablePrincipalPolicy other = (ImmutablePrincipalPolicy) obj;
-            return Objects.equal(getOakPath(), other.getOakPath())
+            return Objects.equals(getOakPath(), other.getOakPath())
                     && principal.equals(other.principal)
                     && getEntries().equals(other.getEntries());
         }

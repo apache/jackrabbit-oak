@@ -59,7 +59,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Test the effect of multiple authorization configurations on the general read
@@ -97,7 +97,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
             throw new IllegalStateException();
         } else {
             CompositeAuthorizationConfiguration composite = (CompositeAuthorizationConfiguration) authorizationConfiguration;
-            final AuthorizationConfiguration defConfig = checkNotNull(composite.getDefaultConfig());
+            final AuthorizationConfiguration defConfig = requireNonNull(composite.getDefaultConfig());
             for (int i = 0; i < cnt; i++) {
                 composite.addConfiguration(new TmpAuthorizationConfig(defConfig));
             }

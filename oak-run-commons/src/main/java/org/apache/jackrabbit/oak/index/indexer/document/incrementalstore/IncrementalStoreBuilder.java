@@ -74,7 +74,9 @@ public class IncrementalStoreBuilder {
          * Incremental store having nodes updated between initial and final checkpoint
          */
 
-        INCREMENTAL_FFS_STORE
+        INCREMENTAL_FFS_STORE,
+
+        INCREMENTAL_TREE_STORE
     }
 
     public IncrementalStoreBuilder(File workDir, IndexHelper indexHelper,
@@ -109,8 +111,9 @@ public class IncrementalStoreBuilder {
     public IndexStore build() throws IOException, CompositeException {
         logFlags();
         File dir = createStoreDir();
-
-        if (Objects.requireNonNull(sortStrategyType) == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE) {
+        Objects.requireNonNull(sortStrategyType);
+        if (sortStrategyType == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE ||
+                sortStrategyType == IncrementalSortStrategyType.INCREMENTAL_TREE_STORE) {
             IncrementalFlatFileStoreNodeStateEntryWriter entryWriter = new IncrementalFlatFileStoreNodeStateEntryWriter(blobStore);
             IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
                     indexHelper.getNodeStore(),

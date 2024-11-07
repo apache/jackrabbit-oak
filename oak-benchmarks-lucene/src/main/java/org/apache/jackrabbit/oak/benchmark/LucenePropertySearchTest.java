@@ -35,8 +35,7 @@ import javax.jcr.Repository;
 import javax.jcr.query.Query;
 import java.io.File;
 import java.io.IOException;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import java.util.Set;
 
 public class LucenePropertySearchTest extends SearchTest {
 
@@ -71,7 +70,7 @@ public class LucenePropertySearchTest extends SearchTest {
                     oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneTitle", of("title"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneTitle", Set.of("title"),
                                     LuceneIndexConstants.TYPE_LUCENE));
                     return new Jcr(oak);
                 }

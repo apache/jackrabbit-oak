@@ -36,10 +36,10 @@ import java.io.StringWriter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -115,7 +115,7 @@ public class IOTracerTest extends IOMonitorAdapter {
                         .allMatch(ts -> ts <= now));
 
                 assertEquals("Expected depths 0, 1 and 2",
-                        ImmutableSet.of(0, 1, 2),
+                        Set.of(0, 1, 2),
                         entries.stream()
                             .map(row -> parseInt(row[5])) // depth
                             .distinct().collect(toSet()));
@@ -155,7 +155,7 @@ public class IOTracerTest extends IOMonitorAdapter {
                         .allMatch(ts -> ts <= now));
 
                 assertEquals("Expected depths 0 and 1",
-                        ImmutableSet.of(0, 1),
+                        Set.of(0, 1),
                         entries.stream()
                             .map(row -> parseInt(row[5])) // depth
                             .distinct().collect(toSet()));

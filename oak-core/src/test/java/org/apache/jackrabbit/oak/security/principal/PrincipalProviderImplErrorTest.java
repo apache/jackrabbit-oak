@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.principal;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
@@ -27,19 +26,17 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.jcr.RepositoryException;
 
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.namepath.NamePathMapper.*;
 import static org.junit.Assert.assertEquals;
@@ -131,7 +128,7 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
         User userMock = when(mock(User.class).memberOf()).thenThrow(new RepositoryException()).getMock();
         UserManager um = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock).getMock();
 
-        assertEquals(Sets.newHashSet(EveryonePrincipal.getInstance()), createPrincipalProvider(um).getMembershipPrincipals(p));
+        assertEquals(Set.of(EveryonePrincipal.getInstance()), createPrincipalProvider(um).getMembershipPrincipals(p));
 
         verify(um, times(1)).getAuthorizable(p);
         verify(userMock, times(1)).memberOf();

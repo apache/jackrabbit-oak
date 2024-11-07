@@ -23,7 +23,6 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
@@ -45,21 +44,21 @@ public class DefaultWhiteboardTest {
         whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
         whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
 
-        assertEquals(of("s1"), track(Service1.class));
-        assertEquals(of("s1"), track(Service1.class, singletonMap("role", null)));
-        assertEquals(of(), track(Service1.class, ImmutableMap.of("role", "myrole")));
+        assertEquals(Set.of("s1"), track(Service1.class));
+        assertEquals(Set.of("s1"), track(Service1.class, singletonMap("role", null)));
+        assertEquals(Set.of(), track(Service1.class, ImmutableMap.of("role", "myrole")));
 
-        assertEquals(of("s2"), track(Service2.class));
-        assertEquals(of(), track(Service2.class, singletonMap("role", null)));
-        assertEquals(of("s2"), track(Service2.class, ImmutableMap.of("role", "myrole")));
+        assertEquals(Set.of("s2"), track(Service2.class));
+        assertEquals(Set.of(), track(Service2.class, singletonMap("role", null)));
+        assertEquals(Set.of("s2"), track(Service2.class, ImmutableMap.of("role", "myrole")));
 
-        assertEquals(of("s3_1", "s3_2", "s3_3"), track(Service3.class));
-        assertEquals(of("s3_1"), track(Service3.class, singletonMap("role", null)));
-        assertEquals(of("s3_2"), track(Service3.class, ImmutableMap.of("role", "myrole")));
-        assertEquals(of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole")));
-        assertEquals(of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole", "id", "1024")));
-        assertEquals(of("s3_3"), track(Service3.class, ImmutableMap.of("id", "1024")));
-        assertEquals(of(), track(Service3.class, ImmutableMap.of("id", "2048")));
+        assertEquals(Set.of("s3_1", "s3_2", "s3_3"), track(Service3.class));
+        assertEquals(Set.of("s3_1"), track(Service3.class, singletonMap("role", null)));
+        assertEquals(Set.of("s3_2"), track(Service3.class, ImmutableMap.of("role", "myrole")));
+        assertEquals(Set.of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole")));
+        assertEquals(Set.of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole", "id", "1024")));
+        assertEquals(Set.of("s3_3"), track(Service3.class, ImmutableMap.of("id", "1024")));
+        assertEquals(Set.of(), track(Service3.class, ImmutableMap.of("id", "2048")));
     }
 
     @Test
@@ -70,7 +69,7 @@ public class DefaultWhiteboardTest {
         whiteboard.register(Service1.class, s1, ImmutableMap.of());
         whiteboard.register(Service1.class, s1, ImmutableMap.of());
 
-        assertEquals(of("s1"), track(Service1.class));
+        assertEquals(Set.of("s1"), track(Service1.class));
     }
 
     @Test
@@ -81,21 +80,21 @@ public class DefaultWhiteboardTest {
         Registration r3_2 = whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
         Registration r3_3 = whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
 
-        assertEquals(of("s1"), track(Service1.class));
+        assertEquals(Set.of("s1"), track(Service1.class));
         r1.unregister();
-        assertEquals(of(), track(Service1.class));
+        assertEquals(Set.of(), track(Service1.class));
 
-        assertEquals(of("s2"), track(Service2.class));
+        assertEquals(Set.of("s2"), track(Service2.class));
         r2.unregister();
-        assertEquals(of(), track(Service2.class));
+        assertEquals(Set.of(), track(Service2.class));
 
-        assertEquals(of("s3_1", "s3_2", "s3_3"), track(Service3.class));
+        assertEquals(Set.of("s3_1", "s3_2", "s3_3"), track(Service3.class));
         r3_1.unregister();
-        assertEquals(of("s3_2", "s3_3"), track(Service3.class));
+        assertEquals(Set.of("s3_2", "s3_3"), track(Service3.class));
         r3_2.unregister();
-        assertEquals(of("s3_3"), track(Service3.class));
+        assertEquals(Set.of("s3_3"), track(Service3.class));
         r3_3.unregister();
-        assertEquals(of(), track(Service3.class));
+        assertEquals(Set.of(), track(Service3.class));
     }
 
     private <T extends Service> Set<String> track(Class<T> clazz) {

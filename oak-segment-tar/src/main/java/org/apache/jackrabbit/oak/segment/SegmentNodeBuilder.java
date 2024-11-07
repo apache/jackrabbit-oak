@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,7 +84,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         super(base);
         this.blobStore = blobStore;
         this.reader = reader;
-        this.writer = checkNotNull(writer);
+        this.writer = requireNonNull(writer);
         this.updateCount = 0;
         this.readStats = readStats;
     }
@@ -100,7 +100,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         super(parent, name);
         this.blobStore = blobStore;
         this.reader = reader;
-        this.writer = checkNotNull(writer);
+        this.writer = requireNonNull(writer);
         this.updateCount = -1;
         this.readStats = readStats;
     }

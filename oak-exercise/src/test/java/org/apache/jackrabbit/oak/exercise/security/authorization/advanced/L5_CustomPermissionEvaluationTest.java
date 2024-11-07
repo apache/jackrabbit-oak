@@ -318,7 +318,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
         PrivilegeManager privilegeManager = getPrivilegeManager(root);
         Privilege all = privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL);
-        Set<String> readPrivNames = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
+        Set<String> readPrivNames = Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
 
         for (Set<Principal> principals : readers) {
             PermissionProvider pp = getPermissionProvider(principals);

@@ -28,7 +28,6 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
@@ -42,7 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 @Component(
         service = InventoryPrinter.class,
@@ -64,8 +63,8 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     public IndexPrinter(IndexInfoService indexInfoService, AsyncIndexInfoService asyncIndexInfoService) {
-        this.indexInfoService = checkNotNull(indexInfoService);
-        this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
+        this.indexInfoService = requireNonNull(indexInfoService);
+        this.asyncIndexInfoService = requireNonNull(asyncIndexInfoService);
     }
 
     @Override
@@ -257,7 +256,7 @@ public class IndexPrinter implements InventoryPrinter {
             newLine();
             appendLine(section);
             if (topLevel) {
-                appendLine(Strings.repeat("=", section.length()));
+                appendLine("=".repeat(section.length()));
                 newLine();
             } else {
                 leftPadding += 4;

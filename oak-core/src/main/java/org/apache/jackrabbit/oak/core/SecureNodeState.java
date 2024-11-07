@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -29,9 +27,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
+import java.util.function.Function;
+import java.util.function.Predicate;
+
 import static java.util.Collections.emptyList;
 
 class SecureNodeState extends AbstractNodeState {
@@ -51,8 +53,8 @@ class SecureNodeState extends AbstractNodeState {
     private long propertyCount = -1;
 
     SecureNodeState(@NotNull NodeState state, @NotNull TreePermission treePermission) {
-        this.state = checkNotNull(state);
-        this.treePermission = checkNotNull(treePermission);
+        this.state = requireNonNull(state);
+        this.treePermission = requireNonNull(treePermission);
     }
 
     @Override
@@ -78,7 +80,7 @@ class SecureNodeState extends AbstractNodeState {
             } else {
                 propertyCount = count(filter(
                         state.getProperties(),
-                        new ReadablePropertyPredicate()));
+                        new ReadablePropertyPredicate()::test));
             }
         }
         return propertyCount;
@@ -91,7 +93,7 @@ class SecureNodeState extends AbstractNodeState {
         } else {
             return filter(
                     state.getProperties(),
-                    new ReadablePropertyPredicate());
+                    new ReadablePropertyPredicate()::test);
         }
     }
 
@@ -144,8 +146,8 @@ class SecureNodeState extends AbstractNodeState {
         } else if (treePermission.canRead()) {
             Iterable<ChildNodeEntry> readable = transform(
                     state.getChildNodeEntries(),
-                    new WrapChildEntryFunction());
-            return filter(readable, new IterableNodePredicate());
+                    new WrapChildEntryFunction()::apply);
+            return filter(readable, new IterableNodePredicate()::test);
         } else {
             return emptyList();
        }
@@ -163,7 +165,7 @@ class SecureNodeState extends AbstractNodeState {
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean apply(@Nullable PropertyState property) {
+        public boolean test(@Nullable PropertyState property) {
             return property != null && treePermission.canRead(property);
         }
     }
@@ -173,7 +175,7 @@ class SecureNodeState extends AbstractNodeState {
      */
     private static class IterableNodePredicate implements Predicate<ChildNodeEntry> {
         @Override
-        public boolean apply(@Nullable ChildNodeEntry input) {
+        public boolean test(@Nullable ChildNodeEntry input) {
             return input != null && input.getNodeState().exists();
         }
     }

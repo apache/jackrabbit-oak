@@ -24,11 +24,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -62,7 +62,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         provider = new PropertyIndexEditorProvider();
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, name);
         builder.child("testRoot").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -405,7 +405,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         new AsyncIndexUpdate(name, store, provider).run();
         final long lease = 50;
         testContent(store, AsyncUpdateCallback.LEASE_CHECK_INTERVAL / 2);
-        Set<Long> leaseTimes = Sets.newHashSet();
+        Set<Long> leaseTimes = new HashSet<>();
         final Clock.Virtual clock = new Clock.Virtual();
         final IndexStatusListener l1 = new IndexStatusListener() {
             @Override

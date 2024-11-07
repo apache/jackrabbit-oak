@@ -16,18 +16,11 @@
  */
 package org.apache.jackrabbit.j2ee;
 
-import org.apache.jackrabbit.rmi.client.ClientRepositoryFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.util.Properties;
 
 import javax.jcr.Repository;
@@ -37,9 +30,12 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * This Class implements a servlet that is used as unified mechanism to retrieve
- * a jcr repository either through JNDI or RMI.
+ * a jcr repository either through JNDI.
  */
 public class RepositoryAccessServlet extends HttpServlet {
 
@@ -221,42 +217,6 @@ public class RepositoryAccessServlet extends HttpServlet {
     }
 
     /**
-     * Checks if the repository is available via RMI and returns it.
-     * @return the repository or <code>null</code>
-     * @throws ServletException if this servlet is not properly configured.
-     */
-    private Repository getRepositoryByRMI() throws ServletException {
-        BootstrapConfig config = getConfig();
-        if (!config.getRmiConfig().isValid() || !config.getRmiConfig().enabled()) {
-            return null;
-        }
-
-        // acquire via RMI
-        String rmiURI = config.getRmiConfig().getRmiUri();
-        if (rmiURI == null) {
-            return null;
-        }
-        log.info("  trying to retrieve repository using rmi. uri={}", rmiURI);
-        ClientFactoryDelegater cfd;
-        try {
-            Class clazz = Class.forName(getServerFactoryDelegaterClass());
-            cfd = (ClientFactoryDelegater) clazz.newInstance();
-        } catch (Throwable e) {
-            log.error("Unable to locate RMI ClientRepositoryFactory. Is jcr-rmi.jar missing?", e);
-            return null;
-        }
-
-        try {
-            Repository r = cfd.getRepository(rmiURI);
-            log.info("Acquired repository via RMI.");
-            return r;
-        } catch (Exception e) {
-            log.error("Error while retrieving repository using RMI: {}", rmiURI, e);
-            return null;
-        }
-    }
-
-    /**
      *  If our config said so, try to retrieve a Repository from the ServletContext
      */
     protected Repository getRepositoryByContextAttribute() {
@@ -276,17 +236,6 @@ public class RepositoryAccessServlet extends HttpServlet {
     }
 
     /**
-     * Return the fully qualified name of the class providing the client
-     * repository. The class whose name is returned must implement the
-     * {@link ClientFactoryDelegater} interface.
-     *
-     * @return the qfn of the factory class.
-     */
-    protected String getServerFactoryDelegaterClass() {
-        return getClass().getName() + "$RMIClientFactoryDelegater";
-    }
-
-    /**
      * Returns the JCR repository
      *
      * @return a JCR repository
@@ -301,10 +250,6 @@ public class RepositoryAccessServlet extends HttpServlet {
             if (repository == null) {
                 // try to retrieve via jndi
                 repository = getRepositoryByJNDI();
-            }
-            if (repository == null) {
-                // try to get via rmi
-                repository = getRepositoryByRMI();
             }
             if (repository == null) {
                 throw new ServletException("N/A");
@@ -334,30 +279,6 @@ public class RepositoryAccessServlet extends HttpServlet {
      */
     public BootstrapConfig getBootstrapConfig() {
         return config;
-    }
-
-    /**
-     * optional class for RMI, will only be used, if RMI client is present
-     */
-    protected static abstract class ClientFactoryDelegater {
-
-        public abstract Repository getRepository(String uri)
-                throws RemoteException, MalformedURLException, NotBoundException;
-    }
-
-    /**
-     * optional class for RMI, will only be used, if RMI server is present
-     */
-    protected static class RMIClientFactoryDelegater extends ClientFactoryDelegater {
-
-        // only used to enforce linking upon Class.forName()
-        static String FactoryClassName = ClientRepositoryFactory.class.getName();
-
-        public Repository getRepository(String uri)
-                throws MalformedURLException, NotBoundException, RemoteException {
-            System.setProperty("java.rmi.server.useCodebaseOnly", "true");
-            return new ClientRepositoryFactory().getRepository(uri);
-        }
     }
 }
 

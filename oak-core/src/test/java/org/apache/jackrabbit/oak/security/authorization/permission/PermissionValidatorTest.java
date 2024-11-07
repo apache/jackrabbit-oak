@@ -211,7 +211,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
         NodeState ns = getTreeProvider().asNodeState(t);
         ProviderCtx ctx = mockProviderCtx();
 
-        PermissionValidatorProvider pvp = new PermissionValidatorProvider("wspName", ImmutableSet.of(), new MoveTracker(), ctx);
+        PermissionValidatorProvider pvp = new PermissionValidatorProvider("wspName", Set.of(), new MoveTracker(), ctx);
         PermissionValidator validator = new PermissionValidator(ns, ns, mock(PermissionProvider.class), pvp);
         for (String name : PathUtils.elements(VERSION_STORE_PATH)) {
             t = t.getChild(name);
@@ -232,7 +232,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
 
     @Test(expected = CommitFailedException.class)
     public void testAddVersionStorageTreeWithoutHistory() throws Exception {
-        PermissionValidator validator = createValidator(ImmutableSet.of(), VERSION_STORE_PATH);
+        PermissionValidator validator = createValidator(Set.of(), VERSION_STORE_PATH);
         try {
             Tree t = root.getTree(VERSION_STORE_PATH);
             TreeUtil.addChild(t, "any", REP_VERSIONSTORAGE);
@@ -248,7 +248,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
 
     @Test(expected = CommitFailedException.class)
     public void testAddVersionStorageTreeUnexpectedNode() throws Exception {
-        PermissionValidator validator = createValidator(ImmutableSet.of(), VERSION_STORE_PATH);
+        PermissionValidator validator = createValidator(Set.of(), VERSION_STORE_PATH);
         try {
             Tree t = root.getTree(VERSION_STORE_PATH);
             Tree storageT = TreeUtil.addChild(t, "any", REP_VERSIONSTORAGE);

@@ -39,12 +39,10 @@ import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,18 +84,14 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     /**
      * Convert the size calculation to KB to support max file size of 2 TB
      */
-    private static final Weigher<String, File> weigher = new Weigher<String, File>() {
-        @Override public int weigh(String key, File value) {
-            // convert to number of 4 KB blocks
-            return Math.round(value.length() / (4 * 1024));
-        }};
+    private static final Weigher<String, File> weigher = (key, value) -> {
+        // convert to number of 4 KB blocks
+        return Math.round(value.length() / (4 * 1024));
+    };
 
     //Rough estimate of the in-memory key, value pair
-    private static final Weigher<String, File> memWeigher = new Weigher<String, File>() {
-        @Override public int weigh(String key, File value) {
-            return (StringUtils.estimateMemoryUsage(key) +
-                StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
-        }};
+    private static final Weigher<String, File> memWeigher = (key, value) -> (StringUtils.estimateMemoryUsage(key) +
+        StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
 
     private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
@@ -108,8 +102,9 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         // convert to number of 4 KB blocks
         long size = Math.round(maxSize / (1024L * 4));
 
-        cacheLoader = new CacheLoader<String, File>() {
-            @Override public File load(String key) throws Exception {
+        cacheLoader = new CacheLoader<>() {
+            @Override
+            public File load(String key) throws Exception {
                 // Fetch from local cache directory and if not found load from backend
                 File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
                 if (cachedFile.exists()) {
@@ -117,6 +112,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 } else {
                     InputStream is = null;
                     boolean threw = true;
+                    long startNanos = System.nanoTime();
                     try {
                         is = loader.load(key);
                         copyInputStreamToFile(is, cachedFile);
@@ -126,6 +122,9 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                         throw e;
                     } finally {
                         Closeables.close(is, threw);
+                    }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Loaded file: {} in {}", key, (System.nanoTime() - startNanos) / 1_000_000);
                     }
                     return cachedFile;
                 }
@@ -137,21 +136,17 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             .recordStats()
             .weigher(weigher)
             .segmentCount(SEGMENT_COUNT)
-            .evictionCallback(new EvictionCallback<String, File>() {
-                @Override
-                public void evicted(@NotNull String key, @Nullable File cachedFile,
-                    @NotNull RemovalCause cause) {
-                    try {
-                        if (cachedFile != null && cachedFile.exists()
-                            && cause != RemovalCause.REPLACED) {
-                            DataStoreCacheUtils.recursiveDelete(cachedFile, cacheRoot);
-                            LOG.info("File [{}] evicted with reason [{}]", cachedFile, cause
-                                .toString());
-                        }
-                    } catch (IOException e) {
-                        LOG.info("Cached file deletion failed after eviction", e);
+            .evictionCallback((key, cachedFile, cause) -> {
+                try {
+                    if (cachedFile != null && cachedFile.exists()
+                        && cause != RemovalCause.REPLACED) {
+                        DataStoreCacheUtils.recursiveDelete(cachedFile, cacheRoot);
+                        LOG.info("File [{}] evicted with reason [{}]", cachedFile, cause);
                     }
-                }})
+                } catch (IOException e) {
+                    LOG.info("Cached file deletion failed after eviction", e);
+                }
+            })
             .build();
 
         this.cacheStats =
@@ -177,7 +172,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         }
         return new FileCache() {
 
-            private final Cache<?,?> cache = new CacheLIRS<>(0);
+            private final Cache<?, ?> cache = new CacheLIRS<>(0);
 
             @Override public void put(String key, File file) {
             }
@@ -190,7 +185,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 return null;
             }
 
-            @Override public File get(String key) throws IOException {
+            @Override public File get(String key) {
                 return null;
             }
 
@@ -291,7 +286,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     /**
      * Called to initialize the in-memory cache from the fs folder
      */
-    private class CacheBuildJob implements Callable {
+    private class CacheBuildJob implements Callable<Integer> {
         @Override
         public Integer call() {
             Stopwatch watch = Stopwatch.createStarted();

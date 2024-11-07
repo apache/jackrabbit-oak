@@ -69,7 +69,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, false, "Nested automembership = true, Dynamic Groups = false" },
                 new Object[] { false, false, "Nested automembership = false, Dynamic Groups = false" },
                 new Object[] { false, true, "Nested automembership = false, Dynamic Groups = true" });
@@ -263,7 +263,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
         Set<Principal> dynamicGroupMembership = principalProvider.getMembershipPrincipals(externalGroupPrincipal);
         if (dynamicGroups) {
-            Set<Principal> expected = ImmutableSet.of(groupAutoMembershipGroup.getPrincipal(), configAutoMembershipGroup.getPrincipal());
+            Set<Principal> expected = Set.of(groupAutoMembershipGroup.getPrincipal(), configAutoMembershipGroup.getPrincipal());
             assertEquals(expected, dynamicGroupMembership);        
         } else {
             // dynamic-groups not enabled -> group automembership not resolved.

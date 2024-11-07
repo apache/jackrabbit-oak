@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.lang.reflect.Field;
+import java.util.Set;
 
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -84,7 +84,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         root.commit();
 
         vMgr = ReadOnlyVersionManager.getInstance(root, NamePathMapper.DEFAULT);
-        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(EveryonePrincipal.getInstance()));
 
         assertTrue(pp instanceof PermissionProviderImpl);
 
@@ -137,7 +137,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
 
     @Test
     public void testGetTreePermission() throws Exception {
-        Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+        Tree versionHistory = requireNonNull(vMgr.getVersionHistory(testTree));
 
         String expectedPath = "/test";
 
@@ -165,7 +165,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
 
     @Test
     public void testGetChild() throws Exception {
-        Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+        Tree versionHistory = requireNonNull(vMgr.getVersionHistory(testTree));
 
         Tree t = getRootProvider().createReadOnlyRoot(root).getTree("/");
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
@@ -196,7 +196,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
 
     @Test
     public void testVersionableRemoved() throws Exception {
-        Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+        Tree versionHistory = requireNonNull(vMgr.getVersionHistory(testTree));
 
         testTree.remove();
         root.commit();
@@ -230,7 +230,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         root.commit();
         pp.refresh();
 
-        Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+        Tree versionHistory = requireNonNull(vMgr.getVersionHistory(testTree));
         String frozenCPath = PathUtils.concat(versionHistory.getPath(), "1.0", JCR_FROZENNODE, "a/b/c");
 
         TreePermission tp = getVersionPermission(root, pp, frozenCPath);
@@ -250,7 +250,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         root.commit();
         pp.refresh();
 
-        Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+        Tree versionHistory = requireNonNull(vMgr.getVersionHistory(testTree));
 
         String frozenAPath = PathUtils.concat(versionHistory.getPath(), "1.0", JCR_FROZENNODE, "a");
         TreePermission tp = getVersionPermission(root, pp, frozenAPath);

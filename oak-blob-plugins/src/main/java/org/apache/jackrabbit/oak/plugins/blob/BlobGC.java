@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
@@ -72,8 +72,8 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
             @NotNull BlobGarbageCollector blobGarbageCollector,
             @NotNull Executor executor) {
         super(BlobGCMBean.class);
-        this.blobGarbageCollector = checkNotNull(blobGarbageCollector);
-        this.executor = checkNotNull(executor);
+        this.blobGarbageCollector = requireNonNull(blobGarbageCollector);
+        this.executor = requireNonNull(executor);
     }
 
     @NotNull

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
@@ -26,7 +27,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.commons.compress.utils.Lists;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 
@@ -42,7 +42,7 @@ public class GetURITest extends AbstractTest {
 
     private Node root;
 
-    private List<Binary> binariesAdded = Lists.newArrayList();
+    private List<Binary> binariesAdded = new ArrayList<>();
 
     private Random random = new Random(29);
 

@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -50,10 +50,10 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
                               @NotNull DocumentNodeStoreBranch branch,
                               @NotNull DocumentNodeState base,
                               @NotNull NodeState modified) {
-        this.store = checkNotNull(store);
-        this.branch = checkNotNull(branch);
-        this.base = checkNotNull(base);
-        this.modified = checkNotNull(modified);
+        this.store = requireNonNull(store);
+        this.branch = requireNonNull(branch);
+        this.base = requireNonNull(base);
+        this.modified = requireNonNull(modified);
     }
 
     @Override

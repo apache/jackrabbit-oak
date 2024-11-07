@@ -15,14 +15,10 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
+
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -39,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
@@ -131,7 +128,7 @@ public class CheckpointCompactor extends Compactor {
             }
 
             before = entry.getValue();
-            checkState(compacted.isComplete());
+            Validate.checkState(compacted.isComplete());
             getChild(builder, getParentPath(path)).setChildNode(getName(path), compacted);
 
             if (softCanceller.check().isCancelled()) {
@@ -164,7 +161,7 @@ public class CheckpointCompactor extends Compactor {
             if (compacted == null) {
                 return null;
             }
-            checkState(compacted.isComplete());
+            Validate.checkState(compacted.isComplete());
             getChild(builder, getParentPath(path)).setChildNode(getName(path), compacted);
             before = after;
             onto = compacted;

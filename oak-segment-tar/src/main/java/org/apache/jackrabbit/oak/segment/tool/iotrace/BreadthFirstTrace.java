@@ -15,16 +15,15 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.Writer;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,7 +78,7 @@ public class BreadthFirstTrace implements Trace {
     @Override
     public void run(@NotNull NodeState node) {
         updateContext(context, 0, nodeCount.incrementAndGet());
-        traverse(newLinkedList(singleton(getNode(node, path))), 0);
+        traverse(new LinkedList<>(singleton(getNode(node, path))), 0);
     }
 
     @NotNull
@@ -93,7 +92,7 @@ public class BreadthFirstTrace implements Trace {
 
     private void traverse(@NotNull Queue<NodeState> nodes, int depth) {
         if (!nodes.isEmpty()) {
-            Queue<NodeState> children = newLinkedList();
+            Queue<NodeState> children = new LinkedList<>();
             while (!nodes.isEmpty()) {
                 NodeState head = nodes.poll();
                 assert head != null;

@@ -18,20 +18,20 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -121,7 +121,7 @@ public class MapRecord extends Record {
 
     MapRecord(@NotNull SegmentReader reader, @NotNull RecordId id) {
         super(id);
-        this.reader = checkNotNull(reader);
+        this.reader = requireNonNull(reader);
     }
 
     boolean isLeaf() {
@@ -154,7 +154,7 @@ public class MapRecord extends Record {
     }
 
     private List<MapRecord> getBucketList(Segment segment) {
-        List<MapRecord> buckets = newArrayListWithCapacity(BUCKETS_PER_LEVEL);
+        List<MapRecord> buckets = new ArrayList<>(BUCKETS_PER_LEVEL);
         int bitmap = segment.readInt(getRecordNumber(), 4);
         int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
@@ -177,7 +177,7 @@ public class MapRecord extends Record {
     }
 
     MapEntry getEntry(String name) {
-        checkNotNull(name);
+        requireNonNull(name);
         int hash = getHash(name);
         Segment segment = getSegment();
 
@@ -256,7 +256,7 @@ public class MapRecord extends Record {
     }
 
     private RecordId getValue(int hash, RecordId key) {
-        checkNotNull(key);
+        requireNonNull(key);
         Segment segment = getSegment();
 
         int head = segment.readInt(getRecordNumber());
@@ -325,7 +325,7 @@ public class MapRecord extends Record {
         if (isBranch(size, level)) {
             List<MapRecord> buckets = getBucketList(segment);
             List<Iterable<String>> keys =
-                    newArrayListWithCapacity(buckets.size());
+                    new ArrayList<>(buckets.size());
             for (final MapRecord bucket : buckets) {
                 keys.add(new Iterable<String>() {
                     @NotNull
@@ -375,7 +375,7 @@ public class MapRecord extends Record {
         if (isBranch(size, level)) {
             List<MapRecord> buckets = getBucketList(segment);
             List<Iterable<MapEntry>> entries =
-                    newArrayListWithCapacity(buckets.size());
+                    new ArrayList<>(buckets.size());
             for (final MapRecord bucket : buckets) {
                 entries.add(new Iterable<MapEntry>() {
                     @NotNull
@@ -568,7 +568,7 @@ public class MapRecord extends Record {
         MapRecord[] beforeBuckets = before.getBuckets();
         MapRecord[] afterBuckets = after.getBuckets();
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
-            if (Objects.equal(beforeBuckets[i], afterBuckets[i])) {
+            if (Objects.equals(beforeBuckets[i], afterBuckets[i])) {
                 // these buckets are equal (or both empty), so no changes
             } else if (beforeBuckets[i] == null) {
                 // before bucket is empty, so all after entries were added

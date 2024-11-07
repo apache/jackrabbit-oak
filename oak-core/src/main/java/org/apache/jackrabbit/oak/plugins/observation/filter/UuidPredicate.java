@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
 import java.util.function.Predicate;
@@ -42,7 +42,7 @@ public class UuidPredicate implements Predicate<NodeState> {
      * @param uuids    uuids
      */
     public UuidPredicate(@NotNull String[] uuids) {
-        this.uuids = checkNotNull(uuids);
+        this.uuids = requireNonNull(uuids);
     }
 
     @Override

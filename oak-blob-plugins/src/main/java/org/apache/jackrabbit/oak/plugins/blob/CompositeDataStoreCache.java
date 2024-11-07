@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.io.Closeable;
 import java.io.File;
@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.guava.common.cache.AbstractCache;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -73,11 +74,16 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
         this.directory = new File(path);
 
         long uploadSize = (size * uploadSplitPercentage) / 100;
-
+        long fileCacheSize = size - uploadSize;
+        LOG.info("Creating composite cache with size: {} ({}), split as uploadSize: {} ({}), fileCacheSize: {} ({}), uploadSplitPercentage: {}, uploadThreads: {}",
+                size, IOUtils.humanReadableByteCount(size),
+                uploadSize, IOUtils.humanReadableByteCountBin(uploadSize),
+                fileCacheSize, IOUtils.humanReadableByteCountBin(fileCacheSize),
+                uploadSplitPercentage, uploadThreads);
         this.stagingCache = UploadStagingCache
             .build(directory, home, uploadThreads, uploadSize, uploader, null, statsProvider,
                 listeningExecutor, scheduledExecutor, purgeInterval, stagingRetryInterval);
-        this.downloadCache = FileCache.build((size - uploadSize), directory, loader, executor);
+        this.downloadCache = FileCache.build(fileCacheSize, directory, loader, executor);
         stagingCache.setDownloadCache(downloadCache);
     }
 

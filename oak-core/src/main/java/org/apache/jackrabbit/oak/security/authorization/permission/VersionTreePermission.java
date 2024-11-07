@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.Objects;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -35,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
  */
 class VersionTreePermission implements TreePermission, VersionConstants {
 
-    private static final Set<String> NT_NAMES = ImmutableSet.of(NT_VERSION, NT_VERSIONLABELS);
+    private static final Set<String> NT_NAMES = Set.of(NT_VERSION, NT_VERSIONLABELS);
 
     private final Tree versionTree;
     private final TreePermission versionablePermission;
@@ -50,7 +51,8 @@ class VersionTreePermission implements TreePermission, VersionConstants {
     @NotNull
     VersionTreePermission createChildPermission(@NotNull Tree versionTree) {
         TreePermission delegatee;
-        if (JCR_FROZENNODE.equals(versionTree.getName()) || NT_NAMES.contains(TreeUtil.getPrimaryTypeName(versionTree))) {
+        if (JCR_FROZENNODE.equals(versionTree.getName()) ||
+                (Objects.nonNull(TreeUtil.getPrimaryTypeName(versionTree)) && NT_NAMES.contains(TreeUtil.getPrimaryTypeName(versionTree)))) {
             delegatee = versionablePermission;
         } else {
             delegatee = versionablePermission.getChildPermission(versionTree.getName(), treeProvider.asNodeState(versionTree));

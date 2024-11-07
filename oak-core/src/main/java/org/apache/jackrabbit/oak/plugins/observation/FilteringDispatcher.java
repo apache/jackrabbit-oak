@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -39,7 +39,7 @@ public class FilteringDispatcher implements Observer {
     private NodeState before;
 
     public FilteringDispatcher(FilteringAwareObserver observer) {
-        this.observer = checkNotNull(observer);
+        this.observer = requireNonNull(observer);
     }
 
     @Override

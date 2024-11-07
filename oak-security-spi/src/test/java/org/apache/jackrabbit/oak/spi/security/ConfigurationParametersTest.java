@@ -330,19 +330,19 @@ public class ConfigurationParametersTest {
 
         // map of config value (key) and expected result set.
         Map<Object, Set<?>> configValues = new HashMap<>();
-        configValues.put("a", ImmutableSet.of("a"));
+        configValues.put("a", Set.of("a"));
         configValues.put(stringArray, stringSet);
         configValues.put(stringSet, stringSet);
         configValues.put(testObjectArray, testObjectSet);
         configValues.put(testObjectSet, testObjectSet);
         configValues.put(new String[0], Collections.<String>emptySet());
         configValues.put(new HashSet<>(), Collections.emptySet());
-        configValues.put(ImmutableSet.of(), Collections.emptySet());
+        configValues.put(Set.of(), Collections.emptySet());
         configValues.put(new ArrayList<>(), Collections.emptySet());
         configValues.put(ConfigurationParameters.EMPTY, Collections.<String>emptySet());
 
-        Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
-        Set<TestObject> defaultObjects = ImmutableSet.of(new TestObject("abc"), new TestObject("def"));
+        Set<String> defaultStrings = Set.of("abc", "def", "ghi");
+        Set<TestObject> defaultObjects = Set.of(new TestObject("abc"), new TestObject("def"));
 
         configValues.forEach((value, expected) -> {
             ConfigurationParameters config;
@@ -354,11 +354,11 @@ public class ConfigurationParametersTest {
 
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet()));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet()));
-            assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
+            assertEquals(expected, config.getConfigValue("key", Set.of()));
 
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet(), Set.class));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet(), Set.class));
-            assertEquals(expected, config.getConfigValue("key", ImmutableSet.of(), Set.class));
+            assertEquals(expected, config.getConfigValue("key", Set.of(), Set.class));
 
             // test with default values
             if (!config.containsKey("key")) {
@@ -481,7 +481,7 @@ public class ConfigurationParametersTest {
         configValues.put(testObjectSet, stringArray);
         configValues.put(new String[0], new String[0]);
         configValues.put(new HashSet<>(), new String[0]);
-        configValues.put(ImmutableSet.of(), new String[0]);
+        configValues.put(Set.of(), new String[0]);
         configValues.put(new ArrayList<>(), new String[0]);
         configValues.put(ConfigurationParameters.EMPTY, new String[0]);
 
@@ -560,7 +560,7 @@ public class ConfigurationParametersTest {
     public void testKeySet() {
         TestObject value = new TestObject("name");
         ConfigurationParameters options = ConfigurationParameters.of("test", value);
-        assertEquals(Sets.newHashSet("test"), options.keySet());
+        assertEquals(Set.of("test"), options.keySet());
     }
 
     @Test

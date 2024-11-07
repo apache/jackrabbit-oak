@@ -42,22 +42,14 @@ dedicated `LoginModule` implementation(s) for each scenario:
 <a name="guest"></a>
 #### Guest Login
 
-The proper way to obtain an guest session as of Oak is as specified by JSR 283:
+The proper way to obtain a guest session is specified by JSR 283:
 
-    String wspName = null;
+    String wspName = null; // or any other workspace name if not login to the default workspace
     Session anonymous = repository.login(new GuestCredentials(), wspName);
 
-As of Oak 1.0 `Repository#login()` and `Repository#login(null, wspName)` is no
-longer treated as guest login. This behavior of Jackrabbit-core is violating the
-specification, which defines that null-login should be used for those cases where
-the authentication process is handled outside of the repository (see [Pre-Authentication](preauthentication.html)).
+As of Oak 1.0 `Repository#login()` and `Repository#login(null, wspName)` is no longer treated as guest login. This behavior of Jackrabbit-core is violating the specification, which defines that null-login should be used for those cases where the authentication process is handled outside the repository (see [Pre-Authentication](preauthentication.html)).
 
-Similarly, any special treatment that Jackrabbit core applied for the guest (anonymous)
-user has been omitted altogether from the default [LoginModuleImpl]. In the default
-setup the built-in anonymous user will be created without any password. Therefore
-explicitly uid/pw login using the anonymous userId will no longer work. This behavior
-is now consistent with the default login of any other user which doesn't have a
-password set.
+Similarly, any special treatment that Jackrabbit core applied for the guest (anonymous) user has been omitted altogether from the default [LoginModuleImpl]. By default, the built-in anonymous user will be created without any password. Therefore, explicitly uid/pw login using the anonymous userId will no longer work. This behavior is now consistent with the default login of any other user which doesn't have a password set.
 
 ##### GuestLoginModule
 
@@ -132,7 +124,7 @@ This login module implementations behaves as follows:
 The `LoginModuleImpl` uses a configured `Authentication`-implementation for 
 performing the login step. Which implementation to use is determined by the 
 [UserAuthenticationFactory] obtained by the given `UserConfiguration`. It is
-expected to provides an `Authentication` implementation if the given 
+expected to provide an `Authentication` implementation if the given 
 `UserConfiguration` is accepted.
 
 In case multiple implementations of the `UserAuthenticationFactory` are available, 
@@ -145,11 +137,7 @@ See also section [user management](../user/default.html#pluggability).
 <a name="impersonation"></a>
 #### Impersonation Login
 
-Another flavor of the Oak authentication implementation is covered by
-`javax.jcr.Session#impersonate(Credentials)`, which allows to obtain an new
-`Session` for a user identified by the specified credentials. As of JSR 333
-this method can also be used in order to clone the existing session (i.e.
-self-impersonation of the user that holds the session.
+Another flavor of the Oak authentication implementation is covered by `javax.jcr.Session#impersonate(Credentials)`, which allows to obtain a new `Session` for a user identified by the specified credentials. As of JSR 333 this method can also be used in order to clone the existing session (i.e. self-impersonation of the user that holds the session).
 
 With Oak 1.0 impersonation is implemented as follows:
 
@@ -195,30 +183,22 @@ Applications that wish to use a custom authentication setup need to ensure the
 following steps in order to get JCR impersonation working:
 
 - Respect `ImpersonationCredentials` in the authentication setup.
-- Identify the impersonated from `ImpersonationCredentials.getBaseCredentials`
-  and verify if it can be authenticated.
-- Validate that the editing session is allowed to impersonate: The user associated
-  with the editing session can be identified by the [AuthInfo] obtained from
-  from `ImpersonationCredentials.getImpersonatorInfo()`.
+- Identify the impersonated from `ImpersonationCredentials.getBaseCredentials`and verify if it can be authenticated.
+- Validate that the editing session is allowed to impersonate: The user associated with the editing session can be identified by the [AuthInfo] obtained from `ImpersonationCredentials.getImpersonatorInfo()`.
 
 <a name="token"></a>
 #### Token Login
 
-See section [Token Authentication](tokenmanagement.html) for details
-regarding token based authentication.
+See section [Token Authentication](tokenmanagement.html) for details regarding token based authentication.
 
 ##### TokenLoginModule
 
-The `TokenLoginModule` is in charge of creating new login tokens and validate
-repository logins with `TokenCredentials`. The exact behavior of this login module is
-described in section [Token Authentication](tokenmanagement.html).
+The `TokenLoginModule` is in charge of creating new login tokens and validate repository logins with `TokenCredentials`. The exact behavior of this login module is described in section [Token Authentication](tokenmanagement.html).
 
 <a name="pre_authenticated"></a>
 #### Pre-Authenticated Login
 
-Oak provides two different mechanisms to create pre-authentication that doesn't
-involve the repositories internal authentication mechanism for credentials
-validation.
+Oak provides two different mechanisms to create pre-authentication that doesn't involve the repositories internal authentication mechanism for credentials validation.
 
 - Pre-Authentication combined with Login Module Chain
 - Pre-Authentication without Repository Involvement (aka `null` login)
@@ -235,16 +215,10 @@ systems (e.g. LDAP). For those setups that wish to combine initial authenticatio
 against a third party system with repository functionality, Oak provides a default
 implementation with extension points:
 
-- [External Authentication](externalloginmodule.html): Summary of
-  the external authentication and details about the `ExternalLoginModule`.
-- [User and Group Synchronization](usersync.html): Details regarding
-  user and group synchronization as well as a list of configuration options provided
-  by the the default implementations present with Oak.
-- [Identity Management](identitymanagement.html): Further information regarding extenal identity management.
-- [LDAP Integration](ldap.html): How to make use of the `ExternalLoginModule`
-  with the LDAP identity provider implementation. This combination is aimed to replace
-  `com.day.crx.security.ldap.LDAPLoginModule`, which relies on Jackrabbit internals
-  and will no longer work with Oak.
+- [External Authentication](externalloginmodule.html): Summary of the external authentication and details about the `ExternalLoginModule`.
+- [User and Group Synchronization](usersync.html): Details regarding user and group synchronization as well as a list of configuration options available with the default implementations present with Oak.
+- [Identity Management](identitymanagement.html): Further information regarding external identity management.
+- [LDAP Integration](ldap.html): How to make use of the `ExternalLoginModule` with the LDAP identity provider implementation. This combination is aimed to replace `com.day.crx.security.ldap.LDAPLoginModule`, which relies on Jackrabbit internals and will no longer work with Oak.
 
 ##### ExternalLoginModule
 
@@ -254,9 +228,7 @@ general mode of the external login module is to use the external system as authe
 source and as a provider for users and groups that may also be synchronized into
 the repository.
 
-This login module implementation requires an valid `SyncHandler` and `IdentityProvider`
-to be present. The detailed behavior of the `ExternalLoginModule` is described in
-section [External Authentication](externalloginmodule.html).
+This login module implementation requires a valid [SyncHandler] and [IdentityProvider] to be present. The detailed behavior of the `ExternalLoginModule` is described in section [External Authentication](externalloginmodule.html).
 
 <!-- hidden references -->
 [GuestCredentials]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/GuestCredentials.html
@@ -267,3 +239,9 @@ section [External Authentication](externalloginmodule.html).
 [LoginModuleImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/user/LoginModuleImpl.html
 [AbstractLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AbstractLoginModule.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
+[CallbackHandler]: /oak/docs/apidocs/javax/security/auth/callback/CallbackHandler.html
+[CredentialsCallback]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/callback/CredentialsCallback.html
+[ExternalLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/external/ExternalLoginModule.html
+[UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
+[SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
+[IdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/IdentityProvider.html

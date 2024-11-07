@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -26,10 +28,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.util.ISO8601;
@@ -45,7 +45,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -361,13 +360,14 @@ public final class TreeUtil {
             throw mixinTypeException(mixinName, true);
         }
 
-        List<String> mixins = Lists.newArrayList();
+        List<String> mixins = new ArrayList<>();
         String primary = getName(tree, JCR_PRIMARYTYPE);
         if (primary != null && Iterables.contains(getNames(type, NodeTypeConstants.REP_PRIMARY_SUBTYPES), primary)) {
             return;
         }
 
-        Set<String> subMixins = Sets.newHashSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
+        Set<String> subMixins = CollectionUtils.toSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
+
         for (String mixin : existingMixins.apply(tree)) {
             if (mixinName.equals(mixin) || subMixins.contains(mixin)) {
                 return;
@@ -443,7 +443,7 @@ public final class TreeUtil {
                 return PropertyStates.createProperty(name, ISO8601.format(Calendar.getInstance()), DATE);
             case JCR_CREATEDBY:
             case JCR_LASTMODIFIEDBY:
-                return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
+                return PropertyStates.createProperty(name, Objects.toString(userID, ""), STRING);
             default:
                 // no default, continue inspecting the definition
         }
@@ -504,7 +504,7 @@ public final class TreeUtil {
      */
     @NotNull
     public static List<Tree> getEffectiveType(@NotNull Tree tree, @NotNull Tree typeRoot) {
-        List<Tree> types = newArrayList();
+        List<Tree> types = new ArrayList<>();
 
         String primary = getName(tree, JCR_PRIMARYTYPE);
         if (primary != null) {

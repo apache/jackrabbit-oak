@@ -67,7 +67,7 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
             true
     );
 
-    private Set<String> supported = ImmutableSet.of("boolean", "longs", REP_NT_NAMES, REP_GLOB);
+    private Set<String> supported = Set.of("boolean", "longs", REP_NT_NAMES, REP_GLOB);
     private RestrictionProvider provider = CompositeRestrictionProvider.newInstance(rp1, rp2);
 
     private ValueFactory vf;
@@ -95,7 +95,7 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
         aceNode.setProperty("boolean", true);
         aceNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
         aceNode.setProperty(REP_GLOB, "*");
-        aceNode.setProperty(REP_NT_NAMES, ImmutableSet.of(), Type.NAMES); // empty array
+        aceNode.setProperty(REP_NT_NAMES, Set.of(), Type.NAMES); // empty array
         aceNode.setProperty("invalid", "val");
         aceNode.setProperty("invalid2", ImmutableList.of("val1", "val2", "val3"), Type.STRINGS);
 
@@ -112,7 +112,7 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
     @Test
     public void testWriteRestrictions() throws Exception {
         Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
-        Set<Restriction> restrictions = ImmutableSet.of(
+        Set<Restriction> restrictions = Set.of(
                 provider.createRestriction("/test","boolean", vf.createValue(true)),
                 provider.createRestriction("/test", "longs"),
                 provider.createRestriction("/test", REP_GLOB, vf.createValue("*")),

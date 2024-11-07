@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
@@ -31,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -82,7 +82,7 @@ class CugPolicyImpl implements CugPolicy {
     @NotNull
     @Override
     public Set<Principal> getPrincipals() {
-        return Sets.newHashSet(principals.values());
+        return new HashSet<>(principals.values());
     }
 
     @Override
@@ -120,7 +120,7 @@ class CugPolicyImpl implements CugPolicy {
 
     //--------------------------------------------------------------------------
     Iterable<String> getPrincipalNames() {
-        return Sets.newHashSet(principals.keySet());
+        return new HashSet<>(principals.keySet());
     }
 
     //--------------------------------------------------------------------------

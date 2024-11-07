@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -257,7 +257,7 @@ public class GroupImportTest extends AbstractImportTest {
     @Test
     public void testImportMembers() throws Exception {
         Session s = getImportSession();
-        Authorizable admin = checkNotNull(getUserManager().getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
+        Authorizable admin = requireNonNull(getUserManager().getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
         String uuid = s.getNode(admin.getPath()).getUUID();
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -290,7 +290,7 @@ public class GroupImportTest extends AbstractImportTest {
     @Test
     public void testImportMembersWithIdDifferentFromNodeName() throws Exception {
         Session s = getImportSession();
-        Authorizable admin = checkNotNull(getUserManager().getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
+        Authorizable admin = requireNonNull(getUserManager().getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
         String uuid = s.getNode(admin.getPath()).getUUID();
         // deliberately put the 'rep:members' before the 'rep:authorizableId' to cover OAK-2367
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +

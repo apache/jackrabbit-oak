@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 /**
  * In order to avoid leaking values from the metadataMap, following order should
@@ -54,7 +54,7 @@ import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
  */
 public class CacheMetadata<K> {
 
-    private final ConcurrentMap<K, MetadataEntry> metadataMap = newConcurrentMap();
+    private final ConcurrentMap<K, MetadataEntry> metadataMap = new ConcurrentHashMap<>();
 
     private boolean enabled = true;
 

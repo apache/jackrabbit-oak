@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -30,8 +29,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +39,10 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.internal.Strings;
@@ -57,6 +55,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
@@ -67,7 +66,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -153,7 +151,7 @@ public class DataStoreCheckTest {
         /* Create nodes with blobs stored in DS*/
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
-        blobsAdded = Sets.newHashSet();
+        blobsAdded = new HashSet<>();
         blobsAddedWithNodes = Maps.newHashMap();
 
         for (int i = 0; i < numBlobs; i++) {
@@ -212,8 +210,8 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)));
-        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
     @Test
@@ -235,9 +233,9 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId)), dsOption, blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
-            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -267,8 +265,8 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
-        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
     @Test
@@ -299,10 +297,10 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption,
+            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)), dsOption,
                 blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
-            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -316,15 +314,13 @@ public class DataStoreCheckTest {
     }
 
     private void testAllParams(File dump, File repoHome) throws Exception {
-        List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+        List<String> argsList = List.of("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
     private void testAllParamsVerbose(File dump, File repoHome) throws Exception {
-        List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+        List<String> argsList = List.of("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(), "--verbose");
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
@@ -333,16 +329,14 @@ public class DataStoreCheckTest {
     public void testMissingOpParams() throws Exception {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--" + dsOption, cfgFilePath, "--store", storePath,
+        List<String> argsList = List.of("--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
+        testIncorrectParams(argsList, List.of("Missing required option(s)", "id", "ref", "consistency"));
     }
 
     public void testTarNoDSOption(File dump) throws Exception {
-        List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--nods", "--store", storePath,
+        List<String> argsList = List.of("--id", "--ref", "--consistency", "--nods", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
@@ -351,10 +345,9 @@ public class DataStoreCheckTest {
     public void testTarNoDS() throws Exception {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+        List<String> argsList = List.of("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Operation not defined for SegmentNodeStore without external datastore"));
+        testIncorrectParams(argsList, List.of("Operation not defined for SegmentNodeStore without external datastore"));
 
     }
 
@@ -362,54 +355,49 @@ public class DataStoreCheckTest {
     public void testOpNoStore() throws Exception {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--consistency", "--" + dsOption, cfgFilePath,
+        List<String> argsList = List.of("--consistency", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
+        testIncorrectParams(argsList, List.of("Missing required option(s) [store]"));
 
-        argsList = Lists
-            .newArrayList("--ref", "--" + dsOption, cfgFilePath,
+        argsList = List.of("--ref", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
+        testIncorrectParams(argsList, List.of("Missing required option(s) [store]"));
     }
 
     @Test
     public void testTrackWithRefs() throws Exception {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--ref", "--store", storePath,
+        List<String> argsList = List.of("--ref", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--track", "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList,
-            Lists.newArrayList("Option(s) [track] are unavailable given other options on the command line"));
+            List.of("Option(s) [track] are unavailable given other options on the command line"));
     }
 
     @Test
     public void testConsistencyNoRepo() throws Exception {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+        List<String> argsList = List.of("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
+        testIncorrectParams(argsList, List.of("Missing required option(s) [repoHome]"));
     }
 
     @Test
     public void testTrackNoRepo() throws Exception {
         setupDataStore.close();
         File dump = temporaryFolder.newFolder();
-        List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+        List<String> argsList = List.of("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--track");
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
+        testIncorrectParams(argsList, List.of("Missing required option(s) [repoHome]"));
     }
 
-    public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
+    public static void testIncorrectParams(List<String> argList, List<String> assertMsg) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
+        System.setErr(new PrintStream(buffer, true, StandardCharsets.UTF_8));
 
         DataStoreCheckCommand.checkDataStore(argList.toArray(new String[0]));
-        String message = buffer.toString(UTF_8.toString());
+        String message = buffer.toString(StandardCharsets.UTF_8);
         log.info("Assert message: {}", assertMsg);
         log.info("Message logged in System.err: {}", message);
 
@@ -444,20 +432,13 @@ public class DataStoreCheckTest {
     }
 
     private static Set<String> encodedIds(Set<String> ids, String dsOption) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return DataStoreCheckCommand.encodeId(input, "--"+dsOption);
-            }
-        }));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
     }
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
-        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return Joiner.on(",").join(
-                    DataStoreCheckCommand.encodeId(input, "--"+dsOption),
-                    blobsAddedWithNodes.get(input));
-            }
-        }));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(),
+                input -> Joiner.on(",").join(
+                        DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                        blobsAddedWithNodes.get(input))));
     }
 }

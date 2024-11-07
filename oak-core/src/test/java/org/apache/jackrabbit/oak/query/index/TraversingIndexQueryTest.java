@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -442,8 +442,8 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
                                                @NotNull final String name, 
                                                @Nullable final String propertyName, 
                                                @Nullable final Long value) {
-        checkNotNull(parent);
-        checkNotNull(name);
+        requireNonNull(parent);
+        requireNonNull(name);
         
         Tree ret = parent.addChild(name);
         ret.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);

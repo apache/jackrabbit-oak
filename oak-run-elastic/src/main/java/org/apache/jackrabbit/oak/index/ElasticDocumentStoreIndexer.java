@@ -18,8 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.index.indexer.document.*;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase;
+import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexerProvider;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexerProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 
 import java.io.IOException;
@@ -53,7 +56,7 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
     }
 
     protected List<NodeStateIndexerProvider> createProviders() {
-        List<NodeStateIndexerProvider> providers = ImmutableList.of(
+        List<NodeStateIndexerProvider> providers = List.of(
                 createElasticIndexerProvider()
         );
 

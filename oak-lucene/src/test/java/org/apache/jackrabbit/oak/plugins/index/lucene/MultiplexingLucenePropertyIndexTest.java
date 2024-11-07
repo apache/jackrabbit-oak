@@ -38,12 +38,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -164,7 +164,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void numDocsIsSumOfAllReaders() throws Exception{
-        NodeBuilder defnBuilder = newLucenePropertyIndexDefinition(builder, "test", ImmutableSet.of("foo"), "async");
+        NodeBuilder defnBuilder = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(initialContent, defnBuilder.getNodeState(), "/foo");
 
         //1. Have 2 reader created by writes in 2 diff mounts
@@ -241,8 +241,8 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithStringAndLong() throws Exception {
-        Tree idx = createIndex(root.getTree("/"), "test1", ImmutableSet.of("foo", "bar", "baz"));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, ImmutableSet.of("foo", "baz"), STRINGS));
+        Tree idx = createIndex(root.getTree("/"), "test1", Set.of("foo", "bar", "baz"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo", "baz"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("baz");
         propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
@@ -250,7 +250,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         int firstPropSize = 25;
         List<String> values = LucenePropertyIndexTest.createStrings(firstPropSize);
         List<Long> longValues = LucenePropertyIndexTest.createLongs(LucenePropertyIndexTest.NUMBER_OF_NODES);
-        List<LucenePropertyIndexTest.Tuple2> tuples = Lists.newArrayListWithCapacity(values.size());
+        List<LucenePropertyIndexTest.Tuple2> tuples = new ArrayList<>(values.size());
         Random r = new Random();
         Tree libs = createPath("/libs");
         Tree content = createPath("/content");

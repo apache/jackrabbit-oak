@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.util.Collection;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -43,19 +44,11 @@ class LuceneIndexLookupUtil {
      */
     public static String getOldFullTextIndexPath(NodeState root, Filter filter, IndexTracker tracker) {
         Collection<String> indexPaths = getLuceneIndexLookup(root).collectIndexNodePaths(filter, false);
-        LuceneIndexNode indexNode = null;
         for (String path : indexPaths) {
-            try {
-                indexNode = tracker.acquireIndexNode(path);
-                if (indexNode != null
-                        && indexNode.getDefinition().isFullTextEnabled()
-                        && indexNode.getDefinition().getVersion() == IndexFormatVersion.V1) {
-                    return path;
-                }
-            } finally {
-                if (indexNode != null) {
-                    indexNode.release();
-                }
+            IndexDefinition indexDefinition = tracker.getIndexDefinition(path);
+            if (indexDefinition != null && indexDefinition.isFullTextEnabled()
+                    && indexDefinition.getVersion() == IndexFormatVersion.V1) {
+                return path;
             }
         }
         return null;

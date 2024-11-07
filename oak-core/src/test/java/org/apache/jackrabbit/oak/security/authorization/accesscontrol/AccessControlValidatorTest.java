@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -65,6 +64,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
@@ -573,7 +573,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "differentAccessControl", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         RestrictionProvider rp = new RestrictionProviderImpl();
         Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue("someName", PropertyType.NAME)});
-        rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, ImmutableSet.of(r));
+        rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, Set.of(r));
 
         root.commit();
     }
@@ -593,7 +593,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "notCoveredByContext", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         RestrictionProvider rp = new RestrictionProviderImpl();
         Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES, new Value[]{getValueFactory(root).createValue("someName", PropertyType.NAME)});
-        rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, ImmutableSet.of(r));
+        rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, Set.of(r));
 
         try {
             root.commit();

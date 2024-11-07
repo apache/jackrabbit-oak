@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -25,14 +28,10 @@ import org.jetbrains.annotations.NotNull;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.json.JsonData;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
 
 public class TermQueryBuilderFactory {
     /**
@@ -70,27 +69,27 @@ public class TermQueryBuilderFactory {
         int depth = PathUtils.getDepth(path) + planResult.getParentDepth() + 1;
         return Query.of(q -> q.term(t -> t.field(PATH_DEPTH).value(v->v.longValue(depth))));
     }
-    
-    private static <R> Query newRangeQuery(String field, R first, R last, boolean firstIncluding,
-            boolean lastIncluding) {
 
-        return Query.of(fn -> fn.range(fnr -> {
+    private static <R> Query newRangeQuery(String field, R first, R last, boolean firstIncluding,
+                                           boolean lastIncluding) {
+
+        return Query.of(fn -> fn.range(fnr -> fnr.date(date -> {
             if (first != null) {
                 if (firstIncluding) {
-                    fnr.gte(JsonData.of(first));
+                    date.gte(first.toString());
                 } else {
-                    fnr.gt(JsonData.of(first));
+                    date.gt(first.toString());
                 }
             }
             if (last != null) {
                 if (lastIncluding) {
-                    fnr.lte(JsonData.of(last));
+                    date.lte(last.toString());
                 } else {
-                    fnr.lt(JsonData.of(last));
+                    date.lt(last.toString());
                 }
             }
-            return fnr.field(field);
-        }));
+            return date.field(field);
+        })));
     }
 
     private static <R> FieldValue toFieldValue(R value) {

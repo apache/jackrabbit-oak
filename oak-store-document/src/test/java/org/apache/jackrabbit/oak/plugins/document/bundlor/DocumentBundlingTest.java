@@ -67,9 +67,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -679,8 +679,8 @@ public class DocumentBundlingTest {
         merge(builder);
         DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
         assertTrue(appNode.hasOnlyBundledChildren());
-        assertEquals(ImmutableSet.of("jcr:content"), appNode.getBundledChildNodeNames());
-        assertEquals(ImmutableSet.of("metadata", "renditions"),
+        assertEquals(Set.of("jcr:content"), appNode.getBundledChildNodeNames());
+        assertEquals(Set.of("metadata", "renditions"),
                 asDocumentState(appNode.getChildNode("jcr:content")).getBundledChildNodeNames());
 
         builder = store.getRoot().builder();
@@ -964,7 +964,7 @@ public class DocumentBundlingTest {
         childBuilder(builder, "/test/book.jpg").setProperty("fooBook", "bar");
         NodeState r2 = merge(builder);
 
-        final List<String> addedPropertyNames = Lists.newArrayList();
+        final List<String> addedPropertyNames = new ArrayList<>();
         r2.compareAgainstBaseState(r1, new DefaultNodeStateDiff(){
 
             @Override
@@ -1041,7 +1041,7 @@ public class DocumentBundlingTest {
 
     private static String getBundlingPath(NodeState contentNode) {
         PropertyState ps = contentNode.getProperty(DocumentBundlor.META_PROP_BUNDLING_PATH);
-        return checkNotNull(ps).getValue(Type.STRING);
+        return requireNonNull(ps).getValue(Type.STRING);
     }
 
     private static void dump(NodeState state){
@@ -1102,7 +1102,7 @@ public class DocumentBundlingTest {
     }
 
     private static class AssertingDiff implements NodeStateDiff {
-        private final Set<String> ignoredProps = ImmutableSet.of(
+        private final Set<String> ignoredProps = Set.of(
                 DocumentBundlor.META_PROP_PATTERN,
                 META_PROP_BUNDLED_CHILD,
                 DocumentBundlor.META_PROP_NON_BUNDLED_CHILD

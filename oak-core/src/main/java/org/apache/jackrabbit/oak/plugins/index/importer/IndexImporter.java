@@ -55,9 +55,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.mergeWithConcurrentCheck;
 
@@ -113,8 +114,8 @@ public class IndexImporter {
         indexerInfo = IndexerInfo.fromDirectory(indexDir);
         this.indexerLock = indexerLock;
         indexes = indexerInfo.getIndexes();
-        indexedState = checkNotNull(nodeStore.retrieve(indexerInfo.checkpoint), "Cannot retrieve " +
-                "checkpointed state [%s]", indexerInfo.checkpoint);
+        indexedState = requireNonNull(nodeStore.retrieve(indexerInfo.checkpoint), String.format("Cannot retrieve " +
+                "checkpointed state [%s]", indexerInfo.checkpoint));
         this.indexDefinitionUpdater = new IndexDefinitionUpdater(new File(indexDir, INDEX_DEFINITIONS_JSON));
         this.asyncLaneToIndexMapping = mapIndexesToLanes(indexes);
         this.indexPathsToUpdate = new HashSet<>();
@@ -264,12 +265,12 @@ public class IndexImporter {
         boolean success = false;
         try {
             String checkpoint = getAsync().getString(laneName);
-            checkNotNull(checkpoint, "No current checkpoint found for lane [%s]", laneName);
+            requireNonNull(checkpoint, String.format("No current checkpoint found for lane [%s]", laneName));
 
             //TODO Support case where checkpoint got lost or complete reindexing is done
 
             NodeState after = nodeStore.retrieve(checkpoint);
-            checkNotNull(after, "No state found for checkpoint [%s] for lane [%s]", checkpoint, laneName);
+            requireNonNull(after, String.format("No state found for checkpoint [%s] for lane [%s]", checkpoint, laneName));
             LOG.info("Proceeding to update imported indexes {} to checkpoint [{}] for lane [{}]",
                     indexInfos, checkpoint, laneName);
 
@@ -374,7 +375,7 @@ public class IndexImporter {
 
     private IndexImporterProvider getImporter(String type) {
         IndexImporterProvider provider = importers.get(type);
-        return checkNotNull(provider, "No IndexImporterProvider found for type [%s]", type);
+        return requireNonNull(provider, String.format("No IndexImporterProvider found for type [%s]", type));
     }
 
     private ListMultimap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
@@ -390,7 +391,7 @@ public class IndexImporter {
             boolean newIndex = !NodeStateUtils.getNode(rootState, indexPath).exists();
 
             String type = indexState.getString(IndexConstants.TYPE_PROPERTY_NAME);
-            checkNotNull(type, "No 'type' property found for index at path [%s]", indexPath);
+            requireNonNull(type, String.format("No 'type' property found for index at path [%s]", indexPath));
 
             String asyncName = getAsyncLaneName(indexPath, indexState);
             if (asyncName == null) {
@@ -486,35 +487,40 @@ public class IndexImporter {
         String indexImportPhaseName = indexImportState == null ? "null" : indexImportState.toString();
         int count = 1;
         Stopwatch start = Stopwatch.createStarted();
-        while (count <= maxRetries) {
-            LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
-            LOG.info("[TASK:{}:START]", indexImportPhaseName);
-            try {
-                step.execute();
-                long durationSeconds = start.elapsed(TimeUnit.SECONDS);
-                LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
-                        MetricsFormatter.newBuilder()
-                                .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
-                                .add("durationSeconds", durationSeconds)
-                                .build()
-                );
+        INDEXING_PHASE_LOGGER.info("[TASK:{}:START]", indexImportPhaseName);
+        try {
+            while (count <= maxRetries) {
+                LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
+                try {
+                    step.execute();
+                    long durationSeconds = start.elapsed(TimeUnit.SECONDS);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}",
+                            indexImportPhaseName,
+                            MetricsFormatter.createMetricsWithDurationOnly(durationSeconds)
+                    );
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                            durationSeconds);
+                    indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
+                            FormattingUtils.formatToSeconds(durationSeconds));
+                    indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                            durationSeconds);
 
-                MetricsUtils.setCounterOnce(statisticsProvider,
-                        "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
-                        durationSeconds);
-                indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
-                        FormattingUtils.formatToSeconds(durationSeconds));
-                indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
-                        durationSeconds);
-
-                break;
-            } catch (CommitFailedException | IOException e) {
-                LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
-                if (count++ >= maxRetries) {
-                    LOG.warn("IndexImporterStepExecutor:{} failed after {} retries", indexImportState, maxRetries, e);
-                    throw e;
+                    break;
+                } catch (CommitFailedException | IOException e) {
+                    LOG.warn("IndexImporterStepExecutor: {} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
+                    if (count++ >= maxRetries) {
+                        LOG.warn("IndexImporterStepExecutor: {} failed after {} retries", indexImportState, maxRetries, e);
+                        throw e;
+                    }
                 }
             }
+        } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    indexImportPhaseName,
+                    MetricsFormatter.createMetricsWithDurationOnly(start),
+                    t.toString());
+            throw t;
         }
     }
 

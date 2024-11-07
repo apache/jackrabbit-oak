@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.namepath.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.util.Map;
 
@@ -54,7 +54,7 @@ public class LocalNameMapper extends GlobalNameMapper {
 
     @Override @NotNull
     public synchronized String getJcrName(@NotNull String oakName) {
-        checkNotNull(oakName);
+        requireNonNull(oakName);
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
 
@@ -99,7 +99,7 @@ public class LocalNameMapper extends GlobalNameMapper {
 
     @Override @Nullable
     public synchronized String getOakNameOrNull(@NotNull String jcrName) {
-        checkNotNull(jcrName);
+        requireNonNull(jcrName);
 
         if (jcrName.startsWith("{")) {
             String oakName = getOakNameFromExpanded(jcrName);

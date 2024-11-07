@@ -63,6 +63,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_NAME_PREFETCH_FOR_QUERIES = "FT_OAK-10490";
 
+    public static final String FT_NAME_IMPROVED_IS_NULL_COST = "FT_OAK-10532";
+
+    public static final String FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS = "FT_OAK-11214";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -111,6 +115,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
 
     private Feature prefetchFeature;
+    private Feature improvedIsNullCostFeature;
+    private Feature optimizeInRestrictionsForFunctions;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -205,6 +211,26 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         System.setProperty(OAK_FAST_QUERY_SIZE, String.valueOf(fastQuerySize));
     }
 
+    public void setImprovedIsNullCostFeature(@Nullable Feature feature) {
+        this.improvedIsNullCostFeature = feature;
+    }
+
+    @Override
+    public boolean getImprovedIsNullCost() {
+        // enabled if the feature toggle is not used
+        return improvedIsNullCostFeature == null || improvedIsNullCostFeature.isEnabled();
+    }
+
+    public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
+        this.optimizeInRestrictionsForFunctions = feature;
+    }
+
+    @Override
+    public boolean getOptimizeInRestrictionsForFunctions() {
+        // enabled if the feature toggle is not used
+        return optimizeInRestrictionsForFunctions == null || optimizeInRestrictionsForFunctions.isEnabled();
+    }
+
     public String getStrictPathRestriction() {
         return strictPathRestriction.name();
     }
@@ -272,5 +298,5 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
                 ", classNamesIgnoredInCallTrace=" + Arrays.toString(classNamesIgnoredInCallTrace) +
                 '}';
     }
-    
+
 }

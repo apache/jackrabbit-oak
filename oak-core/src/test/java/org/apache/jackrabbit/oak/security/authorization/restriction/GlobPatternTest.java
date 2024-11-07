@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -434,7 +433,7 @@ public class GlobPatternTest {
     @Test
     public void testHashCode() {
         GlobPattern pattern = GlobPattern.create("/a/b/c/d", "/*");
-        assertEquals(Objects.hashCode("/a/b/c/d", "/*"), pattern.hashCode());
+        assertEquals(Objects.hash("/a/b/c/d", "/*"), pattern.hashCode());
     }
 
     @Test
@@ -451,6 +450,6 @@ public class GlobPatternTest {
 
         assertNotEquals(pattern, GlobPattern.create("/a/b/c", "/*"));
         assertNotEquals(pattern, GlobPattern.create("/a/b/c/d", "*"));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("/a/b/c", "/*")));
+        assertNotEquals(pattern, new PrefixPattern(Set.of("/a/b/c", "/*")));
     }
 }

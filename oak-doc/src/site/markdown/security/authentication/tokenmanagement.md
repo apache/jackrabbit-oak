@@ -62,10 +62,12 @@ authentication phases behave as follows:
   
 ##### Example JAAS Configuration
 
+  ```
   jackrabbit.oak {
        org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
        org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
    };
+  ```
 
 
 <a name="api_extensions"></a>
@@ -113,6 +115,7 @@ token provider implementation:
  - implement `TokenProvider` interface
  - expose the custom provider by your custom `TokenConfiguration` service
  - make the configuration available to the Oak repository.
+ - make sure the `TokenConfiguration` is listed as required service with the SecurityProvider (see also [Introduction](../introduction.html#configuration]))
 
 ##### Examples
 
@@ -160,3 +163,6 @@ token provider implementation:
 [TokenInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenInfo.html
 [CompositeTokenConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/CompositeTokenConfiguration.html
 [CompositeTokenProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/CompositeTokenProvider.html
+[CredentialsCallback]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/callback/CredentialsCallback.html
+[CallbackHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/callback/CallbackHandler.html
+[TokenConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenConfiguration.html

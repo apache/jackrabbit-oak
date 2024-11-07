@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.OS_NAME;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -100,7 +99,7 @@ public class UpgradeIT {
         Compact.builder()
             .withPath(fileStoreHome.getRoot())
             .withMmap(true)
-            .withOs(OS_NAME.value())
+            .withOs(System.getProperty("os.name"))
             .withForce(true)
             .build()
             .run();
@@ -118,7 +117,7 @@ public class UpgradeIT {
         Compact.builder()
             .withPath(fileStoreHome.getRoot())
             .withMmap(true)
-            .withOs(OS_NAME.value())
+            .withOs(System.getProperty("os.name"))
             .withForce(false)
             .build()
             .run();

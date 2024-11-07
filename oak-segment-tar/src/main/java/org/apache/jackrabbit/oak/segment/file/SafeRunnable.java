@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -54,8 +53,8 @@ class SafeRunnable implements Runnable {
      * @param runnable The background operation.
      */
     SafeRunnable(@NotNull String name, @NotNull Runnable runnable) {
-        this.name = checkNotNull(name);
-        this.runnable = checkNotNull(runnable);
+        this.name = requireNonNull(name);
+        this.runnable = requireNonNull(runnable);
     }
 
     @Override

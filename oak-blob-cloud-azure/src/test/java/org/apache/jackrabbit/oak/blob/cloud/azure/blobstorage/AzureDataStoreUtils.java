@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -34,7 +33,6 @@ import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -66,12 +64,15 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
-        //need either access keys or sas
+        //need either access keys or sas or service principal
         if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
                 || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
             if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
                     || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-                return false;
+                // service principal
+                return props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME) && props.containsKey(AzureConstants.AZURE_TENANT_ID) &&
+                        props.containsKey(AzureConstants.AZURE_CLIENT_ID) && props.containsKey(AzureConstants.AZURE_CLIENT_SECRET) &&
+                        props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
             }
         }
         return true;
@@ -87,7 +88,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     public static Properties getAzureConfig() {
         String config = System.getProperty(SYS_PROP_NAME);
         if (Strings.isNullOrEmpty(config)) {
-            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+            File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }
@@ -108,11 +109,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map<String, String> filtered = Maps.filterEntries(Maps.fromProperties(props),
+                    input -> !Strings.isNullOrEmpty((String) input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }
@@ -177,9 +175,14 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         }
         log.info("Starting to delete container. containerName={}", containerName);
         Properties props = getAzureConfig();
-        CloudBlobContainer container = Utils.getBlobContainer(Utils.getConnectionStringFromProperties(props), containerName);
-        boolean result = container.deleteIfExists();
-        log.info("Container deleted. containerName={} existed={}", containerName, result);
+        props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+
+        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
+                .build()) {
+            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
+            boolean result = container.deleteIfExists();
+            log.info("Container deleted. containerName={} existed={}", containerName, result);
+        }
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {

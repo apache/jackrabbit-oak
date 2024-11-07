@@ -19,22 +19,22 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -96,7 +96,7 @@ public class Template {
              @Nullable PropertyState mixinTypes,
              @Nullable  PropertyTemplate[] properties,
              @Nullable String childName) {
-        this.reader = checkNotNull(reader);
+        this.reader = requireNonNull(reader);
         this.primaryType = primaryType;
         this.mixinTypes = mixinTypes;
         if (properties != null) {
@@ -109,11 +109,11 @@ public class Template {
     }
 
     Template(@NotNull SegmentReader reader, @NotNull NodeState state) {
-        this.reader = checkNotNull(reader);
-        checkNotNull(state);
+        this.reader = requireNonNull(reader);
+        requireNonNull(state);
         PropertyState primary = null;
         PropertyState mixins = null;
-        List<PropertyTemplate> templates = Lists.newArrayList();
+        List<PropertyTemplate> templates = new ArrayList<>();
 
         for (PropertyState property : state.getProperties()) {
             String name = property.getName();
@@ -138,7 +138,7 @@ public class Template {
             childName = ZERO_CHILD_NODES;
         } else if (count == 1) {
             childName = state.getChildNodeNames().iterator().next();
-            checkState(childName != null && !childName.equals(MANY_CHILD_NODES));
+            Validate.checkState(childName != null && !childName.equals(MANY_CHILD_NODES));
         } else {
             childName = MANY_CHILD_NODES;
         }
@@ -191,7 +191,7 @@ public class Template {
 
     SegmentPropertyState getProperty(RecordId recordId, int index) {
         checkElementIndex(index, properties.length);
-        Segment segment = checkNotNull(recordId).getSegment();
+        Segment segment = requireNonNull(recordId).getSegment();
 
         int offset = 2 * RECORD_ID_BYTES;
         if (childName != ZERO_CHILD_NODES) {
@@ -204,7 +204,7 @@ public class Template {
     }
 
     MapRecord getChildNodeMap(RecordId recordId) {
-        checkState(childName != ZERO_CHILD_NODES);
+        Validate.checkState(childName != ZERO_CHILD_NODES);
         Segment segment = recordId.getSegment();
         RecordId childNodesId = segment.readRecordId(recordId.getRecordNumber(), 2 * RECORD_ID_BYTES);
         return reader.readMap(childNodesId);
@@ -245,8 +245,8 @@ public class Template {
     }
 
     public boolean compare(RecordId thisId, RecordId thatId) {
-        checkNotNull(thisId);
-        checkNotNull(thatId);
+        requireNonNull(thisId);
+        requireNonNull(thatId);
 
         // Compare properties
         for (int i = 0; i < properties.length; i++) {
@@ -296,10 +296,10 @@ public class Template {
             return true;
         } else if (object instanceof Template) {
             Template that = (Template) object;
-            return Objects.equal(primaryType, that.primaryType)
-                    && Objects.equal(mixinTypes, that.mixinTypes)
+            return Objects.equals(primaryType, that.primaryType)
+                    && Objects.equals(mixinTypes, that.mixinTypes)
                     && Arrays.equals(properties, that.properties)
-                    && Objects.equal(childName, that.childName);
+                    && Objects.equals(childName, that.childName);
         } else {
             return false;
         }
@@ -307,7 +307,7 @@ public class Template {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(primaryType, mixinTypes,
+        return Objects.hash(primaryType, mixinTypes,
                 Arrays.asList(properties), getTemplateType(), childName);
     }
 

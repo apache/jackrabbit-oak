@@ -15,6 +15,7 @@ package org.apache.jackrabbit.oak.query;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -44,7 +45,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class TraversalAvoidanceTest extends AbstractQueryTest {
     
@@ -207,7 +207,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
         TestQueryIndex(String name) {
             this.name = name;
-            plans = Lists.newArrayListWithCapacity(5);
+            plans = new ArrayList<>(5);
         }
 
         @Override

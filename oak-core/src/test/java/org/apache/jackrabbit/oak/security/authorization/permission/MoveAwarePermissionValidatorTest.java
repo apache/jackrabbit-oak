@@ -197,7 +197,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(createRootValidator(Set.of(EveryonePrincipal.getInstance()), moveTracker));
         try {
             maValidator.childNodeAdded("dest", mock(NodeState.class));
         } catch (CommitFailedException e){
@@ -274,7 +274,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         MoveTracker moveTracker = new MoveTracker();
         moveTracker.addMove("/src", "/dest");
 
-        MoveAwarePermissionValidator maValidator = spy(createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
+        MoveAwarePermissionValidator maValidator = spy(createRootValidator(Set.of(EveryonePrincipal.getInstance()), moveTracker));
         try {
             maValidator.childNodeDeleted("src", mock(NodeState.class));
         } catch (CommitFailedException e){

@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 /**
  * Represents a preconditions set that may be satisfied by adding the right
@@ -38,9 +38,9 @@ import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
  */
 class Preconditions {
 
-    private final Set<String> preconditions = newHashSet();
+    private final Set<String> preconditions = new HashSet<>();
 
-    private final Set<String> candidates = newHashSet();
+    private final Set<String> candidates = new HashSet<>();
 
     private boolean dirty = false;
 

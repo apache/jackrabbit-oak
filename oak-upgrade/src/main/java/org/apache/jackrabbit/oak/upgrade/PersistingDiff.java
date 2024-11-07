@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
@@ -28,6 +27,7 @@ import java.util.function.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -81,7 +81,7 @@ public class PersistingDiff implements NodeStateDiff {
         this.reader = parent.reader;
         this.blobStore = parent.blobStore;
         this.reporter = parent.reporter;
-        this.builder = new MemoryNodeBuilder(checkNotNull(base));
+        this.builder = new MemoryNodeBuilder(requireNonNull(base));
         this.parent = parent;
         this.base = base;
         this.nodeName = nodeName;
@@ -92,7 +92,7 @@ public class PersistingDiff implements NodeStateDiff {
         this.reader = reader;
         this.blobStore = blobStore;
         this.reporter = new Reporter();
-        this.builder = new MemoryNodeBuilder(checkNotNull(base));
+        this.builder = new MemoryNodeBuilder(requireNonNull(base));
         this.parent = null;
         this.base = base;
         this.nodeName = null;
@@ -141,7 +141,7 @@ public class PersistingDiff implements NodeStateDiff {
             throw new IOException(exception);
         } else if (success) {
             NodeState nodeState = builder.getNodeState();
-            checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
+            Validate.checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
             RecordId nodeId = writer.writeNode(nodeState, getStableIdBytes(after));
             reporter.reportNode(this::getPath);
             return new SegmentNodeState(reader, writer, blobStore, nodeId);

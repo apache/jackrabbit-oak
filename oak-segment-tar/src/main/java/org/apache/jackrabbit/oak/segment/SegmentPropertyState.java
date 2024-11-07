@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -41,6 +39,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.URI;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,6 +48,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
@@ -73,9 +74,9 @@ public class SegmentPropertyState extends Record implements PropertyState {
     SegmentPropertyState(@NotNull SegmentReader reader, @NotNull RecordId id,
                          @NotNull String name, @NotNull Type<?> type) {
         super(id);
-        this.reader = checkNotNull(reader);
-        this.name = checkNotNull(name);
-        this.type = checkNotNull(type);
+        this.reader = requireNonNull(reader);
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
     }
 
     SegmentPropertyState(@NotNull SegmentReader reader, @NotNull RecordId id,
@@ -100,7 +101,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
             return emptyMap();
         }
 
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
 
         Segment segment = getSegment();
         ListRecord values = getValueList(segment);
@@ -142,7 +143,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     public <T> T getValue(Type<T> type) {
         Segment segment = getSegment();
         if (isArray()) {
-            checkState(type.isArray());
+            Validate.checkState(type.isArray());
             ListRecord values = getValueList(segment);
             if (values.size() == 0) {
                 return (T) emptyList();
@@ -150,7 +151,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
                 return (T) singletonList(getValue(values.getEntry(0), type.getBaseType()));
             } else {
                 Type<?> base = type.getBaseType();
-                List<Object> list = newArrayListWithCapacity(values.size());
+                List<Object> list = new ArrayList<>(values.size());
                 for (RecordId id : values.getEntries()) {
                     list.add(getValue(id, base));
                 }
@@ -174,7 +175,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
 
     @Override @NotNull
     public <T> T getValue(Type<T> type, int index) {
-        checkNotNull(type);
+        requireNonNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
 
         Segment segment = getSegment();

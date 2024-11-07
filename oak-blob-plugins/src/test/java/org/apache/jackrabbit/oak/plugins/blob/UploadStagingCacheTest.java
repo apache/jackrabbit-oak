@@ -22,9 +22,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -34,10 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Optional;
+
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -336,7 +337,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Try 2nd upload again
         Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
-        futures = Lists.newArrayList();
+        futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }
@@ -434,7 +435,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         ListeningExecutorService executorService =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
 
-        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         CountDownLatch moveLatch = new CountDownLatch(1);
         init(1, new TestStagingUploader(folder.newFolder(), moveLatch), null);
 
@@ -718,7 +719,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     private void createGibberishLoad(File home, File pendingUploadFile) throws IOException {
         BufferedWriter writer = null;
         try {
-            writer = Files.newWriter(pendingUploadFile, Charsets.UTF_8);
+            writer = Files.newWriter(pendingUploadFile, StandardCharsets.UTF_8);
             FileIOUtils.writeAsLine(writer, "jerhgiuheirghoeoorqehgsjlwjpfkkwpkf", false);
         } finally {
             Closeables.close(writer, true);
@@ -813,7 +814,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         throws IOException {
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
-        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }

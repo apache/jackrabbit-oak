@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -43,7 +43,7 @@ public class CSVFileGenerator {
         Closer closer = Closer.create();
         int count = 0;
         try{
-            CSVPrinter printer = new CSVPrinter(Files.newWriter(outFile, Charsets.UTF_8),
+            CSVPrinter printer = new CSVPrinter(Files.newWriter(outFile, StandardCharsets.UTF_8),
                     CSVFileBinaryResourceProvider.FORMAT);
             closer.register(printer);
             for (BinaryResource br : binaries){

@@ -30,11 +30,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
+import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
@@ -118,9 +120,11 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void orderableAddManyChildrenWithSave() throws Exception {
-        int childCount = 1000;
+        Assume.assumeTrue ("test is skipped for RDB (see OAK-10997)", !(fixture instanceof DocumentRdbFixture));
+        int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 90; k++) {
+        //keep name length below 512, since that is the maximum supported by RDBDocumentStore
+        for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
         Session session = getAdminSession();
@@ -129,13 +133,16 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         for (int k = 0; k < childCount; k++) {
             test.addNode(prefix.toString() + k, "nt:unstructured");
         }
+        session.save();
     }
 
     @Test
     public void moveOrderableWithManyChildren() throws Exception {
-        int childCount = 1000;
+        Assume.assumeTrue ("test is skipped for RDB (see OAK-10997)", !(fixture instanceof DocumentRdbFixture));
+        int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 90; k++) {
+        //keep name length below 512, since that is the maximum supported by RDBDocumentStore
+        for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
         Session session = getAdminSession();
@@ -154,9 +161,11 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void copyOrderableWithManyChildren() throws Exception {
-        int childCount = 1000;
+        Assume.assumeTrue ("test is skipped for RDB (see OAK-10997)", !(fixture instanceof DocumentRdbFixture));
+        int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 90; k++) {
+        //keep name length below 512, since that is the maximum supported by RDBDocumentStore
+        for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
         Session session = getAdminSession();
@@ -175,9 +184,11 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void childOrderCleanupFeatureToggleTest() throws RepositoryException {
-        Tracker<FeatureToggle> track = fixture.getWhiteboard().track(FeatureToggle.class);
-        NodeStore nodeStore = createNodeStore(fixture);
+        //init repository
+        getAdminSession();
+        NodeStore nodeStore = getNodeStore();
         assertNotNull(nodeStore);
+        Tracker<FeatureToggle> track = fixture.getWhiteboard().track(FeatureToggle.class);
         if (nodeStore instanceof DocumentNodeStore) {
             DocumentNodeStore documentNodeStore = (DocumentNodeStore) nodeStore;
             assertTrue(documentNodeStore.isChildOrderCleanupEnabled());

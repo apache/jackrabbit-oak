@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.fixture;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -29,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -70,14 +68,14 @@ public class SegmentTarFixture extends OakFixture {
         @Override
         public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) { }
     };
-    
+
     private static final int MB = 1024 * 1024;
     private static final int DEFAULT_TIMEOUT = 60_000;
 
     static class SegmentTarFixtureBuilder {
         private final String name;
         private final File base;
-        
+
         private int maxFileSize;
         private int segmentCacheSize;
         private boolean memoryMapping;
@@ -122,7 +120,7 @@ public class SegmentTarFixture extends OakFixture {
             this.binariesInlineThreshold = binariesInlineThreshold;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withBlobStore(boolean useBlobStore) {
             this.useBlobStore = useBlobStore;
             return this;
@@ -147,12 +145,12 @@ public class SegmentTarFixture extends OakFixture {
             this.azureRootPath = azureRootPath;
             return this;
         }
-        
+
         public SegmentTarFixture build() {
             return new SegmentTarFixture(this);
         }
     }
-    
+
     private final File base;
     private final int maxFileSize;
     private final int segmentCacheSize;
@@ -160,7 +158,7 @@ public class SegmentTarFixture extends OakFixture {
     private final int binariesInlineThreshold;
     private final boolean useBlobStore;
     private final int dsCacheSize;
-    
+
     private final boolean withColdStandby;
     private final int syncInterval;
     private final boolean shareBlobStore;
@@ -180,21 +178,21 @@ public class SegmentTarFixture extends OakFixture {
 
     private FileStore[] stores;
     private BlobStoreFixture[] blobStoreFixtures; 
-    
+
     private StandbyServerSync[] serverSyncs;
     private StandbyClientSync[] clientSyncs;
     private ScheduledExecutorService[] executors;
 
     private CloudBlobContainer[] containers;
-    
+
     public SegmentTarFixture(SegmentTarFixtureBuilder builder) {
         this(builder, false, -1);
     }
-    
+
     public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval) {
         this(builder, withColdStandby, syncInterval, false, false, false);
     }
-    
+
     public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval,
             boolean shareBlobStore, boolean oneShotRun, boolean secure) {
         super(builder.name);
@@ -230,42 +228,42 @@ public class SegmentTarFixture extends OakFixture {
             public Class<? extends Annotation> annotationType() {
                 return null;
             }
-        
+
             @Override
             public String sessionToken() {
                 return null;
             }
-        
+
             @Override
             public String secretKey() {
                 return null;
             }
-        
+
             @Override
             public String rootDirectory() {
                 return awsRootPath;
             }
-        
+
             @Override
             public String region() {
                 return null;
             }
-        
+
             @Override
             public String lockTableName() {
                 return awsLockTableName;
             }
-        
+
             @Override
             public String journalTableName() {
                 return awsJournalTableName;
             }
-        
+
             @Override
             public String bucketName() {
                 return awsBucketName;
             }
-        
+
             @Override
             public String accessKey() {
                 return null;
@@ -300,10 +298,10 @@ public class SegmentTarFixture extends OakFixture {
             fds.setMinRecordLength(4092);
             fds.init(parentPath.getAbsolutePath());
             blobStore = new DataStoreBlobStore(fds);
-            
+
             fileStoreBuilder.withBlobStore(blobStore);
         }
-        
+
         FileStore fs = fileStoreBuilder
             .withBinariesInlineThreshold(binariesInlineThreshold)
             .build();
@@ -319,9 +317,9 @@ public class SegmentTarFixture extends OakFixture {
     @Override
     public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
         init(n);
-        
+
         Oak[] cluster = new Oak[n];
-        
+
         for (int i = 0; i < cluster.length; i++) {
             BlobStore blobStore = null;
             if (useBlobStore) {
@@ -349,7 +347,7 @@ public class SegmentTarFixture extends OakFixture {
             if (blobStore != null) {
                 builder.withBlobStore(blobStore);
             }
-            
+
             stores[i] = builder
                     .withMaxFileSize(maxFileSize)
                     .withStatisticsProvider(statsProvider)
@@ -358,11 +356,11 @@ public class SegmentTarFixture extends OakFixture {
                     .withStrictVersionCheck(true)
                     .withBinariesInlineThreshold(binariesInlineThreshold)
                     .build();
-            
+
             if (withColdStandby) {
                 attachStandby(i, n, statsProvider, blobStore);
             }
-            
+
             cluster[i] = newOak(SegmentNodeStoreBuilders.builder(stores[i]).build());
             if (blobStore != null) {
                 cluster[i].getWhiteboard()
@@ -392,7 +390,7 @@ public class SegmentTarFixture extends OakFixture {
     private void attachStandby(int i, int n, StatisticsProvider statsProvider, BlobStore blobStore)
             throws InvalidFileStoreVersionException, IOException {
         FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "standby-" + i));
-        
+
         if (useBlobStore) {
             if (shareBlobStore) {
                 builder.withBlobStore(blobStore);
@@ -413,7 +411,7 @@ public class SegmentTarFixture extends OakFixture {
             .withMemoryMapping(memoryMapping)
             .withSnfeListener(IGNORE_SNFE)
             .build();
-        
+
         int port = 0;
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
@@ -432,7 +430,7 @@ public class SegmentTarFixture extends OakFixture {
             .withSecureConnection(secure)
             .withReadTimeoutMs(DEFAULT_TIMEOUT)
             .withAutoClean(false)
-            .withSpoolFolder(new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()))
+            .withSpoolFolder(new File(System.getProperty("java.io.tmpdir")))
             .build();
 
         if (!oneShotRun) {
@@ -455,10 +453,10 @@ public class SegmentTarFixture extends OakFixture {
     private void init(int n) {
         int fileStoresLength = n;
         int blobStoresLength = 0;
-        
+
         if (withColdStandby) {
             fileStoresLength = 2 * n;
-            
+
             if (useBlobStore) {
                 if (shareBlobStore) {
                     blobStoresLength = n;
@@ -466,10 +464,10 @@ public class SegmentTarFixture extends OakFixture {
                     blobStoresLength = 2 * n;
                 }
             } 
-            
+
             serverSyncs = new StandbyServerSync[n];
             clientSyncs = new StandbyClientSync[n];
-            
+
             if (!oneShotRun) {
                 executors = new ScheduledExecutorService[n];
             }
@@ -478,7 +476,7 @@ public class SegmentTarFixture extends OakFixture {
                 blobStoresLength = n;
             }
         }
-        
+
         stores = new FileStore[fileStoresLength];
         blobStoreFixtures = new BlobStoreFixture[blobStoresLength];
 
@@ -493,22 +491,22 @@ public class SegmentTarFixture extends OakFixture {
             for (StandbyClientSync clientSync : clientSyncs) {
                 clientSync.close();
             }
-            
+
             for (StandbyServerSync serverSync : serverSyncs) {
                 serverSync.close();
             }
-            
+
             if (!oneShotRun) {
                 for (ExecutorService executor : executors) {
                     executor.shutdownNow();
                 }
             }
         }
-        
+
         for (FileStore store : stores) {
             store.close();
         }
-        
+
         if (blobStoreFixtures != null) {
             for (BlobStoreFixture bsf : blobStoreFixtures) {
                 bsf.tearDown();
@@ -526,7 +524,7 @@ public class SegmentTarFixture extends OakFixture {
                 }
             }
         }
-        
+
         FileUtils.deleteQuietly(parentPath);
     }
 
@@ -545,5 +543,5 @@ public class SegmentTarFixture extends OakFixture {
     public StandbyClientSync[] getClientSyncs() {
         return clientSyncs;
     }
-    
+
 }

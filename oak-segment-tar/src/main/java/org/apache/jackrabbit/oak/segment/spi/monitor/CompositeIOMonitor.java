@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newConcurrentHashSet;
 import static java.util.Collections.emptySet;
 
@@ -40,7 +40,7 @@ public class CompositeIOMonitor implements IOMonitor {
      * @param ioMonitors  {@link IOMonitor} instances to delegate to
      */
     public CompositeIOMonitor(@NotNull Iterable<? extends IOMonitor> ioMonitors) {
-        this.ioMonitors = newConcurrentHashSet(checkNotNull(ioMonitors));
+        this.ioMonitors = newConcurrentHashSet(requireNonNull(ioMonitors));
     }
 
     /**
@@ -60,7 +60,7 @@ public class CompositeIOMonitor implements IOMonitor {
      */
     @NotNull
     public Registration registerIOMonitor(@NotNull IOMonitor ioMonitor) {
-        ioMonitors.add(checkNotNull(ioMonitor));
+        ioMonitors.add(requireNonNull(ioMonitor));
         return () -> ioMonitors.remove(ioMonitor);
     }
 

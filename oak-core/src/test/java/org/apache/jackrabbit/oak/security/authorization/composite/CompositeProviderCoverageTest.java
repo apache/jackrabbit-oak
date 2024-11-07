@@ -144,15 +144,15 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
     @Test
     public void testGetPrivileges() throws Exception {
         for (String p : NODE_PATHS) {
-            assertEquals(ImmutableSet.of(REP_READ_NODES), cpp.getPrivileges(readOnlyRoot.getTree(p)));
-            assertEquals(ImmutableSet.of(REP_READ_NODES), cppO.getPrivileges(readOnlyRoot.getTree(p)));
+            assertEquals(Set.of(REP_READ_NODES), cpp.getPrivileges(readOnlyRoot.getTree(p)));
+            assertEquals(Set.of(REP_READ_NODES), cppO.getPrivileges(readOnlyRoot.getTree(p)));
         }
     }
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT), cpp.getPrivileges(null));
-        assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT), cppO.getPrivileges(null));
+        assertEquals(Set.of(JCR_NAMESPACE_MANAGEMENT), cpp.getPrivileges(null));
+        assertEquals(Set.of(JCR_NAMESPACE_MANAGEMENT), cppO.getPrivileges(null));
     }
 
     @Test
@@ -423,7 +423,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         @NotNull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
-            return (tree == null) ? ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT) : ImmutableSet.of(REP_READ_NODES);
+            return (tree == null) ? Set.of(JCR_NAMESPACE_MANAGEMENT) : Set.of(REP_READ_NODES);
         }
 
         @Override

@@ -37,9 +37,7 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -61,7 +59,6 @@ import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -189,17 +186,13 @@ public abstract class AbstractOak2OakTest {
         Node nodeType = session.getNode("/jcr:system/jcr:nodeTypes/sling:OrderedFolder");
         assertEquals("rep:NodeType", nodeType.getProperty("jcr:primaryType").getString());
 
-        List<String> values = Lists.transform(Arrays.asList(nodeType.getProperty("rep:protectedProperties").getValues()), new Function<Value, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable Value input) {
+        List<String> values = Lists.transform(Arrays.asList(nodeType.getProperty("rep:protectedProperties").getValues()), input -> {
                 try {
                     return input.getString();
                 } catch (RepositoryException e) {
                     return null;
                 }
-            }
-        });
+            });
         assertTrue(values.contains("jcr:mixinTypes"));
         assertTrue(values.contains("jcr:primaryType"));
         assertEquals("false", nodeType.getProperty("jcr:isAbstract").getString());

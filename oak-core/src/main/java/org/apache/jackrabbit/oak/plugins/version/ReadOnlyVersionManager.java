@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@code ReadOnlyVersionManager} provides implementations for read-only
@@ -306,7 +306,7 @@ public abstract class ReadOnlyVersionManager {
     protected Tree checkVersionable(@NotNull Tree tree)
             throws UnsupportedRepositoryOperationException,
             RepositoryException {
-        if (!isVersionable(checkNotNull(tree))) {
+        if (!isVersionable(requireNonNull(tree))) {
             throw new UnsupportedRepositoryOperationException("Node at " +
                     tree.getPath() + " is not versionable");
         }
@@ -322,7 +322,7 @@ public abstract class ReadOnlyVersionManager {
      */
     protected boolean isVersionable(@NotNull Tree tree) {
         return getNodeTypeManager().isNodeType(
-                checkNotNull(tree), VersionConstants.MIX_VERSIONABLE);
+                requireNonNull(tree), VersionConstants.MIX_VERSIONABLE);
     }
 
     /**

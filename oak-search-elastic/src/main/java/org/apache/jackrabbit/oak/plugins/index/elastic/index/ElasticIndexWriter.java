@@ -80,7 +80,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
                 // let's store the current mapping version in the index definition
-                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_MAPPING_VERSION, ElasticIndexHelper.MAPPING_VERSION);
+                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_MAPPING_VERSION, ElasticIndexDefinition.MAPPING_VERSION.toString());
 
                 indexName = ElasticIndexNameHelper.
                         getRemoteIndexName(elasticConnection.getIndexPrefix(), indexDefinition.getIndexPath(), seed);
@@ -113,17 +113,32 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
+        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false);
+    }
+
+    @TestOnly
+    ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
+                       @NotNull ElasticConnection elasticConnection,
+                       @NotNull ElasticIndexDefinition indexDefinition,
+                       @NotNull ElasticBulkProcessorHandler bulkProcessorHandler,
+                       boolean reindex) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.bulkProcessorHandler = bulkProcessorHandler;
         this.indexName = indexDefinition.getIndexAlias();
-        this.reindex = false;
+        this.reindex = reindex;
     }
 
     @Override
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
-        bulkProcessorHandler.update(ElasticIndexUtils.idFromPath(path), doc);
+        // update is a heavier operation compared to index, we can always use the index operation on full reindex
+        // or if the index is not externally modifiable
+        if (reindex || !indexDefinition.isExternallyModifiable()) {
+            bulkProcessorHandler.index(ElasticIndexUtils.idFromPath(path), doc);
+        } else {
+            bulkProcessorHandler.update(ElasticIndexUtils.idFromPath(path), doc);
+        }
     }
 
     @Override
@@ -150,12 +165,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private void saveMetrics() {
         ElasticIndexNode indexNode = indexTracker.acquireIndexNode(indexDefinition.getIndexPath());
         if (indexNode != null) {
-            ElasticIndexStatistics stats = indexNode.getIndexStatistics();
             try {
-                indexTracker.getElasticMetricHandler().markDocuments(indexName, indexNode.getIndexStatistics().numDocs());
+                ElasticIndexStatistics stats = indexNode.getIndexStatistics();
+                indexTracker.getElasticMetricHandler().markDocuments(indexName, stats.numDocs());
                 indexTracker.getElasticMetricHandler().markSize(indexName, stats.primaryStoreSize(), stats.storeSize());
             } catch (Exception e) {
-                LOG.warn("Unable to store metrics for {}", indexNode.getDefinition().getIndexPath(), e);
+                LOG.warn("Unable to store metrics for {}", indexDefinition.getIndexPath(), e);
             } finally {
                 indexNode.release();
             }

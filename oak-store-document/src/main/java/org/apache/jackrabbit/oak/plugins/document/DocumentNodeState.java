@@ -28,6 +28,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -47,15 +48,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
@@ -115,7 +114,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                              @Nullable RevisionVector lastRevision,
                              boolean fromExternalChange) {
         this(store, path, lastRevision, rootRevision,
-                fromExternalChange, createBundlingContext(checkNotNull(properties), hasChildren), memory);
+                fromExternalChange, createBundlingContext(requireNonNull(properties), hasChildren), memory);
     }
 
     protected DocumentNodeState(@NotNull DocumentNodeStore store,
@@ -125,9 +124,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                                 boolean fromExternalChange,
                                 BundlingContext bundlingContext,
                                 int memory) {
-        this.store = checkNotNull(store);
-        this.path = checkNotNull(path);
-        this.rootRevision = checkNotNull(rootRevision);
+        this.store = requireNonNull(store);
+        this.path = requireNonNull(path);
+        this.rootRevision = requireNonNull(rootRevision);
         this.lastRevision = lastRevision;
         this.fromExternalChange = fromExternalChange;
         this.properties = bundlingContext.getProperties();
@@ -191,8 +190,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      */
     @NotNull
     DocumentNodeState asBranchRootState(@NotNull DocumentNodeStoreBranch branch) {
-        checkState(path.isRoot());
-        checkState(getRootRevision().isBranch());
+        Validate.checkState(path.isRoot());
+        Validate.checkState(getRootRevision().isBranch());
         return new DocumentBranchRootNodeState(store, branch, path, rootRevision, lastRevision, bundlingContext, memory);
     }
 
@@ -254,7 +253,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         //Filter out the meta properties related to bundling from
         //generic listing of props
         if (bundlingContext.isBundled()){
-            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS);
+            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS::test);
         }
         return properties.values();
     }
@@ -573,24 +572,19 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     private Iterable<ChildNodeEntry> getChildNodeEntries(@NotNull String name,
                                                          int limit) {
         Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
-        return Iterables.transform(children, new Function<AbstractDocumentNodeState, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(final AbstractDocumentNodeState input) {
+        return Iterables.transform(children, input -> {
                 return new AbstractChildNodeEntry() {
-                    @NotNull
                     @Override
                     public String getName() {
                         return input.getPath().getName();
                     }
 
-                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return input;
                     }
                 };
-            }
-        });
+            });
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
@@ -754,24 +748,18 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private Iterator<ChildNodeEntry> getBundledChildren(){
-        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(),
-                new Function<String, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(final String childNodeName) {
+        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
                 return new AbstractChildNodeEntry() {
-                    @NotNull
                     @Override
                     public String getName() {
                         return childNodeName;
                     }
 
-                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return createBundledState(childNodeName, bundlingContext.matcher.next(childNodeName));
                     }
                 };
-            }
         });
     }
 

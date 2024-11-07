@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
@@ -38,30 +38,30 @@ public class SimpleExcerptProviderTest {
         //     System.setProperty("oak.query.caseSensitiveHighlight", "true");
         // }
         assertEquals("<div><span><strong>fox</strong> is jumping and dancing foxtrot</span></div>",
-                highlight(sb("fox is jumping and dancing foxtrot"), of("Fox")));
+                highlight(sb("fox is jumping and dancing foxtrot"), Set.of("Fox")));
         assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
-                highlight(sb("fox is jumping"), of("jUmP*")));
+                highlight(sb("fox is jumping"), Set.of("jUmP*")));
     }
 
     @Test
     public void simpleTest() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
-                highlight(sb("fox is jumping"), of("fox")));
+                highlight(sb("fox is jumping"), Set.of("fox")));
         assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
-                highlight(sb("fox is jumping"), of("jump*")));
+                highlight(sb("fox is jumping"), Set.of("jump*")));
 
     }
 
     @Test
     public void highlightWithWildCard() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
-                highlight(sb("fox is jumping"), of("fox *")));
+                highlight(sb("fox is jumping"), Set.of("fox *")));
     }
 
     @Test
     public void highlightIgnoreStar() throws Exception {
         assertEquals("<div><span>10 * 10</span></div>",
-                highlight(sb("10 * 10"), of("fox *")));
+                highlight(sb("10 * 10"), Set.of("fox *")));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class SimpleExcerptProviderTest {
         Random r = new Random(1);
         String set = "abc*\'\"<> ";
         for (int i = 0; i < 10000; i++) {
-            highlight(sb(randomString(r, set)), of(randomString(r, set)));
+            highlight(sb(randomString(r, set)), Set.of(randomString(r, set)));
         }
     }
 
@@ -94,7 +94,7 @@ public class SimpleExcerptProviderTest {
                 String text = simple.getKey().replaceAll(" ", delimiter);
                 String expect = simple.getValue().replaceAll(" ", delimiter);
                 assertEquals("highlighting '" + text + "' for 'of' (delimiter - '" + delimiter + "')",
-                        expect, highlight(sb(text), of("of")));
+                        expect, highlight(sb(text), Set.of("of")));
             }
         }
 
@@ -111,7 +111,7 @@ public class SimpleExcerptProviderTest {
                 String text = wildcard.getKey().replaceAll(" ", delimiter);
                 String expect = wildcard.getValue().replaceAll(" ", delimiter);
                 assertEquals("highlighting '" + text + "' for 'of*' (delimiter - '" + delimiter + "')",
-                        expect, highlight(sb(text), of("of*")));
+                        expect, highlight(sb(text), Set.of("of*")));
             }
         }
     }
@@ -123,9 +123,9 @@ public class SimpleExcerptProviderTest {
                 "or not to <strong>be</strong>. " +
                 "That is the <strong>question</strong>!</span></div>";
 
-        assertEquals(expected, highlight(sb(text), of("question", "be")));
-        assertEquals(expected, highlight(sb(text), of("quest*", "be")));
-        assertEquals(expected, highlight(sb(text), of("quest*", "b*")));
+        assertEquals(expected, highlight(sb(text), Set.of("question", "be")));
+        assertEquals(expected, highlight(sb(text), Set.of("quest*", "be")));
+        assertEquals(expected, highlight(sb(text), Set.of("quest*", "b*")));
     }
 
     private static String randomString(Random r, String set) {

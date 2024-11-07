@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -31,26 +31,34 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
@@ -59,6 +67,10 @@ public final class IndexUtils {
 
     private IndexUtils() {
     }
+
+    // Logger used for START/END/FAIL messages of indexing phases. Logged in a separate logger to make them easier to
+    // identify and parse by log analysis tools.
+    public static final Logger INDEXING_PHASE_LOGGER = LoggerFactory.getLogger("indexing-task");
 
     public static NodeBuilder getOrCreateOakIndex(NodeBuilder root) {
         NodeBuilder index;
@@ -233,7 +245,7 @@ public final class IndexUtils {
     @Nullable
     public static String getAsyncLaneName(NodeState idxState, String indexPath, PropertyState async) {
         if (async != null) {
-            Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));
+            Set<String> asyncNames = CollectionUtils.toSet(async.getValue(Type.STRINGS));
             asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);
             asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
             checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +
@@ -274,5 +286,44 @@ public final class IndexUtils {
         }
         // if every element is ignored, we assume it's an internal request
         return "(internal)";
+    }
+
+    /**
+     * Returns a Map consisting of checkpoints and checkpointInfoMap filtered based on a given predicate
+     * which can utilise checkpoint info map for filtering
+     * @param store
+     * @param predicate predicate used for filtering of checkpoints
+     * @return Map<String, Map<String,String>> filteredCheckpoint Map
+     */
+    public static Map<String, Map<String,String>> getFilteredCheckpoints(NodeStore store, Predicate<Map.Entry<String, Map<String,String>>> predicate) {
+        return StreamSupport.stream(store.checkpoints().spliterator(), false)
+                .collect(Collectors.toMap(str -> str,
+                        store::checkpointInfo))
+                .entrySet()
+                .stream()
+                .filter(predicate)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
+     * Returns a map with checkpoint name as key and checkpoint metadata map as value, sorted on the basis of particular key in the metadata map.
+     * For example - given the following checkpoints in the system along with their associated metadata maps -
+     * checkpoint3 - {created-epoch=123458, creator=creator1}
+     * checkpoint1 - {created-epoch=123456, creator=creator2}
+     * checkpoint2 - {created-epoch=123457, creator=creator3}
+     * This method should return -
+     * {checkpoint1={created-epoch=123456, creator=creator2},
+     * checkpoint2={created-epoch=123457, creator=creator3},
+     * checkpoint3={created-epoch=123458, creator=creator1}}
+     * @param checkpointMap - the map consisting of checkpoints as keys and checkpoint metadata map as values
+     * @param keyForComparator - key in the metadata map of the checkpoint that can be used as comparator to sort on checkpoint creation time.
+     * @return Map<String, Map<String,String>> sorted checkpoint map
+     */
+    public static Map<String, Map<String, String>> getSortedCheckpointMap(Map<String, Map<String, String>> checkpointMap,
+                                                                                 String keyForComparator) {
+        return checkpointMap.entrySet().stream()
+                .filter(entry ->  entry.getValue().containsKey(keyForComparator))
+                .sorted(Comparator.comparingLong(entry -> Long.parseLong(entry.getValue().get(keyForComparator))))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o, n) -> n, LinkedHashMap::new));
     }
 }

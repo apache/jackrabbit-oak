@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -224,7 +225,7 @@ public final class ImmutableTree extends AbstractTree implements TreeTypeAware, 
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(getName(), nodeBuilder.getNodeState());
+        return Objects.hash(getName(), nodeBuilder.getNodeState());
     }
 
     @Override

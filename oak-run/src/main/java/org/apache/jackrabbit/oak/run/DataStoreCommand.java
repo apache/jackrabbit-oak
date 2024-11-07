@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,7 +41,6 @@ import java.util.stream.StreamSupport;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -86,11 +86,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -199,7 +198,7 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = Files.newWriter(referencesTemp, UTF_8);
+                final BufferedWriter writer = Files.newWriter(referencesTemp, StandardCharsets.UTF_8);
 
                 boolean threw = true;
                 try {
@@ -291,7 +290,7 @@ public class DataStoreCommand implements Command {
 
     private static List<String> getMetadata(NodeStoreFixture fixture) {
         String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
-        checkNotNull(repositoryId);
+        requireNonNull(repositoryId);
 
         SharedDataStore dataStore = (SharedDataStore) fixture.getBlobStore();
         // Get all the start markers available
@@ -318,7 +317,7 @@ public class DataStoreCommand implements Command {
             dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         log.info("Repository files {}", repoFiles);
 
-        List<String> records = Lists.newArrayList();
+        List<String> records = new ArrayList<>();
         for (DataRecord repoRec : repoFiles) {
             String id =
                 SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getIdFromName(repoRec.getIdentifier().toString());
@@ -357,7 +356,7 @@ public class DataStoreCommand implements Command {
         closer.register(new ExecutorCloser(service));
 
         String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
-        checkNotNull(repositoryId);
+        requireNonNull(repositoryId);
 
         MarkSweepGarbageCollector collector =
             new MarkSweepGarbageCollector(retriever, (GarbageCollectableBlobStore) fixture.getBlobStore(), service,
@@ -405,7 +404,7 @@ public class DataStoreCommand implements Command {
     }
 
     private static void verboseIds(BlobStoreOptions blobOpts, File readFile, File writeFile) throws IOException {
-        LineIterator idIterator = FileUtils.lineIterator(readFile, UTF_8.name());
+        LineIterator idIterator = FileUtils.lineIterator(readFile, StandardCharsets.UTF_8.name());
 
         try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(idIterator, readFile,
             (Function<String, String>) input -> VerboseIdLogger.encodeId(input, blobOpts.getBlobStoreType()))) {
@@ -659,9 +658,8 @@ public class DataStoreCommand implements Command {
 
             if (dsType == FAKE || dsType == FDS) {
                 // 0102030405... => 01/02/03/0102030405...
-                blobId =
-                    (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value()
-                        + blobId.substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+                blobId = String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
+                        blobId.substring(4, 6), blobId);
             } else if (dsType == S3 || dsType == AZURE) {
                 //b47b58169f121822cd4a0... => b47b-58169f121822cd4a0...
                 blobId = (blobId.substring(0, 4) + DASH + blobId.substring(4));
@@ -687,7 +685,7 @@ public class DataStoreCommand implements Command {
                 File tempFile = new File(outDir, outFile.getName() + "-temp");
                 FileUtils.moveFile(outFile, tempFile);
                 try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(
-                    FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
+                    FileUtils.lineIterator(tempFile, StandardCharsets.UTF_8.toString()), tempFile,
                     (Function<String, String>) input -> encodeId(input, blobStoreType))) {
                     writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
                 }

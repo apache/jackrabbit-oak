@@ -22,8 +22,6 @@ import com.codahale.metrics.Counting;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -31,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.AutoMembershipTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.CachedMembershipLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersTest;
@@ -61,6 +60,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -71,7 +71,7 @@ public class BenchmarkRunner {
 
     private static final int MB = 1024 * 1024;
 
-    protected static List<Benchmark> allBenchmarks = Lists.newArrayList();
+    protected static List<Benchmark> allBenchmarks = new ArrayList<>();
     protected static StatisticsProvider statsProvider = null;
 
     private static OptionParser parser = new OptionParser();
@@ -440,7 +440,15 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getExpiration().value(options), benchmarkOptions.getDynamicMembership().value(options),
                                 benchmarkOptions.getAutoMembership().values(options),
-                                benchmarkOptions.getReport().value(options), statsProvider),
+                                benchmarkOptions.getReport().value(options), statsProvider,
+                                benchmarkOptions.getCacheExpiration().value(options)),
+                        new CachedMembershipLoginTest(benchmarkOptions.getNumberOfUsers().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getExpiration().value(options), benchmarkOptions.getDynamicMembership().value(options),
+                                benchmarkOptions.getAutoMembership().values(options),
+                                benchmarkOptions.getReport().value(options), statsProvider,
+                                benchmarkOptions.getCacheExpiration().value(options),
+                                benchmarkOptions.getNumberOfLocalGroups().value(options)),
                         new SyncAllExternalUsersTest(benchmarkOptions.getNumberOfUsers().value(options),
                                 benchmarkOptions.getNumberOfGroups().value(options), benchmarkOptions.getExpiration().value(options),
                                 benchmarkOptions.getDynamicMembership().value(options),
@@ -474,8 +482,8 @@ public class BenchmarkRunner {
         );
 
 
-        Set<String> argset = Sets.newHashSet(benchmarkOptions.getNonOption().values(options));
-        List<RepositoryFixture> fixtures = Lists.newArrayList();
+        Set<String> argset = new HashSet<>(benchmarkOptions.getNonOption().values(options));
+        List<RepositoryFixture> fixtures = new ArrayList<>();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
                 fixtures.add(fixture);
@@ -488,7 +496,7 @@ public class BenchmarkRunner {
                     + asSortedString(Arrays.asList(allFixtures)));
         }
 
-        List<Benchmark> benchmarks = Lists.newArrayList();
+        List<Benchmark> benchmarks = new ArrayList<>();
         for (Benchmark benchmark : allBenchmarks) {
             if (argset.remove(benchmark.toString())) {
                 benchmarks.add(benchmark);

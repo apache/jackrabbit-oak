@@ -339,7 +339,7 @@ public class CacheWeightEstimator {
 
         Buffer data = Buffer.wrap(buffer);
         SegmentId id = randomSegmentId(false);
-        Segment segment = new Segment(store.getSegmentIdProvider(), store.getReader(), id, data);
+        Segment segment = new Segment(store.getSegmentIdProvider(), id, data);
 
         //
         // TODO check impact of MutableRecordNumbers overhead of 65k bytes

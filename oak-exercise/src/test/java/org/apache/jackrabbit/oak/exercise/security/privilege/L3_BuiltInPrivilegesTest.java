@@ -23,7 +23,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -36,7 +35,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -138,12 +136,7 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
 
         Iterable<Privilege> aggregated = Iterables.<Privilege>filter(
                 ImmutableList.<Privilege>copyOf(privilegeManager.getRegisteredPrivileges()),
-                new Predicate<Privilege>() {
-                    @Override
-                    public boolean apply(@Nullable Privilege input) {
-                        return input != null && input.isAggregate();
-                    }
-                });
+                input -> input != null && input.isAggregate());
 
         for (Privilege aggrPrivilege : aggregated) {
             Set<Privilege> expected = expectedResults.get(aggrPrivilege.getName());

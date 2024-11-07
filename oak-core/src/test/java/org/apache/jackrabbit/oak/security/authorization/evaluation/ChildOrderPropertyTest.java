@@ -24,17 +24,15 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,7 +65,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetProperties() {
-        Set<String> propertyNames = Sets.newHashSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
+        Set<String> propertyNames = CollectionUtils.toSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
 
         Tree a = root.getTree("/a");
         for (PropertyState prop : a.getProperties()) {
@@ -101,13 +99,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
         assertFalse(aTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         List<String> expected = ImmutableList.of("/a/bb", "/a/b");
-        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(), new Function<Tree, String>() {
-            @Nullable
-            @Override
-            public String apply(Tree input) {
-                return input.getPath();
-            }
-        });
+        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(), input -> input.getPath());
         assertTrue(childPaths.toString(), Iterables.elementsEqual(expected, childPaths));
     }
 }

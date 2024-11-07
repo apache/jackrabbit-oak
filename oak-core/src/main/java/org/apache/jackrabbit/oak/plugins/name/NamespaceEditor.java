@@ -30,7 +30,6 @@ import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import java.util.Locale;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -123,7 +122,7 @@ class NamespaceEditor extends DefaultEditor {
         modified = true;
     }
 
-    private static Set<String> jcrSystemNS = ImmutableSet.of(PREFIX_JCR,
+    private static Set<String> jcrSystemNS = Set.of(PREFIX_JCR,
             PREFIX_NT, PREFIX_MIX, NamespaceConstants.PREFIX_SV);
 
     private static CommitFailedException modificationNotAllowed(String prefix) {

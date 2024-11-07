@@ -34,8 +34,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -298,7 +298,7 @@ public class FileStore extends AbstractFileStore {
     /**
      * @return the size of this store.
      */
-    private long size() {
+    public long size() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return tarFiles.size();
         }
@@ -548,7 +548,7 @@ public class FileStore extends AbstractFileStore {
                     data = Buffer.wrap(buffer, offset, length);
                 }
 
-                segment = new Segment(tracker, segmentReader, id, data);
+                segment = new Segment(tracker, id, data);
 
                 if (eagerSegmentCaching) {
                     segmentCache.putSegment(segment);

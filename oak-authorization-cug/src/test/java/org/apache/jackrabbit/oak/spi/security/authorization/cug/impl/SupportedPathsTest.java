@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -32,7 +32,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testIncludes() {
-        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/content"));
+        SupportedPaths supportedPaths = new SupportedPaths(Set.of("/content"));
 
         Map<String, Boolean> pathMap = new HashMap<>();
         pathMap.put("/content", true);
@@ -57,7 +57,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testMayContainCug() {
-        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/content/a"));
+        SupportedPaths supportedPaths = new SupportedPaths(Set.of("/content/a"));
 
         Map<String, Boolean> pathMap = new HashMap<>();
         pathMap.put("/", true);
@@ -77,7 +77,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testRootPath() {
-        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/"));
+        SupportedPaths supportedPaths = new SupportedPaths(Set.of("/"));
 
         List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
 
@@ -89,7 +89,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testEmpty() {
-        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of());
+        SupportedPaths supportedPaths = new SupportedPaths(Set.of());
 
         List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
 

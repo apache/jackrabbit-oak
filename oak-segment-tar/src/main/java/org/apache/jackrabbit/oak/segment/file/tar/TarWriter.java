@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
@@ -31,6 +28,8 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -38,6 +37,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -72,7 +72,7 @@ class TarWriter implements Closeable {
     /**
      * Graph of references between segments.
      */
-    private final Map<UUID, Set<UUID>> graph = newHashMap();
+    private final Map<UUID, Set<UUID>> graph = new HashMap<>();
 
     private final SegmentArchiveManager archiveManager;
 
@@ -109,7 +109,7 @@ class TarWriter implements Closeable {
     }
 
     synchronized boolean containsEntry(long msb, long lsb) {
-        checkState(!closed);
+        Validate.checkState(!closed);
         return archive.containsSegment(msb, lsb);
     }
 
@@ -118,6 +118,13 @@ class TarWriter implements Closeable {
      */
     int getEntryCount() {
         return archive.getEntryCount();
+    }
+
+    /**
+     * @return the maximum number of entries supported by this writer
+     */
+    int getMaxEntryCount() {
+        return archive.getMaxEntryCount();
     }
 
     /**
@@ -130,23 +137,25 @@ class TarWriter implements Closeable {
      */
     Buffer readEntry(long msb, long lsb) throws IOException {
         synchronized (this) {
-            checkState(!closed);
+            Validate.checkState(!closed);
         }
         return archive.readSegment(msb, lsb);
     }
 
     long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
-        checkNotNull(data);
+        requireNonNull(data);
         checkPositionIndexes(offset, offset + size, data.length);
 
         synchronized (this) {
-            checkState(!closed);
+            Validate.checkState(!closed);
 
             archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
             segmentCount.inc();
             long currentLength = archive.getLength();
+            int currentEntryCount = archive.getEntryCount();
 
-            checkState(currentLength <= Integer.MAX_VALUE);
+            Validate.checkState(currentLength <= Integer.MAX_VALUE);
+            Validate.checkState(currentEntryCount <= archive.getMaxEntryCount());
 
             return currentLength;
         }
@@ -163,7 +172,7 @@ class TarWriter implements Closeable {
     }
 
     void addGraphEdge(UUID from, UUID to) {
-        graph.computeIfAbsent(from, k -> newHashSet()).add(to);
+        graph.computeIfAbsent(from, k -> new HashSet<>()).add(to);
     }
 
     /**
@@ -234,7 +243,7 @@ class TarWriter implements Closeable {
      * current instance.
      */
     TarWriter createNextGeneration() throws IOException {
-        checkState(writeIndex >= 0);
+        Validate.checkState(writeIndex >= 0);
         // If nothing was written to this file, then we're already done.
         synchronized (this) {
             if (!archive.isCreated()) {

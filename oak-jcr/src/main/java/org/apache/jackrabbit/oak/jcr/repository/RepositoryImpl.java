@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.repository;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
@@ -162,9 +162,9 @@ public class RepositoryImpl implements JackrabbitRepository {
                           CommitRateLimiter commitRateLimiter,
                           boolean fastQueryResultSize,
                           boolean createSessionMBeans) {
-        this.contentRepository = checkNotNull(contentRepository);
-        this.whiteboard = checkNotNull(whiteboard);
-        this.securityProvider = checkNotNull(securityProvider);
+        this.contentRepository = requireNonNull(contentRepository);
+        this.whiteboard = requireNonNull(whiteboard);
+        this.securityProvider = requireNonNull(securityProvider);
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.descriptors = determineDescriptors();

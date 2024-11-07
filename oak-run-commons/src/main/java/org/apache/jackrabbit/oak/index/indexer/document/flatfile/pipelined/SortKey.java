@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import java.util.HashMap;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -34,12 +35,6 @@ public final class SortKey {
             "dam",
             "data",
             "items",
-            "jcr:content",
-            "jcr:created",
-            "jcr:primaryType",
-            "jcr:system",
-            "jcr:uuid",
-            "jcr:versionStorage",
             "libs",
             "master",
             "metadata",
@@ -52,6 +47,10 @@ public final class SortKey {
             "var"
     );
 
+    private static final int MAX_INTERN_CACHE = 1024;
+    private static final int MAX_INTERNED_STRING_LENGTH = 1024;
+    private static final HashMap<String, String> INTERN_CACHE = new HashMap<>(512);
+
     public static String[] genSortKeyPathElements(String path) {
         String[] pathElements = new String[PathUtils.getDepth(path)];
         int i = 0;
@@ -60,8 +59,10 @@ public final class SortKey {
             // Interning these strings should provide a big reduction in memory usage.
             // It is not worth to intern all levels because at lower levels the names are more likely to be less diverse,
             // often even unique, so interning them would fill up the interned string hashtable with useless entries.
-            if (i < 3 || part.length() == 1 || COMMON_PATH_WORDS.contains(part)) {
-                pathElements[i] = part.intern();
+            if ((i < 3 || part.length() == 1 || part.startsWith("jcr:") || COMMON_PATH_WORDS.contains(part)) && part.length() < MAX_INTERNED_STRING_LENGTH) {
+                pathElements[i] = INTERN_CACHE.size() < MAX_INTERN_CACHE ?
+                        INTERN_CACHE.computeIfAbsent(part, String::intern) :
+                        INTERN_CACHE.getOrDefault(part, part);
             } else {
                 pathElements[i] = part;
             }

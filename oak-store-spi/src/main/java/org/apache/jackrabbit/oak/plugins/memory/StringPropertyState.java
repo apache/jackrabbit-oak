@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class StringPropertyState extends SinglePropertyState<String> {
@@ -32,7 +32,7 @@ public class StringPropertyState extends SinglePropertyState<String> {
 
     public StringPropertyState(@NotNull String name, @NotNull String value) {
         super(name);
-        this.value = checkNotNull(value);
+        this.value = requireNonNull(value);
     }
 
     /**

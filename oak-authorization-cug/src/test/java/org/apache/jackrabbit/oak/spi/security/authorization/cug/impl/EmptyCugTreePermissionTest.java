@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -31,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -50,7 +51,7 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
         root.commit();
 
         pp = createCugPermissionProvider(
-                ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2),
+                Set.of(SUPPORTED_PATH, SUPPORTED_PATH2),
                 getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
         Root readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
         Tree t = readOnlyRoot.getTree("/");

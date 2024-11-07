@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A cache key implementation which consists of two {@link Revision}s.
@@ -35,8 +35,8 @@ public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> 
     private final RevisionVector r1, r2;
 
     public RevisionsKey(RevisionVector r1, RevisionVector r2) {
-        this.r1 = checkNotNull(r1);
-        this.r2 = checkNotNull(r2);
+        this.r1 = requireNonNull(r1);
+        this.r2 = requireNonNull(r2);
     }
 
     public RevisionVector getRev1() {

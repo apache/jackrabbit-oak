@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -64,7 +64,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
 
     private final WikipediaImport importer;
 
-    private final Set<String> sampleSet = newHashSet();
+    private final Set<String> sampleSet = new HashSet<>();
 
     private final Random random = new Random(42); //fixed seed
 
@@ -91,7 +91,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
                 if (count % 100 == 0
                         && sampleSet.size() < maxSampleSize
                         && text != null) {
-                    List<String> words = newArrayList();
+                    List<String> words = new ArrayList<>();
 
                     if(isFullTextSearch()) {
                         Matcher matcher = WORD_PATTERN.matcher(text);
@@ -193,7 +193,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
     }
 
     private String[] getRandomWords() {
-        List<String> samples = newArrayList(sampleSet);
+        List<String> samples = new ArrayList<>(sampleSet);
         String[] words = new String[100];
         for (int i = 0; i < words.length; i++) {
             words[i] = samples.get(random.nextInt(samples.size()));

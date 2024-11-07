@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons;
 
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getenv;
 
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Utility class for ITs to determine the environment running in.
@@ -57,7 +56,7 @@ public final class CIHelper {
      * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisPedantic() {
-        return equal(getenv("PROFILE"), "pedantic");
+        return Objects.equals(getenv("PROFILE"), "pedantic");
     }
 
     /**
@@ -65,7 +64,7 @@ public final class CIHelper {
      * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisUnitTesting() {
-        return equal(getenv("PROFILE"), "unittesting");
+        return Objects.equals(getenv("PROFILE"), "unittesting");
     }
 
     /**
@@ -73,7 +72,7 @@ public final class CIHelper {
      * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisIntegrationTesting() {
-        return equal(getenv("PROFILE"), "integrationTesting");
+        return Objects.equals(getenv("PROFILE"), "integrationTesting");
     }
 
     public static boolean jenkinsNodeLabel(String label) {
@@ -93,7 +92,6 @@ public final class CIHelper {
      * @return  {@code true} iff running in a Windows environment
      */
     public static boolean windows() {
-        return StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows");
+        return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows");
     }
-
 }

@@ -19,17 +19,26 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.Prefetcher;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -56,7 +65,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 
@@ -102,8 +110,11 @@ public class FlatFileNodeStoreBuilder {
     private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
+    private long minModified;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
+    private MongoClientURI mongoClientURI;
+    private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
         /**
@@ -117,7 +128,11 @@ public class FlatFileNodeStoreBuilder {
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
          */
-        PIPELINED
+        PIPELINED,
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedTreeStoreStrategy} being used.
+         */
+        PIPELINED_TREE,
     }
 
     public FlatFileNodeStoreBuilder(File workDir) {
@@ -177,6 +192,23 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    /**
+     * Use the given lower bound of the "_modified" property, when using the document node
+     * store.
+     *
+     * @param minModified the minimum value of the "_modified" property
+     * @return this
+     */
+    public FlatFileNodeStoreBuilder withMinModified(long minModified) {
+        this.minModified = minModified;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoClientURI(MongoClientURI mongoClientURI) {
+        this.mongoClientURI = mongoClientURI;
+        return this;
+    }
+
     public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
         this.mongoDatabase = mongoDatabase;
         return this;
@@ -192,21 +224,78 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileStore build() throws IOException, CompositeException {
+    /**
+     * NOTE: This enables the support for AOT blob download, it does not turn activate it. To activate it, set the property
+     * AheadOfTimeBlobDownloadingFlatFileStore.OAK_INDEXER_BLOB_PREFETCH_BINARY_NODES_SUFFIX to a non-empty value AND
+     * enable the support here.
+     *
+     * @param aotSupportEnabled
+     * @return
+     */
+    public FlatFileNodeStoreBuilder withAheadOfTimeBlobDownloader(boolean aotSupportEnabled) {
+        this.withAheadOfTimeBlobDownloading = aotSupportEnabled;
+        return this;
+    }
+
+    public IndexStore build() throws IOException, CompositeException {
+        return build(null, null);
+    }
+
+    public IndexStore build(IndexHelper indexHelper, CompositeIndexer indexer) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
         File metadataFile = indexStoreFiles.metadataFile;
-        FlatFileStore store = new FlatFileStore(blobStore, indexStoreFiles.storeFiles.get(0), metadataFile,
-                new NodeStateEntryReader(blobStore),
-                unmodifiableSet(preferredPathElements), algorithm);
+        File file = indexStoreFiles.storeFiles.get(0);
+        IndexStore store;
+        if (file.isDirectory() || FilePacker.isPackFile(file)) {
+            store = buildTreeStoreForIndexing(indexHelper, file);
+        } else {
+            store = new FlatFileStore(blobStore, file, metadataFile,
+                    new NodeStateEntryReader(blobStore),
+                    unmodifiableSet(preferredPathElements), algorithm);
+        }
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
+        }
+        if (indexer == null || indexHelper == null) {
+            return store;
+        }
+        if (withAheadOfTimeBlobDownloading && store instanceof FlatFileStore) {
+            FlatFileStore ffs = (FlatFileStore) store;
+            return AheadOfTimeBlobDownloadingFlatFileStore.wrap(ffs, indexer, indexHelper);
         }
         return store;
     }
 
-    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
+    public IndexStore buildTreeStoreForIndexing(IndexHelper indexHelper, File file) {
+        TreeStore indexingTreeStore = new TreeStore(
+                "indexing", file,
+                new NodeStateEntryReader(blobStore), 10);
+        indexingTreeStore.setIndexDefinitions(indexDefinitions);
+
+        // use a separate tree store (with a smaller cache)
+        // for prefetching, to avoid cache evictions
+        TreeStore prefetchTreeStore = new TreeStore(
+                "prefetch", file,
+                new NodeStateEntryReader(blobStore), 3);
+        prefetchTreeStore.setIndexDefinitions(indexDefinitions);
+        String blobPrefetchEnableForIndexes = ConfigHelper.getSystemPropertyAsString(
+                AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES, "");
+        Prefetcher prefetcher = new Prefetcher(prefetchTreeStore, indexingTreeStore);
+        String blobSuffix = "";
+        List<String> enabledIndexesPrefix = AheadOfTimeBlobDownloadingFlatFileStore.splitAndTrim(blobPrefetchEnableForIndexes);
+        if (AheadOfTimeBlobDownloadingFlatFileStore.isEnabledForAnyOfIndexes(
+                enabledIndexesPrefix, indexHelper.getIndexPaths())) {
+            blobSuffix = ConfigHelper.getSystemPropertyAsString(
+                    AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_BINARY_NODES_SUFFIX, "");
+        }
+        prefetcher.setBlobSuffix(blobSuffix);
+        indexingTreeStore.setPrefetcher(prefetcher);
+        return indexingTreeStore;
+    }
+
+    public List<IndexStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                          Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
@@ -226,7 +315,7 @@ public class FlatFileNodeStoreBuilder {
             log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
         }
 
-        List<FlatFileStore> storeList = new ArrayList<>();
+        List<IndexStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
             FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, metadataFile, new NodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), algorithm);
@@ -288,12 +377,12 @@ public class FlatFileNodeStoreBuilder {
                     (dir, name) -> name.endsWith(IndexStoreUtils.getMetadataFileName(algorithm)));
 
             if (storeFiles != null && storeFiles.length != 0) {
-                // Not throwing error for backward compatibility
                 if (metadataFiles == null || metadataFiles.length == 0) {
-                    log.error("Unable to find metadata file in directory:{}", sortedDir.getAbsolutePath());
+                    // the tree store doesn't need a metadata file
+                    log.info("No metadata file found in directory: {}", sortedDir.getAbsolutePath());
                     return new IndexStoreFiles(Arrays.asList(storeFiles), null);
                 } else {
-                    checkState(metadataFiles.length == 1, "Multiple metadata files available at path:{}, metadataFiles:{}", sortedDir.getAbsolutePath(),
+                    Validate.checkState(metadataFiles.length == 1, "Multiple metadata files available at path: {}, metadataFiles: {}", sortedDir.getAbsolutePath(),
                             Arrays.asList(metadataFiles));
                     return new IndexStoreFiles(Arrays.asList(storeFiles), metadataFiles[0]);
                 }
@@ -317,15 +406,24 @@ public class FlatFileNodeStoreBuilder {
                 log.warn("TraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
-            case PIPELINED:
+            case PIPELINED: {
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
                 List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
                 indexingReporter.setIndexNames(indexNames);
-                return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
+                return new PipelinedStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
                         statisticsProvider, indexingReporter);
-
+            }
+            case PIPELINED_TREE: {
+                log.info("Using PipelinedTreeStoreStrategy");
+                List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
+                List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+                indexingReporter.setIndexNames(indexNames);
+                return new PipelinedTreeStoreStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
+                        minModified, statisticsProvider, indexingReporter);
+            }
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
@@ -351,4 +449,5 @@ public class FlatFileNodeStoreBuilder {
     public File getFlatFileStoreDir() {
         return flatFileStoreDir;
     }
+
 }

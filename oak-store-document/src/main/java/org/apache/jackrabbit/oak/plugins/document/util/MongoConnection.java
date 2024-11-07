@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -30,7 +30,7 @@ import com.mongodb.ReadConcernLevel;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -42,7 +42,7 @@ public class MongoConnection {
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
-    private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
+    private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
 
@@ -93,6 +93,14 @@ public class MongoConnection {
     public MongoConnection(String uri, MongoClient client) {
         mongoURI = new MongoClientURI(uri, MongoConnection.getDefaultBuilder());
         mongo = client;
+    }
+
+    /**
+     *
+     * @return the {@link MongoClientURI} for this connection
+     */
+    public MongoClientURI getMongoURI() {
+        return mongoURI;
     }
 
     /**
@@ -174,7 +182,7 @@ public class MongoConnection {
     public static boolean hasWriteConcern(@NotNull String uri) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         builder.writeConcern(WC_UNKNOWN);
-        WriteConcern wc = new MongoClientURI(checkNotNull(uri), builder)
+        WriteConcern wc = new MongoClientURI(requireNonNull(uri), builder)
                 .getOptions().getWriteConcern();
         return !WC_UNKNOWN.equals(wc);
     }
@@ -186,7 +194,7 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasReadConcern(@NotNull String uri) {
-        ReadConcern rc = new MongoClientURI(checkNotNull(uri))
+        ReadConcern rc = new MongoClientURI(requireNonNull(uri))
                 .getOptions().getReadConcern();
         return readConcernLevel(rc) != null;
     }
@@ -224,7 +232,7 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-        if (checkNotNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+        if (requireNonNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {
             r = ReadConcern.LOCAL;
@@ -253,7 +261,7 @@ public class MongoConnection {
      */
     public static boolean isSufficientWriteConcern(@NotNull MongoClient client,
                                                    @NotNull WriteConcern wc) {
-        Object wObj = checkNotNull(wc).getWObject();
+        Object wObj = requireNonNull(wc).getWObject();
         int w;
         if (wObj instanceof Number) {
             w = ((Number) wObj).intValue();
@@ -285,11 +293,11 @@ public class MongoConnection {
      */
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
                                                   @NotNull ReadConcern rc) {
-        ReadConcernLevel r = readConcernLevel(checkNotNull(rc));
+        ReadConcernLevel r = readConcernLevel(requireNonNull(rc));
         if (client.getReplicaSetStatus() == null) {
             return true;
         } else {
-            return REPLICA_RC.contains(r);
+            return Objects.nonNull(r) && REPLICA_RC.contains(r);
         }
     }
 

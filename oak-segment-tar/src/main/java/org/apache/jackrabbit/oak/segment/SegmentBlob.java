@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -238,7 +238,7 @@ public class SegmentBlob extends Record implements Blob {
 
     private static String readShortBlobId(Segment segment, int recordNumber, byte head) {
         int length = (head & 0x0f) << 8 | (segment.readByte(recordNumber, 1) & 0xff);
-        return segment.readBytes(recordNumber, 2, length).decode(UTF_8).toString();
+        return segment.readBytes(recordNumber, 2, length).decode(StandardCharsets.UTF_8).toString();
     }
 
     private static String readLongBlobId(Segment segment, int recordNumber, Function<RecordId, Segment> getSegmentFunction) {
@@ -279,7 +279,7 @@ public class SegmentBlob extends Record implements Blob {
         if (recordIds == null) {
             return emptySet();
         } else {
-            Set<SegmentId> ids = newHashSet();
+            Set<SegmentId> ids = new HashSet<>();
             for (RecordId id : recordIds) {
                 ids.add(id.getSegmentId());
             }

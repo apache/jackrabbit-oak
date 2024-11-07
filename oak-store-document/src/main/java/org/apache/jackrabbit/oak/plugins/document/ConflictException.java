@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
 import java.util.Collections;
@@ -45,8 +45,8 @@ class ConflictException extends Exception {
      */
     ConflictException(@NotNull String message,
                       @NotNull Revision conflictRevision) {
-        super(checkNotNull(message));
-        this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevision));
+        super(requireNonNull(message));
+        this.conflictRevisions = Collections.singleton(requireNonNull(conflictRevision));
     }
 
     /**
@@ -55,15 +55,15 @@ class ConflictException extends Exception {
      */
     ConflictException(@NotNull String message,
                       @NotNull Set<Revision> conflictRevisions) {
-        super(checkNotNull(message));
-        this.conflictRevisions = checkNotNull(conflictRevisions);
+        super(requireNonNull(message));
+        this.conflictRevisions = requireNonNull(conflictRevisions);
     }
 
     /**
      * @param message the exception / conflict message.
      */
     ConflictException(@NotNull String message) {
-        super(checkNotNull(message));
+        super(requireNonNull(message));
         this.conflictRevisions = Collections.emptySet();
     }
 

@@ -31,7 +31,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -230,13 +229,10 @@ public class MemoryDocumentStore implements DocumentStore {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
-            Maps.filterValues(map, new Predicate<T>() {
-                @Override
-                public boolean apply(@Nullable T doc) {
+            Maps.filterValues(map, doc -> {
                     Long modified = Utils.asLong((Number) doc.get(indexedProperty));
                     return startValue < modified && modified < endValue;
-                }
-            }).clear();
+                }).clear();
         } finally {
             lock.unlock();
         }

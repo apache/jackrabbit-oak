@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
@@ -43,17 +43,16 @@ public class PathCursor extends AbstractCursor {
         Iterator<String> it = paths;
         if (distinct) {
             it = Iterators.filter(it, new Predicate<String>() {
-                
+
                 private final HashSet<String> known = new HashSet<String>();
 
                 @Override
-                public boolean apply(@Nullable String input) {
+                public boolean test(@Nullable String input) {
                     FilterIterators.checkMemoryLimit(known.size(), settings);
                     // Set.add returns true for new entries
                     return known.add(input);
                 }
-                
-            });
+            }::test);
         }
         this.iterator = it;
     }

@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -32,10 +31,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -96,7 +97,7 @@ public class Compact {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -122,7 +123,7 @@ public class Compact {
          * @return this builder.
          */
         public Builder withOs(String os) {
-            this.os = checkNotNull(os);
+            this.os = requireNonNull(os);
             return this;
         }
 
@@ -204,7 +205,7 @@ public class Compact {
          * @return an instance of {@link Runnable}.
          */
         public Compact build() {
-            checkNotNull(path);
+            requireNonNull(path);
             return new Compact(this);
         }
 
@@ -249,7 +250,7 @@ public class Compact {
         if (files == null) {
             return emptySet();
         }
-        return newHashSet(files);
+        return CollectionUtils.toSet(files);
     }
 
     private static void printFiles(PrintStream s, Set<File> files) {
@@ -263,7 +264,7 @@ public class Compact {
     }
 
     private static Set<String> fileNames(Set<File> files) {
-        Set<String> names = newHashSet();
+        Set<String> names = new HashSet<>();
         for (File f : files) {
             names.add(f.getName());
         }

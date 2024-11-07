@@ -149,8 +149,8 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
         Principal systemUser3 = getSystemUserPrincipal("su3", PathUtils.concatRelativePaths(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH, "testpath"));
         Principal systemUser4 = getSystemUserPrincipal("su4", getSupportedIntermediatePath() + "/testpath");
 
-        Set<Principal> unsupported = ImmutableSet.of(/* EXERCISE*/);
-        Set<Principal> supported = ImmutableSet.of(/* EXERCISE*/);
+        Set<Principal> unsupported = Set.of(/* EXERCISE*/);
+        Set<Principal> supported = Set.of(/* EXERCISE*/);
 
         assertFalse(filter.canHandle(unsupported));
         assertTrue(filter.canHandle(supported));
@@ -170,7 +170,7 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testPermissionProviderSupportedPrincipals() throws Exception {
-        Set<Principal> principals = ImmutableSet.of(/* EXERCISE: fill set with supported principal(s) */);
+        Set<Principal> principals = Set.of(/* EXERCISE: fill set with supported principal(s) */);
 
         PermissionProvider pp = getPrincipalBasedAuthorizationConfiguration().getPermissionProvider(root, adminSession.getWorkspaceName(), principals);
         assertFalse(pp instanceof EmptyPermissionProvider);
@@ -182,7 +182,7 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testPermissionProviderUnsupportedPrincipals() throws Exception {
-        Set<Principal> principals = ImmutableSet.of(/* EXERCISE: fill set with unsupported principal(s) */);
+        Set<Principal> principals = Set.of(/* EXERCISE: fill set with unsupported principal(s) */);
 
         PermissionProvider pp = getPrincipalBasedAuthorizationConfiguration().getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principals);
         assertTrue(pp instanceof EmptyPermissionProvider);

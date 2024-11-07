@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.openmbean.CompositeDataSupport;
@@ -43,7 +44,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
@@ -54,7 +55,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     private long errorWarnIntervalMillis = TimeUnit.MINUTES.toMillis(15);
     private long indexerCycleCount;
     private long corruptIntervalMillis = TimeUnit.MINUTES.toMillis(30);
-    private final Map<String, CorruptIndexInfo> indexes = Maps.newConcurrentMap();
+    private final Map<String, CorruptIndexInfo> indexes = new ConcurrentHashMap<>();
     private MeterStats meter;
 
     void setMeterStats(MeterStats meter) {
@@ -112,7 +113,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     @Override
     public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
         CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
-        if (info.skippedIndexing(checkNotNull(corruptSince))) {
+        if (info.skippedIndexing(requireNonNull(corruptSince))) {
             log.warn("Ignoring index [{}] which has been marked as corrupt [{}]. This index " +
                             "MUST be reindexed to work properly", indexPath,
                     info.getStats());

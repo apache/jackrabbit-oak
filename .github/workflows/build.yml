@@ -52,4 +52,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
         if: ${{ env.SONAR_TOKEN != '' }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Pcoverage -Dsonar.projectKey=org.apache.jackrabbit:jackrabbit-oak -Dsonar.organization=apache
+        # run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Pcoverage -Dsonar.projectKey=org.apache.jackrabbit:jackrabbit-oak -Dsonar.organization=apache
+        # disable Sonar for now
+        run: mvn -B verify -Pcoverage

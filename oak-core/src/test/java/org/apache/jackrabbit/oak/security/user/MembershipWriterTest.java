@@ -184,7 +184,7 @@ public class MembershipWriterTest extends MembershipBaseTest {
             m.put(getContentID(memberTree), memberId);
         }
 
-        Set<String> expected = Sets.newHashSet(m.values());
+        Set<String> expected = new HashSet<>(m.values());
         Set<String> failed = writer.addMembers(getTree(grp), m);
         assertFalse(failed.isEmpty());
         assertEquals(expected, failed);

@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 
 /**
@@ -109,16 +110,15 @@ class Checkpoints {
     }
 
     /**
-     * Returns the oldest valid checkpoint registered.
-     *
-     * <p>It also performs cleanup of expired checkpoint
+     * Returns the oldest valid checkpoint registered
+     * @param performCleanup if true, it will perform cleanup of expired checkpoint
      *
      * @return oldest valid checkpoint registered. Might return null if no valid
      * checkpoint found
      */
     @SuppressWarnings("unchecked")
     @Nullable
-    public Revision getOldestRevisionToKeep() {
+    public Revision getOldestRevisionToKeep(boolean performCleanup) {
         //Get uncached doc
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
@@ -145,7 +145,7 @@ class Checkpoints {
             }
         }
 
-        if (op.hasChanges()) {
+        if (performCleanup && op.hasChanges()) {
             try {
                 store.findAndUpdate(Collection.SETTINGS, op);
                 LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
@@ -158,6 +158,18 @@ class Checkpoints {
         return lastAliveRevision;
     }
 
+    /**
+     * Returns the oldest valid checkpoint registered.
+     *
+     * <p>It also performs cleanup of expired checkpoint
+     *
+     * @return oldest valid checkpoint registered. Might return null if no valid
+     * checkpoint found
+     */
+    public Revision getOldestRevisionToKeep() {
+        return getOldestRevisionToKeep(true);
+    }
+
     @SuppressWarnings("unchecked")
     @NotNull
     SortedMap<Revision, Info> getCheckpoints() {
@@ -166,7 +178,7 @@ class Checkpoints {
         if (cdoc != null) {
             data = (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
         }
-        SortedMap<Revision, Info> checkpoints = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        SortedMap<Revision, Info> checkpoints = new TreeMap<>(StableRevisionComparator.REVERSE);
         if (data != null) {
             for (Map.Entry<Revision, String> entry : data.entrySet()) {
                 checkpoints.put(entry.getKey(), Info.fromString(entry.getValue()));
@@ -188,7 +200,7 @@ class Checkpoints {
             throws IllegalArgumentException {
         Revision r;
         try {
-            r = Revision.fromString(checkNotNull(checkpoint));
+            r = Revision.fromString(requireNonNull(checkpoint));
         } catch (IllegalArgumentException e) {
             LOG.warn("Malformed checkpoint reference: {}", checkpoint);
             return null;
@@ -205,7 +217,7 @@ class Checkpoints {
     }
 
     void setInfoProperty(@NotNull String checkpoint, @NotNull String key, @Nullable String value) {
-        Revision r = Revision.fromString(checkNotNull(checkpoint));
+        Revision r = Revision.fromString(requireNonNull(checkpoint));
         Info info = getCheckpoints().get(r);
         if (info == null) {
             throw new IllegalArgumentException("No such checkpoint: " + checkpoint);

@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +47,7 @@ import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -105,7 +107,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         int number = count;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
-        List<Integer> processed = Lists.newArrayList();
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random(47);
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(number);
@@ -158,8 +160,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private class DataStoreState {
-        Set<String> blobsAdded = Sets.newHashSet();
-        Set<String> blobsPresent = Sets.newHashSet();
+        Set<String> blobsAdded = new HashSet<>();
+        Set<String> blobsPresent = new HashSet<>();
     }
     
     private HashSet<String> addInlined() throws Exception {
@@ -177,7 +179,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     private HashSet<String> addNodeSpecialChars() throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
         DocumentNodeStore ds = mk.getNodeStore();
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = ds.getRoot().builder();
@@ -188,7 +190,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            set.addAll(Lists.newArrayList(idIter));
+            set.addAll(CollectionUtils.toList(idIter));
         }
         ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;
@@ -314,7 +316,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         
         // Simulate faulty state by deleting some blobs directly
         Random rand = new Random(87);
-        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        List<String> existing = new ArrayList<>(state.blobsPresent);
 
         GarbageCollectableBlobStore store = (GarbageCollectableBlobStore)
                                                 mk.getNodeStore().getBlobStore();
@@ -469,7 +471,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 mk.getNodeStore().getBlobStore();
         Iterator<String> cur = store.getAllChunkIds(0);
 
-        Set<String> existing = Sets.newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -507,7 +509,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             this.root = root;
             this.blobStore = blobStore;
             this.maxLastModifiedInterval = maxLastModifiedInterval;
-            this.additionalBlobs = Sets.newHashSet();
+            this.additionalBlobs = new HashSet<>();
         }
         
         @Override

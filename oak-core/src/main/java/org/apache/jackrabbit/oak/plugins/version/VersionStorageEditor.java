@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -25,7 +26,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -62,10 +65,10 @@ class VersionStorageEditor extends DefaultEditor {
                                  @NotNull NodeBuilder builder,
                                  @NotNull String path,
                                  boolean initPhase) {
-        this.versionStorageNode = checkNotNull(versionStorageNode);
-        this.workspaceRoot = checkNotNull(workspaceRoot);
-        this.builder = checkNotNull(builder);
-        this.path = checkNotNull(path);
+        this.versionStorageNode = requireNonNull(versionStorageNode);
+        this.workspaceRoot = requireNonNull(workspaceRoot);
+        this.builder = requireNonNull(builder);
+        this.path = requireNonNull(path);
         this.initPhase = initPhase;
     }
 
@@ -156,9 +159,10 @@ class VersionStorageEditor extends DefaultEditor {
 
     //-------------------------< internal >-------------------------------------
 
-    private static boolean isVersionStorageNode(NodeState state) {
+    @VisibleForTesting
+    static boolean isVersionStorageNode(NodeState state) {
         String ntName = state.getName(JCR_PRIMARYTYPE);
-        return VERSION_STORE_NT_NAMES.contains(ntName)
+        return (Objects.nonNull(ntName) && VERSION_STORE_NT_NAMES.contains(ntName))
                 || VERSION_NODE_TYPE_NAMES.contains(ntName);
     }
 

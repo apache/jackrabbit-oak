@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -43,10 +44,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * RDB specific version of {@link VersionGCSupport} which uses an extended query
@@ -105,18 +104,13 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
+        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp)::test);
     }
 
     private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument doc) {
-                return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
-                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
-            }
-        };
+        return doc -> gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
+                && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
     }
 
     private Iterable<NodeDocument> identifyGarbageMode2(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
@@ -129,7 +123,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
 
         try {
-            List<Integer> gcTypeCodes = Lists.newArrayList();
+            List<Integer> gcTypeCodes = new ArrayList<>();
             for (SplitDocType type : gcTypes) {
                 gcTypeCodes.add(type.typeCode());
             }
@@ -166,8 +160,9 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
         final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
 
-        return CloseableIterable.wrap(Iterables.concat(Iterables.filter(fit1, cp1), Iterables.filter(fit2, cp2)), new Closeable() {
-            @Override
+        return CloseableIterable.wrap(Iterables.concat(Iterables.filter(fit1, cp1::test), Iterables.filter(fit2, cp2::test)),
+                new Closeable() {
+                    @Override
             public void close() throws IOException {
                 Utils.closeIfCloseable(fit1);
                 Utils.closeIfCloseable(fit2);
@@ -208,9 +203,9 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         }
 
         @Override
-        public boolean apply(T doc) {
+        public boolean test(T doc) {
             count += 1;
-            boolean match = predicate.apply(doc);
+            boolean match = predicate.test(doc);
             matches += (match ? 1 : 0);
             return match;
         }

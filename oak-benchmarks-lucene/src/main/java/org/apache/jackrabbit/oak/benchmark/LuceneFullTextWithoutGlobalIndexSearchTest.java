@@ -34,8 +34,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import javax.jcr.Repository;
 import java.io.File;
 import java.io.IOException;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import java.util.Set;
 
 /*
 Similar to {@Link LuceneFullTextWithGlobalIndexSearchTest}. The only diff being this doesn't configure a global full text index
@@ -58,7 +57,7 @@ public class LuceneFullTextWithoutGlobalIndexSearchTest extends SearchTest {
                     oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText", of("text"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText", Set.of("text"),
                                     LuceneIndexConstants.TYPE_LUCENE).nodeScope().analyzed());
                     return new Jcr(oak);
                 }

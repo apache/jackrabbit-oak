@@ -16,16 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
@@ -36,6 +31,8 @@ import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.Template.MANY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.segment.Template.ZERO_CHILD_NODES;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
@@ -263,7 +260,7 @@ public class SegmentParser {
     private final SegmentReader reader;
 
     public SegmentParser(@NotNull SegmentReader reader) {
-        this.reader = checkNotNull(reader);
+        this.reader = requireNonNull(reader);
     }
 
     /**
@@ -677,12 +674,12 @@ public class SegmentParser {
             blobType = BlobType.LONG;
         } else if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value, short blob ID
-            int length = UTF_8.encode(requireNonNull(readBlobId(segment, blobId.getRecordNumber()))).limit();
+            int length = StandardCharsets.UTF_8.encode(requireNonNull(readBlobId(segment, blobId.getRecordNumber()))).limit();
             size += (2 + length);
             blobType = BlobType.EXTERNAL;
         } else if ((head & 0xf8) == 0xf0) {
             // 1111 0xxx: external value, long blob ID
-            int length = UTF_8.encode(requireNonNull(readBlobId(segment, blobId.getRecordNumber()))).limit();
+            int length = StandardCharsets.UTF_8.encode(requireNonNull(readBlobId(segment, blobId.getRecordNumber()))).limit();
             size += (2 + length);
             blobType = BlobType.EXTERNAL;
         } else {
@@ -760,13 +757,13 @@ public class SegmentParser {
             entries = singletonList(listId);
             return new ListBucketInfo(listId, true, entries, RECORD_ID_BYTES);
         } else if (bucketSize == 1) {
-            entries = newArrayListWithCapacity(count);
+            entries = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 entries.add(segment.readRecordId(listId.getRecordNumber(), 0, index + i));
             }
             return new ListBucketInfo(listId, true, entries, count * RECORD_ID_BYTES);
         } else {
-            entries = newArrayList();
+            entries = new ArrayList<>();
             while (count > 0) {
                 int bucketIndex = index / bucketSize;
                 int bucketOffset = index % bucketSize;

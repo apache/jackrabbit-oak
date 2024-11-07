@@ -74,7 +74,6 @@ public class FileStoreBackupImpl implements FileStoreBackup {
             GCGeneration gen = current.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     backup.getSegmentIdProvider(),
-                    backup.getReader(),
                     "b",
                     gen
             );

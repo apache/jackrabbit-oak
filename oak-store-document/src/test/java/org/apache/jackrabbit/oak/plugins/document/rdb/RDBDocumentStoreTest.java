@@ -28,6 +28,7 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,7 +49,6 @@ import org.junit.Test;
 import org.slf4j.event.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
@@ -201,7 +201,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
         if (ds instanceof RDBDocumentStore) {
             final int NUM_DOCS = 200;
             // populate the store
-            List<UpdateOp> ops = Lists.newArrayList();
+            List<UpdateOp> ops = new ArrayList<>();
             for (int i = 0; i < NUM_DOCS; i++) {
                 UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-" + i), true);
                 NodeDocument.setModified(op, new Revision(i * 5000, 0, 1));
@@ -210,7 +210,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             }
             assertTrue(ds.create(NODES, ops));
 
-            Set<String> ids = Sets.newHashSet();
+            Set<String> ids = new HashSet<>();
             boolean updated = false;
             MissingLastRevSeeker seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) ds, Clock.SIMPLE);
             for (NodeDocument doc : seeker.getCandidates(0)) {

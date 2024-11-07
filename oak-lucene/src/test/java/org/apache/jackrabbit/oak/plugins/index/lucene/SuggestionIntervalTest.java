@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +49,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class SuggestionIntervalTest extends AbstractQueryTest {
 
@@ -106,7 +106,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
     }
 
     Set<String> getSuggestions(String nodeType, String suggestFor) throws Exception {
-        Set<String> ret = Sets.newHashSet();
+        Set<String> ret = new HashSet<>();
 
         String suggQuery = createSuggestQuery(nodeType, suggestFor);
         QueryEngine qe = root.getQueryEngine();

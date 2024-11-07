@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -56,6 +54,8 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_ITEM_NAMES;
@@ -117,7 +117,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     private Tree createEntryTree(@NotNull PrincipalPolicyImpl.EntryImpl entry) {
         Tree t = mock(Tree.class);
-        PropertyState path = PropertyStates.createProperty(REP_EFFECTIVE_PATH, Strings.nullToEmpty(entry.getOakPath()));
+        PropertyState path = PropertyStates.createProperty(REP_EFFECTIVE_PATH, Objects.toString(entry.getOakPath(), ""));
         when(t.getProperty(REP_EFFECTIVE_PATH)).thenReturn(path);
         PropertyState privs = PropertyStates.createProperty(REP_PRIVILEGES, privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
         when(t.getProperty(REP_PRIVILEGES)).thenReturn(privs);
@@ -303,7 +303,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     public void testAddEntryMissingMandatoryRestriction() throws Exception {
         RestrictionProvider restrictionProvider = mock(RestrictionProvider.class);
         when(restrictionProvider.getSupportedRestrictions(anyString())).thenReturn(
-                ImmutableSet.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONG, true)));
+                Set.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONG, true)));
         MgrProvider mp = when(mock(MgrProvider.class).getRestrictionProvider()).thenReturn(restrictionProvider).getMock();
         when(mp.getNamePathMapper()).thenReturn(getNamePathMapper());
 
@@ -317,7 +317,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     public void testAddEntryMissingMandatoryMVRestriction() throws Exception {
         RestrictionProvider restrictionProvider = mock(RestrictionProvider.class);
         when(restrictionProvider.getSupportedRestrictions(anyString())).thenReturn(
-                ImmutableSet.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONGS, true)));
+                Set.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONGS, true)));
         MgrProvider mp = when(mock(MgrProvider.class).getRestrictionProvider()).thenReturn(restrictionProvider).getMock();
         when(mp.getNamePathMapper()).thenReturn(getNamePathMapper());
 
@@ -330,7 +330,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     @Test(expected = AccessControlException.class)
     public void testAddEntryMandatoryRestrictionWithOakName() throws Exception {
         RestrictionProvider restrictionProvider = when(mock(RestrictionProvider.class).getSupportedRestrictions(anyString())).thenReturn(
-                ImmutableSet.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONG, true))).getMock();
+                Set.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONG, true))).getMock();
         MgrProvider mp = when(mock(MgrProvider.class).getRestrictionProvider()).thenReturn(restrictionProvider).getMock();
         when(mp.getNamePathMapper()).thenReturn(getNamePathMapper());
 
@@ -345,7 +345,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         Restriction r = mock(Restriction.class);
 
         RestrictionProvider restrictionProvider = mock(RestrictionProvider.class);
-        when(restrictionProvider.getSupportedRestrictions(anyString())).thenReturn(ImmutableSet.of(def));
+        when(restrictionProvider.getSupportedRestrictions(anyString())).thenReturn(Set.of(def));
         when(restrictionProvider.createRestriction(anyString(), anyString(), any(Value.class))).thenReturn(r);
 
         MgrProvider mp = when(mock(MgrProvider.class).getRestrictionProvider()).thenReturn(restrictionProvider).getMock();

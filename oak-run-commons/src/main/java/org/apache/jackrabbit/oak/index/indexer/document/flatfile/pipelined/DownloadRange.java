@@ -18,57 +18,41 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
 
-final class DownloadRange {
-    private final long lastModifiedFrom;
-    private final long lastModifiedTo;
-    private final String startAfterDocumentID;
+import java.util.ArrayList;
 
-    public DownloadRange(long lastModifiedFrom, long lastModifiedTo, String startAfterDocumentID) {
-        if (lastModifiedTo < lastModifiedFrom) {
-            throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedTo + ")");
+public final class DownloadRange {
+    final long lastModifiedFrom;
+    final long lastModifiedToInclusive;
+
+    public DownloadRange(long lastModifiedFrom, long lastModifiedToInclusive) {
+        if (!(lastModifiedFrom <= lastModifiedToInclusive)) {
+            throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedToInclusive + ")");
         }
         this.lastModifiedFrom = lastModifiedFrom;
-        this.lastModifiedTo = lastModifiedTo;
-        this.startAfterDocumentID = startAfterDocumentID;
+        this.lastModifiedToInclusive = lastModifiedToInclusive;
     }
 
-    public String getStartAfterDocumentID() {
-        return startAfterDocumentID;
-    }
-
-    public long getLastModifiedFrom() {
-        return lastModifiedFrom;
-    }
-
-    public long getLastModifiedTo() {
-        return lastModifiedTo;
-    }
-
-    public BsonDocument getFindQuery() {
-        String lastModifiedRangeQueryPart = "{$gte:" + lastModifiedFrom;
-        if (lastModifiedTo == Long.MAX_VALUE) {
-            lastModifiedRangeQueryPart += "}";
+    public Bson getFindQuery() {
+        ArrayList<Bson> filters = new ArrayList<>(3);
+        if (lastModifiedFrom == lastModifiedToInclusive) {
+            filters.add(Filters.eq(NodeDocument.MODIFIED_IN_SECS, lastModifiedFrom));
         } else {
-            lastModifiedRangeQueryPart += ", $lt:" + lastModifiedTo + "}";
+            filters.add(Filters.gte(NodeDocument.MODIFIED_IN_SECS, lastModifiedFrom));
+            filters.add(Filters.lte(NodeDocument.MODIFIED_IN_SECS, lastModifiedToInclusive));
         }
-        String idRangeQueryPart = "";
-        if (startAfterDocumentID != null) {
-            String condition = "{$gt:\"" + startAfterDocumentID + "\"}";
-            idRangeQueryPart = ", " + NodeDocument.ID + ":" + condition;
-        }
-        return BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + lastModifiedRangeQueryPart
-                + idRangeQueryPart + "}");
+        // If there is only one filter, do not wrap it in an $and
+        return filters.size() == 1 ? filters.get(0) : Filters.and(filters);
     }
 
     @Override
     public String toString() {
         return "DownloadRange{" +
                 "lastModifiedFrom=" + lastModifiedFrom +
-                ", lastModifiedTo=" + lastModifiedTo +
-                ", startAfterDocumentID='" + startAfterDocumentID + '\'' +
+                ", lastModifiedToInclusive=" + lastModifiedToInclusive +
                 '}';
     }
 }

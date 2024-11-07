@@ -52,7 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Extension of the {@code DefaultSyncContext} that doesn't synchronize group
@@ -315,7 +315,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             // since 'shortcut' is omitted if dynamic groups are enabled, there is no need to test if 'external-group' is 
             // null, nor trying to retrieve external group again. if it could not be resolved during 'collectSyncEntries'
             // before it didn't got added to the map
-            checkNotNull(syncEntry.externalGroup, "Cannot create dynamic group from null ExternalIdentity.");
+            requireNonNull(syncEntry.externalGroup, "Cannot create dynamic group from null ExternalIdentity.");
             
             // lookup of existing group by ID has been performed already including check for conflicting authorizable 
             // type or principal name

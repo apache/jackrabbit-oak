@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * An in-memory diff cache implementation.
@@ -72,7 +72,7 @@ public class MemoryDiffCache extends DiffCache {
         if (loader == null) {
             diff = diffCache.getIfPresent(key);
             if (diff == null && isUnchanged(from, to, path)) {
-                diff = new StringValue("");
+                diff = StringValue.EMPTY;
             }
         } else {
             try {
@@ -80,7 +80,7 @@ public class MemoryDiffCache extends DiffCache {
                     @Override
                     public StringValue call() throws Exception {
                         if (isUnchanged(from, to, path)) {
-                            return new StringValue("");
+                            return StringValue.EMPTY;
                         } else {
                             return new StringValue(loader.call());
                         }
@@ -119,8 +119,8 @@ public class MemoryDiffCache extends DiffCache {
         private final RevisionVector to;
 
         protected MemoryEntry(RevisionVector from, RevisionVector to) {
-            this.from = checkNotNull(from);
-            this.to = checkNotNull(to);
+            this.from = requireNonNull(from);
+            this.to = requireNonNull(to);
         }
 
         @Override
@@ -211,9 +211,9 @@ public class MemoryDiffCache extends DiffCache {
         public Key(@NotNull Path path,
                    @NotNull RevisionVector from,
                    @NotNull RevisionVector to) {
-            this.path = checkNotNull(path);
-            this.from = checkNotNull(from);
-            this.to = checkNotNull(to);
+            this.path = requireNonNull(path);
+            this.from = requireNonNull(from);
+            this.to = requireNonNull(to);
         }
 
         @NotNull

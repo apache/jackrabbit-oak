@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Assert;
@@ -84,7 +85,7 @@ public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
         Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, limit, offset,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        List<ResultRow> rows = CollectionUtils.toList(result.getRows());
         Assert.assertEquals(expected.length, rows.size());
 
         int i = 0;

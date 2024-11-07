@@ -57,7 +57,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -195,12 +195,12 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         }
 
         ReadOnlyVersionManager vm = ReadOnlyVersionManager.getInstance(root, getNamePathMapper());
-        return checkNotNull(vm.getVersionHistory(tree));
+        return requireNonNull(vm.getVersionHistory(tree));
     }
 
     @Test
     public void testCreateFromEmptyPrincipals() {
-        Set<Principal> principals = ImmutableSet.of();
+        Set<Principal> principals = Set.of();
         assertSame(NoPermissions.getInstance(), CompiledPermissionImpl.create(root, "wspName", mock(PermissionStore.class), principals, ConfigurationParameters.EMPTY, mock(Context.class), mock(ProviderCtx.class)));
     }
 
@@ -208,14 +208,14 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     public void testCreateNonExistingPermissionStore() {
         Tree t = when(mock(Tree.class).exists()).thenReturn(false).getMock();
         Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
-        Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("principalName"));
+        Set<Principal> principals = Set.of(new PrincipalImpl("principalName"));
 
         assertSame(NoPermissions.getInstance(), CompiledPermissionImpl.create(r, "wspName", mock(PermissionStore.class), principals, ConfigurationParameters.EMPTY, mock(Context.class), mock(ProviderCtx.class)));
     }
 
     @Test
     public void testEmpyReadPaths() {
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
+        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, Set.of()));
         // cp with EmptyReadPolicy
         for (String readPath : PermissionConstants.DEFAULT_READ_PATHS) {
             assertFalse(cp.isGranted(readPath, Permissions.READ_NODE));
@@ -249,7 +249,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     @Test
     public void testNonDefaultReadPath() {
         // cp with DefaultReadPolicy but not default paths
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH, "/another", "/yet/another")));
+        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, Set.of(TEST_PATH, "/another", "/yet/another")));
 
         for (String readPath : new String[]{TEST_PATH, SUBTREE_PATH, TEST_PATH + "/nonExisting"}) {
             assertReadPath(cp, readPath);
@@ -266,7 +266,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         assertTrue(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
         assertTrue(cp.hasPrivileges(t, JCR_READ));
 
-        assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(t));
+        assertEquals(Set.of(JCR_READ), cp.getPrivileges(t));
 
         TreePermission tp = createTreePermission(cp, readPath);
         assertTrue(tp.canRead());
@@ -276,7 +276,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
     @Test
     public void testHidden() {
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
+        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, Set.of()));
 
         String hiddenPath = "/oak:index/acPrincipalName/:index";
         Tree hiddenTree = createReadonlyTree(hiddenPath);
@@ -324,13 +324,13 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Tree versionHistory = createVersions(SUBTREE_PATH);
 
         // subtree path is made readable through PARAM_READ_PATHS
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, Set.of(TEST_PATH)));
 
         assertTrue(cp.isGranted(versionHistory, null, Permissions.READ));
         // isGranted(String, long) serves as fallback when no versionable node available
         // -> just regular permission eval based on path, no tree-type taken into account
         assertFalse(cp.isGranted(versionHistory.getPath(), Permissions.READ));
-        assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(versionHistory));
+        assertEquals(Set.of(JCR_READ), cp.getPrivileges(versionHistory));
         assertTrue(cp.hasPrivileges(versionHistory, JCR_READ));
 
         TreePermission tp = createTreePermission(cp, versionHistory.getPath());
@@ -343,13 +343,13 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         assertEquals(NT_VERSION, TreeUtil.getPrimaryTypeName(version));
 
         // subtree path is made readable through PARAM_READ_PATHS
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, Set.of(TEST_PATH)));
 
         assertTrue(cp.isGranted(version, null, Permissions.READ));
         // isGranted(String, long) serves as fallback when no versionable node available
         // -> just regular permission eval based on path, no tree-type taken into account
         assertFalse(cp.isGranted(version.getPath(), Permissions.READ));
-        assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(version));
+        assertEquals(Set.of(JCR_READ), cp.getPrivileges(version));
         assertTrue(cp.hasPrivileges(version, JCR_READ));
 
         TreePermission tp = createTreePermission(cp, version.getPath());
@@ -393,7 +393,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         // isGranted(String, long) serves as fallback when no versionable node available
         // -> just regular permission eval based on path, no tree-type taken into account
         assertFalse(cp.isGranted(copiedAccessControlledChild.getPath(), Permissions.READ));
-        assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE), cp.getPrivileges(copiedAccessControlledChild));
+        assertEquals(Set.of(JCR_READ, JCR_WRITE), cp.getPrivileges(copiedAccessControlledChild));
         assertTrue(cp.hasPrivileges(copiedAccessControlledChild, JCR_READ, JCR_WRITE));
 
         TreePermission tp = createTreePermission(cp, version.getPath());
@@ -405,7 +405,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Tree versionStoreTree = createVersions(SUBTREE_PATH).getParent();
 
         // subtree path is made readable through PARAM_READ_PATHS
-        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+        CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, Set.of(TEST_PATH)));
 
         // but: permissions for version store tree is evaluated based on regular permissions
         // and not tied to a versionable tree
@@ -454,7 +454,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         String wspName = testSession.getWorkspaceName();
 
         PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
-        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        Set<Principal> principals = Set.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
         CompiledPermissionImpl cp = create(readOnlyRoot, wspName, principals, store, ConfigurationParameters.EMPTY);
 
         // verify lazy initialization of the permission cache
@@ -492,7 +492,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         // create cp for user principal only (no group principals that hold the permission setup)
         PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
-        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(getTestUser().getPrincipal()), store, ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, Set.of(getTestUser().getPrincipal()), store, ConfigurationParameters.EMPTY);
 
         verify(store, never()).getNumEntries(anyString(), anyLong());
 
@@ -510,7 +510,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         Tree t = createReadonlyTree(ACCESS_CONTROLLED_PATH);
         assertFalse(cp.hasPrivileges(t, JCR_WRITE));
         assertTrue(cp.hasPrivileges(t, JCR_VERSION_MANAGEMENT));
-        assertEquals(ImmutableSet.of(JCR_VERSION_MANAGEMENT), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
+        assertEquals(Set.of(JCR_VERSION_MANAGEMENT), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
 
         TreePermission tp = createTreePermission(cp, ACCESS_CONTROLLED_PATH);
         assertTrue(tp.isGranted(VERSION_MANAGEMENT));
@@ -530,7 +530,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         // create cp for group principal only (no user principal)
         PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
-        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(EveryonePrincipal.getInstance()), store, ConfigurationParameters.EMPTY);
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, Set.of(EveryonePrincipal.getInstance()), store, ConfigurationParameters.EMPTY);
 
         verify(store, never()).getNumEntries(anyString(), anyLong());
 
@@ -545,7 +545,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         assertTrue(cp.isGranted(ACCESS_CONTROLLED_PATH, SET_PROPERTY));
         assertTrue(cp.hasPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH), JCR_WRITE));
-        assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
+        assertEquals(Set.of(JCR_READ, JCR_WRITE), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
 
         TreePermission tp = createTreePermission(cp, ACCESS_CONTROLLED_PATH);
         assertTrue(tp.isGranted(SET_PROPERTY));

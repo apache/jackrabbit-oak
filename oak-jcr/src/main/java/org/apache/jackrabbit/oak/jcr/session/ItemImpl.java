@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -27,6 +26,7 @@ import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.AccessDeniedException;
@@ -389,7 +389,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }
         if (type == NAMES || type == PATHS) {
             Type<?> base = type.getBaseType();
-            List<String> strings = newArrayListWithCapacity(values.size());
+            List<String> strings = new ArrayList<>(values.size());
             for (Value value : values) {
                 strings.add(getOakValue(value, base));
             }

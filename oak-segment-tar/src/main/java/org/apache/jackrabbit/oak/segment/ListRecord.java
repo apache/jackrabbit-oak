@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -44,9 +44,9 @@ class ListRecord extends Record {
     ListRecord(RecordId id, int size) {
         super(id);
         checkArgument(size >= 0,
-                "Negative list size: " + size);
+                "Negative list size: %s", size);
         checkArgument(size <= MAX_ELEMENTS,
-                "Too many elements in list: " + size);
+                "Too many elements in list: %s", size);
         this.size = size;
 
         int bs = 1;
@@ -88,7 +88,7 @@ class ListRecord extends Record {
         } else if (count == 1) {
             return singletonList(getEntry(index));
         } else {
-            List<RecordId> ids = newArrayListWithCapacity(count);
+            List<RecordId> ids = new ArrayList<>(count);
             getEntries(index, count, ids);
             return ids;
         }

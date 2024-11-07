@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 /**
  * Abstract base test for external-authentication tests.
@@ -86,7 +87,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         super.before();
 
         getTestUser();
-        ids = Sets.newHashSet(getAllAuthorizableIds(getUserManager(root)));
+        ids = CollectionUtils.toSet(getAllAuthorizableIds(getUserManager(root)));
 
         idp = createIDP();
         syncConfig = createSyncConfig();
@@ -192,7 +193,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     }
 
     protected DefaultSyncHandler registerSyncHandler(@NotNull Map<String, Object> syncConfigMap, @NotNull String idpName) {
-        context.registerService(SyncHandlerMapping.class, new ExternalLoginModuleFactory(), ImmutableMap.of(
+        context.registerService(SyncHandlerMapping.class, mock(ExternalLoginModuleFactory.class), ImmutableMap.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idpName,
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfigMap.get(DefaultSyncConfigImpl.PARAM_NAME)
         ));

@@ -51,9 +51,13 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     private List<String> idIncludeList;
 
+    private Thread inThread;
+
     private List<FailedUpdateOpListener> listeners = new ArrayList<>();
 
     private boolean afterOp = false;
+
+    private boolean noDispose = false;
 
     class Fail {
 
@@ -118,6 +122,11 @@ class FailingDocumentStore extends DocumentStoreWrapper {
                 idIncludeList = new LinkedList<>();
             }
             idIncludeList.add(idInclude);
+            return this;
+        }
+
+        Fail in(Thread thread) {
+            inThread = thread;
             return this;
         }
     }
@@ -253,7 +262,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
                                                        List<UpdateOp> updateOps) {
         List<UpdateOp> remaining = new ArrayList<>(updateOps);
-        List<T> result = Lists.newArrayList();
+        List<T> result = new ArrayList<>();
         int i = 0;
         for (UpdateOp op : updateOps) {
             if (!afterOp) {
@@ -292,6 +301,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private <T extends Document> void maybeFail(Collection<T> collection,
                                                 List<UpdateOp> remainingOps) {
         if ((collectionIncludeList == null || collectionIncludeList.contains(collection)) &&
+                (inThread == null || inThread == Thread.currentThread()) &&
                 (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) &&
                 (idIncludeList == null || (!remainingOps.isEmpty()
                         && idIncludeList.contains(remainingOps.get(0).getId())))) {
@@ -309,4 +319,16 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private void reportRemainingOps(List<UpdateOp> remainingOps) {
         listeners.forEach(listener -> remainingOps.forEach(listener::failed));
     }
+
+    public void noDispose() {
+        noDispose = true;
+    }
+
+    @Override
+    public void dispose() {
+        if (!noDispose) {
+            super.dispose();
+        }
+    }
+
 }

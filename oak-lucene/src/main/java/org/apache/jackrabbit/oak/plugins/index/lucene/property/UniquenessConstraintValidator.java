@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
@@ -84,7 +84,7 @@ public class UniquenessConstraintValidator {
     }
 
     public void setSecondStore(PropertyQuery secondStore) {
-        this.secondStore = checkNotNull(secondStore);
+        this.secondStore = requireNonNull(secondStore);
     }
 
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {

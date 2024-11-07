@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.util.Collection;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**
@@ -145,11 +145,11 @@ public interface AccessControlConstants {
      */
     String NT_REP_RESTRICTIONS = "rep:Restrictions";
 
-    Collection<String> POLICY_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY);
+    Collection<String> POLICY_NODE_NAMES = Set.of(REP_POLICY, REP_REPO_POLICY);
 
-    Collection<String> ACE_PROPERTY_NAMES = ImmutableSet.of(REP_PRINCIPAL_NAME, REP_PRIVILEGES);
+    Collection<String> ACE_PROPERTY_NAMES = Set.of(REP_PRINCIPAL_NAME, REP_PRIVILEGES);
 
-    Collection<String> AC_NODETYPE_NAMES = ImmutableSet.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
+    Collection<String> AC_NODETYPE_NAMES = Set.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
 
     String PARAM_RESTRICTION_PROVIDER = "restrictionProvider";
 }

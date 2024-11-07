@@ -20,8 +20,6 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -37,6 +35,9 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
@@ -149,7 +150,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testModifyExternalPrincipalNames() throws Exception {
         Tree userTree = root.getTree(externalUserPath);
         try {
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, Lists.newArrayList("principalNames"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalNames"), Type.STRINGS);
             root.commit();
             fail("Changing rep:externalPrincipalNames must be detected.");
         } catch (CommitFailedException e) {
@@ -176,9 +177,9 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Tree userTree = systemRoot.getTree(testUserPath);
 
         java.util.Map<Type, Object> valMap = ImmutableMap.of(
-                Type.BOOLEANS, ImmutableSet.of(Boolean.TRUE),
-                Type.LONGS, ImmutableSet.of(1234L),
-                Type.NAMES, ImmutableSet.of("id", "id2")
+                Type.BOOLEANS, Set.of(Boolean.TRUE),
+                Type.LONGS, Set.of(1234L),
+                Type.NAMES, Set.of("id", "id2")
         );
         for (Type t : valMap.keySet()) {
             Object val = valMap.get(t);

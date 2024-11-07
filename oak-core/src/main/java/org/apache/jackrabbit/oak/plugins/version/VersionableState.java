@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.version.OnParentVersionAction.ABORT;
 import static javax.jcr.version.OnParentVersionAction.COMPUTE;
 import static javax.jcr.version.OnParentVersionAction.COPY;
@@ -55,12 +55,12 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -118,12 +118,12 @@ class VersionableState {
                              @NotNull NodeBuilder versionable,
                              @NotNull ReadWriteVersionManager vMgr,
                              @NotNull ReadOnlyNodeTypeManager ntMgr) {
-        this.version = checkNotNull(version);
-        this.history = checkNotNull(history);
+        this.version = requireNonNull(version);
+        this.history = requireNonNull(history);
         this.frozenNode = version.child(JCR_FROZENNODE);
-        this.versionable = checkNotNull(versionable);
-        this.vMgr = checkNotNull(vMgr);
-        this.ntMgr = checkNotNull(ntMgr);
+        this.versionable = requireNonNull(versionable);
+        this.vMgr = requireNonNull(vMgr);
+        this.ntMgr = requireNonNull(ntMgr);
         this.isFrozenNodeReferenceable = Utils.isFrozenNodeReferenceable(ntMgr);
     }
 
@@ -187,7 +187,7 @@ class VersionableState {
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = Lists.newArrayList(node.getNames(JCR_MIXINTYPES));
+            mixinTypes = CollectionUtils.toList(node.getNames(JCR_MIXINTYPES));
         } else {
             mixinTypes = Collections.emptyList();
         }
@@ -260,8 +260,8 @@ class VersionableState {
                               @NotNull String name,
                               @NotNull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
-        checkNotNull(name);
-        checkNotNull(destParent);
+        requireNonNull(name);
+        requireNonNull(destParent);
         String primaryType = primaryTypeOf(src);
         if (primaryType.equals(NT_FROZENNODE)) {
             // replace with frozen state
@@ -457,7 +457,7 @@ class VersionableState {
      */
     private void restoreVersionable(@NotNull NodeBuilder versionable,
                                     @NotNull NodeBuilder version) {
-        checkNotNull(versionable).setProperty(JCR_ISCHECKEDOUT,
+        requireNonNull(versionable).setProperty(JCR_ISCHECKEDOUT,
                 false, Type.BOOLEAN);
         versionable.setProperty(JCR_VERSIONHISTORY,
                 uuidFromNode(history), Type.REFERENCE);

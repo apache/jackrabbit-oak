@@ -357,7 +357,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
 
             if (entry.isAllow) {
-                if (!respectParent || predicate.apply(entry, false)) {
+                if (!respectParent || predicate.test(entry, false)) {
                     allowBits.addDifference(entry.privilegeBits, denyBits);
                 }
                 long ap = PrivilegeBits.calculatePermissions(allowBits, parentAllowBits, true);
@@ -366,7 +366,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     return true;
                 }
             } else {
-                if (!respectParent || predicate.apply(entry, false)) {
+                if (!respectParent || predicate.test(entry, false)) {
                     denyBits.addDifference(entry.privilegeBits, allowBits);
                 }
                 long dp = PrivilegeBits.calculatePermissions(denyBits, parentDenyBits, false);
@@ -656,7 +656,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             while (next == null) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
-                    if (predicate.apply(pe)) {
+                    if (predicate.test(pe)) {
                         next = pe;
                     } else {
                         treePermission.skipped  = true;

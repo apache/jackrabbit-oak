@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -63,9 +61,9 @@ import java.util.Set;
  */
 public class FilteringNodeState extends AbstractDecoratedNodeState {
 
-    public static final Set<String> ALL = ImmutableSet.of("/");
+    public static final Set<String> ALL = Set.of("/");
 
-    public static final Set<String> NONE = ImmutableSet.of();
+    public static final Set<String> NONE = Set.of();
 
     private final String path;
 

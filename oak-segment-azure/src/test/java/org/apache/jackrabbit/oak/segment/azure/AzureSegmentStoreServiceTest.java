@@ -68,7 +68,7 @@ public class AzureSegmentStoreServiceTest {
 
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
-    private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
+    private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private CloudBlobContainer container;
     
@@ -242,7 +242,7 @@ public class AzureSegmentStoreServiceTest {
         return Instant.now().minus(Duration.ofDays(1));
     }
     
-    private static ImmutableSet<String> concat(ImmutableSet<String> blobs, String element) {
+    private static Set<String> concat(Set<String> blobs, String element) {
         return ImmutableSet.<String>builder().addAll(blobs).add(element).build();
     }
 

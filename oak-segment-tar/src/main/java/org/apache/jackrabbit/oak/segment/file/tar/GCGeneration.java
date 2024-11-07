@@ -15,12 +15,12 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -128,7 +128,7 @@ public final class GCGeneration {
      * @return  Number of generations between this generation and {@code gcGeneration}
      */
     public int compareWith(@NotNull GCGeneration gcGeneration) {
-        return generation - checkNotNull(gcGeneration).generation;
+        return generation - requireNonNull(gcGeneration).generation;
     }
 
     /**
@@ -138,7 +138,7 @@ public final class GCGeneration {
      *          and {@code gcGeneration}
      */
     public int compareFullGenerationWith(@NotNull GCGeneration gcGeneration) {
-        return fullGeneration - checkNotNull(gcGeneration).fullGeneration;
+        return fullGeneration - requireNonNull(gcGeneration).fullGeneration;
     }
 
     @Override
@@ -157,7 +157,7 @@ public final class GCGeneration {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(generation, fullGeneration, isCompacted);
+        return Objects.hash(generation, fullGeneration, isCompacted);
     }
 
     @Override

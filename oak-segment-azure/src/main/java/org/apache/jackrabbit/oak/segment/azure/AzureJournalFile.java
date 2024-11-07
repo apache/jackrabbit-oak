@@ -24,6 +24,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
@@ -42,8 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 
 public class AzureJournalFile implements JournalFile {
 
@@ -220,7 +219,7 @@ public class AzureJournalFile implements JournalFile {
             }
             int firstBlockSize = Math.min(lineLimit - lineCount, lines.size());
             List<String> firstBlock = lines.subList(0, firstBlockSize);
-            List<List<String>> remainingBlocks = partition(lines.subList(firstBlockSize, lines.size()), lineLimit);
+            List<List<String>> remainingBlocks = CollectionUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
             List<List<String>> allBlocks = ImmutableList.<List<String>>builder()
                 .addAll(firstBlock.isEmpty() ? ImmutableList.of() : ImmutableList.of(firstBlock))
                 .addAll(remainingBlocks)

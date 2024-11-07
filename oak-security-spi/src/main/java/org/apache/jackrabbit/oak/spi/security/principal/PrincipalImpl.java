@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of the {@code JackrabbitPrincipal} interface.
@@ -28,7 +28,7 @@ public class PrincipalImpl implements JackrabbitPrincipal {
     private final String name;
 
     public PrincipalImpl(String name) {
-        this.name = checkNotNull(name);
+        this.name = requireNonNull(name);
     }
 
     //----------------------------------------------------------< Principal >---

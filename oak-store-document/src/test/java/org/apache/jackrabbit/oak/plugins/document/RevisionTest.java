@@ -222,20 +222,20 @@ public class RevisionTest {
             }));
         }
 
-        final List<Revision> duplicates = Lists.newArrayList();
-        final Set<Revision> seenRevs = Sets.newHashSet();
+        final List<Revision> duplicates = new ArrayList<>();
+        final Set<Revision> seenRevs = new HashSet<>();
         workers.add(new Thread(new Runnable() {
             @Override
             public void run() {
                 startLatch.countDown();
 
                 while (!stop.get()) {
-                    List<Revision> revs = Lists.newArrayList();
+                    List<Revision> revs = new ArrayList<>();
                     Queues.drainUninterruptibly(revisionQueue, revs, 5, 100, TimeUnit.MILLISECONDS);
                     record(revs);
                 }
 
-                List<Revision> revs = Lists.newArrayList();
+                List<Revision> revs = new ArrayList<>();
                 revisionQueue.drainTo(revs);
                 record(revs);
             }

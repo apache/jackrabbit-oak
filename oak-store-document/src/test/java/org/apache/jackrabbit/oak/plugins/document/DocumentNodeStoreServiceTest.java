@@ -198,10 +198,10 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext());
 
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
-        assertTrue(dns.getNodeCachePredicate().apply(Path.fromString("/a/b/c")));
-        assertTrue(dns.getNodeCachePredicate().apply(Path.fromString("/c/d/e")));
+        assertTrue(dns.getNodeCachePredicate().test(Path.fromString("/a/b/c")));
+        assertTrue(dns.getNodeCachePredicate().test(Path.fromString("/c/d/e")));
 
-        assertFalse(dns.getNodeCachePredicate().apply(Path.fromString("/x")));
+        assertFalse(dns.getNodeCachePredicate().test(Path.fromString("/x")));
     }
 
     @Test

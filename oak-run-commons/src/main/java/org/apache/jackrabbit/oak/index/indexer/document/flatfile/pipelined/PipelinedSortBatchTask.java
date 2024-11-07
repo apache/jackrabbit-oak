@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
@@ -44,6 +45,7 @@ import java.util.concurrent.Callable;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsPercentage;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
@@ -103,8 +105,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Stopwatch taskStartTime = Stopwatch.createStarted();
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
+        INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
-            LOG.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
@@ -126,7 +128,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                             .add("timeWritingPercentage", timeWritingPercentage)
                             .add("totalTimeSeconds", totalTimeMillis / 1000)
                             .build();
-                    LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
+                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     MetricsUtils.addMetric(statisticsProvider, reporter,
                             PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_CREATE_SORT_ARRAY_PERCENTAGE,
                             PipelinedUtils.toPercentage(timeCreatingSortArrayMillis, totalTimeMillis));
@@ -142,10 +144,11 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 nseBuffer.reset();
                 emptyBuffersQueue.put(nseBuffer);
             }
-        } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted", t);
-            throw t;
         } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                    THREAD_NAME.toUpperCase(Locale.ROOT),
+                    MetricsFormatter.createMetricsWithDurationOnly(taskStartTime),
+                    t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
@@ -163,7 +166,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             int pathLength = buffer.getInt();
             totalPathSize += pathLength;
             // Create the String directly from the buffer without creating an intermediate byte[]
-            String path = new String(buffer.array(), buffer.position(), pathLength, StandardCharsets.UTF_8);
+            String path = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), pathLength, StandardCharsets.UTF_8);
             buffer.position(buffer.position() + pathLength);
             // Skip the json
             int entryLength = buffer.getInt();
@@ -193,9 +196,16 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
+        String[] prevPathElements = null;
+        int duplicateEntriesSkippped = 0;
         try (OutputStream os = IndexStoreUtils.createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
+                if (Arrays.equals(prevPathElements, entry.getPathElements())) {
+                    duplicateEntriesSkippped++;
+                    continue;
+                }
+                prevPathElements = entry.getPathElements();
                 // Retrieve the entry from the buffer
                 int posInBuffer = entry.getBufferPos();
                 buffer.position(posInBuffer);
@@ -211,11 +221,13 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         long compressedSize = Files.size(newtmpfile);
-        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}",
+        int entriesWritten = sortBuffer.size() - duplicateEntriesSkippped;
+        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}. Duplicate entries skipped: {}",
                 humanReadableByteCountBin(compressedSize),
                 humanReadableByteCountBin(textSize),
-                sortBuffer.size(), saveClock,
-                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis())
+                entriesWritten, saveClock,
+                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis()),
+                duplicateEntriesSkippped
         );
         // Free the memory taken by the entries in the buffer
         sortBuffer.clear();

@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -38,6 +38,7 @@ import ch.qos.logback.classic.Level;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class VersionGarbageCollectorLogTest {
 
@@ -75,6 +76,7 @@ public class VersionGarbageCollectorLogTest {
     @After
     public void after() {
         logCustomizer.finished();
+        ClusterNodeInfo.resetClockToDefault();
     }
 
     @AfterClass
@@ -95,6 +97,24 @@ public class VersionGarbageCollectorLogTest {
         for (String msg : messages) {
             assertThat(getNumDeleted(msg), lessThan(BATCH_SIZE + 1));
         }
+    }
+
+    @Test
+    public void gcWithCheckpoint() throws Exception {
+        ClusterNodeInfo.setClock(clock);
+        createGarbage();
+        for( int i = 0; i < 60; i++ ) {
+            clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+            ns.renewClusterIdLease();
+        }
+        ns.runBackgroundOperations();
+        addNode("/unrelated");
+        String checkpoint = ns.checkpoint(Long.MAX_VALUE);
+        clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+        ns.renewClusterIdLease();
+        VersionGarbageCollector gc = ns.getVersionGarbageCollector();
+        VersionGCStats stats = gc.gc(10, TimeUnit.SECONDS);
+        assertTrue(stats.ignoredGCDueToCheckPoint);
     }
 
     private int getNumDeleted(String msg) {
@@ -127,7 +147,7 @@ public class VersionGarbageCollectorLogTest {
     }
 
     private List<String> getDeleteMessages() {
-        List<String> messages = Lists.newArrayList();
+        List<String> messages = new ArrayList<>();
         for (String msg : logCustomizer.getLogs()) {
             if (msg.startsWith("Proceeding to delete [")) {
                 messages.add(msg);

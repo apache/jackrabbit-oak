@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     private final MountInfoProvider mountInfoProvider;
@@ -39,16 +38,16 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
                                      DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
-        this.mountInfoProvider = checkNotNull(mountInfoProvider);
-        this.directoryFactory = checkNotNull(directoryFactory);
-        this.writerConfig = checkNotNull(writerConfig);
+        this.mountInfoProvider = requireNonNull(mountInfoProvider);
+        this.directoryFactory = requireNonNull(directoryFactory);
+        this.writerConfig = requireNonNull(writerConfig);
     }
 
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition def, NodeBuilder definitionBuilder,
                                          CommitInfo commitInfo, boolean reindex) {
-        Preconditions.checkArgument(def instanceof LuceneIndexDefinition,
-                "Expected {} but found {} for index definition",
+        Validate.checkArgument(def instanceof LuceneIndexDefinition,
+                "Expected %s but found %s for index definition",
                 LuceneIndexDefinition.class, def.getClass());
 
         LuceneIndexDefinition definition = (LuceneIndexDefinition)def;

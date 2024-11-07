@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
@@ -30,20 +29,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
 public class NodeStateEntryReader {
-    private final BlobDeserializer blobDeserializer;
+    private final JsonDeserializer des;
 
     public NodeStateEntryReader(BlobStore blobStore) {
-        this.blobDeserializer = new BlobIdSerializer(blobStore);
+        BlobDeserializer blobDeserializer = new BlobIdSerializer(blobStore);
+        this.des = new JsonDeserializer(blobDeserializer);
     }
 
-    public NodeStateEntry read(String line) {
-        String[] parts = NodeStateEntryWriter.getParts(line);
-        long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
-        return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage).build();
-    }
-
-    protected NodeState parseState(String part) {
-        JsonDeserializer des = new JsonDeserializer(blobDeserializer);
-        return des.deserialize(part);
+    public NodeStateEntry read(String ffsLine) {
+        long memUsage = estimateMemoryUsage(ffsLine);
+        var idx = ffsLine.indexOf('|');
+        var path = ffsLine.substring(0, idx);
+        NodeState nodeState = des.deserialize(ffsLine, idx + 1);
+        return new NodeStateEntry(nodeState, path, memUsage, 0, "");
     }
 }

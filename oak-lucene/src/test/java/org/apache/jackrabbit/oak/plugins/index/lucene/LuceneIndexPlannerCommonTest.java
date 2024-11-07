@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
@@ -57,7 +58,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
@@ -69,10 +69,9 @@ import static org.junit.Assert.assertEquals;
 
 public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
-
     @Test
     public void useNumDocsOnFieldForCost() throws Exception {
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "foo1", "foo2"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo", "foo1", "foo2"), "async");
         long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
@@ -155,7 +154,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -227,7 +226,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -272,7 +271,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -329,6 +328,83 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(1, plan.getEstimatedEntryCount());
+    }
+
+    @Test
+    public void isNotNullAndIsNull() throws Exception{
+        String indexPath = "/test";
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:unstructured").property("foo")
+                .enclosingRule().property("foo").propertyIndex().nullCheckEnabled()
+                .enclosingRule().property("foo2").propertyIndex().nullCheckEnabled();
+        NodeState defn = idxBuilder.build();
+
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+        List<Document> list = new ArrayList<>();
+        // 10 documents have "foo" (foo = 1)
+        for (int i = 0; i < 10; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("foo", "1", Field.Store.NO));
+            list.add(doc);
+        }
+        // 20 documents have "foo2 is null" (:nullProps = foo2)
+        for (int i = 0; i < 20; i++) {
+            Document doc = new Document();
+            doc.add(new StringField(FieldNames.NULL_PROPS, "foo2", Field.Store.NO));
+            list.add(doc);
+        }
+        Directory sampleDirectory = createSampleDirectory(0, list);
+        LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+
+        // foo is null
+        // that can be at most 20, because there are only
+        // that many documents with ":nullProps"
+        FilterImpl filter = createFilter("nt:unstructured");
+        filter.restrictProperty("foo", Operator.EQUAL, null);
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertEquals(20, plan.getEstimatedEntryCount());
+        assertEquals(1.0, plan.getCostPerExecution(), 0);
+        assertEquals(1.0, plan.getCostPerEntry(), 0);
+
+        // foo2 is null:
+        // that can be at most 20, because there are only 10 documents with this property
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("foo2", Operator.EQUAL, null);
+
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        assertEquals(20, plan.getEstimatedEntryCount());
+        assertEquals(1.0, plan.getCostPerExecution(), 0);
+        assertEquals(1.0, plan.getCostPerEntry(), 0);
+
+        // foo is not null:
+        // that can be at most 10, because there are only 10 documents with this property
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
+
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        assertEquals(10, plan.getEstimatedEntryCount());
+        assertEquals(1.0, plan.getCostPerExecution(), 0);
+        assertEquals(1.0, plan.getCostPerEntry(), 0);
+
+        // foo2 is not null:
+        // that can be at most 0, because there are no documents wit this property
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("foo2", Operator.NOT_EQUAL, null);
+
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        assertEquals(0, plan.getEstimatedEntryCount());
+        assertEquals(1.0, plan.getCostPerExecution(), 0);
+        assertEquals(1.0, plan.getCostPerEntry(), 0);
+
     }
 
     @Test

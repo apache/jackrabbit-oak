@@ -43,11 +43,11 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -242,7 +242,7 @@ public final class FileIOUtils {
                 count++;
                 if (logger != null) {
                     if (count % 100000 == 0) {
-                        logger.info(Strings.nullToEmpty(message) + count);
+                        logger.info(Objects.toString(message, "") + count);
                     }
                 }
             }

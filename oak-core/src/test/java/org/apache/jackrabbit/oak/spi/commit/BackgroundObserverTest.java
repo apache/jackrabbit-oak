@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -27,6 +26,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,17 +46,16 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import junit.framework.AssertionFailedError;
 
 public class BackgroundObserverTest {
+
     private static final CommitInfo COMMIT_INFO = new CommitInfo("no-session", null);
     public static final int CHANGE_COUNT = 1024;
 
-    private final List<Runnable> assertions = Lists.newArrayList();
+    private final List<Runnable> assertions = new ArrayList<>();
     private CountDownLatch doneCounter;
-    private final List<Closeable> closeables = Lists.newArrayList();
+    private final List<Closeable> closeables = new ArrayList<>();
 
     /**
      * Assert that each observer of many running concurrently sees the same
@@ -113,7 +112,7 @@ public class BackgroundObserverTest {
         return new BackgroundObserver(new Observer() {
             // Need synchronised list here to maintain correct memory barrier
             // when this is passed on to done(List<Runnable>)
-            final List<Runnable> assertions = Collections.synchronizedList(Lists.<Runnable> newArrayList());
+            final List<Runnable> assertions = Collections.synchronizedList(new ArrayList<>());
             volatile NodeState previous;
 
             @Override

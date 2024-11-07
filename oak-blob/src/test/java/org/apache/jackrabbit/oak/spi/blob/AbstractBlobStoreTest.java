@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
@@ -50,7 +51,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Tests a BlobStore implementation.
@@ -418,10 +418,10 @@ public abstract class AbstractBlobStoreTest {
     public void delete() throws Exception {
         Set<String> ids = createArtifacts();
 
-        store.deleteChunks(Lists.newArrayList(ids), 0);
+        store.deleteChunks(new ArrayList<>(ids), 0);
 
         Iterator<String> iter = store.getAllChunkIds(0);
-        Set<String> ret = Sets.newHashSet();
+        Set<String> ret = new HashSet<>();
         while (iter.hasNext()) {
             ret.add(iter.next());
         }
@@ -433,10 +433,10 @@ public abstract class AbstractBlobStoreTest {
     public void deleteCount() throws Exception {
         Set<String> ids = createArtifacts();
 
-        long count = store.countDeleteChunks(Lists.newArrayList(ids), 0);
+        long count = store.countDeleteChunks(new ArrayList<>(ids), 0);
 
         Iterator<String> iter = store.getAllChunkIds(0);
-        Set<String> ret = Sets.newHashSet();
+        Set<String> ret = new HashSet<>();
         while (iter.hasNext()) {
             ret.add(iter.next());
         }
@@ -458,12 +458,12 @@ public abstract class AbstractBlobStoreTest {
         String id2 = store.writeBlob(randomStream(0, getArtifactSize()));
         assertEquals(id, id2);
 
-        Set<String> chunks = Sets.newHashSet();
+        Set<String> chunks = new HashSet<>();
         Iterator<String> iter = store.resolveChunks(id.toString());
         while (iter.hasNext()) {
             chunks.add(iter.next());
         }
-        long count = store.countDeleteChunks(Lists.newArrayList(chunks), beforeUpdateTime);
+        long count = store.countDeleteChunks(new ArrayList<>(chunks), beforeUpdateTime);
         assertEquals("Deleted updated blobs", 0, count);
     }
 
@@ -513,7 +513,7 @@ public abstract class AbstractBlobStoreTest {
     }
 
     private Set<String> createArtifacts() throws Exception {
-        Set<String> ids = Sets.newHashSet();
+        Set<String> ids = new HashSet<>();
         int number = 10;
         for (int i = 0; i < number; i++) {
             String id = store.writeBlob(randomStream(i, getArtifactSize()));

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerElastic;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -193,7 +193,7 @@ public class ElasticIndexCommand implements Command {
     }
 
     private void reindex(ElasticIndexOptions indexOpts, IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
-        Preconditions.checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+        Objects.requireNonNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch w = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(indexHelper, checkpoint);
@@ -230,7 +230,7 @@ public class ElasticIndexCommand implements Command {
 
         File definitions = indexOpts.getIndexDefinitionsFile();
         if (definitions != null) {
-            Preconditions.checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
+            Validate.checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
             indexerSupport.setIndexDefinitions(definitions);
         }
         return indexerSupport;

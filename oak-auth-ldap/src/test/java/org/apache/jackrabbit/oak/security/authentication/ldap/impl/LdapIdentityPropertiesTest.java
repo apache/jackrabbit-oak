@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +50,7 @@ public class LdapIdentityPropertiesTest {
 
     @Test
     public void testConstructorWithMap() {
-        Map m = Maps.newLinkedHashMap();
+        Map m = new LinkedHashMap<>();
         m.put("b", "v");
         m.put("B", "v2");
         LdapIdentityProperties props = new LdapIdentityProperties(m);
@@ -84,7 +84,7 @@ public class LdapIdentityPropertiesTest {
 
     @Test
     public void testPutAll() {
-        Map m = Maps.newLinkedHashMap();
+        Map m = new LinkedHashMap<>();
         m.put("b", "v");
         m.put("B", "v2");
         properties.putAll(m);

@@ -17,13 +17,10 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.segment.RecordId.fromString;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.tool.Utils.newBasicReadOnlyBlobStore;
-import static org.apache.jackrabbit.oak.segment.tool.Utils.readRevisions;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -55,7 +52,9 @@ public class Diff {
      */
     public static class Builder {
 
-        private File path;
+        private String path;
+
+        private ReadOnlyFileStore store;
 
         private String interval;
 
@@ -67,6 +66,8 @@ public class Diff {
 
         private boolean ignoreMissingSegments;
 
+        private Revisions.RevisionsProcessor processor;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -77,11 +78,20 @@ public class Diff {
          * @param path the path to an existing segment store.
          * @return this builder.
          */
-        public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+        public Builder withPath(String path) {
+            this.path = requireNonNull(path);
             return this;
         }
 
+        /**
+         * The read-only filestore at path
+         * @param store the read-only filestore to diff
+         * @return this builder.
+         */
+        public Builder withReadOnlyFileStore(ReadOnlyFileStore store) {
+            this.store = requireNonNull(store);
+            return this;
+        }
         /**
          * The two node records to diff specified as a record ID interval. This
          * parameter is required.
@@ -96,7 +106,7 @@ public class Diff {
          * @return this builder.
          */
         public Builder withInterval(String interval) {
-            this.interval = checkNotNull(interval);
+            this.interval = requireNonNull(interval);
             return this;
         }
 
@@ -123,7 +133,7 @@ public class Diff {
          * @return this builder.
          */
         public Builder withOutput(File file) {
-            this.out = checkNotNull(file);
+            this.out = requireNonNull(file);
             return this;
         }
 
@@ -136,7 +146,7 @@ public class Diff {
          * @return this builder.
          */
         public Builder withFilter(String filter) {
-            this.filter = checkNotNull(filter);
+            this.filter = requireNonNull(filter);
             return this;
         }
 
@@ -156,21 +166,31 @@ public class Diff {
         }
 
         /**
+         * The revisions processor used to list revisions
+         * @param processor a revisions processor
+         * @return this builder.
+         */
+        public Builder withRevisionsProcessor(Revisions.RevisionsProcessor processor) {
+            this.processor = processor;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Diff} command.
          *
          * @return an instance of {@link Runnable}.
          */
         public Diff build() {
-            checkNotNull(path);
-            checkNotNull(interval);
-            checkNotNull(out);
-            checkNotNull(filter);
+            requireNonNull(path);
+            requireNonNull(interval);
+            requireNonNull(out);
+            requireNonNull(filter);
             return new Diff(this);
         }
 
     }
 
-    private final File path;
+    private final String path;
 
     private final String interval;
 
@@ -182,13 +202,19 @@ public class Diff {
 
     private final boolean ignoreMissingSegments;
 
+    private final ReadOnlyFileStore store;
+
+    private final Revisions.RevisionsProcessor processor;
+
     private Diff(Builder builder) {
         this.path = builder.path;
+        this.store = builder.store;
         this.interval = builder.interval;
         this.incremental = builder.incremental;
         this.out = builder.out;
         this.filter = builder.filter;
         this.ignoreMissingSegments = builder.ignoreMissingSegments;
+        this.processor = builder.processor;
     }
 
     public int run() {
@@ -212,75 +238,73 @@ public class Diff {
             return;
         }
 
-        try (ReadOnlyFileStore store = fileStoreBuilder(path).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly()) {
-            SegmentIdProvider idProvider = store.getSegmentIdProvider();
-            RecordId idL;
+        SegmentIdProvider idProvider = store.getSegmentIdProvider();
+        RecordId idL;
 
-            try {
-                if (tokens[0].equalsIgnoreCase("head")) {
-                    idL = store.getRevisions().getHead();
-                } else {
-                    idL = fromString(idProvider, tokens[0]);
-                }
-            } catch (IllegalArgumentException e) {
-                System.out.println("Invalid left endpoint for interval " + interval);
-                return;
+        try {
+            if (tokens[0].equalsIgnoreCase("head")) {
+                idL = store.getRevisions().getHead();
+            } else {
+                idL = fromString(idProvider, tokens[0]);
             }
-
-            RecordId idR;
-
-            try {
-                if (tokens[1].equalsIgnoreCase("head")) {
-                    idR = store.getRevisions().getHead();
-                } else {
-                    idR = fromString(idProvider, tokens[1]);
-                }
-            } catch (IllegalArgumentException e) {
-                System.out.println("Invalid left endpoint for interval " + interval);
-                return;
-            }
-
-            long start = System.currentTimeMillis();
-
-            try (PrintWriter pw = new PrintWriter(out)) {
-                if (incremental) {
-                    List<String> revs = readRevisions(path);
-                    System.out.println("Generating diff between " + idL + " and " + idR + " incrementally. Found " + revs.size() + " revisions.");
-
-                    int s = revs.indexOf(idL.toString10());
-                    int e = revs.indexOf(idR.toString10());
-                    if (s == -1 || e == -1) {
-                        System.out.println("Unable to match input revisions with FileStore.");
-                        return;
-                    }
-                    List<String> revDiffs = revs.subList(Math.min(s, e), Math.max(s, e) + 1);
-                    if (s > e) {
-                        // reverse list
-                        revDiffs = reverse(revDiffs);
-                    }
-                    if (revDiffs.size() < 2) {
-                        System.out.println("Nothing to diff: " + revDiffs);
-                        return;
-                    }
-                    Iterator<String> revDiffsIt = revDiffs.iterator();
-                    RecordId idLt = fromString(idProvider, revDiffsIt.next());
-                    while (revDiffsIt.hasNext()) {
-                        RecordId idRt = fromString(idProvider, revDiffsIt.next());
-                        boolean good = diff(store, idLt, idRt, pw);
-                        idLt = idRt;
-                        if (!good && !ignoreMissingSegments) {
-                            break;
-                        }
-                    }
-                } else {
-                    System.out.println("Generating diff between " + idL + " and " + idR);
-                    diff(store, idL, idR, pw);
-                }
-            }
-
-            long dur = System.currentTimeMillis() - start;
-            System.out.println("Finished in " + dur + " ms.");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid left endpoint for interval " + interval);
+            return;
         }
+
+        RecordId idR;
+
+        try {
+            if (tokens[1].equalsIgnoreCase("head")) {
+                idR = store.getRevisions().getHead();
+            } else {
+                idR = fromString(idProvider, tokens[1]);
+            }
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid left endpoint for interval " + interval);
+            return;
+        }
+
+        long start = System.currentTimeMillis();
+
+        try (PrintWriter pw = new PrintWriter(out)) {
+            if (incremental) {
+                List<String> revs = processor.process(path);
+                System.out.println("Generating diff between " + idL + " and " + idR + " incrementally. Found " + revs.size() + " revisions.");
+
+                int s = revs.indexOf(idL.toString10());
+                int e = revs.indexOf(idR.toString10());
+                if (s == -1 || e == -1) {
+                    System.out.println("Unable to match input revisions with FileStore.");
+                    return;
+                }
+                List<String> revDiffs = revs.subList(Math.min(s, e), Math.max(s, e) + 1);
+                if (s > e) {
+                    // reverse list
+                    revDiffs = reverse(revDiffs);
+                }
+                if (revDiffs.size() < 2) {
+                    System.out.println("Nothing to diff: " + revDiffs);
+                    return;
+                }
+                Iterator<String> revDiffsIt = revDiffs.iterator();
+                RecordId idLt = fromString(idProvider, revDiffsIt.next());
+                while (revDiffsIt.hasNext()) {
+                    RecordId idRt = fromString(idProvider, revDiffsIt.next());
+                    boolean good = diff(store, idLt, idRt, pw);
+                    idLt = idRt;
+                    if (!good && !ignoreMissingSegments) {
+                        break;
+                    }
+                }
+            } else {
+                System.out.println("Generating diff between " + idL + " and " + idR);
+                diff(store, idL, idR, pw);
+            }
+        }
+
+        long dur = System.currentTimeMillis() - start;
+        System.out.println("Finished in " + dur + " ms.");
     }
 
     private boolean diff(ReadOnlyFileStore store, RecordId idL, RecordId idR, PrintWriter pw) {

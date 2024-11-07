@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsToken;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.StorageUri;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
@@ -50,13 +46,12 @@ import java.util.EnumSet;
 import java.util.List;
 
 public final class AzureUtilities {
+
     public static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
     public static final String AZURE_SECRET_KEY = "AZURE_SECRET_KEY";
     public static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
     public static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
     public static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
-
-    private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
 
     private static final Logger log = LoggerFactory.getLogger(AzureUtilities.class);
 
@@ -127,17 +122,6 @@ public final class AzureUtilities {
         container.createIfNotExists();
 
         return container.getDirectoryReference(dir);
-    }
-
-    public static StorageCredentialsToken storageCredentialAccessTokenFrom(String accountName, String clientId, String clientSecret, String tenantId) {
-        ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .tenantId(tenantId)
-                .build();
-
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE)).getToken();
-        return new StorageCredentialsToken(accountName, accessToken);
     }
 
     private static ResultSegment<ListBlobItem> listBlobsInSegments(CloudBlobDirectory directory,

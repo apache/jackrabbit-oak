@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 import java.util.Iterator;
@@ -67,7 +67,7 @@ public class History {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -78,7 +78,7 @@ public class History {
          * @return this builder.
          */
         public Builder withJournal(File journal) {
-            this.journal = checkNotNull(journal);
+            this.journal = requireNonNull(journal);
             return this;
         }
 
@@ -91,7 +91,7 @@ public class History {
          * @return this builder.
          */
         public Builder withNode(String node) {
-            this.node = checkNotNull(node);
+            this.node = requireNonNull(node);
             return this;
         }
 
@@ -115,9 +115,9 @@ public class History {
          * @return an instance of {@link History}.
          */
         public History build() {
-            checkNotNull(path);
-            checkNotNull(journal);
-            checkNotNull(node);
+            requireNonNull(path);
+            requireNonNull(journal);
+            requireNonNull(node);
             return new History(this);
         }
 

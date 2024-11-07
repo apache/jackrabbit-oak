@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.security.PrivilegedAction;
+import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -76,7 +76,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
 
         accessSession = createTestSession();
 
-        Subject notAllowedSubject = new Subject(true, ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()), ImmutableSet.of(), ImmutableSet.of());
+        Subject notAllowedSubject = new Subject(true, Set.of(EveryonePrincipal.getInstance()), Set.of(), Set.of());
         noAccessSession = Subject.doAs(notAllowedSubject, (PrivilegedAction<ContentSession>) () -> {
             try {
                 return getContentRepository().login(null, null);

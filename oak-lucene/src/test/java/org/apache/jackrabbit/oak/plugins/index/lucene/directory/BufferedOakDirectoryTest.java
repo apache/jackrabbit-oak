@@ -19,14 +19,15 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -84,7 +85,7 @@ public class BufferedOakDirectoryTest {
         base.close();
         buffered.close();
         base = createDir(builder, false);
-        assertEquals(Sets.newHashSet("file"), Sets.newHashSet(base.listAll()));
+        assertEquals(Set.of("file"), CollectionUtils.toSet(base.listAll()));
         base.close();
 
         buffered = createDir(builder, true);
@@ -93,7 +94,7 @@ public class BufferedOakDirectoryTest {
 
         // must only disappear after buffered is closed
         base = createDir(builder, false);
-        assertEquals(Sets.newHashSet("file"), Sets.newHashSet(base.listAll()));
+        assertEquals(Set.of("file"), CollectionUtils.toSet(base.listAll()));
         base.close();
         buffered.close();
         base = createDir(builder, false);
@@ -127,7 +128,7 @@ public class BufferedOakDirectoryTest {
     @Test
     public void reopen() throws Exception {
         Random rand = new Random(42);
-        Set<String> names = Sets.newHashSet();
+        Set<String> names = new HashSet<>();
         Directory dir = createDir(builder, true);
         for (int i = 0; i < 10 * DELETE_THRESHOLD_UNTIL_REOPEN; i++) {
             String name = "file-" + i;
@@ -139,12 +140,12 @@ public class BufferedOakDirectoryTest {
                 names.add(name);
             }
         }
-        assertEquals(names, Sets.newHashSet(dir.listAll()));
+        assertEquals(names, CollectionUtils.toSet(dir.listAll()));
         dir.close();
 
         // open unbuffered and check list as well
         dir = createDir(builder, false);
-        assertEquals(names, Sets.newHashSet(dir.listAll()));
+        assertEquals(names, CollectionUtils.toSet(dir.listAll()));
         dir.close();
     }
 

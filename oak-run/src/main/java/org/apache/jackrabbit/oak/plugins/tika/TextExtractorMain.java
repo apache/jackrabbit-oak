@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 
@@ -92,13 +92,13 @@ public class TextExtractorMain {
                 }
             }
 
-            checkNotNull(dataFile, "Data file not configured with %s", tikaOpts.getDataFileSpecOpt());
+            requireNonNull(dataFile, String.format("Data file not configured with %s", tikaOpts.getDataFileSpecOpt()));
 
             if (report || extract) {
                 //For report and extract case we do not need NodeStore access so create BlobStore directly
                 BlobStoreFixture blobStoreFixture = BlobStoreFixtureProvider.create(opts);
                 closer.register(blobStoreFixture);
-                blobStore = checkNotNull(blobStoreFixture).getBlobStore();
+                blobStore = requireNonNull(blobStoreFixture).getBlobStore();
             } else if (generate) {
                 NodeStoreFixture nodeStoreFixture = NodeStoreFixtureProvider.create(opts);
                 closer.register(nodeStoreFixture);
@@ -107,14 +107,14 @@ public class TextExtractorMain {
             }
 
             if (!populate) {
-                checkNotNull(blobStore, "This command requires an external BlobStore configured");
+                requireNonNull(blobStore, "This command requires an external BlobStore configured");
             }
 
             // NOTE: The order of executing generate, populate and extract is correct in case the user
             // calls the tool with multiple actions in same run.
 
             if (generate){
-                checkNotNull(dataFile, "Data file path not provided");
+                requireNonNull(dataFile, "Data file path not provided");
                 log.info("Generated csv data to be stored in {}", dataFile.getAbsolutePath());
                 BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
                 CSVFileGenerator generator = new CSVFileGenerator(dataFile);
@@ -124,10 +124,10 @@ public class TextExtractorMain {
             if (populate) {
                 checkArgument(dataFile.exists(),
                         "Data file %s does not exist", dataFile.getAbsolutePath());
-                checkNotNull(indexDir, "Lucene index directory " +
-                        "must be specified via %s", tikaOpts.getIndexDirSpecOpt());
-                checkNotNull(storeDir, "Directory to store extracted text content " +
-                        "must be specified via %s", tikaOpts.getStoreDirSpecOpt());
+                requireNonNull(indexDir, String.format("Lucene index directory " +
+                        "must be specified via %s", tikaOpts.getIndexDirSpecOpt()));
+                requireNonNull(storeDir, String.format("Directory to store extracted text content " +
+                        "must be specified via %s", tikaOpts.getStoreDirSpecOpt()));
 
                 DataStoreTextWriter writer = closer.register(new DataStoreTextWriter(storeDir, false));
 
@@ -149,9 +149,9 @@ public class TextExtractorMain {
             }
 
             if (extract) {
-                checkNotNull(storeDir, "Directory to store extracted text content " +
-                        "must be specified via %s", tikaOpts.getStoreDirSpecOpt());
-                checkNotNull(blobStore, "BlobStore found to be null.");
+                requireNonNull(storeDir, String.format("Directory to store extracted text content " +
+                        "must be specified via %s", tikaOpts.getStoreDirSpecOpt()));
+                requireNonNull(blobStore, "BlobStore found to be null.");
 
                 DataStoreTextWriter writer = new DataStoreTextWriter(storeDir, false);
                 TextExtractor extractor = new TextExtractor(writer);

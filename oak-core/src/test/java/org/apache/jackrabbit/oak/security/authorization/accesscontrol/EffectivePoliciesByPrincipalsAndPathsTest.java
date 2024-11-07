@@ -136,7 +136,7 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
         assertEquals(1, Iterators.size(effective));
 
         // AC setup for both principals is on the same node -> only one effective policy expected
-        effective = acMgr.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance(), testPrincipal), NON_EXISTING_CHILD_PATH);
+        effective = acMgr.getEffectivePolicies(Set.of(EveryonePrincipal.getInstance(), testPrincipal), NON_EXISTING_CHILD_PATH);
         assertEquals(1, Iterators.size(effective));
     }
 
@@ -195,7 +195,7 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
     
     @Test
     public void testReadablePaths() throws Exception {
-        Set<Principal> principalSet = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        Set<Principal> principalSet = Set.of(testPrincipal, EveryonePrincipal.getInstance());
 
         Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principalSet, 
                 NodeTypeConstants.NODE_TYPES_PATH, 

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -37,8 +37,8 @@ final class Range {
      * @param low the low bound.
      */
     Range(@NotNull Revision high, @NotNull Revision low, int height) {
-        this.high = checkNotNull(high);
-        this.low = checkNotNull(low);
+        this.high = requireNonNull(high);
+        this.low = requireNonNull(low);
         this.height = height;
         checkArgument(high.getClusterId() == low.getClusterId(),
                 "Revisions from have the same clusterId");

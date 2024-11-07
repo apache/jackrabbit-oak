@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
@@ -83,14 +82,11 @@ public class MissingLastRevSeeker {
         // Fetch all documents where lastmod >= startTime
         Iterable<NodeDocument> nodes = getSelectedDocuments(store,
                 MODIFIED_IN_SECS, getModifiedInSecs(startTime));
-        return Iterables.filter(nodes, new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument input) {
+        return Iterables.filter(nodes, input -> {
                 Long modified = (Long) input.get(MODIFIED_IN_SECS);
                 Long sdType = (Long) input.get(SD_TYPE);
                 return (modified != null && (modified >= getModifiedInSecs(startTime)) && sdType == null);
-            }
-        });
+            });
     }
 
     /**

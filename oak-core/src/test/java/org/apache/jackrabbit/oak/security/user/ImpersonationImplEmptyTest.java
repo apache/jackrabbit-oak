@@ -33,6 +33,7 @@ import org.junit.Test;
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
@@ -94,7 +95,7 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @NotNull
     static Subject createSubject(@NotNull Principal... principals) {
-        return new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(), ImmutableSet.of());
+        return new Subject(true, ImmutableSet.copyOf(principals), Set.of(), Set.of());
     }
 
     @Test

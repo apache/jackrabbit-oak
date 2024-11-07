@@ -51,7 +51,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PermissionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
 
-    private static final Set<String> READ_PATHS = ImmutableSet.of(
+    private static final Set<String> READ_PATHS = Set.of(
             NamespaceConstants.NAMESPACES_PATH,
             NodeTypeConstants.NODE_TYPES_PATH,
             PrivilegeConstants.PRIVILEGES_PATH,

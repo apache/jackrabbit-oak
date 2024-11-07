@@ -56,15 +56,13 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
  * </ul>
  */
 public class ElasticIndexStatistics implements IndexStatistics {
-    private static final Long MAX_SIZE = Long.getLong("oak.elastic.statsMaxSize", 10000);
-    private static final Long EXPIRE_SECONDS = Long.getLong("oak.elastic.statsExpireSeconds", 10 * 60);
-    private static final Long REFRESH_SECONDS = Long.getLong("oak.elastic.statsRefreshSeconds", 60);
 
-    private static final LoadingCache<StatsRequestDescriptor, Integer> DEFAULT_COUNT_CACHE =
-            setupCountCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, null);
-
-    private static final LoadingCache<StatsRequestDescriptor, StatsResponse> STATS_CACHE =
-            setupCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, new StatsCacheLoader(), null);
+    private static final String MAX_SIZE = "oak.elastic.statsMaxSize";
+    private static final Long MAX_SIZE_DEFAULT = 10000L;
+    private static final String EXPIRE_SECONDS = "oak.elastic.statsExpireSeconds";
+    private static final Long EXPIRE_SECONDS_DEFAULT = 10 * 60L;
+    private static final String REFRESH_SECONDS = "oak.elastic.statsRefreshSeconds";
+    private static final Long REFRESH_SECONDS_DEFAULT = 60L;
 
     private static final ExecutorService REFRESH_EXECUTOR = new ThreadPoolExecutor(
             0, 4, 60L, TimeUnit.SECONDS,
@@ -78,19 +76,25 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
     private final LoadingCache<StatsRequestDescriptor, Integer> countCache;
+    private final LoadingCache<StatsRequestDescriptor, StatsResponse> statsCache;
 
     ElasticIndexStatistics(@NotNull ElasticConnection elasticConnection,
                            @NotNull ElasticIndexDefinition indexDefinition) {
-        this(elasticConnection, indexDefinition, DEFAULT_COUNT_CACHE);
+        this(elasticConnection, indexDefinition, null, null);
     }
 
     @TestOnly
     ElasticIndexStatistics(@NotNull ElasticConnection elasticConnection,
                            @NotNull ElasticIndexDefinition indexDefinition,
-                           @NotNull LoadingCache<StatsRequestDescriptor, Integer> countCache) {
+                           @Nullable LoadingCache<StatsRequestDescriptor, Integer> countCache,
+                           @Nullable LoadingCache<StatsRequestDescriptor, StatsResponse> statsCache) {
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
-        this.countCache = countCache;
+        this.countCache = Objects.requireNonNullElseGet(countCache, () ->
+                setupCountCache(getCacheMaxSize(), getCacheExpireSeconds(), getCacheRefreshSeconds(), null));
+        this.statsCache = Objects.requireNonNullElseGet(statsCache, () ->
+                setupCache(getCacheMaxSize(), getCacheExpireSeconds(), getCacheRefreshSeconds(), new StatsCacheLoader(), null));
+
     }
 
     /**
@@ -127,7 +131,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}.
      */
     public long primaryStoreSize() {
-        return STATS_CACHE.getUnchecked(
+        return statsCache.getUnchecked(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).primaryStoreSize;
     }
@@ -137,7 +141,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * primary shards and replica shards.
      */
     public long storeSize() {
-        return STATS_CACHE.getUnchecked(
+        return statsCache.getUnchecked(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).storeSize;
     }
@@ -146,7 +150,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * Returns the creation date for the remote index bound to the {@code ElasticIndexDefinition}.
      */
     public long creationDate() {
-        return STATS_CACHE.getUnchecked(
+        return statsCache.getUnchecked(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).creationDate;
     }
@@ -156,7 +160,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
      */
     public int luceneNumDocs() {
-        return STATS_CACHE.getUnchecked(
+        return statsCache.getUnchecked(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).luceneDocsCount;
     }
@@ -166,7 +170,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
      */
     public int luceneNumDeletedDocs() {
-        return STATS_CACHE.getUnchecked(
+        return statsCache.getUnchecked(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).luceneDocsDeleted;
     }
@@ -186,6 +190,18 @@ public class ElasticIndexStatistics implements IndexStatistics {
             cacheBuilder.ticker(ticker);
         }
         return cacheBuilder.build(cacheLoader);
+    }
+
+    private Long getCacheMaxSize() {
+        return Long.getLong(MAX_SIZE, MAX_SIZE_DEFAULT);
+    }
+
+    private Long getCacheExpireSeconds() {
+        return Long.getLong(EXPIRE_SECONDS, EXPIRE_SECONDS_DEFAULT);
+    }
+
+    private Long getCacheRefreshSeconds() {
+        return Long.getLong(REFRESH_SECONDS, REFRESH_SECONDS_DEFAULT);
     }
 
     static class CountCacheLoader extends CacheLoader<StatsRequestDescriptor, Integer> {

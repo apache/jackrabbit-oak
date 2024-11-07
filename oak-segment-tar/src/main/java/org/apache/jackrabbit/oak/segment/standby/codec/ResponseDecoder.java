@@ -27,11 +27,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -104,7 +104,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     private static void decodeGetHeadResponse(int length, ByteBuf in, List<Object> out) {
         byte[] data = new byte[length - 1];
         in.readBytes(data);
-        String recordId = new String(data, Charsets.UTF_8);
+        String recordId = new String(data, StandardCharsets.UTF_8);
         out.add(new GetHeadResponse(null, recordId));
     }
 
@@ -134,7 +134,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         int blobIdLength = in.readInt();
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
-        String blobId = new String(blobIdBytes, Charsets.UTF_8);
+        String blobId = new String(blobIdBytes, StandardCharsets.UTF_8);
         File tempFile = new File(spoolFolder, blobId + ".tmp");
 
         // START_CHUNK flag enabled
@@ -180,7 +180,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
         in.readBytes(data);
 
-        String body = new String(data, Charsets.UTF_8);
+        String body = new String(data, StandardCharsets.UTF_8);
 
         int colon = body.indexOf(":");
 

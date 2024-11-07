@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -36,20 +35,21 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.asPredicate;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -171,17 +171,17 @@ public class TypeEditor extends DefaultEditor {
             String primary, Iterable<String> mixins, NodeBuilder builder)
             throws CommitFailedException {
         this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
-        this.callback = checkNotNull(callback);
+        this.callback = requireNonNull(callback);
         this.typesToCheck = typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
+                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = null;
         this.nodeName = null;
-        this.types = checkNotNull(types);
+        this.types = requireNonNull(types);
         this.effective = createEffectiveType(null, null, primary, mixins);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.validate = false;
     }
 
@@ -196,12 +196,12 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || any(mixins, in(typesToCheck));
-        this.parent = checkNotNull(parent);
-        this.nodeName = checkNotNull(name);
+                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
+        this.parent = requireNonNull(parent);
+        this.nodeName = requireNonNull(name);
         this.types = parent.types;
         this.effective = createEffectiveType(parent.effective, name, primary, mixins);
-        this.builder = checkNotNull(builder);
+        this.builder = requireNonNull(builder);
         this.validate = validate;
     }
 
@@ -216,7 +216,7 @@ public class TypeEditor extends DefaultEditor {
         this.parent = null;
         this.nodeName = null;
         this.types = EMPTY_NODE;
-        this.effective = checkNotNull(effective);
+        this.effective = requireNonNull(effective);
         this.builder = EMPTY_NODE.builder();
         this.validate = false;
     }
@@ -330,7 +330,7 @@ public class TypeEditor extends DefaultEditor {
             @Nullable EffectiveType parent, @Nullable String name,
             @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
-        List<NodeState> list = Lists.newArrayList();
+        List<NodeState> list = new ArrayList<>();
 
         NodeState type = (primary == null) ? null : types.getChildNode(primary);
         if (type == null || !type.exists()) {
@@ -437,13 +437,13 @@ public class TypeEditor extends DefaultEditor {
 
     private static boolean primaryChanged(NodeState before, String after) {
         String pre = before.getName(JCR_PRIMARYTYPE);
-        return !Objects.equal(pre, after);
+        return !Objects.equals(pre, after);
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = Lists.newArrayList(before.getNames(JCR_MIXINTYPES));
+        List<String> pre = CollectionUtils.toList(before.getNames(JCR_MIXINTYPES));
         Collections.sort(pre);
-        List<String> post = Lists.newArrayList(after);
+        List<String> post = CollectionUtils.toList(after);
         Collections.sort(post);
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
@@ -467,7 +467,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

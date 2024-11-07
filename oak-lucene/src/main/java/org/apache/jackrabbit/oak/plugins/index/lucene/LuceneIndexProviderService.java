@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -34,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -95,8 +95,8 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
@@ -106,12 +106,13 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleW
 @SuppressWarnings("UnusedDeclaration")
 @Component(metatype = true, label = "Apache Jackrabbit Oak LuceneIndexProvider")
 public class LuceneIndexProviderService {
+
     public static final String REPOSITORY_HOME = "repository.home";
 
     private LuceneIndexProvider indexProvider;
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
-    private final List<Registration> oakRegs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();
+    private final List<Registration> oakRegs = new ArrayList<>();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -425,7 +426,7 @@ public class LuceneIndexProviderService {
     }
 
     private File getIndexCheckDir() {
-        return new File(checkNotNull(indexDir), "indexCheckDir");
+        return new File(requireNonNull(indexDir), "indexCheckDir");
     }
 
     @Deactivate
@@ -485,8 +486,8 @@ public class LuceneIndexProviderService {
             }
         }
 
-        checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
-                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
+        requireNonNull(indexDirPath, String.format("Index directory cannot be determined as neither index " +
+                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME));
 
         indexDir = new File(indexDirPath);
     }
@@ -535,7 +536,7 @@ public class LuceneIndexProviderService {
         editorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
 
         if (hybridIndex){
-            editorProvider.setIndexingQueue(checkNotNull(documentQueue));
+            editorProvider.setIndexingQueue(requireNonNull(documentQueue));
         }
 
         Dictionary<String, Object> props = new Hashtable<>();

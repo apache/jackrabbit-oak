@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,10 +32,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -65,7 +63,7 @@ public class CompositeCompareTest {
         builder.child("added");
         final NodeState modified = builder.getNodeState();
 
-        final Set<String> modifiedNodes = newHashSet();
+        final Set<String> modifiedNodes = new HashSet<>();
         modified.compareAgainstBaseState(base, new DefaultNodeStateDiff() {
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
@@ -92,7 +90,7 @@ public class CompositeCompareTest {
                 return true;
             }
         });
-        assertEquals(ImmutableSet.of("added", "changed", "deleted"), modifiedNodes);
+        assertEquals(Set.of("added", "changed", "deleted"), modifiedNodes);
     }
 
     @Test
@@ -101,7 +99,7 @@ public class CompositeCompareTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -119,7 +117,7 @@ public class CompositeCompareTest {
 
         NodeState modified = compositeNodeStore.getRoot();
 
-        final Set<String> addedProperties = newHashSet();
+        final Set<String> addedProperties = new HashSet<>();
         modified.compareAgainstBaseState(empty, new DefaultNodeStateDiff() {
             @Override
             public boolean propertyAdded(PropertyState after) {
@@ -127,7 +125,7 @@ public class CompositeCompareTest {
                 return true;
             }
         });
-        assertEquals(ImmutableSet.of("global-prop-1", "global-prop-2"), addedProperties);
+        assertEquals(Set.of("global-prop-1", "global-prop-2"), addedProperties);
     }
 
     @Test
@@ -136,7 +134,7 @@ public class CompositeCompareTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList();
+        List<MountedNodeStore> mounts = new ArrayList<>();
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -155,7 +153,7 @@ public class CompositeCompareTest {
 
         NodeState modified = compositeNodeStore.getRoot();
 
-        final Set<String> addedChildren = newHashSet();
+        final Set<String> addedChildren = new HashSet<>();
         modified.compareAgainstBaseState(empty, new DefaultNodeStateDiff() {
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
@@ -163,7 +161,7 @@ public class CompositeCompareTest {
                 return true;
             }
         });
-        assertEquals(ImmutableSet.of("global-child-1", "global-child-2", "libs"), addedChildren);
+        assertEquals(Set.of("global-child-1", "global-child-2", "libs"), addedChildren);
 
     }
 }

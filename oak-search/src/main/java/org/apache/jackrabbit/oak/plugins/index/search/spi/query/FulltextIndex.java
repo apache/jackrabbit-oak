@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +59,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
@@ -120,7 +120,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         if (filterReplacedIndexes()) {
             indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
         }
-        List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
+        List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
         for (String path : indexPaths) {
             IndexNode indexNode = null;
             try {
@@ -158,7 +158,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
         IndexNode index = acquireIndexNode(plan);
-        checkState(index != null, "The fulltext index of type " + getType() + "  index is not available");
+        Validate.checkState(index != null, "The fulltext index of type %s index is not available", getType());
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder();

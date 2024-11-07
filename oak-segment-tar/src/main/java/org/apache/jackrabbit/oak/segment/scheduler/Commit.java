@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
@@ -46,12 +46,12 @@ public class Commit {
     private volatile GCGeneration gcGeneration;
 
     public Commit(@NotNull NodeBuilder changes, @NotNull CommitHook hook, @NotNull CommitInfo info) {
-        checkNotNull(changes);
+        requireNonNull(changes);
         checkArgument(changes instanceof SegmentNodeBuilder);
         this.changes = (SegmentNodeBuilder) changes;
 
-        this.hook = checkNotNull(hook);
-        this.info = checkNotNull(info);
+        this.hook = requireNonNull(hook);
+        this.info = requireNonNull(info);
     }
 
     /**

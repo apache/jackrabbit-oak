@@ -18,19 +18,19 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,15 +67,15 @@ public class SegmentStream extends InputStream {
     private long mark = 0;
 
     SegmentStream(RecordId recordId, ListRecord blocks, long length) {
-        this.recordId = checkNotNull(recordId);
+        this.recordId = requireNonNull(recordId);
         this.inline = null;
-        this.blocks = checkNotNull(blocks);
+        this.blocks = requireNonNull(blocks);
         checkArgument(length >= 0);
         this.length = length;
     }
 
     SegmentStream(RecordId recordId, Buffer inline, int length) {
-        this.recordId = checkNotNull(recordId);
+        this.recordId = requireNonNull(recordId);
         this.inline = inline.duplicate();
         this.blocks = null;
         this.length = length;
@@ -95,7 +95,7 @@ public class SegmentStream extends InputStream {
 
     public String getString() {
         if (inline != null) {
-            return inline.decode(Charsets.UTF_8).toString();
+            return inline.decode(StandardCharsets.UTF_8).toString();
         } else if (length > Integer.MAX_VALUE) {
             throw new IllegalStateException("Too long value: " + length);
         } else {
@@ -103,7 +103,7 @@ public class SegmentStream extends InputStream {
             try {
                 byte[] data = new byte[(int) length];
                 ByteStreams.readFully(stream, data);
-                return new String(data, Charsets.UTF_8);
+                return new String(data, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 throw new IllegalStateException("Unexpected IOException", e);
             } finally {
@@ -139,7 +139,7 @@ public class SegmentStream extends InputStream {
 
     @Override
     public int read(@NotNull byte[] b, int off, int len) {
-        checkNotNull(b);
+        requireNonNull(b);
         checkPositionIndexes(off, off + len, b.length);
 
         if (len == 0) {
@@ -189,7 +189,7 @@ public class SegmentStream extends InputStream {
                             blockOffset + remaining, consecutiveBlocks * BLOCK_SIZE);
                     BlockRecord block = new BlockRecord(previousId, blockSize);
                     int n = blockSize - blockOffset;
-                    checkState(block.read(blockOffset, b, off, n) == n);
+                    Validate.checkState(block.read(blockOffset, b, off, n) == n);
                     off += n;
                     remaining -= n;
 
@@ -198,7 +198,7 @@ public class SegmentStream extends InputStream {
                     blockOffset = 0;
                 }
             }
-            checkState(remaining == 0);
+            Validate.checkState(remaining == 0);
         }
 
         position += len;

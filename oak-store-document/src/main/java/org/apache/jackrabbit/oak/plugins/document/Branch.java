@@ -16,25 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,7 +77,7 @@ class Branch {
            @NotNull RevisionVector base,
            @NotNull ReferenceQueue<Object> queue,
            @Nullable Object guard) {
-        checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
+        checkArgument(!requireNonNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
         this.commits = new ConcurrentSkipListMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
@@ -110,7 +109,7 @@ class Branch {
      */
     @NotNull
     RevisionVector getBase(@NotNull Revision r) {
-        BranchCommit c = commits.get(checkNotNull(r).asBranchRevision());
+        BranchCommit c = commits.get(requireNonNull(r).asBranchRevision());
         if (c == null) {
             throw new IllegalArgumentException(
                     "Revision " + r + " is not a commit in this branch");
@@ -127,8 +126,8 @@ class Branch {
      *                                  branch revision.
      */
     void rebase(@NotNull Revision head, @NotNull RevisionVector base) {
-        checkArgument(checkNotNull(head).isBranch(), "Not a branch revision: %s", head);
-        checkArgument(!checkNotNull(base).isBranch(), "Not a trunk revision: %s", base);
+        checkArgument(requireNonNull(head).isBranch(), "Not a branch revision: %s", head);
+        checkArgument(!requireNonNull(base).isBranch(), "Not a trunk revision: %s", base);
         Revision last = commits.lastKey();
         checkArgument(head.compareRevisionTime(last) > 0);
         commits.put(head, new RebaseCommit(base, head, commits));
@@ -141,7 +140,7 @@ class Branch {
      * @throws IllegalArgumentException if r is not a branch revision.
      */
     void addCommit(@NotNull Revision r) {
-        checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
+        checkArgument(requireNonNull(r).isBranch(), "Not a branch revision: %s", r);
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(r, last) > 0);
         commits.put(r, new BranchCommitImpl(commits.get(last).getBase(), r));
@@ -170,7 +169,7 @@ class Branch {
      *         revision; <code>false</code> otherwise.
      */
     boolean containsCommit(@NotNull Revision r) {
-        return commits.containsKey(checkNotNull(r).asBranchRevision());
+        return commits.containsKey(requireNonNull(r).asBranchRevision());
     }
 
     /**
@@ -182,7 +181,7 @@ class Branch {
      */
     @Nullable
     BranchCommit getCommit(@NotNull Revision r) {
-        return commits.get(checkNotNull(r).asBranchRevision());
+        return commits.get(requireNonNull(r).asBranchRevision());
     }
 
     /**
@@ -202,7 +201,7 @@ class Branch {
      * @throws IllegalArgumentException if r is not a branch revision.
      */
     public void removeCommit(@NotNull Revision r) {
-        checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
+        checkArgument(requireNonNull(r).isBranch(), "Not a branch revision: %s", r);
         commits.remove(r);
     }
 
@@ -215,7 +214,7 @@ class Branch {
      */
     public void applyTo(@NotNull UnsavedModifications trunk,
                         @NotNull Revision mergeCommit) {
-        checkNotNull(trunk);
+        requireNonNull(trunk);
         for (BranchCommit c : commits.values()) {
             c.applyTo(trunk, mergeCommit);
         }
@@ -253,9 +252,9 @@ class Branch {
      *          {@code false} otherwise.
      */
     public boolean isHead(@NotNull Revision rev) {
-        checkArgument(checkNotNull(rev).isBranch(),
+        checkArgument(requireNonNull(rev).isBranch(),
                 "Not a branch revision: %s", rev);
-        return checkNotNull(rev).equals(commits.lastKey());
+        return requireNonNull(rev).equals(commits.lastKey());
     }
 
     /**
@@ -267,7 +266,7 @@ class Branch {
      * @throws IllegalArgumentException if r is not a branch revision.
      */
     Iterable<Path> getModifiedPathsUntil(@NotNull final Revision r) {
-        checkArgument(checkNotNull(r).isBranch(),
+        checkArgument(requireNonNull(r).isBranch(),
                 "Not a branch revision: %s", r);
         if (!commits.containsKey(r)) {
             return Collections.emptyList();
@@ -275,16 +274,11 @@ class Branch {
         Iterable<Iterable<Path>> paths = transform(filter(commits.entrySet(),
                 new Predicate<Map.Entry<Revision, BranchCommit>>() {
             @Override
-            public boolean apply(Map.Entry<Revision, BranchCommit> input) {
+            public boolean test(Map.Entry<Revision, BranchCommit> input) {
                 return !input.getValue().isRebase()
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
-        }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<Path>>() {
-            @Override
-            public Iterable<Path> apply(Map.Entry<Revision, BranchCommit> input) {
-                return input.getValue().getModifiedPaths();
-            }
-        });
+        }::test), input -> input.getValue().getModifiedPaths());
         return Iterables.concat(paths);
     }
 
@@ -336,7 +330,7 @@ class Branch {
      */
     private static class BranchCommitImpl extends BranchCommit {
 
-        private final Set<Path> modifications = Sets.newHashSet();
+        private final Set<Path> modifications = new HashSet<>();
 
         BranchCommitImpl(RevisionVector base, Revision commit) {
             super(base, commit);
@@ -412,12 +406,7 @@ class Branch {
         @Override
         Iterable<Path> getModifiedPaths() {
             Iterable<Iterable<Path>> paths = transform(previous.values(),
-                    new Function<BranchCommit, Iterable<Path>>() {
-                @Override
-                public Iterable<Path> apply(BranchCommit branchCommit) {
-                    return branchCommit.getModifiedPaths();
-                }
-            });
+                    branchCommit -> branchCommit.getModifiedPaths());
             return Iterables.concat(paths);
         }
 
@@ -457,8 +446,8 @@ class Branch {
         private BranchReference(@NotNull ReferenceQueue<Object> queue,
                                 @NotNull Branch branch,
                                 @NotNull Object referent) {
-            super(checkNotNull(referent), queue);
-            this.branch = checkNotNull(branch);
+            super(requireNonNull(referent), queue);
+            this.branch = requireNonNull(branch);
         }
 
         Branch getBranch() {

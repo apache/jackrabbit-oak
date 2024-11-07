@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -33,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
@@ -49,8 +49,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.createVersionStorage;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryNodeState;
-import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 /**
  * The VersionablePropertiesEditor adds missing versionable properties.
@@ -76,7 +76,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     private VersionablePropertiesEditor(NodeBuilder rootBuilder) {
         this.builder = rootBuilder;
         this.rootBuilder = rootBuilder;
-        this.versionStorage = getVersionStorage(rootBuilder);
+        this.versionStorage = createVersionStorage(rootBuilder);
         this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
         this.isNtVersion = new TypePredicate(rootBuilder.getNodeState(), NT_VERSION);
         this.isFrozenNode = new TypePredicate(rootBuilder.getNodeState(), NT_FROZENNODE);
@@ -122,7 +122,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
 
     private static boolean updateFrozenMixins(NodeBuilder builder) {
         if (builder.hasProperty(JCR_FROZENMIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
+            final Set<String> mixins = CollectionUtils.toSet(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
             if (mixins.remove(MIX_SIMPLE_VERSIONABLE)) {
                 mixins.add(MIX_VERSIONABLE);
                 builder.setProperty(nameProperty(JCR_FROZENMIXINTYPES, mixins));

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,8 +44,8 @@ public class SubtreeValidator extends DefaultValidator {
     }
 
     private SubtreeValidator(Validator validator, List<String> path) {
-        this.validator = checkNotNull(validator);
-        checkNotNull(path);
+        this.validator = requireNonNull(validator);
+        requireNonNull(path);
         checkArgument(!path.isEmpty());
         this.head = path.get(0);
         this.tail = path.subList(1, path.size());

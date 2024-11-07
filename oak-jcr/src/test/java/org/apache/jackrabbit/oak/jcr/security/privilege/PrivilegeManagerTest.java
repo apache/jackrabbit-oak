@@ -67,7 +67,7 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
     
     @Test
     public void testGetPrivilege() throws RepositoryException {
-        Set<String> aggregatedPrivilegeNames = ImmutableSet.of("jcr:read",
+        Set<String> aggregatedPrivilegeNames = Set.of("jcr:read",
                 "jcr:modifyProperties", "jcr:write", "rep:write", "jcr:all");
 
         for (Privilege priv : privilegeManager.getRegisteredPrivileges()) {

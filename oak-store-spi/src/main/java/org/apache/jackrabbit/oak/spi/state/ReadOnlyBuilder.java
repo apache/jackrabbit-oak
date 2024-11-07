@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,7 +37,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
     private final NodeState state;
 
     public ReadOnlyBuilder(@NotNull NodeState state) {
-        this.state = checkNotNull(state);
+        this.state = requireNonNull(state);
     }
 
     protected RuntimeException unsupported() {

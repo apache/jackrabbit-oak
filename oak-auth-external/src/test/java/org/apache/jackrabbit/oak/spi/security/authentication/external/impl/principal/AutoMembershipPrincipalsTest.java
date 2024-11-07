@@ -19,11 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +65,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         super.before();
         amp = new AutoMembershipPrincipals(userManager, MAPPING, getAutoMembershipConfigMapping());
         
-        when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
+        when(amConfig.getAutoMembership(authorizable)).thenReturn(Set.of(automembershipGroup3.getID()));
         when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Collections.emptyIterator());
         when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Iterators.singletonIterator(authorizable));
     }
@@ -99,11 +99,11 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
 
         Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, false);
         assertFalse(principals.isEmpty());
-        Set<Principal> expected = Sets.newHashSet(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
+        Set<Principal> expected = CollectionUtils.toSet(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
         assertEquals(expected, principals);
 
         // change behavior of automembership-config
-        when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
+        when(amConfig.getAutoMembership(authorizable)).thenReturn(Set.of(automembershipGroup3.getID()));
         
         principals = getAutoMembership(IDP_VALID_AM, authorizable, false);
         assertFalse(principals.isEmpty());
@@ -118,7 +118,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     public void testGetPrincipalsMixed() throws Exception {
         Collection<Principal> principals = getAutoMembership(IDP_MIXED_AM, authorizable, false);
         assertFalse(principals.isEmpty());
-        assertEquals(ImmutableSet.of(automembershipGroup1.getPrincipal()), ImmutableSet.copyOf(principals));
+        assertEquals(Set.of(automembershipGroup1.getPrincipal()), ImmutableSet.copyOf(principals));
         verifyNoInteractions(authorizable, amConfig);
     }
 
@@ -129,7 +129,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup(automembershipGroup1, automembershipGroup2);
 
         Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, true);
-        Set<Principal> expected = Sets.newHashSet(testGroup.getPrincipal(), automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
+        Set<Principal> expected = Set.of(testGroup.getPrincipal(), automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
         assertEquals(expected, principals);
 
         verifyNoInteractions(authorizable);
@@ -330,8 +330,8 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
 
     @Test
     public void testGetConfiguredIdpNames() {
-        assertEquals(ImmutableSet.of(IDP_VALID_AM, IDP_MIXED_AM), amp.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_1));
-        assertEquals(ImmutableSet.of(IDP_VALID_AM), amp.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_2));
+        assertEquals(Set.of(IDP_VALID_AM, IDP_MIXED_AM), amp.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_1));
+        assertEquals(Set.of(IDP_VALID_AM), amp.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_2));
         assertTrue(amp.getConfiguredIdpNames(() -> NON_EXISTING_GROUP_ID).isEmpty());
     }
     

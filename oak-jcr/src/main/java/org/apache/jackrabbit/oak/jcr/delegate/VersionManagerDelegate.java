@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.jcr.version.VersionStorage;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
@@ -179,10 +179,10 @@ public final class VersionManagerDelegate {
         Root fresh = sessionDelegate.getContentSession().getLatestRoot();
         VersionStorage storage = new VersionStorage(fresh);
         String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
-                checkNotNull(versionHistory).getPath());
+                requireNonNull(versionHistory).getPath());
         versionManager.addVersionLabel(storage, vhRelPath,
-                checkNotNull(version).getIdentifier(),
-                checkNotNull(oakVersionLabel),
+                requireNonNull(version).getIdentifier(),
+                requireNonNull(oakVersionLabel),
                 moveLabel);
     }
 
@@ -203,9 +203,9 @@ public final class VersionManagerDelegate {
         Root fresh = sessionDelegate.getContentSession().getLatestRoot();
         VersionStorage storage = new VersionStorage(fresh);
         String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
-                checkNotNull(versionHistory).getPath());
+                requireNonNull(versionHistory).getPath());
         versionManager.removeVersionLabel(storage, vhRelPath,
-                checkNotNull(oakVersionLabel));
+                requireNonNull(oakVersionLabel));
     }
 
     /**
@@ -222,7 +222,7 @@ public final class VersionManagerDelegate {
         Root fresh = sessionDelegate.getContentSession().getLatestRoot();
         VersionStorage storage = new VersionStorage(fresh);
         String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
-                checkNotNull(versionHistory).getPath());
+                requireNonNull(versionHistory).getPath());
         versionManager.removeVersion(storage, vhRelPath, oakVersionName);
     }
 
@@ -238,7 +238,7 @@ public final class VersionManagerDelegate {
     @NotNull
     private static Tree getTree(@NotNull NodeDelegate nodeDelegate)
             throws InvalidItemStateException {
-        return checkNotNull(nodeDelegate).getTree();
+        return requireNonNull(nodeDelegate).getTree();
     }
 
 }

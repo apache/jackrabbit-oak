@@ -195,7 +195,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
     @Test
     public void removeMultiple() throws Exception {
-        List<String> ids = Lists.newArrayList();
+        List<String> ids = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             String id = testName.getMethodName() + "-" + i;
             ids.add(id);

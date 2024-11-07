@@ -20,18 +20,17 @@ package org.apache.jackrabbit.oak.scalability;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
@@ -51,7 +50,7 @@ public class ScalabilityRunner {
 
     private static final long MB = 1024 * 1024L;
 
-    protected static List<ScalabilitySuite> allSuites = Lists.newArrayList();
+    protected static List<ScalabilitySuite> allSuites = new ArrayList<>();
     private static OptionParser parser = new OptionParser();
     protected static ScalabilityOptions scalabilityOptions = null;
     protected static OptionSet options;
@@ -130,8 +129,8 @@ public class ScalabilityRunner {
                                 )
                 ));
 
-        Set<String> argset = Sets.newHashSet(scalabilityOptions.getNonOption().values(options));
-        List<RepositoryFixture> fixtures = Lists.newArrayList();
+        Set<String> argset = new HashSet<>(scalabilityOptions.getNonOption().values(options));
+        List<RepositoryFixture> fixtures = new ArrayList<>();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
                 fixtures.add(fixture);
@@ -155,7 +154,7 @@ public class ScalabilityRunner {
                 "supported  are: " + Arrays.asList(allSuites));
         }
 
-        List<ScalabilitySuite> suites = Lists.newArrayList();
+        List<ScalabilitySuite> suites = new ArrayList<>();
         for (ScalabilitySuite suite : allSuites) {
             if (argmap.containsKey(suite.toString())) {
                 List<String> benchmarks = argmap.get(suite.toString());
@@ -179,7 +178,7 @@ public class ScalabilityRunner {
             if (options.has(scalabilityOptions.getCsvFile())) {
                 out =
                     new PrintStream(FileUtils.openOutputStream(scalabilityOptions.getCsvFile().value(options), true), false,
-                                            Charsets.UTF_8.name());
+                                            StandardCharsets.UTF_8);
             }
             for (ScalabilitySuite suite : suites) {
                 if (suite instanceof CSVResultGenerator) {

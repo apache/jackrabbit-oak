@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.aws.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.newFileStore;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.newSegmentNodeStorePersistence;
@@ -91,7 +91,7 @@ public class AwsCompact {
          * @return this builder.
          */
         public Builder withPath(String path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -173,7 +173,7 @@ public class AwsCompact {
          * @return an instance of {@link Runnable}.
          */
         public AwsCompact build() {
-            checkNotNull(path);
+            requireNonNull(path);
             return new AwsCompact(this);
         }
     }

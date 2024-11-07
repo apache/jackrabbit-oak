@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -86,7 +86,7 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
             } else if (EvaluationType.JCR_PRIVILEGE_NAME_AGGREGATION == evalType) {
                 // evaluation using regular JCR Privilege API 
                 Privilege[] privileges = acMgr.getPrivileges(accessControlledPath);
-                Set<String> privilegeNames = Sets.newHashSet(AccessControlUtils.namesFromPrivileges(privileges));
+                Set<String> privilegeNames = CollectionUtils.toSet(AccessControlUtils.namesFromPrivileges(privileges));
                 Stream.of(privileges).filter(Privilege::isAggregate).forEach(privilege -> Collections.addAll(privilegeNames, AccessControlUtils.namesFromPrivileges(privilege.getAggregatePrivileges())));
                 for (String toTest : privNames) {
                     boolean includes = privilegeNames.contains(toTest);

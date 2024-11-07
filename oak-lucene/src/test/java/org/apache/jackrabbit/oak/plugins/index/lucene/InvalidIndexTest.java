@@ -45,7 +45,6 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertTrue;
@@ -97,7 +96,7 @@ public class InvalidIndexTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
         )));

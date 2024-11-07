@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -32,7 +31,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
-
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
@@ -73,7 +72,7 @@ public class SolrQueryIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();
 
     @Reference
     private SolrServerProvider solrServerProvider;

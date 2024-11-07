@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
@@ -93,8 +91,8 @@ class AggregationCursor extends AbstractCursor {
                 String path = currentRow.getPath();
                 aggregates = Iterators.filter(Iterators.concat(
                         Iterators.singletonIterator(path),
-                        aggregator.getParents(rootState, path)), Predicates
-                        .not(Predicates.in(seenPaths)));
+                        aggregator.getParents(rootState, path)),
+                        x -> !seenPaths.contains(x));
             }
             fetchNext();
             return;

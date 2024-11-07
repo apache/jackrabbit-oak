@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -38,6 +39,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static javax.jcr.PropertyType.TYPENAME_DATE;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
@@ -45,6 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NULL_CHECK_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
@@ -171,6 +174,40 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         root.commit();
         assertEventually(() -> assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"),
                 containsString("/oak:index/test1")));
+    }
+
+    @Test
+    public void sizeQuery() throws Exception {
+        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "foo");
+        test.addChild("b").setProperty("propa", "bar");
+        root.commit();
+
+        assertEventually(() -> {
+            try {
+                Result result = executeQuery("select [jcr:path] from [nt:base] where [propa] = 'foo'", SQL2, NO_BINDINGS);
+                assertThat(result.getSize(Result.SizePrecision.APPROXIMATION, 0), is(1L));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        // this verifies OAK-10782 is fixed
+        test.addChild("c").setProperty("propa", "foo");
+        test.addChild("d").setProperty("propb", "bar");
+        root.commit();
+
+        assertEventually(() -> {
+            try {
+                Result result = executeQuery("select [jcr:path] from [nt:base] where [propa] = 'foo'", SQL2, NO_BINDINGS);
+                assertThat(result.getSize(Result.SizePrecision.APPROXIMATION, 0), is(2L));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Test

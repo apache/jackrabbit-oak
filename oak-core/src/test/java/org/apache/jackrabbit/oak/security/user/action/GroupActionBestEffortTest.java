@@ -30,7 +30,7 @@ public class GroupActionBestEffortTest extends GroupActionTest {
 
     @Test
     public void testMembersAddedNonExisting() throws Exception {
-        Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
+        Set<String> nonExisting = Set.of("blinder", "passagier");
 
         testGroup.addMembers(nonExisting.toArray(new String[0]));
 
@@ -39,7 +39,7 @@ public class GroupActionBestEffortTest extends GroupActionTest {
 
     @Test
     public void testMembersRemovedNonExisting() throws Exception {
-        Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
+        Set<String> nonExisting = Set.of("blinder", "passagier");
 
         testGroup.removeMembers(nonExisting.toArray(new String[0]));
         verify(groupAction, times(1)).onMembersRemoved(testGroup, Collections.emptySet(), nonExisting, root, getNamePathMapper());

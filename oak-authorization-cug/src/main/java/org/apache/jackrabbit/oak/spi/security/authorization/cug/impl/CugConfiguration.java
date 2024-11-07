@@ -27,7 +27,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -106,7 +105,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
      */
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
-    private Set<String> supportedPaths = ImmutableSet.of();
+    private Set<String> supportedPaths = Set.of();
 
     @SuppressWarnings("UnusedDeclaration")
     public CugConfiguration() {

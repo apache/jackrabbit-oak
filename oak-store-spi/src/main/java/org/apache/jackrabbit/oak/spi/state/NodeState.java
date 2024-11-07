@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
  * A node in a content tree consists of child nodes and properties, each
@@ -383,11 +383,5 @@ public interface NodeState {
     /**
      * Predicate that checks the existence of NodeState instances.
      */
-    Predicate<NodeState> EXISTS = new Predicate<NodeState>() {
-        @Override
-        public boolean apply(@Nullable NodeState input) {
-            return input != null && input.exists();
-        }
-    };
-
+    Predicate<NodeState> EXISTS = input -> input != null && input.exists();
 }

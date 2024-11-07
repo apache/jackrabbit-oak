@@ -140,7 +140,7 @@ class ElasticSpellcheckIterator implements ElasticQueryIterator {
                 this.internalIterator = results.iterator();
             }
         } catch (IOException e) {
-            LOG.error("Error processing suggestions for " + searchRequest, e);
+            LOG.error("Error processing suggestions for {}", searchRequest, e);
         }
     }
 

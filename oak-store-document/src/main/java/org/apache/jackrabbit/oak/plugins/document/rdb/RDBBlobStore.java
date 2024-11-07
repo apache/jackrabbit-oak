@@ -45,6 +45,7 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -56,7 +57,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
@@ -69,7 +69,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         try {
             initialize(ds, builder, options == null ? new RDBOptions() : options);
         } catch (Exception ex) {
-            throw new DocumentStoreException("initializing RDB blob store", ex);
+            throw DocumentStoreException.convert(ex, "initializing RDB blob store");
         }
     }
 
@@ -120,15 +120,14 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
             dropped = dropped.trim();
         }
-        try {
-            this.ch.close();
-        } catch (IOException ex) {
-            LOG.error("closing connection handler", ex);
-        }
+
+        this.ch.close();
+
         LOG.info("RDBBlobStore (" + getModuleVersion() + ") closed"
                 + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void finalize() throws Throwable {
         if (!this.ch.isClosed() && this.callStack != null) {
@@ -552,7 +551,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         long count = 0;
 
-        for (List<String> chunk : Lists.partition(chunkIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> chunk : CollectionUtils.partitionList(chunkIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
             Connection con = this.ch.getRWConnection();
             PreparedStatement prepMeta = null;
             PreparedStatement prepData = null;

@@ -47,7 +47,7 @@ public class RemoveMembersByIdIgnoreTest extends AbstractRemoveMembersByIdTest {
     @Test
     public void testMissingAccessMember() throws Exception {
         Set<String> failed = removeExistingMemberWithoutAccess();
-        assertEquals(ImmutableSet.of(memberGroup.getID()), failed);
+        assertEquals(Set.of(memberGroup.getID()), failed);
 
         root.refresh();
         assertTrue(testGroup.isMember(memberGroup));

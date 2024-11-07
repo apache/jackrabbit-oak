@@ -75,7 +75,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
         ContentSession cs = root.getContentSession();
 
-        Set<Principal> testPrincipals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        Set<Principal> testPrincipals = Set.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
         cppTestUser = createPermissionProvider(testPrincipals);
         defTestUser = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, cs.getWorkspaceName(), testPrincipals);
 
@@ -164,7 +164,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesOr() throws Exception {
-        Set<Principal> testPrincipals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        Set<Principal> testPrincipals = Set.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
         CompositePermissionProvider ccpTestUserOR = createPermissionProviderOR(testPrincipals);
         PermissionProvider defTestUserOR = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), testPrincipals);
         for (String p : defPrivileges.keySet()) {
@@ -178,7 +178,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesAdmin() {
-        Set<String> expected = ImmutableSet.of(JCR_ALL);
+        Set<String> expected = Set.of(JCR_ALL);
         for (String p : NODE_PATHS) {
             Tree tree = readOnlyRoot.getTree(p);
 
@@ -189,7 +189,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesOnRepo() {
-        Set<String> expected = ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
+        Set<String> expected = Set.of(JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
 
         assertEquals(expected, cppTestUser.getPrivileges(null));
         assertEquals(defTestUser.getPrivileges(null), cppTestUser.getPrivileges(null));
@@ -197,7 +197,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesOnRepoAdmin() {
-        Set<String> expected = ImmutableSet.of(JCR_ALL);
+        Set<String> expected = Set.of(JCR_ALL);
 
         assertEquals(expected, cppAdminUser.getPrivileges(null));
         assertEquals(defAdminUser.getPrivileges(null), cppAdminUser.getPrivileges(null));

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -73,6 +72,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -109,7 +109,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         this.filterProvider = filterProvider;
         filter = filterProvider.getFilter(mgrProvider.getSecurityProvider(), mgrProvider.getRoot(), mgrProvider.getNamePathMapper());
     }
-    
+
     @Override
     protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
         return mgrProvider.getPrivilegeBitsProvider();
@@ -273,7 +273,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         int i = 0;
         RestrictionProvider restrictionProvider = mgrProvider.getRestrictionProvider();
         for (PrincipalPolicyImpl.EntryImpl entry : pp.getEntries()) {
-            String effectiveOakPath = Strings.nullToEmpty(entry.getOakPath());
+            String effectiveOakPath = Objects.toString(entry.getOakPath(), "");
             Tree entryTree = TreeUtil.addChild(policyTree, "entry" + i++, NT_REP_PRINCIPAL_ENTRY);
             if (!Utils.hasModAcPermission(getPermissionProvider(), effectiveOakPath)) {
                 throw new AccessDeniedException("Access denied.");
@@ -405,8 +405,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     private static Iterable<String> getEffectivePaths(@Nullable String oakPath) {
         // read-access-control permission has already been check for 'oakPath'
-        List<String> paths = Lists.newArrayList();
-        paths.add(Strings.nullToEmpty(oakPath));
+        List<String> paths = new ArrayList<>();
+        paths.add(Objects.toString(oakPath, ""));
 
         String effectivePath = oakPath;
         while (effectivePath != null && !PathUtils.denotesRoot(effectivePath)) {
@@ -425,12 +425,12 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         }
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-        
+
         RestrictionProvider rp = mgrProvider.getRestrictionProvider();
         if (!Utils.hasValidRestrictions(oakPath, entryTree, rp)) {
             return null;
         }
-        
+
         Set<Restriction> restrictions = Utils.readRestrictions(rp, oakPath, entryTree);
         NamePathMapper npMapper = getNamePathMapper();
         return new AbstractEntry(oakPath, principal, bits, restrictions, npMapper) {
@@ -443,7 +443,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
                 return privilegeBitsProvider;
             }
-            
+
             @Override
             public Privilege[] getPrivileges() {
                 Set<String> names =  privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());

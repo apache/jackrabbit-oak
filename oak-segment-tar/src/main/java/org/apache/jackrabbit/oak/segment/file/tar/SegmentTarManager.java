@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -225,7 +225,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
                 sum += ' ';
             }
 
-            byte[] checkbytes = String.format("%06o\0 ", sum).getBytes(UTF_8);
+            byte[] checkbytes = String.format("%06o\0 ", sum).getBytes(StandardCharsets.UTF_8);
             for (int i = 0; i < checkbytes.length; i++) {
                 if (checkbytes[i] != header[148 + i]) {
                     log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
@@ -292,7 +292,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
         while (n < fieldSize && b[n] != 0) {
             n++;
         }
-        return new String(b, 0, n, UTF_8);
+        return new String(b, 0, n, StandardCharsets.UTF_8);
     }
 
     private static int readNumber(Buffer buffer, int fieldSize) {

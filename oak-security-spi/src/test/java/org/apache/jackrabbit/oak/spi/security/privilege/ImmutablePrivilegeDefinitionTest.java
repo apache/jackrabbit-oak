@@ -17,9 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -42,7 +43,7 @@ public class ImmutablePrivilegeDefinitionTest {
 
     @Test
     public void testGetDeclaredAggregatedNames() {
-        assertEquals(ImmutableSet.of("aggrName"), def.getDeclaredAggregateNames());
+        assertEquals(Set.of("aggrName"), def.getDeclaredAggregateNames());
     }
 
     @Test
