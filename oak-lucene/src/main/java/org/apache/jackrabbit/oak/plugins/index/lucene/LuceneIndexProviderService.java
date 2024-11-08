@@ -278,7 +278,9 @@ public class LuceneIndexProviderService {
     @Reference(
             cardinality = ReferenceCardinality.OPTIONAL,
             policyOption = ReferencePolicyOption.GREEDY,
-            policy = ReferencePolicy.DYNAMIC
+            policy = ReferencePolicy.DYNAMIC,
+            bind = "bindNodeAggregator",
+            unbind = "unbindNodeAggregator"
     )
     private volatile QueryIndex.NodeAggregator nodeAggregator;
 
@@ -465,7 +467,7 @@ public class LuceneIndexProviderService {
         }
 
         requireNonNull(indexDirPath, String.format("Index directory cannot be determined as neither index " +
-                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME));
+                "directory path [%s] nor repository home [%s] defined", "localIndexDir", REPOSITORY_HOME));
 
         indexDir = new File(indexDirPath);
     }
