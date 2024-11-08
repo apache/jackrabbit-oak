@@ -389,6 +389,9 @@ public class Profiler implements Runnable {
             boolean packageCounts = false;
             for (int j = 0, i = 0; i < dump.length && j < depth; i++) {
                 String el = dump[i].toString();
+                if (el.startsWith("app//")) {
+                    el = el.substring("app//".length());
+                }
                 if (!el.equals(last) && !startsWithAny(el, ignoreLines)) {
                     last = el;
                     buff.append("at ").append(el).append(LINE_SEPARATOR);
