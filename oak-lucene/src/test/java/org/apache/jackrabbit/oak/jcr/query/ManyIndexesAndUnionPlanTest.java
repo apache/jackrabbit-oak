@@ -28,9 +28,11 @@ import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+import org.junit.Test;
 
 public class ManyIndexesAndUnionPlanTest extends AbstractQueryTest {
 
+    @Test
     public void testResultSize() throws Exception {
         createIndexes();
         createData();
