@@ -418,7 +418,7 @@ public class CreateGarbageCommandTest {
             try {
                 closer = Closer.create();
                 command = new CreateGarbageCommand();
-                generatedBasePaths = command.execute(closer, args.toArray(new String[0]));
+                generatedBasePaths = command.execute(closer, true, args.toArray(new String[0]));
             } catch (Throwable e) {
                 String str = e.getMessage();
             }

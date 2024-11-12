@@ -76,7 +76,7 @@ public class CreateGarbageCommand implements Command {
     /**
      * The root node name for garbage generation, one level under tmp.
      */
-    public static String GARBAGE_GEN_ROOT_NODE_NAME = "oak-run-generated-test-garbage";
+    public static String GARBAGE_GEN_ROOT_NODE_NAME = "oak-run-created-test-garbage";
 
     /**
      * Root node for garbage generation.
@@ -205,7 +205,8 @@ public class CreateGarbageCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
 
-        try (Closer closer = Closer.create()) {
+        Closer closer = Closer.create();
+        try  {
             // Register the ExecutorService with Closer
             closer.register(() -> {
                 // Properly shutdown the executor service
@@ -215,14 +216,15 @@ public class CreateGarbageCommand implements Command {
                         continuousRunExecutor.shutdownNow();
                     }
                 } catch (InterruptedException e) {
+                    closer.close();
                     throw new RuntimeException(e);
                 }
             });
 
-            execute(closer, args);
-
+            execute(closer, false, args);
         } catch (Throwable e) {
             LOG.error("Command failed", e);
+            closer.close();
             throw e;
         }
     }
@@ -236,7 +238,7 @@ public class CreateGarbageCommand implements Command {
      * @param args
      * @throws Exception
      */
-    public List<String> execute(Closer closer, String... args) throws Exception {
+    public List<String> execute(Closer closer, boolean isTest, String... args) throws Exception {
         continuousRunIndex = 0;
 
         List<String> generateBasePaths = new ArrayList<>();
@@ -245,6 +247,18 @@ public class CreateGarbageCommand implements Command {
         String subCmd = options.getSubCmd();
 
         LOG.info("Executing command: " + getClass().getName() + " with sub-command: " + subCmd);
+
+        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
+                setAsyncDelay(0).
+                setFullGCEnabled(false);
+
+        if (builder == null) {
+            System.err.println("generateGarbage mode only available for DocumentNodeStore");
+            System.exit(1);
+        }
+
+        documentNodeStore = builder.build();
 
         if (CreateGarbageOptions.CMD_CREATE.equals(subCmd)) {
 
@@ -262,12 +276,14 @@ public class CreateGarbageCommand implements Command {
             }
 
             if (options.getNumberOfRuns() > 1 && options.getGenerateIntervalSeconds() > 0) {
-                generateBasePaths.addAll(generateGarbageContinuously(options, closer));
+                generateBasePaths.addAll(createGarbageContinuously(options, builder, closer));
             } else {
-                generateBasePaths.add(createGarbage(options, closer, 0));
+                generateBasePaths.add(createGarbageOnce(options, builder, closer, 0));
+                cleanResources(closer, isTest);
             }
         } else if (CreateGarbageOptions.CMD_CLEAN.equals(subCmd)) {
-            cleanGarbage(options, closer);
+            cleanGarbage(closer);
+            cleanResources(closer, isTest);
         } else {
             System.err.println("Unknown revisions command: " + subCmd);
         }
@@ -275,9 +291,8 @@ public class CreateGarbageCommand implements Command {
         return generateBasePaths;
     }
 
-    private List<String> generateGarbageContinuously(CreateGarbageOptions options, Closer closer) throws Exception {
+    private List<String> createGarbageContinuously(CreateGarbageOptions options, DocumentNodeStoreBuilder<?> builder, Closer closer) {
 
-        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         long startGenTimestamp = System.currentTimeMillis();
 
         List<String> generatedGarbageBasePaths = new ArrayList<>();
@@ -290,14 +305,16 @@ public class CreateGarbageCommand implements Command {
                     String genBasePath = createGarbage(options, closer, continuousRunIndex, builder, startGenTimestamp);
                     generatedGarbageBasePaths.add(genBasePath);
                 } catch (Exception e) {
-                    LOG.error("Error generating garbage in run " + continuousRunIndex, e);
+                    LOG.error("Error creating garbage in run " + continuousRunIndex, e);
                 }
-                LOG.info("Task executed. Count: " + (continuousRunIndex + 1));
+                System.out.println("Task executed. Count: " + (continuousRunIndex + 1));
                 continuousRunIndex++;
             } else {
                 // Shutdown the executor once the task has run numberOfRuns times
                 continuousRunExecutor.shutdown();
-                LOG.info("Task completed " + numberOfRuns + " times. Stopping execution.");
+                System.out.println("Task completed " + numberOfRuns + " times. Stopping execution.");
+
+                cleanResources(closer);
             }
         };
 
@@ -315,12 +332,10 @@ public class CreateGarbageCommand implements Command {
      * @param closer
      * @param runIndex
      * @return
-     * @throws IOException
      * @throws Exception
      */
-    private String createGarbage(CreateGarbageOptions options, Closer closer, int runIndex) throws IOException, Exception {
+    private String createGarbageOnce(CreateGarbageOptions options, DocumentNodeStoreBuilder<?> builder, Closer closer, int runIndex) throws Exception {
 
-        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         long generationTimestamp = System.currentTimeMillis();
 
         return createGarbage(options, closer, runIndex, builder, generationTimestamp);
@@ -329,24 +344,22 @@ public class CreateGarbageCommand implements Command {
     private String createGarbage(CreateGarbageOptions options, Closer closer, int runIndex,
                                  DocumentNodeStoreBuilder<?> builder, long timestamp) throws Exception {
 
-        if (builder == null) {
-            System.err.println("generateGarbage mode only available for DocumentNodeStore");
-            System.exit(1);
+        String generationBasePath = GEN_BASE_PATH + timestamp + "_" + runIndex;
+
+        // register closer to close the documentNodeStore after the last run (for continuous run) or after the single run
+        if (options.getNumberOfRuns() == 0 || runIndex == options.getNumberOfRuns() - 1) {
+            closer.register(asCloseable(documentNodeStore));
         }
 
-        String generationBasePath = GEN_BASE_PATH + timestamp + "_" + runIndex;
-        documentNodeStore = builder.build();
-        closer.register(asCloseable(documentNodeStore));
+        NodeBuilder rootNodeBuilder = documentNodeStore.getRoot().builder();
 
-        NodeBuilder rootNode = documentNodeStore.getRoot().builder();
-
-        System.out.println("Starting garbage generation under the root node tmp/oak-run-generated-test-garbage");
+        System.out.println("Starting garbage creation under the root node tmp/" + GARBAGE_GEN_ROOT_NODE_NAME);
 
         if (CreateGarbageHelper.isEmptyProps(options.getGarbageType())) {
-            createGarbageEmptyProps(rootNode, options, generationBasePath);
+            createGarbageEmptyProps(rootNodeBuilder, options, generationBasePath);
         }
         else if (CreateGarbageHelper.isGapOrphans(options.getGarbageType())) {
-            createGarbageGapOrphans(rootNode, options, generationBasePath);
+            createGarbageGapOrphans(rootNodeBuilder, options, generationBasePath);
         }
 
         return generationBasePath;
@@ -420,19 +433,19 @@ public class CreateGarbageCommand implements Command {
      * gap orphan node.
      *
      * Example 1: gapDepth = 4, gapLevelGap = 2, fromLevelGapToLeaf = false will return:
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
      * and will NOT return the rest of the nodes:
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0 (the leaf node)
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0 (the leaf node)
      *
      * Example 2: gapDepth = 5, gapLevelGap = 2, fromLevelGapToLeaf = true will return:
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4/Node_0 (the leaf node)
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2/Node_0_Level_3/Node_0_Level_4/Node_0 (the leaf node)
      * and will NOT return the nodes from the parent to the gap level:
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
-     * - /tmp/oak-run-generated-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1
+     * - /tmp/oak-run-created-test-garbage/GenTest_[timestamp]_0/Parent_0/Node_0_Level_1/Node_0_Level_2
      *
      * @param generationBasePath
      * @param parentIndex
@@ -506,29 +519,15 @@ public class CreateGarbageCommand implements Command {
     /**
      * Cleans up all generated garbage by removing the node GARBAGE_GEN_ROOT_PATH and all of
      * its children (recursively)
-     * @param options
      * @param closer
-     * @throws IOException
-     * @throws Exception
      */
-    private void cleanGarbage(CreateGarbageOptions options, Closer closer) throws IOException, Exception {
-
-        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer).
-                setLeaseCheckMode(LeaseCheckMode.DISABLED).
-                setAsyncDelay(0).
-                setFullGCEnabled(false);
-
-        if (builder == null) {
-            System.err.println("generateGarbage mode only available for DocumentNodeStore");
-            System.exit(1);
-        }
+    private void cleanGarbage(Closer closer) {
 
         System.out.println("Cleaning up all generated garbage: ");
-        documentNodeStore = builder.build();
+
         closer.register(asCloseable(documentNodeStore));
 
         NodeBuilder rootBuilder = documentNodeStore.getRoot().builder();
-
         NodeBuilder generatedGarbageRootBuilder = rootBuilder.child(GARBAGE_GEN_ROOT_PATH_BASE).child(GARBAGE_GEN_ROOT_NODE_NAME);
 
         String garbageRootNodePath = "/" + GARBAGE_GEN_ROOT_PATH;
@@ -536,7 +535,7 @@ public class CreateGarbageCommand implements Command {
         childNodePaths.add(getIdFromPath(garbageRootNodePath));
 
         // get all paths of the tree nodes under the garbage root node
-        getTreeNodePaths(generatedGarbageRootBuilder, garbageRootNodePath, childNodePaths);
+        buildTreeNodePaths(generatedGarbageRootBuilder, garbageRootNodePath, childNodePaths);
 
         // check that only nodes under the garbage root node are being removed
         for (String childNodePath : childNodePaths) {
@@ -554,14 +553,37 @@ public class CreateGarbageCommand implements Command {
      * @param basePath
      * @param treeNodePaths
      */
-    private void getTreeNodePaths(NodeBuilder rootNode, String basePath,
-                                  List<String> treeNodePaths) {
+    private void buildTreeNodePaths(NodeBuilder rootNode, String basePath,
+                                    List<String> treeNodePaths) {
 
         for (String childNodeName : rootNode.getChildNodeNames()) {
             String childPath = basePath + "/" + childNodeName;
             String pathId = getIdFromPath(childPath);
             treeNodePaths.add(pathId);
-            getTreeNodePaths(rootNode.child(childNodeName), childPath, treeNodePaths);
+            buildTreeNodePaths(rootNode.child(childNodeName), childPath, treeNodePaths);
+        }
+    }
+
+    private void cleanResources(Closer closer) {
+        cleanResources(closer, false);
+    }
+
+    /**
+     * Cleans up the resources registered with the closer.
+     *
+     * If the command is being run as a test, the resources will not be closed, since the tests need to do
+     * subsequent operations on the DocumentNodeStore and will dispose of it themselves.
+     * @param closer
+     * @param isTest
+     */
+    private void cleanResources(Closer closer, boolean isTest) {
+        if (isTest) {
+            return;
+        }
+        try {
+            closer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
