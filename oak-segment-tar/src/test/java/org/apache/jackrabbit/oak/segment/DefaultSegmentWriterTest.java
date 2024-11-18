@@ -212,7 +212,7 @@ public class DefaultSegmentWriterTest {
     public void testMapRecord() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.<String, RecordId>of()));
+        MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of()));
         MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
         MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId, "two", blockId)));
         Map<String, RecordId> map = new HashMap<>();

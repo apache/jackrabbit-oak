@@ -34,6 +34,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.Map;
+
 public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
 
     private ContentSession cs;
@@ -79,7 +81,7 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         String userId = getTestUser().getID();
         readOnlyRoot.refresh();
 
-        assertNull(readOnlyTp.createToken(userId, ImmutableMap.of()));
+        assertNull(readOnlyTp.createToken(userId, Map.of()));
     }
 
     @Test
@@ -87,7 +89,7 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         // make sure user already has a token-parent node.
         generateToken();
         // now generate a new token with the read-only root
-        assertNull(readOnlyTp.createToken(getTestUser().getID(), ImmutableMap.of()));
+        assertNull(readOnlyTp.createToken(getTestUser().getID(), Map.of()));
     }
 
     @Test

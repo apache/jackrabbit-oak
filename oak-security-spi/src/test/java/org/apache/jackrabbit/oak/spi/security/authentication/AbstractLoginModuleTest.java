@@ -140,7 +140,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testLogout() throws Exception {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, Map.of());
 
         assertFalse(loginModule.logout());
     }
@@ -350,7 +350,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testAbort() throws LoginException {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, Map.of());
 
         assertTrue(loginModule.abort());
     }
@@ -461,7 +461,7 @@ public class AbstractLoginModuleTest {
         subject.getPublicCredentials().add(new TestCredentials());
 
         AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
-        lm.initialize(subject, null, ImmutableMap.of(), null);
+        lm.initialize(subject, null, Map.of(), null);
 
         assertTrue(lm.getCredentials() instanceof TestCredentials);
     }
@@ -530,7 +530,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedPreAuthLoginEmptySharedState() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, Map.of());
         assertNull(loginModule.getSharedPreAuthLogin());
     }
 

@@ -592,7 +592,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
         importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(getJcrName(REP_GLOB), "/some/glob"), PropertyType.STRING));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of()));
+        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(Map.of()));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -604,7 +604,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
         importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(getJcrName(REP_NT_NAMES), new Value[0])));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of()));
+        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(Map.of()));
     }
 
     @Test(expected = IllegalStateException.class)

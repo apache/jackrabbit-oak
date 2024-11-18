@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -86,7 +88,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
     @Test
     public void testNotExpiredReachingThreshold() throws Exception {
         for (int i = 0; i < 10; i++) {
-            tokenProvider.createToken(userId, ImmutableMap.of());
+            tokenProvider.createToken(userId, Map.of());
         }
         assertTokenNodes(10);
     }

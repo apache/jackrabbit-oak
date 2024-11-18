@@ -162,7 +162,7 @@ public class ExternalIdentityRefTest {
             @NotNull
             @Override
             public Map<String, ?> getProperties() {
-                return ImmutableMap.of();
+                return Map.of();
             }
         }));
     }

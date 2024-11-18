@@ -25,6 +25,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
+
 public class WhiteboardAuthorizableNodeNameTest {
 
     private static final String TEST_ID = "testID";
@@ -53,7 +55,7 @@ public class WhiteboardAuthorizableNodeNameTest {
         authorizableNodeName.start(whiteboard);
 
         AuthorizableNodeName registered = authorizableId -> "generated";
-        whiteboard.register(AuthorizableNodeName.class, registered, ImmutableMap.of());
+        whiteboard.register(AuthorizableNodeName.class, registered, Map.of());
         assertEquals(registered.generateNodeName(TEST_ID), authorizableNodeName.generateNodeName(TEST_ID));
     }
 }

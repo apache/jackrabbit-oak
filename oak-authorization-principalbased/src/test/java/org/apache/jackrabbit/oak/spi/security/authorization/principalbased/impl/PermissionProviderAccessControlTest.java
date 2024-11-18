@@ -244,7 +244,7 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
     public void testIsGrantedOnRestrictionTree() throws Exception {
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager(root));
         Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue(REP_RESTRICTIONS + "*"));
-        policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr, ImmutableMap.of());
+        policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr, Map.of());
         root.commit();
         permissionProvider.refresh();
 

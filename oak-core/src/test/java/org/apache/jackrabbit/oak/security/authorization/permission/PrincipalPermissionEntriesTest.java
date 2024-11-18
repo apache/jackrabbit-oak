@@ -81,7 +81,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutAllEntriesSetsFullyLoadedIgnoresExpectedSize() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putAllEntries(ImmutableMap.of());
+        ppe.putAllEntries(Map.of());
 
         assertTrue(ppe.isFullyLoaded());
     }

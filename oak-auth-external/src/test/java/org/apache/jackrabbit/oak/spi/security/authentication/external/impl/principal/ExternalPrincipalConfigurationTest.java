@@ -347,7 +347,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         Map<String, Object> disableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
 
         SyncHandler sh = new DefaultSyncHandler();
-        context.registerService(SyncHandler.class, sh, ImmutableMap.of());
+        context.registerService(SyncHandler.class, sh, Map.of());
         assertIsEnabled(externalPrincipalConfiguration, false);
 
         context.registerService(SyncHandler.class, sh, disableProps);
@@ -365,7 +365,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         Map<String, Object> enableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
 
         SyncHandler sh = new TestSyncHandler();
-        context.registerService(SyncHandler.class, sh, ImmutableMap.of());
+        context.registerService(SyncHandler.class, sh, Map.of());
         assertIsEnabled(externalPrincipalConfiguration, false);
 
         context.registerService(SyncHandler.class, sh, enableProps);

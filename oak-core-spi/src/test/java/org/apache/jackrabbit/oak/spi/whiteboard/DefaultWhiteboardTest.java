@@ -38,9 +38,9 @@ public class DefaultWhiteboardTest {
 
     @Test
     public void filteredTracker() {
-        whiteboard.register(Service1.class, new Service1("s1"), ImmutableMap.of());
+        whiteboard.register(Service1.class, new Service1("s1"), Map.of());
         whiteboard.register(Service2.class, new Service2("s2"), ImmutableMap.of("role", "myrole"));
-        whiteboard.register(Service3.class, new Service3("s3_1"), ImmutableMap.of());
+        whiteboard.register(Service3.class, new Service3("s3_1"), Map.of());
         whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
         whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
 
@@ -65,18 +65,18 @@ public class DefaultWhiteboardTest {
     public void sameServiceRegisteredAgain() {
         Service1 s1 = new Service1("s1");
 
-        whiteboard.register(Service1.class, s1, ImmutableMap.of());
-        whiteboard.register(Service1.class, s1, ImmutableMap.of());
-        whiteboard.register(Service1.class, s1, ImmutableMap.of());
+        whiteboard.register(Service1.class, s1, Map.of());
+        whiteboard.register(Service1.class, s1, Map.of());
+        whiteboard.register(Service1.class, s1, Map.of());
 
         assertEquals(Set.of("s1"), track(Service1.class));
     }
 
     @Test
     public void unregister() {
-        Registration r1 = whiteboard.register(Service1.class, new Service1("s1"), ImmutableMap.of());
+        Registration r1 = whiteboard.register(Service1.class, new Service1("s1"), Map.of());
         Registration r2 = whiteboard.register(Service2.class, new Service2("s2"), ImmutableMap.of("role", "myrole"));
-        Registration r3_1 = whiteboard.register(Service3.class, new Service3("s3_1"), ImmutableMap.of());
+        Registration r3_1 = whiteboard.register(Service3.class, new Service3("s3_1"), Map.of());
         Registration r3_2 = whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
         Registration r3_3 = whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
 

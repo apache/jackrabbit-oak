@@ -76,7 +76,7 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         policy = getPrincipalPolicyImpl(testPrincipal, jacm);
         Map<String, Value[]> restrictions = ImmutableMap.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(NT_FOLDER, PropertyType.NAME)});
-        policy.addEntry(childPath, privilegesFromNames(JCR_REMOVE_NODE), ImmutableMap.of(), restrictions);
+        policy.addEntry(childPath, privilegesFromNames(JCR_REMOVE_NODE), Map.of(), restrictions);
         jacm.setPolicy(policy.getPath(), policy);
         root.commit();
 

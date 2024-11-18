@@ -82,7 +82,7 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, jacm);
         Map<String, Value[]> restr = ImmutableMap.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
-        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), ImmutableMap.of(), restr);
+        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), Map.of(), restr);
         jacm.setPolicy(policy.getPath(), policy);
         root.commit();
 

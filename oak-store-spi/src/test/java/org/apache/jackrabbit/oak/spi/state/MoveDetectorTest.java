@@ -108,7 +108,7 @@ public class MoveDetectorTest {
         rootBuilder.getChildNode("test").setChildNode("added");
         NodeState moved = move(rootBuilder, "/test/added", "/test/y/added").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.<String, String>of());
+                Map.of());
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -166,7 +166,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/x", "/test/y/xx");
         NodeState moved = move(rootBuilder, "/test/y/xx", "/test/x").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.<String, String>of());
+                Map.of());
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {

@@ -60,7 +60,7 @@ public class DefaultSyncConfigTest {
 
         assertSame(authorizableConfig, authorizableConfig.setPropertyMapping(ImmutableMap.of("a", "b")));
         assertEquals(ImmutableMap.of("a", "b"), authorizableConfig.getPropertyMapping());
-        assertEquals(ImmutableMap.of(), authorizableConfig.setPropertyMapping(null).getPropertyMapping());
+        assertEquals(Map.of(), authorizableConfig.setPropertyMapping(null).getPropertyMapping());
 
         assertEquals(0, authorizableConfig.getExpirationTime());
         assertSame(authorizableConfig, authorizableConfig.setExpirationTime(Long.MAX_VALUE));

@@ -64,6 +64,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -476,12 +477,12 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
-                ImmutableMap.of(),
+                Map.of(),
                 ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
 
         // add ac-entry that only differs by the value of the restriction
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
-                ImmutableMap.of(),
+                Map.of(),
                 ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
         assertEquals(2, acl.getAccessControlEntries().length);
 

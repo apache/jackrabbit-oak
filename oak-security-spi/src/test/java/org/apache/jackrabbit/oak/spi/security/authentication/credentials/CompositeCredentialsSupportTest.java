@@ -170,7 +170,7 @@ public class CompositeCredentialsSupportTest {
             if (credentials instanceof TestCredentials) {
                 return attributes;
             } else {
-                return ImmutableMap.of();
+                return Map.of();
             }
         }
 

@@ -68,7 +68,7 @@ public class TestCredentialsSupport implements CredentialsSupport {
         if (credentials instanceof Creds) {
             return ((Creds) credentials).attributes;
         } else {
-            return ImmutableMap.of();
+            return Map.of();
         }
     }
 

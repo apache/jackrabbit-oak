@@ -1057,7 +1057,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
         Authorizable a = syncCtx.createUser(externalUser);
 
-        syncCtx.syncProperties(externalUser, a, ImmutableMap.of());
+        syncCtx.syncProperties(externalUser, a, Map.of());
 
         for (String propName : externalUser.getProperties().keySet()) {
             assertFalse(a.hasProperty(propName));
@@ -1076,7 +1076,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
             a.setProperty(propName, anyValue);
         }
 
-        syncCtx.syncProperties(externalUser, a, ImmutableMap.of());
+        syncCtx.syncProperties(externalUser, a, Map.of());
         for (String propName : extProps.keySet()) {
             assertTrue(a.hasProperty(propName));
             assertEquals(anyValue, a.getProperty(propName)[0]);
