@@ -66,7 +66,7 @@
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
     <jackson.version>2.17.2</jackson.version>
-    <testcontainers.version>1.20.1</testcontainers.version>
+    <testcontainers.version>1.20.3</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>3.0.22</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
