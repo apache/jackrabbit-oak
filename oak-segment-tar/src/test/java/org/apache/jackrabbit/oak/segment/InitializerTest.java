@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -48,7 +48,7 @@ public class InitializerTest {
         new InitialContent().initialize(builder);
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(Map.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",
