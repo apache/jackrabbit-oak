@@ -100,7 +100,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
 
     @Test
     public void testCugExcludeExcludedPrincipal() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {EXCLUDED_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude, Map.of("principalNames", new String[] {EXCLUDED_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, PROPERTIES);
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
@@ -110,7 +110,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
 
     @Test
     public void testCugExcludeAnyPrincipal() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {EXCLUDED_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude, Map.of("principalNames", new String[] {EXCLUDED_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, PROPERTIES);
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
@@ -120,7 +120,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEnabled() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude, Map.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, ImmutableMap.of(
                 CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/"}));
@@ -132,7 +132,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
 
     @Test
     public void testNoSupportedPaths() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude, Map.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, ImmutableMap.of(
                 CugConstants.PARAM_CUG_ENABLED, true,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
