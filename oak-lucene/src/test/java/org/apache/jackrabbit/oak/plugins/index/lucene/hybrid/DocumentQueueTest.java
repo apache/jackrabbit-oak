@@ -342,7 +342,7 @@ public class DocumentQueueTest {
 
     private CommitInfo newCommitInfo(){
         info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+                ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext()));
         return info;
     }
 

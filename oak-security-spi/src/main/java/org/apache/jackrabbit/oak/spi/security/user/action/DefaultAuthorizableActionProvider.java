@@ -76,7 +76,7 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
 
     private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
 
-    private static final Map<String, Class<? extends AuthorizableAction>> SUPPORTED_ACTIONS = ImmutableMap.<String, Class<? extends AuthorizableAction>>of(
+    private static final Map<String, Class<? extends AuthorizableAction>> SUPPORTED_ACTIONS = ImmutableMap.of(
             AccessControlAction.class.getName(), AccessControlAction.class,
             PasswordValidationAction.class.getName(), PasswordValidationAction.class,
             PasswordChangeAction.class.getName(), PasswordChangeAction.class,

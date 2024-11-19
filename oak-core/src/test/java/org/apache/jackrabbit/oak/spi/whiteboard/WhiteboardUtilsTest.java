@@ -124,7 +124,7 @@ public class WhiteboardUtilsTest {
             }
         };
 
-        Map<String, Object> config = ImmutableMap.<String, Object>of("foo", "bar");
+        Map<String, Object> config = ImmutableMap.of("foo", "bar");
         WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, false, true);
         assertNotNull(props.get().get("scheduler.threadPool"));
         assertEquals("bar", props.get().get("foo"));

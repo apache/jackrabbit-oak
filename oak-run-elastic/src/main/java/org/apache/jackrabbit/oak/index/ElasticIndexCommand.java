@@ -290,7 +290,7 @@ public class ElasticIndexCommand implements Command {
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 

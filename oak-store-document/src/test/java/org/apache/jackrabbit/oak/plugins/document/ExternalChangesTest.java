@@ -223,7 +223,7 @@ public class ExternalChangesTest {
     }
 
     private CommitInfo newCommitInfo(CommitContext commitContext){
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        Map<String, Object> info = ImmutableMap.of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 

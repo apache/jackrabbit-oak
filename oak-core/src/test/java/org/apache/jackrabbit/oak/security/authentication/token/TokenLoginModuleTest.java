@@ -264,7 +264,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
         TokenLoginModule lm = new TokenLoginModule();
         lm.initialize(new Subject(), new TestCallbackHandler(tp),
-                ImmutableMap.<String, Object>of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new Credentials() {}),
+                ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new Credentials() {}),
                 Map.of());
 
         assertFalse(lm.login());

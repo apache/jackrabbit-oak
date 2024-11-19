@@ -52,7 +52,7 @@ import static org.junit.Assert.fail;
  */
 public class CompositeRestrictionProviderTest extends AbstractSecurityTest implements AccessControlConstants {
 
-    private RestrictionProvider rp1 = new TestProvider(ImmutableMap.<String, RestrictionDefinition>of(
+    private RestrictionProvider rp1 = new TestProvider(ImmutableMap.of(
             REP_GLOB, new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false),
             REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false),
             REP_PREFIXES, new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false)

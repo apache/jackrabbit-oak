@@ -58,7 +58,7 @@ import static org.mockito.Mockito.when;
 
 public class PermissionsTest {
 
-    private static final Map<Long, Set<Long>> TEST = ImmutableMap.<Long, Set<Long>>of(
+    private static final Map<Long, Set<Long>> TEST = ImmutableMap.of(
             Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
             Set.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
             Permissions.LOCK_MANAGEMENT|Permissions.MODIFY_CHILD_NODE_COLLECTION,
@@ -115,7 +115,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetNamesMultiple() {
-        Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> test = ImmutableMap.of(
                 Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
                 Set.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
                 Permissions.LOCK_MANAGEMENT|Permissions.MODIFY_CHILD_NODE_COLLECTION,
@@ -137,7 +137,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetNamesAggregates() {
-        Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> test = ImmutableMap.of(
                 Permissions.READ|Permissions.READ_ACCESS_CONTROL,
                 Set.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
                 Permissions.REMOVE|Permissions.SET_PROPERTY,
@@ -190,7 +190,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetStringAggregates() {
-        Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> test = ImmutableMap.of(
                 Permissions.READ|Permissions.READ_ACCESS_CONTROL,
                 Set.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
                 Permissions.REMOVE|Permissions.SET_PROPERTY,
@@ -229,7 +229,7 @@ public class PermissionsTest {
 
     @Test
     public void testAggregates() {
-        Map<Long, Set<Long>> aggregation = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> aggregation = ImmutableMap.of(
                 Permissions.READ, Set.of(Permissions.READ_NODE, Permissions.READ_PROPERTY),
                 Permissions.SET_PROPERTY, Set.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
                 Permissions.WRITE, Set.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)

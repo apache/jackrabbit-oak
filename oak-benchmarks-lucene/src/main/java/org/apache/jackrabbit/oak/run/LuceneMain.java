@@ -26,7 +26,7 @@ import static java.util.Arrays.copyOfRange;
 
 public class LuceneMain {
 
-    private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
+    private static final Modes MODES = new Modes(ImmutableMap.of(
             "benchmark", new BenchmarkLuceneCommand(),
             "scalability", new ScalabilityLuceneCommand()
     ));

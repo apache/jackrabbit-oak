@@ -89,7 +89,7 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
     @Test
     public void testTokenCreation() throws Exception {
         Credentials creds = createTestCredentials();
-        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.of(".token", "")));
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 
@@ -112,7 +112,7 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
     @Test
     public void testTokenLogin() throws Exception {
         Credentials creds = createTestCredentials();
-        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.of(".token", "")));
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 

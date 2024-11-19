@@ -25,7 +25,7 @@ import static java.util.Arrays.copyOfRange;
 
 public class SolrMain {
 
-    private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
+    private static final Modes MODES = new Modes(ImmutableMap.of(
             "benchmark", new BenchmarkSolrCommand()
     ));
 

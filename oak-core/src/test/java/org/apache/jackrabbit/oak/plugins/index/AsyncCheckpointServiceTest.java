@@ -52,7 +52,7 @@ public class AsyncCheckpointServiceTest {
         String name1 = "checkpoint-async-test-1";
         String name2 = "checkpoint-async-test-2";
         String name3 = "checkpoint-async-test-3";
-        Map<String,Object> config1 = ImmutableMap.<String, Object>of(
+        Map<String,Object> config1 = ImmutableMap.of(
                 "name", "checkpoint-async-test-1",
                 "enable", true,
                 "minConcurrentCheckpoints", 3L,
@@ -61,7 +61,7 @@ public class AsyncCheckpointServiceTest {
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
 
-        Map<String,Object> config2 = ImmutableMap.<String, Object>of(
+        Map<String,Object> config2 = ImmutableMap.of(
                 "name", "checkpoint-async-test-2",
                 "enable", false,
                 "minConcurrentCheckpoints", 3L,
@@ -70,7 +70,7 @@ public class AsyncCheckpointServiceTest {
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
 
-        Map<String,Object> config3 = ImmutableMap.<String, Object>of(
+        Map<String,Object> config3 = ImmutableMap.of(
                 "name", "checkpoint-async-test-3",
                 "enable", true,
                 "minConcurrentCheckpoints", 4L,

@@ -56,7 +56,7 @@ public class DataStoreServiceTest {
 
     @Test
     public void mbeanRegs() throws Exception{
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
+        Map<String, Object> config = ImmutableMap.of(
                 "repository.home", folder.getRoot().getAbsolutePath()
         );
 

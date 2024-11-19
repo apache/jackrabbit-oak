@@ -67,7 +67,7 @@ public final class OakInitializer {
     }
 
     private static CommitInfo createCommitInfo(){
-        Map<String, Object> infoMap = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> infoMap = ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(SESSION_ID, null, infoMap);
     }
 }

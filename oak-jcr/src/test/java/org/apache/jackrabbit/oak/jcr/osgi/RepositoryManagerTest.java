@@ -88,9 +88,9 @@ public class RepositoryManagerTest {
         context.registerService(SecurityProvider.class, new OpenSecurityProvider());
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider(),
-                ImmutableMap.<String, Object>of("type", "property"));
+                ImmutableMap.of("type", "property"));
         context.registerService(IndexEditorProvider.class, new ReferenceEditorProvider(),
-                ImmutableMap.<String, Object>of("type", "reference"));
+                ImmutableMap.of("type", "reference"));
     }
 
 }

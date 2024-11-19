@@ -81,7 +81,7 @@ public class CommitContextTest extends OakBaseTest {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
         tree.setProperty("a", 1);
-        root.commit(ImmutableMap.<String, Object>of("foo", "bar"));
+        root.commit(ImmutableMap.of("foo", "bar"));
 
         assertNotNull(observer.info);
         assertTrue(observer.info.getInfo().containsKey("foo"));

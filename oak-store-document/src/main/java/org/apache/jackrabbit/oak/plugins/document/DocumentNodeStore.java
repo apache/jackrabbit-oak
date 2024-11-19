@@ -2574,7 +2574,7 @@ public final class DocumentNodeStore
         CommitContext commitContext = new SimpleCommitContext();
         commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
         journalPropertyHandler.addTo(commitContext);
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        Map<String, Object> info = ImmutableMap.of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info, true);
     }
 

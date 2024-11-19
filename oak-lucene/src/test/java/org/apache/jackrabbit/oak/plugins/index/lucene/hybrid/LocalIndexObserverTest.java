@@ -85,7 +85,7 @@ public class LocalIndexObserverTest {
 
     private CommitInfo newCommitInfo(){
         return new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+                ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext()));
     }
 
 

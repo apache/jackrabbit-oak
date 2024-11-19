@@ -64,7 +64,7 @@ public class SecondaryStoreCacheServiceTest {
             public NodeStore getNodeStore() {
                 return secondaryStore;
             }
-        }, ImmutableMap.<String, Object>of("role", "secondary"));
+        }, ImmutableMap.of("role", "secondary"));
         context.registerService(Executor.class, Executors.newSingleThreadExecutor());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         MockOsgi.injectServices(cacheService, context.bundleContext());

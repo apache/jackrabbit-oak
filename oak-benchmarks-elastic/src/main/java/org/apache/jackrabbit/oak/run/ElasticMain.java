@@ -25,7 +25,7 @@ import static java.util.Arrays.copyOfRange;
 
 public class ElasticMain {
 
-    private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
+    private static final Modes MODES = new Modes(ImmutableMap.of(
             "benchmark", new BenchmarkElasticCommand()
     ));
 

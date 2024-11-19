@@ -62,7 +62,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void asyncReg() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = ImmutableMap.of(
                 "asyncConfigs", new String[] {"async:5"}
         );
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -83,7 +83,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void leaseTimeout() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = ImmutableMap.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -95,7 +95,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void leaseTimeout2() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = ImmutableMap.of(
                 "asyncConfigs", new String[] {"async:5:13", "foo-async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -110,7 +110,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void changeCollectionEnabled() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = ImmutableMap.of(
                 "asyncConfigs", new String[] {"async:5"}
         );
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider());
@@ -142,7 +142,7 @@ public class AsyncIndexerServiceTest {
         nodeStore = new MemoryNodeStore();
         injectDefaultServices();
 
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = ImmutableMap.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -173,7 +173,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void corruptIndexTimeout() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = ImmutableMap.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "failingIndexTimeoutSeconds" , "43",
                 "errorWarnIntervalSeconds" , "53"

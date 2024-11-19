@@ -61,13 +61,13 @@ public class StatisticsProviderFactoryTest {
 
     @Test
     public void noneMode() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("providerType", "NONE"));
+        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("providerType", "NONE"));
         assertNull(context.getService(StatisticsProvider.class));
     }
 
     @Test
     public void defaultMode() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("providerType", "DEFAULT"));
+        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("providerType", "DEFAULT"));
         assertTrue(context.getService(StatisticsProvider.class) instanceof DefaultStatisticsProvider);
     }
 }

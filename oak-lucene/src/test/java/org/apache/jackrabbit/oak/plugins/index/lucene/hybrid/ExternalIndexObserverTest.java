@@ -190,7 +190,7 @@ public class ExternalIndexObserverTest {
 
     private CommitInfo newCommitInfo() {
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext), true);
+                ImmutableMap.of(CommitContext.NAME, commitContext), true);
     }
 
     private static LuceneIndexDefinition createNRTIndex(String ruleName) {
