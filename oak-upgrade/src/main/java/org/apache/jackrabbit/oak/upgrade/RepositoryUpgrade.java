@@ -59,7 +59,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.JcrConstants;
@@ -658,7 +658,7 @@ public class RepositoryUpgrade {
                     UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM, UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
                     UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS, UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
         }
-        return ConfigurationParameters.of(ImmutableMap.of(
+        return ConfigurationParameters.of(Map.of(
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(loginConfig, userConfig)));
     }
