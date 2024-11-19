@@ -58,7 +58,7 @@ public class MoveDetectorTest {
     public void simpleMove() throws CommitFailedException {
         NodeState moved1 = move(root.builder(), "/test/x", "/test/y/xx").getNodeState();
         MoveExpectation moveExpectation1 = new MoveExpectation(
-                ImmutableMap.of("/test/x", "/test/y/xx"));
+                Map.of("/test/x", "/test/y/xx"));
         MoveDetector moveDetector1 = new MoveDetector(moveExpectation1);
         CommitFailedException exception1 = EditorDiff.process(moveDetector1, root, moved1);
         if (exception1 != null) {
@@ -69,7 +69,7 @@ public class MoveDetectorTest {
         // Test whether we can also detect the move back on top of the previous, persisted move
         NodeState moved2 = move(moved1.builder(), "/test/y/xx", "/test/x").getNodeState();
         MoveExpectation moveExpectation2 = new MoveExpectation(
-                ImmutableMap.of("/test/y/xx", "/test/x"));
+                Map.of("/test/y/xx", "/test/x"));
         MoveDetector moveDetector2 = new MoveDetector(moveExpectation2);
         CommitFailedException exception2 = EditorDiff.process(moveDetector2, moved1, moved2);
         if (exception2 != null) {
@@ -89,7 +89,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/x", "/test/y/xx");
         NodeState moved = move(rootBuilder, "/test/y/xx", "/test/z/xxx").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.of("/test/x", "/test/z/xxx"));
+                Map.of("/test/x", "/test/z/xxx"));
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
