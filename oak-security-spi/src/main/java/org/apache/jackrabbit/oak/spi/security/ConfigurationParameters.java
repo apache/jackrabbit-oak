@@ -154,7 +154,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @NotNull
     public static ConfigurationParameters of(@NotNull String key, @NotNull Object value) {
-        return new ConfigurationParameters(ImmutableMap.of(key, value));
+        return new ConfigurationParameters(Map.of(key, value));
     }
 
     /**

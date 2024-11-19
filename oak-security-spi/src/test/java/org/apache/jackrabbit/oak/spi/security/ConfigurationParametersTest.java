@@ -570,7 +570,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testEntrySet() {
-        Map m = ImmutableMap.of("test", new TestObject("name"));
+        Map m = Map.of("test", new TestObject("name"));
         ConfigurationParameters options = ConfigurationParameters.of(m);
         assertEquals(m.entrySet(), options.entrySet());
     }

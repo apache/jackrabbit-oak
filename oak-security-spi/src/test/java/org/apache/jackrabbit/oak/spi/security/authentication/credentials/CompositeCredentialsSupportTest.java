@@ -103,10 +103,10 @@ public class CompositeCredentialsSupportTest {
         Map<String, ?> expectedS = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         assertTrue(credentialsSupport.setAttributes(sc, expectedS));
 
-        Map<String, ?> expectedT = ImmutableMap.of("test", "Test1CredentialsSupport");
+        Map<String, ?> expectedT = Map.of("test", "Test1CredentialsSupport");
         assertTrue(credentialsSupport.setAttributes(tc, expectedT));
 
-        assertFalse(credentialsSupport.setAttributes(dummy, ImmutableMap.of("none", "none")));
+        assertFalse(credentialsSupport.setAttributes(dummy, Map.of("none", "none")));
 
         attributesS = credentialsSupport.getAttributes(sc);
         for (Map.Entry<String, ?> entry : expectedS.entrySet()) {

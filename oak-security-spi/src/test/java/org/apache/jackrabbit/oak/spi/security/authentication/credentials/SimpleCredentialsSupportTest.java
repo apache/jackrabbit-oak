@@ -91,7 +91,7 @@ public class SimpleCredentialsSupportTest {
 
     @Test
     public void testSetAttributesFalse() {
-        assertFalse(credentialsSupport.setAttributes(new Credentials() {}, ImmutableMap.of("a", "value")));
+        assertFalse(credentialsSupport.setAttributes(new Credentials() {}, Map.of("a", "value")));
     }
 
     private static final class TestCredentials implements Credentials {}

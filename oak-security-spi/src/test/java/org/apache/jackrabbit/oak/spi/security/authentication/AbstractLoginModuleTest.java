@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -126,7 +125,7 @@ public class AbstractLoginModuleTest {
     @Test
     public void testInitializeWithOptions() {
         AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
-        Map<String, String> options = ImmutableMap.of("key", "value");
+        Map<String, String> options = Map.of("key", "value");
         lm.initialize(new Subject(), null, Collections.emptyMap(), options);
 
         assertNotSame(options, lm.options);
