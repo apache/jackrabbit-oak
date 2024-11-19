@@ -279,7 +279,7 @@ in order to enable a custom `CredentialsSupport`.
         @Override
         public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
             // TODO: optional implementation
-            return ImmutableMap.of();
+            return Map.of();
         }
 
         @Override
