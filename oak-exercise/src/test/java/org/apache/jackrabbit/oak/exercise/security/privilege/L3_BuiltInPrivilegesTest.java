@@ -24,7 +24,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -130,7 +130,7 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
         PrivilegeManager privilegeManager = getPrivilegeManager(root);
 
         // EXERCISE: for all aggregated privileges define the mapping of the privilege name to declaredAggregates
-        Map<String, Set<Privilege>> expectedResults = ImmutableMap.of(
+        Map<String, Set<Privilege>> expectedResults = Map.of(
                 /* EXERCISE */
         );
 
