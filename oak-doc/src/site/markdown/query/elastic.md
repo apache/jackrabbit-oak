@@ -44,6 +44,7 @@ however there are differences:
 * `analyzers` support the Lucene configuration plus Elasticsearch specific [options][options]. Since Elasticsearch uses
   a more recent version of Lucene compared to the one in `oak-lucene` module, there might be differences in configuration options
   that could require changes when migrating from Lucene to Elasticsearch.
+  The `HunspellStem` filter is not supported since dictionary files are required in the Elasticsearch cluster filesystem.
 * `useInExcerpt` does not support regexp relative properties.
 * For property definitions, `sync` and `unique` are ignored.
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
