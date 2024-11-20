@@ -57,7 +57,7 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <solr.version>8.11.1</solr.version>
+    <solr.version>8.11.3</solr.version>
     <mongo.driver.version>3.12.14</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
