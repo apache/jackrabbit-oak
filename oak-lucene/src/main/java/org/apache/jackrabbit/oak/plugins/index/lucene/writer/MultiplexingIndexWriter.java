@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static java.util.Collections.singleton;
 
 class MultiplexingIndexWriter implements LuceneIndexWriter {
+
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
     private final LuceneIndexDefinition definition;
@@ -42,7 +43,7 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     private final boolean reindex;
     private final LuceneIndexWriterConfig writerConfig;
 
-    private final Map<Mount, DefaultIndexWriter> writers = Maps.newHashMap();
+    private final Map<Mount, DefaultIndexWriter> writers = new ConcurrentHashMap<>();
 
     public MultiplexingIndexWriter(DirectoryFactory directoryFactory, MountInfoProvider mountInfoProvider,
                                    LuceneIndexDefinition definition, NodeBuilder definitionBuilder,
@@ -99,11 +100,7 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     }
 
     private DefaultIndexWriter getWriter(Mount mount) {
-        DefaultIndexWriter writer = writers.get(mount);
-        if (writer == null) {
-            writer = createWriter(mount);
-            writers.put(mount, writer);
-        }
+        DefaultIndexWriter writer = writers.computeIfAbsent(mount, w -> createWriter(mount));
         return writer;
     }
 
@@ -113,4 +110,5 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory, dirName,
             suggestDirName, reindex, writerConfig);
     }
+
 }

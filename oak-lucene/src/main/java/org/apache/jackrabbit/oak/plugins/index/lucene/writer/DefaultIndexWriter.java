@@ -145,7 +145,12 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
 
-            writer.close();
+            if (reindex && writerConfig.getThreadCount() > 1) {
+                // merges could be disabled, so it could in theory wait forever
+                writer.close(false);
+            } else {
+                writer.close();
+            }
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
 
             if (!indexUpdated){

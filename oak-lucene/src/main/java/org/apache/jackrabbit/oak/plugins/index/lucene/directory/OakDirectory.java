@@ -206,11 +206,13 @@ public class OakDirectory extends Directory {
 
         // OAK-6562: Learn from FSDirectory and delete existing file
         // on creating output
-        if (directoryBuilder.hasChildNode(name)) {
-            directoryBuilder.getChildNode(name).remove();
+        // synchronize on the builder to support concurrent creation
+        synchronized (directoryBuilder) {
+            if (directoryBuilder.hasChildNode(name)) {
+                directoryBuilder.getChildNode(name).remove();
+            }
+            file = directoryBuilder.child(name);
         }
-
-        file = directoryBuilder.child(name);
         byte[] uniqueKey = new byte[UNIQUE_KEY_SIZE];
         secureRandom.nextBytes(uniqueKey);
         String key = StringUtils.convertBytesToHex(uniqueKey);
