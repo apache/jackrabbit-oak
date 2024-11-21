@@ -70,6 +70,8 @@
                     <excludes>
                         <exclude>**/lms-data.tsv</exclude>
                         <exclude>**/stopwords-snowball.txt</exclude>
+                        <exclude>**/fr-affix.txt</exclude>
+                        <exclude>**/fr-dictionary.txt</exclude>
                     </excludes>
                 </configuration>
             </plugin>

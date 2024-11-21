@@ -871,7 +871,6 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
                     .setProperty(JCR_DATA, dictionary);
         });
 
-
         Tree content = root.getTree("/").addChild("content");
         content.addChild("bar").setProperty("foo", "mangé");
         content.addChild("baz").setProperty("foo", "chevaux");
@@ -902,7 +901,6 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
                     .setProperty(JCR_DATA, "l\nm\nt\nqu\nn\ns\nj\nd\nc\njusqu\nquoiqu\nlorsqu\npuisqu");
             addFilter(filters, "FrenchLightStem");
         });
-
 
         Tree content = root.getTree("/").addChild("content");
         content.addChild("bar").setProperty("foo", "mangé");
