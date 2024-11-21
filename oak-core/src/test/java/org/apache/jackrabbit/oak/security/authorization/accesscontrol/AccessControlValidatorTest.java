@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -478,12 +478,12 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
                 Map.of(),
-                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
+                Map.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
 
         // add ac-entry that only differs by the value of the restriction
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
                 Map.of(),
-                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
+                Map.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
         assertEquals(2, acl.getAccessControlEntries().length);
 
         acMgr.setPolicy(testPath, acl);

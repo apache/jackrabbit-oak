@@ -23,7 +23,6 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -81,7 +80,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
                 AppConfigurationEntry testEntry = new AppConfigurationEntry(
                         TestLoginModule.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        ImmutableMap.of("credsSupport", credentialsSupport));
+                        Map.of("credsSupport", credentialsSupport));
 
                 AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
                         LoginModuleImpl.class.getName(),

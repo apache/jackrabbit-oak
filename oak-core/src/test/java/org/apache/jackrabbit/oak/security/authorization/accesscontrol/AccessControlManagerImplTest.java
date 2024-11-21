@@ -209,7 +209,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (String v : values) {
             list.add(valueFactory.createValue(v, PropertyType.NAME));
         }
-        return ImmutableMap.of(name, list.toArray(new Value[0]));
+        return Map.of(name, list.toArray(new Value[0]));
     }
 
     @NotNull
@@ -868,7 +868,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void testGetPoliciesLimitsPrincipalLookup() throws Exception {
         ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
         policy.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ));
-        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("")));
+        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, Map.of(REP_GLOB, getValueFactory(root).createValue("")));
         policy.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE));
         acMgr.setPolicy(policy.getPath(), policy);
 

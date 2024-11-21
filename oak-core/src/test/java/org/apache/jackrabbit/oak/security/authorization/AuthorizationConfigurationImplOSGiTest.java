@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
@@ -74,7 +73,7 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
         mip = when(mock(MountInfoProvider.class).hasNonDefaultMounts()).thenReturn(true).getMock();
         context.registerService(MountInfoProvider.class, mip);
 
-        Map options = ImmutableMap.of(PARAM_ADMINISTRATIVE_PRINCIPALS, "administrators");
+        Map options = Map.of(PARAM_ADMINISTRATIVE_PRINCIPALS, "administrators");
         context.registerInjectActivateService(authorizationConfiguration, options);
     }
 

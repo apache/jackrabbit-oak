@@ -42,6 +42,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
@@ -197,7 +198,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true,
                     Collections.emptyMap(),
-                    ImmutableMap.of (AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                    Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                                             vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME)}));
             acMgr.setPolicy(acl.getPath(), acl);
             root.commit();

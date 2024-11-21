@@ -78,7 +78,7 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
     @Test
     public void testAddEntryWithSingleValueRestriction() throws Exception {
         String jcrGlobName = getNamePathMapper().getJcrName(REP_GLOB);
-        Map<String, Value> rest = ImmutableMap.of(jcrGlobName, getValueFactory(root).createValue("*"));
+        Map<String, Value> rest = Map.of(jcrGlobName, getValueFactory(root).createValue("*"));
         assertTrue(acl.addEntry(testPrincipal, privs, false, rest));
 
         List<ACE> entries = acl.getEntries();
@@ -91,7 +91,7 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
     public void testAddEntryWithMVRestriction() throws Exception {
         String jcrItemNames = getNamePathMapper().getJcrName(REP_ITEM_NAMES);
         Value[] valArray = new Value[] {getValueFactory(root).createValue("myItemName", PropertyType.NAME)};
-        Map<String, Value[]> rest = ImmutableMap.of(jcrItemNames, valArray);
+        Map<String, Value[]> rest = Map.of(jcrItemNames, valArray);
         assertTrue(acl.addEntry(testPrincipal, privs, false, null, rest));
 
         List<ACE> entries = acl.getEntries();

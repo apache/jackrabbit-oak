@@ -39,6 +39,8 @@ import org.junit.Test;
 import javax.jcr.PropertyType;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
+
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -62,7 +64,7 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
             "longs", new RestrictionDefinitionImpl("longs", Type.LONGS, false)
     ));
 
-    private RestrictionProvider rp3 = new TestProvider(ImmutableMap.of(
+    private RestrictionProvider rp3 = new TestProvider(Map.of(
             "string", new RestrictionDefinitionImpl("string", Type.STRING, false)),
             true
     );

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -69,7 +68,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
         if (acl != null) {
-            Map<String, Value[]> restrictions = ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue(propertyName, PropertyType.NAME)});
+            Map<String, Value[]> restrictions = Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue(propertyName, PropertyType.NAME)});
             acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.REP_READ_PROPERTIES), true, null, restrictions);
             acMgr.setPolicy(acl.getPath(), acl);
         }
@@ -86,7 +85,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, node.getPath());
         if (acl != null) {
-            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
+            Map<String, Value> restrictions = Map.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
             acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_ALL), true, restrictions);
             acm.setPolicy(acl.getPath(), acl);
             root.commit();
@@ -109,10 +108,10 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, node.getPath());
         if (acl != null) {
-            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
+            Map<String, Value> restrictions = Map.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ALL), true, restrictions);
 
-            restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue("/"+NodeTypeConstants.JCR_PRIMARYTYPE));
+            restrictions = Map.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue("/"+NodeTypeConstants.JCR_PRIMARYTYPE));
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES), true, restrictions);
 
             acm.setPolicy(acl.getPath(), acl);

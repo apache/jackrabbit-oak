@@ -31,7 +31,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -187,7 +186,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             tokenInfo = createToken(uid, attributes);
             if (tokenInfo != null) {
                 // also set the new token to the credentials.
-                if (!credentialsSupport.setAttributes(creds, ImmutableMap.of(TOKEN_ATTRIBUTE, tokenInfo.getToken()))) {
+                if (!credentialsSupport.setAttributes(creds, Map.of(TOKEN_ATTRIBUTE, tokenInfo.getToken()))) {
                     log.debug("Cannot set token attribute to {}", creds);
                 }
             }

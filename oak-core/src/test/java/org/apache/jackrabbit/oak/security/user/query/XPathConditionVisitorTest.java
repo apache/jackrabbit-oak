@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.Map;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -39,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 
 public class XPathConditionVisitorTest extends AbstractSecurityTest {
 
-    private static final Map<String, String> LOCAL = ImmutableMap.of("rcj", "http://www.jcp.org/jcr/1.0");
+    private static final Map<String, String> LOCAL = Map.of("rcj", "http://www.jcp.org/jcr/1.0");
 
     private static final String REL_PATH = "r'e/l/path";
     private static final String SERACH_EXPR = "s%e\\%arch\\E[:]xpr";

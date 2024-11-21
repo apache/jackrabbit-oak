@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
@@ -62,7 +61,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void asyncReg() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"}
         );
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -110,7 +109,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void changeCollectionEnabled() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"}
         );
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider());

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -67,6 +66,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -506,7 +506,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
         acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
-        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("/*/jcr:content")));
+        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, Map.of(REP_GLOB, getValueFactory(root).createValue("/*/jcr:content")));
         acMgr.setPolicy(childPath, acl);
         root.commit();
 
