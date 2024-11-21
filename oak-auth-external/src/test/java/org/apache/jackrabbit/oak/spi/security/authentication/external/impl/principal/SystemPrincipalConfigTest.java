@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -77,7 +76,7 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
     @Override
     public void before() throws Exception {
         super.before();
-        context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, new DefaultSyncHandler(), Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         workspaceName = root.getContentSession().getWorkspaceName();
 
         systemPrincipalConfig = (systemUserNames == null) ? new SystemPrincipalConfig(Collections.emptySet()) : new SystemPrincipalConfig(systemUserNames);

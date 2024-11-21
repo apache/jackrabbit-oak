@@ -338,7 +338,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         when(idp.authenticate(creds)).thenReturn(new TestIdentityProvider.TestUser(ID_TEST_USER, DEFAULT_IDP_NAME));
         when(((CredentialsSupport) idp).getUserId(any(Credentials.class))).thenReturn(ID_TEST_USER);
         when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(Set.of(ImpersonationCredentials.class));
-        Map attr = ImmutableMap.of("attr","value");
+        Map attr = Map.of("attr","value");
         when(((CredentialsSupport) idp).getAttributes(creds)).thenReturn(attr);
         when(((CredentialsSupport) idp).getAttributes(sc)).thenReturn(Collections.emptyMap());
 

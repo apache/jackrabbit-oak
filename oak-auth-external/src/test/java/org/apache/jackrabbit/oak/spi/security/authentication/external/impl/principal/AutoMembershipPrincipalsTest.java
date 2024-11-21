@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
@@ -265,7 +264,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
 
     @Test
     public void testIsInheritedMemberConfiguredUser() throws Exception {
-        Map<String, String[]> mapping = ImmutableMap.of(IDP_INVALID_AM, new String[] {getTestUser().getID()});
+        Map<String, String[]> mapping = Map.of(IDP_INVALID_AM, new String[] {getTestUser().getID()});
         AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(userManager, mapping, Collections.emptyMap());
         assertFalse(amprincipals.isInheritedMember(IDP_INVALID_AM, getTestGroup(), authorizable));
     }

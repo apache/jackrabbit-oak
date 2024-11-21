@@ -27,7 +27,6 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -112,7 +111,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
 
     static final class IDP implements ExternalIdentityProvider, CredentialsSupport {
 
-        private final Map<String, Object> attributes = Maps.newHashMap(ImmutableMap.of("a", "a"));
+        private final Map<String, Object> attributes = Maps.newHashMap(Map.of("a", "a"));
 
         @NotNull
         @Override
