@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.22.21-SNAPSHOT</version>
+  <version>1.22.22-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1715330780</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1725794280</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
@@ -231,6 +231,8 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.util</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.monitor</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
+                  <!-- OAK-10838: we can't control the package version for the EOLd copy of lucene-core -->
+                  <filter>!org.apache.lucene.*</filter>
                   <filter>*</filter>
                 </filters>
               </configuration>
@@ -590,7 +592,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.17.0</version>
+        <version>1.17.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

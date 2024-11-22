@@ -43,7 +43,7 @@ public class MongoDockerRule extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDockerRule.class);
 
-    private static final String VERSION = System.getProperty("mongo.version", "4.4");
+    private static final String VERSION = System.getProperty("mongo.version", "5.0");
     private static final String MONGO_IMAGE = "mongo:" + VERSION;
     private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
     private static final int DEFAULT_MONGO_PORT = 27017;
