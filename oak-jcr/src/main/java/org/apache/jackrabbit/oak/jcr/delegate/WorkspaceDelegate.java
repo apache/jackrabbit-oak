@@ -25,7 +25,6 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -103,7 +102,7 @@ public class WorkspaceDelegate {
     //---------------------------< internal >-----------------------------------
 
     private static final class WorkspaceCopy {
-        private final Map<String, String> translated = Maps.newHashMap();
+        private final Map<String, String> translated = new HashMap<>();
 
         private final Tree source;
         private final Tree destParent;

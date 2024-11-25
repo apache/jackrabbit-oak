@@ -43,13 +43,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -85,8 +85,6 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class IndexUpdateTest {
 
@@ -660,7 +658,7 @@ public class IndexUpdateTest {
     }
 
     private static class CallbackCapturingProvider extends PropertyIndexEditorProvider {
-        private Map<String, IndexingContext> callbacks = Maps.newHashMap();
+        private Map<String, IndexingContext> callbacks = new HashMap<>();
         IndexUpdateCallback callback;
 
         @Override

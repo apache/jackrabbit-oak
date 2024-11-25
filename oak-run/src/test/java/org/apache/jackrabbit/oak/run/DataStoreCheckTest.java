@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -152,7 +153,7 @@ public class DataStoreCheckTest {
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
         blobsAdded = new HashSet<>();
-        blobsAddedWithNodes = Maps.newHashMap();
+        blobsAddedWithNodes = new HashMap<>();
 
         for (int i = 0; i < numBlobs; i++) {
             SegmentBlob b = (SegmentBlob) store.createBlob(randomStream(i, 18342));

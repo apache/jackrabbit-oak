@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -83,7 +82,7 @@ public class LuceneDocumentHolderTest {
     private static class DummyQueue implements IndexingQueue {
         boolean enabled;
         ListMultimap<String, String> docs = ArrayListMultimap.create();
-        Map<String, LuceneDoc> luceneDocs = Maps.newHashMap();
+        Map<String, LuceneDoc> luceneDocs = new HashMap<>();
 
         @Override
         public boolean addIfNotFullWithoutWait(LuceneDoc doc) {

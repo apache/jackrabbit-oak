@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
@@ -125,7 +125,7 @@ public class IndexAugmentorFactory {
             }
         }
 
-        Map<String, CompositeIndexFieldProvider> providerMap = Maps.newHashMap();
+        Map<String, CompositeIndexFieldProvider> providerMap = new HashMap<>();
         for (String nodeType : providerMultimap.keySet()) {
             List<IndexFieldProvider> providers = providerMultimap.get(nodeType);
             CompositeIndexFieldProvider compositeIndexFieldProvider =
@@ -146,7 +146,7 @@ public class IndexAugmentorFactory {
             }
         }
 
-        Map<String, CompositeFulltextQueryTermsProvider> providerMap = Maps.newHashMap();
+        Map<String, CompositeFulltextQueryTermsProvider> providerMap = new HashMap<>();
         for (String nodeType : providerMultimap.keySet()) {
             List<FulltextQueryTermsProvider> providers = providerMultimap.get(nodeType);
             CompositeFulltextQueryTermsProvider compositeFulltextQueryTermsProvider =

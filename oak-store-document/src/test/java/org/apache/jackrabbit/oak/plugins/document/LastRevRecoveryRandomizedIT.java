@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -63,11 +62,11 @@ public class LastRevRecoveryRandomizedIT {
 
     private DocumentNodeStore ns;
 
-    private Map<String, NodeState> currentState = Maps.newHashMap();
+    private Map<String, NodeState> currentState = new HashMap<>();
 
     private DocumentRootBuilder builder;
 
-    private Map<String, NodeState> pending = Maps.newHashMap();
+    private Map<String, NodeState> pending = new HashMap<>();
 
     private int counter = 0;
 
@@ -261,7 +260,7 @@ public class LastRevRecoveryRandomizedIT {
                 .setClusterId(ns.getClusterId())
                 .clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(s).setAsyncDelay(0).getNodeStore();
-        Map<String, NodeState> states = Maps.newHashMap(currentState);
+        Map<String, NodeState> states = new HashMap<>(currentState);
         NodeState root = dns.getRoot().getChildNode("root");
         compareAndTraverse(root, "/root", states);
         assertTrue("missing nodes: " + states.keySet() + " (seed=" + SEED + ")",

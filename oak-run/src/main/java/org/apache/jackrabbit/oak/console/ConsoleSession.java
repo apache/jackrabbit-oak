@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.console;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  */
 public class ConsoleSession {
 
-    private final Map<String, Object> context = Maps.newHashMap();
+    private final Map<String, Object> context = new HashMap<>();
 
     private final NodeStore store;
     private final Whiteboard whiteboard;

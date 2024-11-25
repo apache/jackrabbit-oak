@@ -228,7 +228,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
                         AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
 
-        Map<String, Object> userMap = ImmutableMap.<String,Object>of(
+        Map<String, Object> userMap = ImmutableMap.of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
                 UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName,
                 UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, userAuthenticationFactory);

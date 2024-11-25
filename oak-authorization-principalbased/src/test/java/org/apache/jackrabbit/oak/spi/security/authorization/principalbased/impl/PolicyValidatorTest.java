@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -404,7 +403,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     @Test
     public void testAddRestrictionWithDifferentACE() throws Exception {
         // validator must not complain about adding restrictions to a different authorization model
-        Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
+        Map<String, Value> restr = Map.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
         addDefaultEntry(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), restr, null, JCR_LIFECYCLE_MANAGEMENT);
         root.commit();
     }

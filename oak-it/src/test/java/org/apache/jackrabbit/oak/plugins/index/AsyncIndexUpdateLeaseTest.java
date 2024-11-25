@@ -44,8 +44,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
     private final String name = "async";

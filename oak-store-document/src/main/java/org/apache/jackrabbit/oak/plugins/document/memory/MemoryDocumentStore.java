@@ -105,9 +105,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     public MemoryDocumentStore(boolean maintainModCount) {
-        metadata = ImmutableMap.<String,String>builder()
-                        .put("type", "memory")
-                        .build();
+        metadata = Map.of("type", "memory");
         this.maintainModCount = maintainModCount;
     }
 

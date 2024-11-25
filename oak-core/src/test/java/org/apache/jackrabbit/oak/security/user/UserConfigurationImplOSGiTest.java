@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -34,6 +33,7 @@ import org.osgi.framework.ServiceRegistration;
 
 import java.lang.reflect.Field;
 import java.util.Hashtable;
+import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_DEFAULT_DEPTH;
 import static org.junit.Assert.assertEquals;
@@ -53,7 +53,7 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
     @Test
     public void testActivate() {
         UserConfiguration userConfiguration = new UserConfigurationImpl(getSecurityProvider());
-        context.registerInjectActivateService(userConfiguration, ImmutableMap.of(PARAM_DEFAULT_DEPTH, "8"));
+        context.registerInjectActivateService(userConfiguration, Map.of(PARAM_DEFAULT_DEPTH, "8"));
 
         ConfigurationParameters params = userConfiguration.getParameters();
         assertEquals(8, params.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH).intValue());
@@ -92,7 +92,7 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
     @Test
     public void testBindBlobAccessProvider() throws Exception {
         UserConfigurationImpl uc = new UserConfigurationImpl(getSecurityProvider());
-        context.registerInjectActivateService(uc, ImmutableMap.of(PARAM_DEFAULT_DEPTH, "8"));
+        context.registerInjectActivateService(uc, Map.of(PARAM_DEFAULT_DEPTH, "8"));
 
         BlobAccessProvider bap = mock(BlobAccessProvider.class);
         uc.getUserManager(root, getNamePathMapper());

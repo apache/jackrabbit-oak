@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -33,6 +32,7 @@ import org.junit.Test;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -57,7 +57,7 @@ public class CurrentRestrictionTest extends AbstractRestrictionTest {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a/d/b/e/c");
         acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ), true,
                 Collections.emptyMap(),
-                ImmutableMap.of(AccessControlConstants.REP_CURRENT, new Value[] {
+                Map.of(AccessControlConstants.REP_CURRENT, new Value[] {
                         vf.createValue(JCR_PRIMARYTYPE),
                         vf.createValue(JCR_MIXINTYPES)}));
         acMgr.setPolicy(acl.getPath(), acl);

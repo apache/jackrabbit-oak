@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -231,7 +231,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
 
             OsgiContextImpl context = new OsgiContextImpl();
             // register the filter provider to get it's activate method invoked
-            Map<String, Object> props = ImmutableMap.of("path", PathUtils.concat(UserConstants.DEFAULT_USER_PATH, UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH));
+            Map<String, Object> props = Map.of("path", PathUtils.concat(UserConstants.DEFAULT_USER_PATH, UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH));
             context.registerInjectActivateService(new FilterProviderImpl(), props);
 
             // register mountinfo-provider

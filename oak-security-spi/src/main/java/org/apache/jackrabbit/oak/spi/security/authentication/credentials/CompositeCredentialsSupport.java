@@ -25,8 +25,6 @@ import java.util.function.Supplier;
 
 import javax.jcr.Credentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,7 +81,7 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         if (all.isEmpty()) {
-            return ImmutableMap.of();
+            return Map.of();
         } else if (all.size() == 1) {
             return all.iterator().next().getAttributes(credentials);
         } else {

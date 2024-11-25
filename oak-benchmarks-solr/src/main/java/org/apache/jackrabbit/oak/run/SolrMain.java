@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 import org.apache.jackrabbit.oak.run.commons.Utils;
 
 import static java.util.Arrays.copyOfRange;
 
+import java.util.Map;
+
 public class SolrMain {
 
-    private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
+    private static final Modes MODES = new Modes(Map.of(
             "benchmark", new BenchmarkSolrCommand()
     ));
 

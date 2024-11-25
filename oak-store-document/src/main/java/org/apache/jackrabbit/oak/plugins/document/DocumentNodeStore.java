@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -138,10 +139,8 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -552,7 +551,7 @@ public final class DocumentNodeStore
      * reverts changes done by commits in the set that are older than the
      * current head revision.
      */
-    private final Set<Revision> inDoubtTrunkCommits = Sets.newConcurrentHashSet();
+    private final Set<Revision> inDoubtTrunkCommits = CollectionUtils.newConcurrentHashSet();
 
     /**
      * Contains journal entry revisions (branch commit style) that were created
@@ -561,7 +560,7 @@ public final class DocumentNodeStore
      * upon each backgroundWrite. It is used to avoid duplicate journal entries
      * that would otherwise be created as a result of merge (normal plus exclusive) retries
      */
-    private final Set<String> pendingRollbackInvalidations = Sets.newConcurrentHashSet();
+    private final Set<String> pendingRollbackInvalidations = CollectionUtils.newConcurrentHashSet();
 
     private final Predicate<Path> nodeCachePredicate;
 
@@ -1961,7 +1960,7 @@ public final class DocumentNodeStore
         revs.addAll(b.getCommits().tailSet(ancestorRev));
         UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath(ROOT), false);
         // reset each branch commit in reverse order
-        Map<Path, UpdateOp> operations = Maps.newHashMap();
+        Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
         for (Revision r : reverse(revs)) {
             operations.clear();
@@ -2575,7 +2574,7 @@ public final class DocumentNodeStore
         CommitContext commitContext = new SimpleCommitContext();
         commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
         journalPropertyHandler.addTo(commitContext);
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        Map<String, Object> info = Map.of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info, true);
     }
 

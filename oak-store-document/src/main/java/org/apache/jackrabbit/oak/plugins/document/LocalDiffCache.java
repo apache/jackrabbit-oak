@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -78,7 +77,7 @@ public class LocalDiffCache extends DiffCache {
                           final @NotNull RevisionVector to,
                           boolean local /*ignored*/) {
         return new Entry() {
-            private final Map<Path, String> changesPerPath = Maps.newHashMap();
+            private final Map<Path, String> changesPerPath = new HashMap<>();
             private long size;
             @Override
             public void append(@NotNull Path path, @NotNull String changes) {
@@ -131,7 +130,7 @@ public class LocalDiffCache extends DiffCache {
         }
 
         public static Diff fromString(String value) {
-            Map<Path, String> map = Maps.newHashMap();
+            Map<Path, String> map = new HashMap<>();
             JsopReader reader = new JsopTokenizer(value);
             while (true) {
                 if (reader.matches(JsopReader.END)) {

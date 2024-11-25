@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -58,9 +58,9 @@ public class DefaultSyncConfigTest {
         assertNotNull(mapping);
         assertTrue(mapping.isEmpty());
 
-        assertSame(authorizableConfig, authorizableConfig.setPropertyMapping(ImmutableMap.of("a", "b")));
-        assertEquals(ImmutableMap.of("a", "b"), authorizableConfig.getPropertyMapping());
-        assertEquals(ImmutableMap.of(), authorizableConfig.setPropertyMapping(null).getPropertyMapping());
+        assertSame(authorizableConfig, authorizableConfig.setPropertyMapping(Map.of("a", "b")));
+        assertEquals(Map.of("a", "b"), authorizableConfig.getPropertyMapping());
+        assertEquals(Map.of(), authorizableConfig.setPropertyMapping(null).getPropertyMapping());
 
         assertEquals(0, authorizableConfig.getExpirationTime());
         assertSame(authorizableConfig, authorizableConfig.setExpirationTime(Long.MAX_VALUE));

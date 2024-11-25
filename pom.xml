@@ -94,6 +94,7 @@
         <configuration>
           <excludes>
             <exclude>release.properties</exclude>
+            <exclude>CONTRIBUTING.md</exclude>
             <exclude>.git/**</exclude>
             <exclude>.idea/**</exclude>
             <exclude>.gitignore</exclude>

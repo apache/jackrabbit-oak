@@ -41,7 +41,7 @@ public class IndexMBeanRegistration implements Registration {
 
     public void registerAsyncIndexer(AsyncIndexUpdate task, long delayInSeconds) {
         task.setIndexMBeanRegistration(this);
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
+        Map<String, Object> config = ImmutableMap.of(
                 AsyncIndexUpdate.PROP_ASYNC_NAME, task.getName(),
                 "scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName()
         );

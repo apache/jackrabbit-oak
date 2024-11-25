@@ -145,10 +145,8 @@ public class LuceneIndexDefinition extends IndexDefinition {
         if (!evaluatePathRestrictions()){
             result = defaultAnalyzer;
         } else {
-            Map<String, Analyzer> analyzerMap = ImmutableMap.<String, Analyzer>builder()
-                    .put(FieldNames.ANCESTORS,
-                            new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())))
-                    .build();
+            Map<String, Analyzer> analyzerMap = Map.of(
+                    FieldNames.ANCESTORS, new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())));
             result = new PerFieldAnalyzerWrapper(defaultAnalyzer, analyzerMap);
         }
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
@@ -34,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -821,13 +820,13 @@ public class LuceneIndexProviderService {
             log.info("PropertyIndexCleaner configured to perform recursive delete");
         }
         oakRegs.add(scheduleWithFixedDelay(whiteboard, cleaner,
-                ImmutableMap.of("scheduler.name", PropertyIndexCleaner.class.getName()),
+                Map.of("scheduler.name", PropertyIndexCleaner.class.getName()),
                 cleanerInterval, true, true));
         log.info("Property index cleaner configured to run every [{}] seconds", cleanerInterval);
     }
 
     private void registerLuceneFileSystemStats(LuceneIndexFileSystemStatistics luceneIndexFSStats, long delayInSeconds) {
-        Map<String, Object> config = ImmutableMap.of(
+        Map<String, Object> config = Map.of(
                 "scheduler.name", LuceneIndexFileSystemStatistics.class.getName()
         );
         oakRegs.add(scheduleWithFixedDelay(whiteboard, luceneIndexFSStats, config, delayInSeconds, false, true));

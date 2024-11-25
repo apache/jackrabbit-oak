@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -129,7 +128,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
         TokenProvider tp = tc.getTokenProvider(root);
         assertFalse(tp.doCreateToken(creds));
 
-        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
+        Map attMap = Map.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
         when(cs.getAttributes(creds)).thenReturn(attMap);
         assertTrue(tp.doCreateToken(creds));
 
@@ -151,7 +150,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
         TokenProvider tp = tc.getTokenProvider(root);
         assertFalse(tp.doCreateToken(creds));
 
-        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
+        Map attMap = Map.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
         when(cs.getAttributes(creds)).thenReturn(attMap);
         assertTrue(tp.doCreateToken(creds));
 

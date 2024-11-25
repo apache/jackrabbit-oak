@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Map;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -36,7 +38,7 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         new InitialContent().initialize(builder);
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(Map.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",
@@ -55,7 +57,7 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         mk.getNodeStore().merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(Map.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",

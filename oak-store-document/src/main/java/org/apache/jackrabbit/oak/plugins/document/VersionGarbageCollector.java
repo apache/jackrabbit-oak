@@ -667,7 +667,7 @@ public class VersionGarbageCollector {
         final Stopwatch elapsed;
         private final GCMonitor monitor;
         private final List<GCPhase> phases = new ArrayList<>();
-        private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
+        private final Map<GCPhase, Stopwatch> watches = new HashMap<>();
         private final AtomicBoolean canceled;
 
         GCPhases(AtomicBoolean canceled, VersionGCStats stats, GCMonitor monitor) {

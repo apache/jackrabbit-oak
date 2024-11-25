@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -544,7 +544,7 @@ public class SharedDataStoreUtilsTest {
     private static void assertRecords(Set<DataRecord> expected, Set<DataRecord> retrieved)
         throws DataStoreException, IOException {
         //assert streams
-        Map<DataIdentifier, DataRecord> retMap = Maps.newHashMap();
+        Map<DataIdentifier, DataRecord> retMap = new HashMap<>();
         for (DataRecord ret : retrieved) {
             retMap.put(ret.getIdentifier(), ret);
         }

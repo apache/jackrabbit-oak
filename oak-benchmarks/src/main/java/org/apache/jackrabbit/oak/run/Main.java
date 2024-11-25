@@ -25,7 +25,7 @@ import static java.util.Arrays.copyOfRange;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 public final class Main {
-    private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
+    private static final Modes MODES = new Modes(ImmutableMap.of(
         "benchmark", new BenchmarkCommand(),
         "scalability", new ScalabilityCommand()
     ));

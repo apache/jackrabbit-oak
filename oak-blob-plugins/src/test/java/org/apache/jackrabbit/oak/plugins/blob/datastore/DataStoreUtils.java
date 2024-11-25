@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -75,7 +76,7 @@ public class DataStoreUtils {
     }
 
     public static Map<String, ?> getConfig() {
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = new HashMap<>();
         for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
             String key = e.getKey();
             if (key.startsWith(DS_PROP_PREFIX) || key.startsWith(BS_PROP_PREFIX)) {

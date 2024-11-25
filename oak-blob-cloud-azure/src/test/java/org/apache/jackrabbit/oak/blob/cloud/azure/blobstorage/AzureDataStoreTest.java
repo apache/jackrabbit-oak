@@ -28,7 +28,6 @@ import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.StorageException;
 
 import org.apache.commons.io.IOUtils;
@@ -61,6 +60,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -444,7 +444,7 @@ public class AzureDataStoreTest {
     @Test
     public void testBackendGetAllRecordsReturnsAll() throws DataStoreException, IOException {
         for (int recCount : List.of(0, 1, 2, 5)) {
-            Map<DataIdentifier, String> addedRecords = Maps.newHashMap();
+            Map<DataIdentifier, String> addedRecords = new HashMap<>();
             if (0 < recCount) {
                 for (int i = 0; i < recCount; i++) {
                     String data = String.format("testData%d", i);
@@ -481,7 +481,7 @@ public class AzureDataStoreTest {
         for (boolean fromInputStream : List.of(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
             for (int count : List.of(1, 3)) {
-                Map<String, String> records = Maps.newHashMap();
+                Map<String, String> records = new HashMap<>();
                 for (int i = 0; i < count; i++) {
                     String recordName = String.format("%sname.%d", prefix, i);
                     String data = String.format("testData%d", i);
@@ -671,7 +671,7 @@ public class AzureDataStoreTest {
         String prefixOne = "prefix1.prefix3";
         String prefixNone = "prefix4";
 
-        Map<String, Integer> prefixCounts = Maps.newHashMap();
+        Map<String, Integer> prefixCounts = new HashMap<>();
         prefixCounts.put(prefixAll, 4);
         prefixCounts.put(prefixSome, 2);
         prefixCounts.put(prefixOne, 1);

@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache.Diff;
@@ -83,7 +81,7 @@ public class LocalDiffCacheTest {
 
     @Test
     public void diffFromAsString() {
-        Map<Path, String> changes = Maps.newHashMap();
+        Map<Path, String> changes = new HashMap<>();
         changes.put(Path.ROOT, "+\"foo\":{}^\"bar\":{}-\"baz\"");
         changes.put(Path.fromString("/foo"), "");
         changes.put(Path.fromString("/bar"), "+\"qux\"");

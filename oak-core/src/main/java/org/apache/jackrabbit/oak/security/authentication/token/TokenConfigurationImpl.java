@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -104,7 +103,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     private final Map<String, CredentialsSupport> credentialsSupport = new ConcurrentHashMap<>(
-            ImmutableMap.of(SimpleCredentialsSupport.class.getName(), SimpleCredentialsSupport.getInstance()));
+            Map.of(SimpleCredentialsSupport.class.getName(), SimpleCredentialsSupport.getInstance()));
 
     @SuppressWarnings("UnusedDeclaration")
     public TokenConfigurationImpl() {

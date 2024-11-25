@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>9.0.90</tomcat.version>
+    <tomcat.version>9.0.97</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 

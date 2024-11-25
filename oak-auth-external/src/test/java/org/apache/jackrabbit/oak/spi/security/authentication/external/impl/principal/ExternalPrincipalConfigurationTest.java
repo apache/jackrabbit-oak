@@ -343,11 +343,11 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testAddingSyncHandler() {
-        Map<String, Object> enableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
-        Map<String, Object> disableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
+        Map<String, Object> enableProps =  Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
+        Map<String, Object> disableProps =  Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
 
         SyncHandler sh = new DefaultSyncHandler();
-        context.registerService(SyncHandler.class, sh, ImmutableMap.of());
+        context.registerService(SyncHandler.class, sh, Map.of());
         assertIsEnabled(externalPrincipalConfiguration, false);
 
         context.registerService(SyncHandler.class, sh, disableProps);
@@ -362,10 +362,10 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testAddingCustomSyncHandler() {
-        Map<String, Object> enableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
+        Map<String, Object> enableProps =  Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
 
         SyncHandler sh = new TestSyncHandler();
-        context.registerService(SyncHandler.class, sh, ImmutableMap.of());
+        context.registerService(SyncHandler.class, sh, Map.of());
         assertIsEnabled(externalPrincipalConfiguration, false);
 
         context.registerService(SyncHandler.class, sh, enableProps);
@@ -374,8 +374,8 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testRemoveSyncHandler() {
-        Dictionary<String, Object> enableProps = MapUtil.toDictionary(ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        Dictionary<String, Object> disableProps =  MapUtil.toDictionary(ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+        Dictionary<String, Object> enableProps = MapUtil.toDictionary(Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        Dictionary<String, Object> disableProps =  MapUtil.toDictionary(Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
         DefaultSyncHandler sh = new DefaultSyncHandler();
         BundleContext bundleContext = context.bundleContext();

@@ -30,6 +30,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 
 /**
@@ -304,7 +304,7 @@ public class AbstractDataStoreCacheTest {
     // A mock Backend implementation that uses a Map to keep track of what
     // records have been added and removed, for test purposes only.
     static class TestMemoryBackend extends AbstractSharedBackend {
-        final Map<DataIdentifier, File> _backend = Maps.newHashMap();
+        final Map<DataIdentifier, File> _backend = new HashMap<>();
         private final File root;
 
         public TestMemoryBackend(File root) {

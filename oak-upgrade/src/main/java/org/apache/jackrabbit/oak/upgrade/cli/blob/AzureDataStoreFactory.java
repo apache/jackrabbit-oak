@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -111,7 +112,7 @@ public class AzureDataStoreFactory implements BlobStoreFactory {
 
     static AzureDataStore createDS(String directory, Properties props) {
         Properties strippedProperties = new Properties();
-        Map<String, String> map = Maps.newHashMap();
+        Map<String, String> map = new HashMap<>();
 
         // Default path value as-per OAK-6632
         if(StringUtils.isEmpty(directory) && !map.containsKey("path")) {

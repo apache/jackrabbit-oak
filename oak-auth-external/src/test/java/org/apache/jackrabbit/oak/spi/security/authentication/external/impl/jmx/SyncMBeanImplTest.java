@@ -198,7 +198,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     public void testSyncGroups() throws Exception {
         sync(idp, "a", true);
 
-        Map<String, String> expected = ImmutableMap.of("a", "upd");
+        Map<String, String> expected = Map.of("a", "upd");
         syncConfig.group().setExpirationTime(Long.MAX_VALUE);
 
         // force group sync is true by default => exp time is ignored

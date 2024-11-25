@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -57,7 +58,7 @@ public class Document implements CacheValue {
     /**
      * The data of this document.
      */
-    protected Map<String, Object> data = Maps.newHashMap();
+    protected Map<String, Object> data = new HashMap<>();
 
     /**
      * Whether this document is sealed (immutable data).

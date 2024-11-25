@@ -149,7 +149,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             boolean skipOnError
     ) throws RepositoryException {
 
-        final Map<NodeId, JackrabbitNodeState> emptyMountPoints = ImmutableMap.of();
+        final Map<NodeId, JackrabbitNodeState> emptyMountPoints = Map.of();
         final PersistenceManager versionPM = context.getInternalVersionManager().getPersistenceManager();
         final JackrabbitNodeState versionStorage = new JackrabbitNodeState(
                 versionPM, root, uriToPrefix,

@@ -807,7 +807,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             markFailingIndexesAsCorrupt(builder);
 
             CommitInfo info = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                    ImmutableMap.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
+                    Map.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
             indexUpdate =
                     new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler)
                             .withMissingProviderStrategy(missingStrategy);
@@ -960,7 +960,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 

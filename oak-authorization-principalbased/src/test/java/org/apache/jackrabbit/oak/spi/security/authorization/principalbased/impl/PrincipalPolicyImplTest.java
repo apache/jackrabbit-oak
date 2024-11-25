@@ -149,11 +149,11 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     }
 
     private Map<String, Value> createGlobRestriction(@NotNull String value) {
-        return ImmutableMap.of(getJcrName(REP_GLOB), getValueFactory(root).createValue(value));
+        return Map.of(getJcrName(REP_GLOB), getValueFactory(root).createValue(value));
     }
 
     private Map<String, Value> createRestrictions(@NotNull String oakName, @NotNull String value) {
-        return ImmutableMap.of(getJcrName(oakName), getValueFactory(root).createValue(value));
+        return Map.of(getJcrName(oakName), getValueFactory(root).createValue(value));
     }
 
     private Map<String, Value[]> createMvRestrictions(@NotNull String oakName, int propertyType, @NotNull String... values) throws ValueFormatException {
@@ -162,7 +162,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         for (int i = 0; i<values.length; i++) {
             vs[i] = vf.createValue(values[i], propertyType);
         }
-        return ImmutableMap.of(getJcrName(oakName), vs);
+        return Map.of(getJcrName(oakName), vs);
     }
 
     private String getJcrName(@NotNull String oakName) {
@@ -239,7 +239,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     @Test
     public void testAddEntriesWithRestrictionsForSamePath() throws Exception {
         assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES)));
-        assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), ImmutableMap.of(), createMvRestrictions(REP_ITEM_NAMES, PropertyType.NAME, "removable")));
+        assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), Map.of(), createMvRestrictions(REP_ITEM_NAMES, PropertyType.NAME, "removable")));
 
         PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(root);
 
@@ -260,8 +260,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddEntriesWithMultipleRestrictionsForSamePath() throws Exception {
-        assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), createGlobRestriction("/any*/glob"), ImmutableMap.of()));
-        assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), ImmutableMap.of(), createMvRestrictions(REP_ITEM_NAMES, PropertyType.NAME, "removable")));
+        assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), createGlobRestriction("/any*/glob"), Map.of()));
+        assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), Map.of(), createMvRestrictions(REP_ITEM_NAMES, PropertyType.NAME, "removable")));
 
         PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(root);
 
@@ -309,8 +309,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
         PrincipalPolicyImpl plc = new PrincipalPolicyImpl(principal, POLICY_OAK_PATH, mp);
         String jcrName = namePathMapper.getJcrName("oak:mandatory");
-        Map<String,Value[]> mvRestrictions = ImmutableMap.of(jcrName, new Value[] {getValueFactory(root).createValue(1)});
-        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), ImmutableMap.of(), mvRestrictions);
+        Map<String,Value[]> mvRestrictions = Map.of(jcrName, new Value[] {getValueFactory(root).createValue(1)});
+        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), Map.of(), mvRestrictions);
     }
 
     @Test(expected = AccessControlException.class)
@@ -323,8 +323,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
         PrincipalPolicyImpl plc = new PrincipalPolicyImpl(principal, POLICY_OAK_PATH, mp);
         String jcrName = namePathMapper.getJcrName("oak:mandatory");
-        Map<String,Value> svRestrictions = ImmutableMap.of(jcrName, getValueFactory(root).createValue(1));
-        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, ImmutableMap.of());
+        Map<String,Value> svRestrictions = Map.of(jcrName, getValueFactory(root).createValue(1));
+        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, Map.of());
     }
 
     @Test(expected = AccessControlException.class)
@@ -335,8 +335,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         when(mp.getNamePathMapper()).thenReturn(getNamePathMapper());
 
         PrincipalPolicyImpl plc = new PrincipalPolicyImpl(principal, POLICY_OAK_PATH, mp);
-        Map<String,Value> svRestrictions = ImmutableMap.of("oak:mandatory", getValueFactory(root).createValue(1));
-        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, ImmutableMap.of());
+        Map<String,Value> svRestrictions = Map.of("oak:mandatory", getValueFactory(root).createValue(1));
+        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, Map.of());
     }
 
     @Test
@@ -354,8 +354,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         when(mp.getPrivilegeBitsProvider()).thenReturn(new PrivilegeBitsProvider(root));
 
         PrincipalPolicyImpl plc = new PrincipalPolicyImpl(principal, POLICY_OAK_PATH, mp);
-        Map<String,Value> svRestrictions = ImmutableMap.of("mandatory", getValueFactory(root).createValue(1));
-        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, ImmutableMap.of());
+        Map<String,Value> svRestrictions = Map.of("mandatory", getValueFactory(root).createValue(1));
+        plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, Map.of());
 
         assertTrue(plc.getEntries().get(0).getRestrictions().contains(r));
     }

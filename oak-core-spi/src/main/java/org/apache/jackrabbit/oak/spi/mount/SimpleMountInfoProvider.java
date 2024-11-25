@@ -20,11 +20,11 @@ package org.apache.jackrabbit.oak.spi.mount;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * A simple and inefficient implementation to manage mount points
@@ -99,7 +99,7 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
     //~----------------------------------------< private >
 
     private static Map<String, Mount> getMounts(List<Mount> mountInfos) {
-        Map<String, Mount> mounts = Maps.newHashMap();
+        Map<String, Mount> mounts = new HashMap<>();
         for (Mount mi : mountInfos) {
             mounts.put(mi.getName(), mi);
         }

@@ -92,7 +92,6 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
@@ -1808,7 +1807,7 @@ public class RDBDocumentStore implements DocumentStore {
                 if (populateCache) {
                     nodesCache.putNonConflictingDocs(tracker, castAsNodeDocumentList(result));
                 } else {
-                    Map<String, ModificationStamp> invMap = Maps.newHashMap();
+                    Map<String, ModificationStamp> invMap = new HashMap<>();
                     for (Document doc : result) {
                         invMap.put(doc.getId(), new ModificationStamp(modcountOf(doc), modifiedOf(doc)));
                     }
@@ -2003,7 +2002,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> int delete(Collection<T> collection, Map<String, Long> toRemove) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
-        Map<String, Long> subMap = Maps.newHashMap();
+        Map<String, Long> subMap = new HashMap<>();
         Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, Long> entry = it.next();

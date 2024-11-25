@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.FullTextAnalyzerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
@@ -253,4 +254,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')", List.of("/content/bar")));
     }
 
+    @Test
+    @Ignore("not supported in elasticsearch since hunspell resources need to be available on the server")
+    @Override
+    public void fullTextWithHunspell() {}
 }

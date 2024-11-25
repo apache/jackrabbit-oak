@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,8 +30,6 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.lang.Long.parseLong;
 import static java.util.List.of;
@@ -84,7 +83,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
             @Override
             public void run() {
                 try {
-                    Map<Revision, Integer> previous = Maps.newHashMap();
+                    Map<Revision, Integer> previous = new HashMap<>();
                     while (running.get()) {
                         NodeDocument doc = docStore.find(NODES, id);
                         if (doc == null) {

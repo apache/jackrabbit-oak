@@ -28,6 +28,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -40,7 +41,6 @@ import org.junit.Test;
 import org.slf4j.event.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
@@ -122,7 +122,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         ds1.remove(Collection.NODES, ids);
 
         final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
-        final Map<String, NodeDocument> result1 = Maps.newHashMap();
+        final Map<String, NodeDocument> result1 = new HashMap<>();
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -146,7 +146,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                 }
             }
         }, "t1");
-        final Map<String, NodeDocument> result2 = Maps.newHashMap();
+        final Map<String, NodeDocument> result2 = new HashMap<>();
         Thread t2 = new Thread(new Runnable() {
             @Override
             public void run() {

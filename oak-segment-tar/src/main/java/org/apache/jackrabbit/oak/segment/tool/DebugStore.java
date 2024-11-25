@@ -25,6 +25,7 @@ import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -117,7 +117,7 @@ public class DebugStore {
     }
 
     private static void debugFileStore(ReadOnlyFileStore store) {
-        Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
+        Map<SegmentId, List<SegmentId>> idmap = new HashMap<>();
         int dataCount = 0;
         long dataSize = 0;
         int bulkCount = 0;

@@ -527,7 +527,7 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     public Map<Integer, Revision> getLastRev() {
-        Map<Integer, Revision> map = Maps.newHashMap();
+        Map<Integer, Revision> map = new HashMap<>();
         Map<Revision, String> valueMap = getLocalMap(LAST_REV);
         for (Map.Entry<Revision, String> e : valueMap.entrySet()) {
             int clusterId = e.getKey().getClusterId();
@@ -789,8 +789,8 @@ public final class NodeDocument extends Document {
                         changeRev, getId(), getLocalRevisions(), getLocalCommitRoot());
             }
         }
-        Map<Integer, Revision> newestRevs = Maps.newHashMap();
-        Map<Revision, String> validRevisions = Maps.newHashMap();
+        Map<Integer, Revision> newestRevs = new HashMap<>();
+        Map<Revision, String> validRevisions = new HashMap<>();
         for (Revision r : changes) {
             if (r.equals(changeRev)) {
                 continue;
@@ -999,7 +999,7 @@ public final class NodeDocument extends Document {
     public DocumentNodeState getNodeAtRevision(@NotNull DocumentNodeStore nodeStore,
                                                @NotNull RevisionVector readRevision,
                                                @Nullable Revision lastModified) {
-        Map<Revision, String> validRevisions = Maps.newHashMap();
+        Map<Revision, String> validRevisions = new HashMap<>();
         Branch branch = nodeStore.getBranches().getBranch(readRevision);
         LastRevs lastRevs = createLastRevs(readRevision,
                 nodeStore, branch, lastModified);

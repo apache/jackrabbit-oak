@@ -73,7 +73,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor.Guard;
 
@@ -271,7 +270,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         executor.start(whiteboard);
         final FilteringObserver filteringObserver = createObserver(executor);
         listenerId = COUNTER.incrementAndGet() + "";
-        Map<String, String> attrs = ImmutableMap.of(LISTENER_ID, listenerId);
+        Map<String, String> attrs = Map.of(LISTENER_ID, listenerId);
         String name = tracker.toString();
         registration = new CompositeRegistration(
             whiteboard.register(Observer.class, filteringObserver, emptyMap()),

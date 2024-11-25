@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newConcurrentHashSet;
 import static java.util.Collections.emptySet;
 
 import java.io.File;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +40,7 @@ public class CompositeIOMonitor implements IOMonitor {
      * @param ioMonitors  {@link IOMonitor} instances to delegate to
      */
     public CompositeIOMonitor(@NotNull Iterable<? extends IOMonitor> ioMonitors) {
-        this.ioMonitors = newConcurrentHashSet(requireNonNull(ioMonitors));
+        this.ioMonitors = CollectionUtils.newConcurrentHashSet(requireNonNull(ioMonitors));
     }
 
     /**

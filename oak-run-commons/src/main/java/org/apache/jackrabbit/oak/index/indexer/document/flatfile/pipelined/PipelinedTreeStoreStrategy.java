@@ -131,6 +131,10 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
     // Between 1 and 100
     public static final String OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE = "oak.indexer.pipelined.sortBufferMemoryPercentage";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE = 25;
+    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH = "oak.indexer.pipelined.nodeDocument.filter.filteredPath";
+    public static final String OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP = "oak.indexer.pipelined.nodeDocument.filter.suffixesToSkip";
+    private final String filteredPath = ConfigHelper.getSystemPropertyAsString(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH, "");
+    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ';');
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTreeStoreStrategy.class);
     // A MongoDB document is at most 16MB, so the buffer that holds node state entries must be at least that big
@@ -340,13 +344,14 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
                 new ThreadFactoryBuilder().setDaemon(true).build()
         );
+        MongoDocumentFilter documentFilter = new MongoDocumentFilter(filteredPath, suffixesToSkip);
+        NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, documentFilter, MongoClientSettings.getDefaultCodecRegistry());
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
         @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
-        NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, new MongoDocumentFilter("", List.of()), MongoClientSettings.getDefaultCodecRegistry());
         File resultDir = getStoreDir();
         TreeStore treeStore = new TreeStore("dump", resultDir, null, 1);
         treeStore.getSession().init();

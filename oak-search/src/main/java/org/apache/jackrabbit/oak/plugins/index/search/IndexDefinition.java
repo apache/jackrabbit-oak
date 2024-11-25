@@ -1829,7 +1829,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
     }
 
-    protected static IndexFormatVersion determineIndexFormatVersion(NodeState defn) {
+    public static IndexFormatVersion determineIndexFormatVersion(NodeState defn) {
         //Compat mode version if specified has highest priority
         if (defn.hasProperty(COMPAT_MODE)) {
             return versionFrom(defn.getProperty(COMPAT_MODE));

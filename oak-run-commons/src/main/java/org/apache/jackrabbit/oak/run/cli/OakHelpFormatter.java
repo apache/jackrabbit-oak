@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
@@ -56,7 +55,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
     @Override
     public String format(Map<String, ? extends OptionDescriptor> options) {
-        Map<String, ? extends OptionDescriptor> clonedOptions = Maps.newHashMap(options);
+        Map<String, ? extends OptionDescriptor> clonedOptions = new HashMap<>(options);
         List<OptionCategory> optionCategories = categorise(clonedOptions);
         //TODO Take care of left over options
 

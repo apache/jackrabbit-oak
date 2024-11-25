@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.MongoClient;
 
 import org.apache.commons.io.FilenameUtils;
@@ -478,7 +478,7 @@ public class DocumentNodeStoreServiceTest {
     }
 
     private Map<String, Object> newConfig(String repoHome) {
-        Map<String, Object> config = Maps.newHashMap();
+        Map<String, Object> config = new HashMap<>();
         config.put("repository.home", repoHome);
         config.put("db", MongoUtils.DB);
         config.put("mongouri", MongoUtils.URL);

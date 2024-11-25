@@ -208,7 +208,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncAllUsers(false);
-        assertResultMessages(result, ImmutableMap.of());
+        assertResultMessages(result, Map.of());
         assertFalse(r.hasPendingChanges());
     }
 
@@ -459,7 +459,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
         @Override
         public void commit() throws CommitFailedException {
-            commit(ImmutableMap.of());
+            commit(Map.of());
         }
 
         @Override

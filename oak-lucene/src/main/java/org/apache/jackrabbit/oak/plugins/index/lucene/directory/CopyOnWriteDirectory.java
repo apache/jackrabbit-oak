@@ -38,10 +38,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
@@ -72,8 +72,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final Directory local;
     private final Executor executor;
     private final ConcurrentMap<String, COWFileReference> fileMap = new ConcurrentHashMap<>();
-    private final Set<String> deletedFilesLocal = Sets.newConcurrentHashSet();
-    private final Set<String> skippedFiles = Sets.newConcurrentHashSet();
+    private final Set<String> deletedFilesLocal = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> skippedFiles = CollectionUtils.newConcurrentHashSet();
 
     private final BlockingQueue<Callable<Void>> queue = new LinkedBlockingQueue<Callable<Void>>();
     private final AtomicReference<Throwable> errorInCopy = new AtomicReference<Throwable>();

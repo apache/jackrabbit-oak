@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -38,6 +36,7 @@ import javax.jcr.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -242,7 +241,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     @Test
     public void testGetPathWithRemapping() {
         String oakPath = "/oak:testPath";
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("quercus", "http://jackrabbit.apache.org/oak/ns/1.0")));
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, Map.of("quercus", "http://jackrabbit.apache.org/oak/ns/1.0")));
 
         CugPolicy empty = new CugPolicyImpl(oakPath, mapper, principalManager, ImportBehavior.ABORT, exclude);
         assertEquals("/quercus:testPath", empty.getPath());

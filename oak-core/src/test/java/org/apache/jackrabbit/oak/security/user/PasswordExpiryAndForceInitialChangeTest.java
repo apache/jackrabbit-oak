@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Map;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.CredentialExpiredException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -60,7 +60,7 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
         ConfigurationParameters parameters = ConfigurationParameters.of(
                 UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
                 UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, parameters));
+        return ConfigurationParameters.of(Map.of(UserConfiguration.NAME, parameters));
     }
 
     @NotNull

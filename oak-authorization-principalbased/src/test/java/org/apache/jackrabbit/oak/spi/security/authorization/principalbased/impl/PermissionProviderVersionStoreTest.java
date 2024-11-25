@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -81,8 +80,8 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
     private void grantReadOnVersionStoreTrees() throws Exception {
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, jacm);
-        Map<String, Value[]> restr = ImmutableMap.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
-        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), ImmutableMap.of(), restr);
+        Map<String, Value[]> restr = Map.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
+        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), Map.of(), restr);
         jacm.setPolicy(policy.getPath(), policy);
         root.commit();
 

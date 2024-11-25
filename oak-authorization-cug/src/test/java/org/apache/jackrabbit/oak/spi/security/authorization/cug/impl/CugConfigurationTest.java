@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 
@@ -213,7 +214,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     @Test
     public void testModified() {
         CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
-        cugConfiguration.modified(ImmutableMap.of(
+        cugConfiguration.modified(Map.of(
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
         ));
         assertSupportedPaths(cugConfiguration, "/changed");
