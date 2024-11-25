@@ -25,7 +25,6 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
@@ -102,7 +101,7 @@ public class RemappingTest extends AbstractUserTest {
         superuser.save();
         session.refresh(false);
 
-        Map<String, String> m = ImmutableMap.of("prop", "true", "my:property", "value", "my:node/my:property2", "value");
+        Map<String, String> m = Map.of("prop", "true", "my:property", "value", "my:node/my:property2", "value");
         for (String relPath : m.keySet()) {
             String value = m.get(relPath);
             Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value);
@@ -119,7 +118,7 @@ public class RemappingTest extends AbstractUserTest {
         superuser.save();
         session.refresh(false);
 
-        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2", "my:value");
+        Map<String, String> m = Map.of("my:property", "my:value", "my:node/my:property2", "my:value");
         for (String relPath : m.keySet()) {
             String value = m.get(relPath);
             Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value);
@@ -136,7 +135,7 @@ public class RemappingTest extends AbstractUserTest {
         superuser.save();
         session.refresh(false);
 
-        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2", "my:value");
+        Map<String, String> m = Map.of("my:property", "my:value", "my:node/my:property2", "my:value");
         for (String relPath : m.keySet()) {
             String value = m.get(relPath);
             Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value, UserManager.SEARCH_TYPE_USER);

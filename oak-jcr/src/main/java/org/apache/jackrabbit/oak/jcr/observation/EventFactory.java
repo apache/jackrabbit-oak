@@ -222,14 +222,14 @@ public class EventFactory {
 
     private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
         if (isEmpty(mixinTypes)) {
-            return ImmutableMap.of(
+            return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
         } else {
             List<String> jcrNames = new ArrayList<>();
             for (String name : mixinTypes) {
                 jcrNames.add(mapper.getJcrName(name));
             }
-            return ImmutableMap.of(
+            return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
                     JCR_MIXINTYPES, toArray(jcrNames, String.class));
         }
