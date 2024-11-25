@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import javax.management.openmbean.TabularData;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -144,7 +144,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         }
 
         @Override public String createCheckpoint(long lifetime) {
-            Map<String, String> props = Maps.newHashMap();
+            Map<String, String> props = new HashMap<>();
             props.put(CREATION_DATE, String.valueOf(clock.getTime()));
             String checkpoint = nodeStore.checkpoint(lifetime, props);
 

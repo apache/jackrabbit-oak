@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -115,7 +114,7 @@ public class IndexDefinitionUpdater {
 
     private static Map<String, NodeState> getIndexDefnStates(String json) throws IOException {
         Base64BlobSerializer blobHandler = new Base64BlobSerializer();
-        Map<String, NodeState> indexDefns = Maps.newHashMap();
+        Map<String, NodeState> indexDefns = new HashMap<>();
         JsopReader reader = new JsopTokenizer(json);
         reader.read('{');
         if (!reader.matches('}')) {

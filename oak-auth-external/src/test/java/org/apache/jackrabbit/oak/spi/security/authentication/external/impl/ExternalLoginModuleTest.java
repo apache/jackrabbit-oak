@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -263,7 +262,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
         sharedState.put(SHARED_KEY_ATTRIBUTES, Collections.singletonMap("att", "value"));
 
@@ -295,7 +294,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
         sharedState.put(SHARED_KEY_ATTRIBUTES, Collections.singletonMap("att", "value"));
 
@@ -351,7 +350,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), creds);
 
         Subject subject = new Subject();
-        loginModule.initialize(subject, cbh, Maps.newHashMap(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        loginModule.initialize(subject, cbh, new HashMap<>(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
 
@@ -374,7 +373,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
         sharedState.put(SHARED_KEY_ATTRIBUTES, Collections.singletonMap("att", "value"));
 
@@ -402,7 +401,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
 
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
@@ -430,7 +429,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), sp, null);
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
 
         loginModule.initialize(new Subject(), cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
@@ -463,7 +462,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(wb, repository, getSecurityProvider(), null);
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
 
         loginModule.initialize(new Subject(), cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
@@ -486,7 +485,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("local"));
 
         User u = getUserManager(root).createUser("local", null);
@@ -515,7 +514,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
 
-        Map<String,Object> sharedState = Maps.newHashMap();
+        Map<String,Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("local"));
 
         User u = getUserManager(root).createUser("local", null);
@@ -554,7 +553,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         Credentials credentials = new SimpleCredentials(ID_TEST_USER, "wrongpassword".toCharArray());
         CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), credentials);
 
-        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        loginModule.initialize(new Subject(), cbh, new HashMap<>(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         try {
             loginModule.login();
         } finally {

@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 
@@ -111,7 +110,7 @@ public class MemoryBlobStore extends AbstractBlobStore {
      */
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
-        HashMap<BlockId, byte[]> combinedMap = Maps.newHashMap();
+        HashMap<BlockId, byte[]> combinedMap = new HashMap<>();
         combinedMap.putAll(map);
         combinedMap.putAll(old);
         final Iterator<BlockId> iter = combinedMap.keySet().iterator();

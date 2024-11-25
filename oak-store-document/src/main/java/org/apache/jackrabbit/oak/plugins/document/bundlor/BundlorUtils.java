@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,7 +44,7 @@ public final class BundlorUtils {
             return Collections.emptyMap();
         }
 
-        Map<String, PropertyState> result = Maps.newHashMap();
+        Map<String, PropertyState> result = new HashMap<>();
         for (Map.Entry<String, PropertyState> e : props.entrySet()){
             String propertyPath = e.getKey();
 

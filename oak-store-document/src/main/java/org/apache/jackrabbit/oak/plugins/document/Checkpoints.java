@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SortedMap;
@@ -35,8 +35,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
 
@@ -271,7 +269,7 @@ class Checkpoints {
                 "RevisionVector. Please make sure all cluster nodes run " +
                 "with the same Oak version.", checkpoint);
         // best effort conversion
-        Map<Integer, Revision> revs = Maps.newHashMap();
+        Map<Integer, Revision> revs = new HashMap<>();
         RevisionVector head = nodeStore.getHeadRevision();
         for (Revision r : head) {
             int cId = r.getClusterId();
@@ -309,7 +307,7 @@ class Checkpoints {
             RevisionVector rv = null;
             Map<String, String> map;
             if (info.startsWith("{")) {
-                map = Maps.newHashMap();
+                map = new HashMap<>();
                 JsopReader reader = new JsopTokenizer(info);
                 reader.read('{');
                 String key = reader.readString();

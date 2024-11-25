@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -140,7 +141,6 @@ import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -1960,7 +1960,7 @@ public final class DocumentNodeStore
         revs.addAll(b.getCommits().tailSet(ancestorRev));
         UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath(ROOT), false);
         // reset each branch commit in reverse order
-        Map<Path, UpdateOp> operations = Maps.newHashMap();
+        Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
         for (Revision r : reverse(revs)) {
             operations.clear();

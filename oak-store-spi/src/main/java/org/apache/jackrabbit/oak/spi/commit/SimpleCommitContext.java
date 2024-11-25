@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import static java.util.Objects.requireNonNull;
 
+import java.util.HashMap;
+
 public class SimpleCommitContext implements CommitContext {
-    private final Map<String, Object> attrs = Maps.newHashMap();
+    private final Map<String, Object> attrs = new HashMap<>();
 
     @Override
     public String toString() {

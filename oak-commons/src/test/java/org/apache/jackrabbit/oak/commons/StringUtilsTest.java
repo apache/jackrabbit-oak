@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.commons;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
 /**
@@ -68,7 +68,7 @@ public class StringUtilsTest {
 
     @Test
     public void testEstimateMemoryUsage() {
-        final Map<String, Integer> testStrings = Maps.newHashMap();
+        final Map<String, Integer> testStrings = new HashMap<>();
         testStrings.put(null, 0);
         testStrings.put("", 48);
         testStrings.put("a", 50);

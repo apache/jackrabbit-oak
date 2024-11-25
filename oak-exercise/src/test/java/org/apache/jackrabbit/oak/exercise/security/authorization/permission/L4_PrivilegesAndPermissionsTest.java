@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.AccessDeniedException;
@@ -29,7 +30,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -438,7 +438,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // EXERCISE: Fill if new properties values such that the test-cases succeeds
         // EXERCISE: Discuss your findings and explain each value.
 
-        Map<String, Value> pathResultMap = Maps.newHashMap();
+        Map<String, Value> pathResultMap = new HashMap<>();
         pathResultMap.put(childPropertyPath, (Value) null);
         pathResultMap.put(grandChildPath + "/nonexisting", (Value) null);
 

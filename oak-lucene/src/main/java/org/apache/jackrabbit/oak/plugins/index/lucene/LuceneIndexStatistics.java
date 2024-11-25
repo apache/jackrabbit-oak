@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -55,7 +55,7 @@ public class LuceneIndexStatistics implements IndexStatistics {
     LuceneIndexStatistics(IndexReader reader) {
         numDocs = reader.numDocs();
 
-        Map<String, Integer> numDocsForField = Maps.newHashMap();
+        Map<String, Integer> numDocsForField = new HashMap<>();
 
         Fields fields = null;
         try {

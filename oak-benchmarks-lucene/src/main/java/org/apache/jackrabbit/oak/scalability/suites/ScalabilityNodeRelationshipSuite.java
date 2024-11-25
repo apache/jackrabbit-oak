@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.scalability.suites;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -50,8 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * The suite test will incrementally increase the load and execute searches.
@@ -166,7 +165,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
     }
 
     protected void createIndexes(Session session) throws RepositoryException {
-        Map<String, Map<String, String>> orderedMap = Maps.newHashMap();
+        Map<String, Map<String, String>> orderedMap = new HashMap<>();
         String persistencePath = "";
 
         // define indexes on properties
@@ -206,7 +205,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                     "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
-                Map<String, String> propMap = Maps.newHashMap();
+                Map<String, String> propMap = new HashMap<>();
                 propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(CREATED, propMap);
             case LUCENE:
@@ -391,7 +390,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                                     String action, String source, String object, String target) throws RepositoryException {
             Node activityNode = getActivityParentNode(activitiesParentNode);
 
-            Map<String, String> activityMap = Maps.newHashMap();
+            Map<String, String> activityMap = new HashMap<>();
             activityMap.put(TITLE_PROP, title);
             activityMap.put(ACTION, action);
             activityMap.put(SOURCE_ID, source);

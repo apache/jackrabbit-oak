@@ -864,7 +864,7 @@ public class DataStoreCommandTest {
         DataStoreBlobStore setupDataStore, File f)
         throws IOException, CommitFailedException, DataStoreException {
         List<String> list = new ArrayList<>();
-        Map<String, String> idMapping = Maps.newHashMap();
+        Map<String, String> idMapping = new HashMap<>();
         NodeBuilder a = memNodeStore.getRoot().builder();
         for (int i = 0; i < 2; i++) {
             Blob b = store.createBlob(randomStream(i+100, 18342));
@@ -975,7 +975,7 @@ public class DataStoreCommandTest {
 
         public Data() {
             added = new HashSet<>();
-            idToPath = Maps.newHashMap();
+            idToPath = new HashMap<>();
             deleted = new HashSet<>();
             missingDataStore = new HashSet<>();
             addedSubset = new HashSet<>();

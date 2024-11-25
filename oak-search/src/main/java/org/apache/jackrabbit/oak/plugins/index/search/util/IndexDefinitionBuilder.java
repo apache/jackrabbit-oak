@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,6 +37,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +63,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 public class IndexDefinitionBuilder {
     private final NodeBuilder builder;
     private final Tree tree;
-    private final Map<String, IndexRule> rules = Maps.newHashMap();
-    private final Map<String, AggregateRule> aggRules = Maps.newHashMap();
+    private final Map<String, IndexRule> rules = new HashMap<>();
+    private final Map<String, AggregateRule> aggRules = new HashMap<>();
     private final Tree indexRule;
     private final boolean autoManageReindexFlag;
     private Tree aggregatesTree;
@@ -258,7 +258,7 @@ public class IndexDefinitionBuilder {
     public static class IndexRule {
         private final Tree indexRule;
         private final String ruleName;
-        private final Map<String, PropertyRule> props = Maps.newHashMap();
+        private final Map<String, PropertyRule> props = new HashMap<>();
         private final Set<String> propNodeNames = new HashSet<>();
 
         private IndexRule(Tree indexRule, String type) {
@@ -563,7 +563,7 @@ public class IndexDefinitionBuilder {
 
     public static class AggregateRule {
         private final Tree aggregate;
-        private final Map<String, Include> includes = Maps.newHashMap();
+        private final Map<String, Include> includes = new HashMap<>();
 
         private AggregateRule(Tree aggregate) {
             this.aggregate = aggregate;

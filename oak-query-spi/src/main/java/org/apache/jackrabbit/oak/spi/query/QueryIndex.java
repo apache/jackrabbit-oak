@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -389,7 +388,7 @@ public interface QueryIndex {
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
             protected boolean supportsPathRestriction = false;
-            protected Map<String, Object> attributes = Maps.newHashMap();
+            protected Map<String, Object> attributes = new HashMap<>();
             protected String planName;
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;

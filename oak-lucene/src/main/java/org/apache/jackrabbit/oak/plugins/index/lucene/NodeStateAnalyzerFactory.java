@@ -25,12 +25,12 @@ import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -199,7 +199,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     Map<String, String> convertNodeState(NodeState state) {
-        Map<String, String> result = Maps.newHashMap();
+        Map<String, String> result = new HashMap<>();
         for (PropertyState ps : state.getProperties()) {
             String name = ps.getName();
             if (ps.getType() != Type.BINARY

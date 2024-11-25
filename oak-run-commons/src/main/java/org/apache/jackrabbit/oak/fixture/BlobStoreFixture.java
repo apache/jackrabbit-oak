@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.Closeable;
@@ -25,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
@@ -241,7 +241,7 @@ public abstract class BlobStoreFixture implements Closeable{
 
     public static Map<String, Object> loadAndTransformProps(String cfgPath) throws IOException {
         Dictionary dict = ConfigurationHandler.read(new FileInputStream(cfgPath));
-        Map<String, Object> props = Maps.newHashMap();
+        Map<String, Object> props = new HashMap<>();
         Enumeration keys = dict.keys();
         while (keys.hasMoreElements()) {
             String key = (String) keys.nextElement();
@@ -253,7 +253,7 @@ public abstract class BlobStoreFixture implements Closeable{
     public static Map<String, ?> getConfig() {
         // try loading the props from the config file if configured
         String cfgFile = System.getProperty("ds.config");
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = new HashMap<>();
         if (!Strings.isNullOrEmpty(cfgFile)) {
             try {
                 result = loadAndTransformProps(cfgFile);

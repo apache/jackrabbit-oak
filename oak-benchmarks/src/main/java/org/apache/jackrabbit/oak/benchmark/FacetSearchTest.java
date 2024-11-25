@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,6 +39,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.security.Privilege;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -83,9 +83,9 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
     protected static final String SEARCH_PROP = "cons";
     protected static final String FACET_PROP_1 = "foo";
     protected static final String FACET_PROP_2 = "bar";
-    private final Map<String, Integer> actualLabelCount = Maps.newHashMap();
-    private final Map<String, Integer> actualAclLabelCount = Maps.newHashMap();
-    private final Map<String, Integer> actualAclPar1LabelCount = Maps.newHashMap();
+    private final Map<String, Integer> actualLabelCount = new HashMap<>();
+    private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
+    private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
     protected Boolean storageEnabled;
     protected Set<String> propVals = new HashSet<>();
     protected Random rgen = new Random(42);
@@ -117,7 +117,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
     @Override
     protected void runTest(TestContext ec) throws Exception {
         LOG.trace("Starting test execution");
-        Map<String, Integer> map = Maps.newHashMap();
+        Map<String, Integer> map = new HashMap<>();
         QueryManager qm = ec.session.getWorkspace().getQueryManager();
         String query = getQuery();
         LOG.trace(query);

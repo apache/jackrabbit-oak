@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -39,7 +39,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.StringUtils;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Amazon S3 utilities.
@@ -261,7 +260,7 @@ public final class Utils {
     }
 
     public static Map<String, Object> asMap(Properties props) {
-        Map<String, Object> map = Maps.newHashMap();
+        Map<String, Object> map = new HashMap<>();
         for (Object key : props.keySet()) {
             map.put((String)key, props.get(key));
         }

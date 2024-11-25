@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.facet;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -76,7 +75,7 @@ public class FacetResult {
     }
 
     public Map<String, String> asColumnToFacetJsonMap() {
-        Map<String, String> json = Maps.newHashMap();
+        Map<String, String> json = new HashMap<>();
         for (Map.Entry<String, List<Facet>> entry : perDimFacets.entrySet()) {
             JsopBuilder builder = new JsopBuilder();
             builder.object();

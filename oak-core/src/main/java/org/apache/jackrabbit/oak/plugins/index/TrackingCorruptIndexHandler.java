@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +38,6 @@ import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.base.Ticker;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.slf4j.Logger;
@@ -67,7 +66,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             return Collections.emptyMap();
         }
 
-        Map<String, CorruptIndexInfo> result = Maps.newHashMap();
+        Map<String, CorruptIndexInfo> result = new HashMap<>();
         for (CorruptIndexInfo info : indexes.values()){
             if (asyncName.equals(info.asyncName) && info.isFailingSinceLongTime()){
                 result.put(info.path, info);
@@ -77,7 +76,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     }
 
     public Map<String, CorruptIndexInfo> getFailingIndexData(String asyncName){
-        Map<String, CorruptIndexInfo> result = Maps.newHashMap();
+        Map<String, CorruptIndexInfo> result = new HashMap<>();
         for (CorruptIndexInfo info : indexes.values()){
             if (asyncName.equals(info.asyncName)){
                 result.put(info.path, info);

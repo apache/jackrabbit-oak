@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.explorer;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
@@ -39,6 +38,7 @@ import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -271,7 +271,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     @Override
     public Map<UUID, String> getBulkSegmentIds(Blob blob) {
-        Map<UUID, String> result = Maps.newHashMap();
+        Map<UUID, String> result = new HashMap<>();
 
         for (SegmentId segmentId : SegmentBlob.getBulkSegmentIds(blob)) {
             result.put(segmentId.asUUID(), getFile(segmentId));

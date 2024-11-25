@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -137,7 +136,7 @@ public class MembershipWriterTest extends MembershipBaseTest {
         memberIds.clear();
         memberIds.put(getContentID("member1"), "member1");
         memberIds.put(getContentID("member2"), "member2");
-        writer.removeMembers(groupTree, Maps.newHashMap(memberIds));
+        writer.removeMembers(groupTree, new HashMap<>(memberIds));
 
         assertMemberList(groupTree, 3, 5);
         assertEquals(8, groupTree.getProperty(REP_MEMBERS).count());

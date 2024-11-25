@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.serialization.ValidatingObjectInputStream;
@@ -56,7 +55,7 @@ public class DataStoreCacheUpgradeUtils {
      * @return the de-serialized map
      */
     private static Map<String, Long> deSerializeUploadMap(File homeDir) {
-        Map<String, Long> asyncUploadMap = Maps.newHashMap();
+        Map<String, Long> asyncUploadMap = new HashMap<>();
 
         File asyncUploadMapFile = new File(homeDir, UPLOAD_MAP);
         if (asyncUploadMapFile.exists()) {

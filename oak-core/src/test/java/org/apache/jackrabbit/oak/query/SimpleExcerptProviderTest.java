@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
 import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
 public class SimpleExcerptProviderTest {
@@ -77,7 +76,7 @@ public class SimpleExcerptProviderTest {
     public void hightlightCompleteWordOnly() {
         // using 2 non-simple spaces as mentioned in http://jkorpela.fi/chars/spaces.html
         String[] delimiters = new String[] {" ", "\t", "\n", ":", "\u1680", "\u00A0"};
-        Map<String, String> simpleCheck = Maps.newHashMap(); // highlight "of"
+        Map<String, String> simpleCheck = new HashMap<>(); // highlight "of"
 
         // simple ones
         simpleCheck.put("official conflict of interest",
@@ -98,7 +97,7 @@ public class SimpleExcerptProviderTest {
             }
         }
 
-        Map<String, String> wildcardCheck = Maps.newHashMap(); // highlight "of*"
+        Map<String, String> wildcardCheck = new HashMap<>(); // highlight "of*"
         wildcardCheck.put("office room",
                 "<div><span><strong>office</strong> room</span></div>");
         wildcardCheck.put("office room off",
