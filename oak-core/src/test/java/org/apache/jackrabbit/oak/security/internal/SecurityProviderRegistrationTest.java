@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.internal;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -878,9 +877,9 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
     private void testMultipleServiceWithRanking(@NotNull String fieldName, @NotNull Object service1, @NotNull Object service2, @NotNull Object service3) throws Exception {
         context.registerService(SecurityProviderRegistration.class, registration, Map.of("requiredServicePids", new String[] {"s1", "s2", "s3"}));
 
-        context.registerInjectActivateService(service1, ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "s1", Constants.SERVICE_RANKING, 50));
+        context.registerInjectActivateService(service1, Map.of(RegistrationConstants.OAK_SECURITY_NAME, "s1", Constants.SERVICE_RANKING, 50));
         context.registerInjectActivateService(service2, Map.of(RegistrationConstants.OAK_SECURITY_NAME, "s2"));
-        context.registerInjectActivateService(service3, ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "s3", Constants.SERVICE_RANKING, 1));
+        context.registerInjectActivateService(service3, Map.of(RegistrationConstants.OAK_SECURITY_NAME, "s3", Constants.SERVICE_RANKING, 1));
 
         Field f = registration.getClass().getDeclaredField(fieldName);
         f.setAccessible(true);
@@ -1009,11 +1008,11 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         registration.activate(context.bundleContext(), configWithRequiredServiceIds("f1", "f2", "ac1", "ac2"));
 
         AggregationFilter filter1 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.FALSE));
-        ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1", SERVICE_RANKING, 100)));
+        ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(Map.of(SERVICE_PID, "f1", SERVICE_RANKING, 100)));
         registration.bindAggregationFilter(sr1.getReference(), filter1);
 
         AggregationFilter filter2 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.FALSE));
-        ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(ImmutableMap.of(SERVICE_PID, "f2", SERVICE_RANKING, 200)));
+        ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(Map.of(SERVICE_PID, "f2", SERVICE_RANKING, 200)));
         registration.bindAggregationFilter(sr2.getReference(), filter2);
 
         AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
@@ -1058,11 +1057,11 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         registration.activate(context.bundleContext(), configWithRequiredServiceIds("f1", "f2", "ac1", "ac2"));
 
         AggregationFilter filter1 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
-        ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1", SERVICE_RANKING, 200)));
+        ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(Map.of(SERVICE_PID, "f1", SERVICE_RANKING, 200)));
         registration.bindAggregationFilter(sr1.getReference(), filter1);
 
         AggregationFilter filter2 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
-        ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(ImmutableMap.of(SERVICE_PID, "f2", SERVICE_RANKING, 100)));
+        ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(Map.of(SERVICE_PID, "f2", SERVICE_RANKING, 100)));
         registration.bindAggregationFilter(sr2.getReference(), filter2);
 
         AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);

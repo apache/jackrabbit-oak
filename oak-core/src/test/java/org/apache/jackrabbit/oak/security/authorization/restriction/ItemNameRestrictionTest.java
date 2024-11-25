@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -62,7 +61,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
                         PrivilegeConstants.JCR_ADD_CHILD_NODES,
                         PrivilegeConstants.JCR_REMOVE_NODE), true,
                 Collections.emptyMap(),
-                ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                         vf.createValue("a", PropertyType.NAME),
                         vf.createValue("b", PropertyType.NAME),
                         vf.createValue("c", PropertyType.NAME)}));

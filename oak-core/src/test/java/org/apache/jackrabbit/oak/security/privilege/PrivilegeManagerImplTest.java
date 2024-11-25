@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -197,7 +196,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
         };
         nsRegistry.registerNamespace("ns", "http://jackrabbit.apache.org/oak/ns");
 
-        Map<String, String> localMapping = ImmutableMap.of(
+        Map<String, String> localMapping = Map.of(
                 "prefix", NamespaceRegistry.NAMESPACE_JCR,
                 "prefix2", "http://jackrabbit.apache.org/oak/ns");
 

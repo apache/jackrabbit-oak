@@ -25,7 +25,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
@@ -61,7 +60,7 @@ public class QueryUtilTest {
 
     @Test
     public void testGetSearchRootDefault() {
-        Map<AuthorizableType, String> defaultPaths = ImmutableMap.of(
+        Map<AuthorizableType, String> defaultPaths = Map.of(
                 AuthorizableType.USER, UserConstants.DEFAULT_USER_PATH,
                 AuthorizableType.GROUP, UserConstants.DEFAULT_GROUP_PATH,
                 AuthorizableType.AUTHORIZABLE, "/rep:security/rep:authorizables");
@@ -84,7 +83,7 @@ public class QueryUtilTest {
                 UserConstants.PARAM_USER_PATH, "/configured/users",
                 UserConstants.PARAM_GROUP_PATH, "/configured/users/groups");
 
-        Map<AuthorizableType, String> paths = ImmutableMap.of(
+        Map<AuthorizableType, String> paths = Map.of(
                 AuthorizableType.USER, "/configured/users",
                 AuthorizableType.GROUP, "/configured/users/groups",
                 AuthorizableType.AUTHORIZABLE, "/configured/users");
@@ -98,7 +97,7 @@ public class QueryUtilTest {
                 UserConstants.PARAM_USER_PATH, "/configured/groups/users",
                 UserConstants.PARAM_GROUP_PATH, "/configured/groups");
 
-        Map<AuthorizableType, String> paths = ImmutableMap.of(
+        Map<AuthorizableType, String> paths = Map.of(
                 AuthorizableType.USER, "/configured/groups/users",
                 AuthorizableType.GROUP, "/configured/groups",
                 AuthorizableType.AUTHORIZABLE, "/configured/groups");
@@ -112,7 +111,7 @@ public class QueryUtilTest {
                 UserConstants.PARAM_USER_PATH, "/users",
                 UserConstants.PARAM_GROUP_PATH, "/groups");
 
-        Map<AuthorizableType, String> paths = ImmutableMap.of(
+        Map<AuthorizableType, String> paths = Map.of(
                 AuthorizableType.USER, "/users",
                 AuthorizableType.GROUP, "/groups",
                 AuthorizableType.AUTHORIZABLE, "/");
@@ -126,7 +125,7 @@ public class QueryUtilTest {
                 UserConstants.PARAM_USER_PATH, "/users",
                 UserConstants.PARAM_GROUP_PATH, "/");
 
-        Map<AuthorizableType, String> paths = ImmutableMap.of(
+        Map<AuthorizableType, String> paths = Map.of(
                 AuthorizableType.USER, "/users",
                 AuthorizableType.GROUP, "/",
                 AuthorizableType.AUTHORIZABLE, "/");
@@ -140,7 +139,7 @@ public class QueryUtilTest {
                 UserConstants.PARAM_USER_PATH, "/configured/user/path",
                 UserConstants.PARAM_GROUP_PATH, "/configured/group/path");
 
-        Map<AuthorizableType, String> paths = ImmutableMap.of(
+        Map<AuthorizableType, String> paths = Map.of(
                 AuthorizableType.USER, "/configured/user/path",
                 AuthorizableType.GROUP, "/configured/group/path",
                 AuthorizableType.AUTHORIZABLE, "/configured");
@@ -150,7 +149,7 @@ public class QueryUtilTest {
 
     @Test
     public void testNodeTypeName() {
-        Map<AuthorizableType, String> ntNames = ImmutableMap.of(
+        Map<AuthorizableType, String> ntNames = Map.of(
                 AuthorizableType.USER, UserConstants.NT_REP_USER,
                 AuthorizableType.GROUP, UserConstants.NT_REP_GROUP,
                 AuthorizableType.AUTHORIZABLE, UserConstants.NT_REP_AUTHORIZABLE);
@@ -206,8 +205,8 @@ public class QueryUtilTest {
     @Test
     public void testEscapeForQuery() {
         NamePathMapper namePathMapper = new NamePathMapperImpl(new LocalNameMapper(
-                ImmutableMap.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
-                ImmutableMap.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
+                Map.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
+                Map.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
 
         String value = "'string\\value";
         assertEquals(QueryUtils.escapeForQuery("myPrefix:"+value), QueryUtil.escapeForQuery("jcr:"+value, namePathMapper));

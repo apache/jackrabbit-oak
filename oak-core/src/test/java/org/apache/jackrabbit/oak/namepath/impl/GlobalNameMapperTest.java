@@ -30,11 +30,9 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 public class GlobalNameMapperTest {
 
-    private static final Map<String, String> NAMESPACES = ImmutableMap.of(
+    private static final Map<String, String> NAMESPACES = Map.of(
             "jcr", "http://www.jcp.org/jcr/1.0",
             "nt", "http://www.jcp.org/jcr/nt/1.0",
             "mix", "http://www.jcp.org/jcr/mix/1.0",

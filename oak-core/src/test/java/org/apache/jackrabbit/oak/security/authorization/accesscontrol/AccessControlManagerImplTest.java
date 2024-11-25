@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -1839,14 +1837,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ACL acl = (ACL) policies[0];
 
         Value nodePathValue = getValueFactory().createValue(testPath, PropertyType.PATH);
-        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(REP_NODE_PATH, nodePathValue)));
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Map.of(REP_NODE_PATH, nodePathValue)));
 
         // entry with * glob has already been created in the setup
-        Map<String, Value> restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
+        Map<String, Value> restrictions = Map.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
         assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, restrictions));
 
         // entry with different glob -> should be added
-        restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
+        restrictions = Map.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
         assertTrue(acl.addEntry(testPrincipal, testPrivileges, false, restrictions));
 
         acMgr.setPolicy(acl.getPath(), acl);

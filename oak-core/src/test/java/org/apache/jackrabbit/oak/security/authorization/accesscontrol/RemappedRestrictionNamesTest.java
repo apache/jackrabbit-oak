@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -43,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
 
-    private static final Map<String, String> LOCAL_NAME_MAPPINGS = ImmutableMap.of(
+    private static final Map<String, String> LOCAL_NAME_MAPPINGS = Map.of(
             "a","internal",
             "b","http://www.jcp.org/jcr/1.0",
             "c","http://jackrabbit.apache.org/oak/ns/1.0"

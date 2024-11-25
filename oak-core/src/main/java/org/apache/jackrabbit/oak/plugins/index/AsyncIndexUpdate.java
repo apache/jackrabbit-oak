@@ -100,7 +100,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
     /**
@@ -570,7 +569,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         String afterTime = now();
         String oldThreadName = Thread.currentThread().getName();
         boolean threadNameChanged = false;
-        String afterCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
+        String afterCheckpoint = store.checkpoint(lifetime, Map.of(
                 "creator", AsyncIndexUpdate.class.getSimpleName(),
                 "created", afterTime,
                 "thread", oldThreadName,

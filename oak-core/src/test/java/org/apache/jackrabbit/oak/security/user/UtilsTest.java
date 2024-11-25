@@ -121,7 +121,7 @@ public class UtilsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetOrAddTree() throws Exception {
-        Map<String, String> map = ImmutableMap.of(
+        Map<String, String> map = Map.of(
                 "a/b/c", "/a/b/c",
                 "a/../b/c", "/b/c",
                 "a/b/c/../..", "/a",
