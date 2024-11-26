@@ -201,7 +201,7 @@ public class PathFilter {
     private static void checkPathsAreAbsolute(Iterable<String> paths, String pathType) {
         for (String path : paths) {
             if (!PathUtils.isAbsolute(path)) {
-                throw new IllegalStateException("Invalid path in " + pathType + "Paths: " + path + ". Paths must be absolute.");
+                throw new IllegalStateException("Invalid path in " + pathType + " paths list: " + path + ". Paths must be absolute.");
             }
         }
     }
