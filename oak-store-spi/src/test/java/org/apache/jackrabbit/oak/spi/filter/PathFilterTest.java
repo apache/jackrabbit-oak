@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -129,6 +130,31 @@ public class PathFilterTest {
         } catch (IllegalStateException ignore) {
             // expected
         }
+    }
+
+    @Test
+    public void checkPathsAreAbsoluteOk() {
+        new PathFilter(List.of("/a", "/b", "/c"), List.of());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void invalidIncludedStartsWithEmpty() {
+        new PathFilter(List.of( "/a", " /b"), List.of());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void invalidExcludedStartsWithEmpty() {
+        new PathFilter(List.of(), List.of( "/a", " /b"));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void invalidIncludedDoesNotStartWithSlash() {
+        new PathFilter(List.of("a"), List.of());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void invalidExcludedDoesNotStartWithSlash() {
+        new PathFilter(List.of(), List.of("a"));
     }
 
     @Test
