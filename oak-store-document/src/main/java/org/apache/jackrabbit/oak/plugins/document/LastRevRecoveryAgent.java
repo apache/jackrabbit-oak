@@ -45,6 +45,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
@@ -78,6 +79,8 @@ public class LastRevRecoveryAgent {
     private final MissingLastRevSeeker missingLastRevUtil;
 
     private final Consumer<Integer> afterRecovery;
+
+    private static final SystemPropertySupplier<Long> SYNC_RECEVERY_TIMEOUT = SystemPropertySupplier.create("oak.syncRecoveryTimeout", Long.MAX_VALUE);
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
@@ -267,6 +270,10 @@ public class LastRevRecoveryAgent {
             ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
             if (nodeInfo != null && nodeInfo.isActive()) {
                 deadline = nodeInfo.getLeaseEndTime() - ClusterNodeInfo.DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
+            }
+            long now = System.currentTimeMillis();
+            if (Long.MAX_VALUE - SYNC_RECEVERY_TIMEOUT.get() > now) {
+                deadline = Math.min(deadline, now + SYNC_RECEVERY_TIMEOUT.get());
             }
         }
 
