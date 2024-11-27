@@ -80,7 +80,7 @@ public class LastRevRecoveryAgent {
 
     private final Consumer<Integer> afterRecovery;
 
-    private static final SystemPropertySupplier<Long> SYNC_RECEVERY_TIMEOUT = SystemPropertySupplier.create("oak.syncRecoveryTimeout", Long.MAX_VALUE);
+    private static final SystemPropertySupplier<Long> SYNC_RECEVERY_TIMEOUT_MILLIS = SystemPropertySupplier.create("oak.syncRecoveryTimeoutMillis", Long.MAX_VALUE);
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
@@ -272,8 +272,8 @@ public class LastRevRecoveryAgent {
                 deadline = nodeInfo.getLeaseEndTime() - ClusterNodeInfo.DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
             }
             long now = System.currentTimeMillis();
-            if (Long.MAX_VALUE - SYNC_RECEVERY_TIMEOUT.get() > now) {
-                deadline = Math.min(deadline, now + SYNC_RECEVERY_TIMEOUT.get());
+            if (Long.MAX_VALUE - SYNC_RECEVERY_TIMEOUT_MILLIS.get() > now) {
+                deadline = Math.min(deadline, now + SYNC_RECEVERY_TIMEOUT_MILLIS.get());
             }
         }
 
