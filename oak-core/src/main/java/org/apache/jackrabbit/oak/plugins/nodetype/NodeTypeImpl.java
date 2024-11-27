@@ -46,6 +46,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,7 +67,6 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefWriter;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -247,7 +247,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public NodeTypeIterator getSubtypes() {
-        Map<String, Set<String>> inheritance = Maps.newHashMap();
+        Map<String, Set<String>> inheritance = new HashMap<>();
         
         Tree root = definition.getParent();
         for (Tree child : root.getChildren()) {
@@ -265,7 +265,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             }
         }
 
-        Map<String, NodeType> subtypes = Maps.newHashMap();
+        Map<String, NodeType> subtypes = new HashMap<>();
         addSubtypes(getOakName(), subtypes, root, inheritance);
         return new NodeTypeIteratorAdapter(subtypes.values());
     }

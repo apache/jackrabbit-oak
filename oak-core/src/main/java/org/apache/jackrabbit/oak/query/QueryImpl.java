@@ -105,7 +105,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 
 /**
@@ -653,7 +652,7 @@ public class QueryImpl implements Query {
 
                 @Override
                 protected Map<String, Long> getSelectorScanCount() {
-                    Map<String, Long> selectorReadCounts = Maps.newHashMap();
+                    Map<String, Long> selectorReadCounts = new HashMap<>();
                     for (SelectorImpl selector : selectors) {
                         selectorReadCounts.put(selector.getSelectorName(), selector.getScanCount());
                     }

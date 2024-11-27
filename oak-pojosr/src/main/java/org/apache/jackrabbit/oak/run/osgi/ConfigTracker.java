@@ -16,18 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.osgi;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.json.simple.JSONObject;
@@ -76,7 +75,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
     private void synchronizeConfigs(ConfigInstaller configInstaller) throws Exception {
         Set<String> existingPids = configInstaller.determineExistingConfigs();
 
-        Map<String, Map<String, Object>> configs = Maps.newHashMap();
+        Map<String, Map<String, Object>> configs = new HashMap<>();
 
         Map<String, Map<String, Object>> configFromFile =
                 parseJSONConfig((String) config.get(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE));
@@ -100,7 +99,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
 
     @SuppressWarnings("unchecked")
     private Map<String, Map<String, Object>> parseJSONConfig(String jsonFilePath) throws IOException {
-        Map<String, Map<String, Object>> configs = Maps.newHashMap();
+        Map<String, Map<String, Object>> configs = new HashMap<>();
         if (jsonFilePath == null) {
             return configs;
         }

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.scalability.suites;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -36,7 +37,6 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -243,7 +243,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     protected void createIndexes(Session session) throws RepositoryException {
-        Map<String, Map<String, String>> orderedMap = Maps.newHashMap();
+        Map<String, Map<String, String>> orderedMap = new HashMap<>();
         String persistencePath = "";
 
         switch (INDEX_TYPE) {
@@ -273,7 +273,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                     "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
-                Map<String, String> propMap = Maps.newHashMap();
+                Map<String, String> propMap = new HashMap<>();
                 propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(DATE_PROP, propMap);
             case LUCENE:

@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -216,7 +215,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     public void removeConditional() throws Exception {
         Revision r = Revision.newRevision(1);
         long modified = getModifiedInSecs(r.getTimestamp());
-        Map<String, Long> ids = Maps.newHashMap();
+        Map<String, Long> ids = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             String id = testName.getMethodName() + "-" + i;
             ids.put(id, modified);

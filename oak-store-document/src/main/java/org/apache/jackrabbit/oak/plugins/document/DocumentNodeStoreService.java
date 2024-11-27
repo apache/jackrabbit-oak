@@ -42,6 +42,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -668,29 +669,8 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        if (prefetchFeature != null) {
-            prefetchFeature.close();
-        }
-
-        if (docStoreThrottlingFeature != null) {
-            docStoreThrottlingFeature.close();
-        }
-
-        if (cancelInvalidationFeature != null) {
-            cancelInvalidationFeature.close();
-        }
-
-        if (docStoreFullGCFeature != null) {
-            docStoreFullGCFeature.close();
-        }
-
-        if (docStoreEmbeddedVerificationFeature != null) {
-            docStoreEmbeddedVerificationFeature.close();
-        }
-
-        if (prevNoPropCacheFeature != null) {
-            prevNoPropCacheFeature.close();
-        }
+        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
+                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature);
 
         unregisterNodeStore();
     }
@@ -794,6 +774,19 @@ public class DocumentNodeStoreService {
         if (nodeStore != null){
             nodeStore.setNodeStateCache(DocumentNodeStateCache.NOOP);
         }
+    }
+
+    /**
+     * Closes the given varargs of features.
+     * <p>
+     * This method iterates over the provided varargs of features and closes each one
+     * that is not null.
+     * </p>
+     *
+     * @param features a varargs of {@link Feature} objects to be closed.
+     */
+    private void closeFeatures(@NotNull final Feature... features) {
+        Arrays.stream(features).filter(Objects::nonNull).forEach(Feature::close);
     }
 
     private void unregisterNodeStore() {

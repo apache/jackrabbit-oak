@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -247,7 +248,7 @@ public class S3Backend extends AbstractSharedBackend {
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.error("Error ", e);
-            Map<String, Object> filteredMap = Maps.newHashMap();
+            Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
                 filteredMap = Maps.filterKeys(Utils.asMap(properties),
                         input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
@@ -784,7 +785,7 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
 
-            Map<String, String> requestParams = Maps.newHashMap();
+            Map<String, String> requestParams = new HashMap<>();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",
                             httpDownloadURIExpirySeconds)
@@ -881,7 +882,7 @@ public class S3Backend extends AbstractSharedBackend {
                     numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URIS);
                 }
 
-                Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+                Map<String, String> presignedURIRequestParams = new HashMap<>();
                 for (long blockId = 1; blockId <= numParts; ++blockId) {
                     presignedURIRequestParams.put("partNumber", String.valueOf(blockId));
                     presignedURIRequestParams.put("uploadId", uploadId);
@@ -999,7 +1000,7 @@ public class S3Backend extends AbstractSharedBackend {
     private URI createPresignedURI(DataIdentifier identifier,
                                    HttpMethod method,
                                    int expirySeconds) {
-        return createPresignedURI(identifier, method, expirySeconds, Maps.newHashMap());
+        return createPresignedURI(identifier, method, expirySeconds, new HashMap<>());
     }
 
     private URI createPresignedURI(DataIdentifier identifier,

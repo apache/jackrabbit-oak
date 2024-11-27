@@ -27,6 +27,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -47,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
@@ -598,7 +598,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     }
 
     protected Map<String, String> parseQueryString(URI uri) {
-        Map<String, String> parsed = Maps.newHashMap();
+        Map<String, String> parsed = new HashMap<>();
         String query = uri.getQuery();
         try {
             for (String pair : query.split("&")) {

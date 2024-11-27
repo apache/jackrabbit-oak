@@ -15,7 +15,7 @@
 #  ~ specific language governing permissions and limitations
 #  ~ under the License.
 
-name: SonarCloud
+name: Build
 on:
   push:
     branches:
@@ -24,34 +24,58 @@ on:
     types: [opened, synchronize, reopened]
 jobs:
   build:
-    name: Build and analyze
+    name: Maven Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Git clone
+        uses: actions/checkout@v4
       - name: Set up JDK 11
-        uses: actions/setup-java@v3.10.0
+        uses: actions/setup-java@v4
         with:
           java-version: 11
           distribution: temurin
+          cache: maven
+      - name: Build
+        # executing ITs requires installing artifacts to the local repository
+        run: mvn -B install -Pcoverage -PintegrationTesting -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
+      - name: Upload build result
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-classes-and-coverage
+          # compare with https://docs.sonarsource.com/sonarcloud/advanced-setup/languages/java/#java-analysis-and-bytecode
+          path: |
+             **/target/**/*.class
+             **/target/site/jacoco*/*.xml
+  # execute analysis in a separate job for better visualization and usage of matrix builds
+  # https://docs.sonarsource.com/sonarcloud/advanced-setup/ci-based-analysis/sonarscanner-for-maven/#invoking-the-goal
+  sonar:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: build
+    # not supported on forks, https://portal.productboard.com/sonarsource/1-sonarqube-cloud/c/50-sonarcloud-analyzes-external-pull-request
+    if: ${{ github.repository == 'apache/jackrabbit-oak'  }}
+    steps: 
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: maven
+      - name: Download compiled classes
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-classes-and-coverage
       - name: Cache SonarCloud packages
-        uses: actions/cache@v3.2.6
+        uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      - name: Cache Maven packages
-        uses: actions/cache@v3.2.6
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Build and analyze
+      - name: Analyze with SonarCloud
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
-        if: ${{ env.SONAR_TOKEN != '' }}
-        # run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Pcoverage -Dsonar.projectKey=org.apache.jackrabbit:jackrabbit-oak -Dsonar.organization=apache
-        # disable Sonar for now
-        run: mvn -B verify -Pcoverage
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar -Dsonar.projectKey=org.apache.jackrabbit:jackrabbit-oak -Dsonar.organization=apache -Dsonar.scanner.skipJreProvisioning=true

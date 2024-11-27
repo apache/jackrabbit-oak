@@ -29,6 +29,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.collect.ContiguousSet;
 import org.apache.jackrabbit.guava.common.collect.DiscreteDomain;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Range;
 
 public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
@@ -1297,7 +1297,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertNotNull(ds.find(Collection.NODES, op.getId()));
         }
 
-        Map<String, Long> toRemove = Maps.newHashMap();
+        Map<String, Long> toRemove = new HashMap<>();
         toRemove.put(Utils.getIdFromPath("/foo"), 100L); // matches
         toRemove.put(Utils.getIdFromPath("/bar"), 300L); // modified differs
         toRemove.put(Utils.getIdFromPath("/qux"), 100L); // does not exist

@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -348,7 +347,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private static Map<String, Object> propsToMap(Properties p) {
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = new HashMap<>();
         for (String keyName : p.stringPropertyNames()) {
             result.put(keyName, p.getProperty(keyName));
         }

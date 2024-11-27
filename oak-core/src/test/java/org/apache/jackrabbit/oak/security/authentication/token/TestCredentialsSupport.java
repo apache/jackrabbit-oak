@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
@@ -85,7 +84,7 @@ public class TestCredentialsSupport implements CredentialsSupport {
         private final Map<String, Object> attributes;
 
         Creds() {
-            attributes = Maps.newHashMap();
+            attributes = new HashMap<>();
             attributes.put(TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
         }
     }

@@ -316,7 +316,7 @@ class CommitBuilder {
     }
 
     private static UpdateOp rewrite(UpdateOp up, Revision from, Revision to) {
-        Map<UpdateOp.Key, UpdateOp.Operation> changes = Maps.newHashMap();
+        Map<UpdateOp.Key, UpdateOp.Operation> changes = new HashMap<>();
         for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> entry : up.getChanges().entrySet()) {
             UpdateOp.Key k = entry.getKey();
             UpdateOp.Operation op = entry.getValue();

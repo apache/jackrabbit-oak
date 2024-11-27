@@ -1853,7 +1853,7 @@ public class MongoDocumentStore implements DocumentStore {
         fields.put(Document.MOD_COUNT, 1);
         fields.put(NodeDocument.MODIFIED_IN_SECS, 1);
 
-        Map<String, ModificationStamp> modCounts = Maps.newHashMap();
+        Map<String, ModificationStamp> modCounts = new HashMap<>();
 
         nodes.withReadPreference(ReadPreference.primary())
                 .find(Filters.in(Document.ID, keys)).projection(fields)

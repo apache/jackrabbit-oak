@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import com.mongodb.MongoClient;
 
 import org.apache.commons.io.FilenameUtils;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHe
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -46,6 +49,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -357,6 +361,19 @@ public class DocumentNodeStoreServiceTest {
         doRecoveryDelayMillis(60000);
     }
 
+    @Test
+    public void closeFeatures() throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+        Feature feature1 = mock(Feature.class);
+        Feature feature2 = mock(Feature.class);
+        Feature feature3 = mock(Feature.class);
+        Feature feature4 = mock(Feature.class);
+
+        // successful invocation would return null
+        assertNull(MethodUtils.invokeMethod(service, true, "closeFeatures",
+                new Object[]{feature1, feature2, null, feature3, feature4},
+                new Class[]{Feature[].class}));
+    }
+
     private void doRecoveryDelayMillis(long recoveryDelayMillis) {
         Map<String, Object> config = newConfig(repoHome);
         config.put("recoveryDelayMillis", recoveryDelayMillis);
@@ -461,7 +478,7 @@ public class DocumentNodeStoreServiceTest {
     }
 
     private Map<String, Object> newConfig(String repoHome) {
-        Map<String, Object> config = Maps.newHashMap();
+        Map<String, Object> config = new HashMap<>();
         config.put("repository.home", repoHome);
         config.put("db", MongoUtils.DB);
         config.put("mongouri", MongoUtils.URL);

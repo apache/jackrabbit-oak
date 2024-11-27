@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
@@ -40,7 +39,7 @@ public class ResultRowImplTest {
         PropertyValue[] origVals = new PropertyValue[]{newString("origVal"), newString("overriddenVal")};
         ResultRowImpl orig = new ResultRowImpl(query, null, origVals, null, null);
 
-        Map<String, String> map = Maps.newHashMap();
+        Map<String, String> map = new HashMap<>();
         map.put("col1", "val1");
 
         ResultRowImpl mappedRow = ResultRowImpl.getMappingResultRow(orig, map);

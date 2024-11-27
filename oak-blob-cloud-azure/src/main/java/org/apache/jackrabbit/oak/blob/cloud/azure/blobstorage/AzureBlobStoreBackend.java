@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,7 +53,6 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -994,7 +994,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             }
 
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
-            Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+            Map<String, String> presignedURIRequestParams = new HashMap<>();
             // see https://docs.microsoft.com/en-us/rest/api/storageservices/put-block#uri-parameters
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
@@ -1138,7 +1138,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                    int expirySeconds,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders, domain);
+        return createPresignedURI(key, permissions, expirySeconds, new HashMap<>(), optionalHeaders, domain);
     }
 
     private URI createPresignedURI(String key,

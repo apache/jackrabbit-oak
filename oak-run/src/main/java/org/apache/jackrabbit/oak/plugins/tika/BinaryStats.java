@@ -24,11 +24,11 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -67,7 +67,7 @@ class BinaryStats {
     }
 
     private List<MimeTypeStats> collectStats(BinaryResourceProvider provider) throws IOException {
-        Map<String, MimeTypeStats> stats = Maps.newHashMap();
+        Map<String, MimeTypeStats> stats = new HashMap<>();
         for (BinaryResource binary : provider.getBinaries("/")) {
             String mimeType = binary.getMimeType();
             if (mimeType != null) {

@@ -16,38 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi.commit;
+package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Map;
+/**
+ * Helper class to generate garbage for testing purposes.
+ */
+public class CreateGarbageHelper {
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.HashMap;
-
-public class SimpleCommitContext implements CommitContext {
-    private final Map<String, Object> attrs = new HashMap<>();
-
-    @Override
-    public String toString() {
-    	return "CommitContext[attrs="+attrs+"]";
-    }
-    
-    @Override
-    public void set(String name, Object value) {
-        attrs.put(requireNonNull(name), value);
+    public static boolean isInvalidGarbageGenerationMode(int fullGCMode) {
+        return fullGCMode == 0;
     }
 
-    @Override
-    public Object get(String name) {
-        return attrs.get(requireNonNull(name));
+    public static boolean isEmptyProps(int fullGCMode) {
+        return fullGCMode == 1;
     }
 
-    @Override
-    public void remove(String name) {
-        attrs.remove(requireNonNull(name));
-    }
-
-    void clear(){
-        attrs.clear();
+    public static boolean isGapOrphans(int fullGCMode) {
+        return fullGCMode == 2;
     }
 }

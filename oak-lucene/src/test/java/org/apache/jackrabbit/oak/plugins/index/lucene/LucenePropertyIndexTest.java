@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -3476,7 +3477,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private static class MapBasedProvider implements PreExtractedTextProvider {
-        final Map<String, ExtractedText> idMap = Maps.newHashMap();
+        final Map<String, ExtractedText> idMap = new HashMap<>();
         int accessCount = 0;
 
         @Override

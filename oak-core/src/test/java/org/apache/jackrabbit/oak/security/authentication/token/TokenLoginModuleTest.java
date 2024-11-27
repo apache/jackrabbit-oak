@@ -33,7 +33,6 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -280,7 +279,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         TokenCredentials tc = new TokenCredentials("token");
 
         TokenLoginModule lm = new TokenLoginModule();
-        Map sharedState = Maps.newHashMap(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, tc));
+        Map sharedState = new HashMap<>(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, tc));
 
         Subject subject = new Subject();
         CallbackHandler cbh = callbacks -> {
@@ -318,7 +317,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         sc.setAttribute(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
 
         TokenLoginModule lm = new TokenLoginModule();
-        Map sharedState = Maps.newHashMap(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+        Map sharedState = new HashMap<>(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
         lm.initialize(subject, new TestCallbackHandler(tp),
                 sharedState,
                 Map.of());
@@ -374,7 +373,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
         SimpleCredentials sc = new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray());
         sc.setAttribute(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
-        Map sharedState = Maps.newHashMap(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+        Map sharedState = new HashMap<>(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
 
         TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
         TokenLoginModule lm = new TokenLoginModule();
@@ -401,7 +400,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
         SimpleCredentials sc = new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray());
         sc.setAttribute(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
-        Map sharedState = Maps.newHashMap(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+        Map sharedState = new HashMap<>(Map.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
 
         TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
         TokenLoginModule lm = new TokenLoginModule();
@@ -421,7 +420,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         Subject subject = new Subject();
         subject.getPrincipals().add(principal);
 
-        Map<String, Object> shared = Maps.newHashMap();
+        Map<String, Object> shared = new HashMap<>();
         shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TokenCredentials("token"));
 
         TokenLoginModule lm = new TokenLoginModule();

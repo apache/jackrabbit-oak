@@ -31,6 +31,7 @@ import static org.junit.Assume.assumeTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class NodeStoreTest extends OakBaseTest {
     private NodeState root;
@@ -559,7 +559,7 @@ public class NodeStoreTest extends OakBaseTest {
     public void checkpoints() throws Exception {
         assumeTrue(fixture != NodeStoreFixtures.SEGMENT_TAR);
         int numCps = 3;
-        Map<String, String> info = Maps.newHashMap();
+        Map<String, String> info = new HashMap<>();
         Set<String> cps = new HashSet<>();
         for (int i = 0; i < numCps; i++) {
             info.put("key", "" + i);
