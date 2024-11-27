@@ -29,9 +29,11 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -274,6 +276,7 @@ public class LastRevRecoveryAgent {
             long now = System.currentTimeMillis();
             if (Long.MAX_VALUE - SYNC_RECOVERY_TIMEOUT_MILLIS.get() > now) {
                 deadline = Math.min(deadline, now + SYNC_RECOVERY_TIMEOUT_MILLIS.get());
+                log.info("Adjusted deadline for synchronous recovery. New deadline is {}", SimpleDateFormat.getDateTimeInstance().format(new Date(deadline)));
             }
         }
 
