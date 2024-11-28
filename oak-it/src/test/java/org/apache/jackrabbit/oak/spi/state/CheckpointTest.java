@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.state;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -82,7 +82,7 @@ public class CheckpointTest extends OakBaseTest {
 
     @Test
     public void checkpointInfo() throws CommitFailedException {
-        ImmutableMap<String, String> props = ImmutableMap.of(
+        Map<String, String> props = Map.of(
                 "one", "1", "two", "2", "three", "2");
         String cp = store.checkpoint(Long.MAX_VALUE, props);
         assertEquals(props, store.checkpointInfo(cp));
