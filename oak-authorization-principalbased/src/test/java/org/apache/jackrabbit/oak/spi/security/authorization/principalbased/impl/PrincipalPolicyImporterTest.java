@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.User;
@@ -651,7 +650,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         ValueFactory vf = getValueFactory(root);
         Value[] nameValues = new Value[] {vf.createValue(getJcrName("jcr:content"), PropertyType.NAME), vf.createValue(getJcrName("jcr:data"), PropertyType.NAME)};
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(
+        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(Map.of(
                 getJcrName(REP_ITEM_NAMES), nameValues,
                 getJcrName(REP_GLOB), new Value[] {vf.createValue("/some/*/globbing")})
         ));

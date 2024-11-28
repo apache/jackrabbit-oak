@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -452,7 +451,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     @Test
     public void testAddAccessControlEntryWithRestrictions() throws Exception {
         ValueFactory vf = getValueFactory(root);
-        Map<String, Value> restr = ImmutableMap.of(getJcrName(REP_NODE_PATH), vf.createValue(testJcrPath), getJcrName(REP_GLOB), vf.createValue("string"));
+        Map<String, Value> restr = Map.of(getJcrName(REP_NODE_PATH), vf.createValue(testJcrPath), getJcrName(REP_GLOB), vf.createValue("string"));
         assertTrue(emptyPolicy.addEntry(principal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true,
                 restr, null));
         List<PrincipalPolicyImpl.EntryImpl> entries = emptyPolicy.getEntries();
