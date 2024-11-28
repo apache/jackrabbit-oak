@@ -56,8 +56,6 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -214,7 +212,7 @@ public class DefaultSegmentWriterTest {
 
         MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of()));
         MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
-        MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId, "two", blockId)));
+        MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId, "two", blockId)));
         Map<String, RecordId> map = new HashMap<>();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
