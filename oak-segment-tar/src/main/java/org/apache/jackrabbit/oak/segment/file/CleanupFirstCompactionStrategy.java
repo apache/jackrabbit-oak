@@ -105,7 +105,18 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
     private static CleanupContext newCleanupContext(Context context) {
         GCGeneration currentGeneration = context.getRevisions().getHead().getSegmentId().getGcGeneration();
         SegmentTracker segmentTracker = context.getSegmentTracker();
-        RecordId compactedRoot = RecordId.fromString(segmentTracker, context.getGCJournal().read().getRoot());
+
+        RecordId compactedRoot;
+        GCJournal.GCJournalEntry lastGCJournalEntry = context.getGCJournal().read();
+        if (lastGCJournalEntry.getGcGeneration().compareWith(currentGeneration) == 0) {
+            // if the generation doesn't match, there must be a missing entry in the GC journal
+            // this may still fail to detect a missing entry if partial compaction is used as
+            // the generation is not updated until the full repository is compacted
+            compactedRoot = RecordId.fromString(segmentTracker, lastGCJournalEntry.getRoot());
+        } else {
+            context.getGCListener().warn("gc journal entry does not match generation of repository head, skipping root-based reclamation");
+            compactedRoot = RecordId.NULL;
+        }
 
         switch (context.getGCOptions().getGCType()) {
             case FULL:
