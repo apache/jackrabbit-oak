@@ -33,6 +33,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
@@ -368,8 +369,8 @@ public class AzureCompact {
             targetContainer = destinationCloudBlobDirectory.getContainer();
         }
 
-        GCGeneration gcGeneration = null;
-        String root = null;
+        GCGeneration gcGeneration;
+        RecordId root;
 
         try (FileStore store =newFileStore(splitPersistence,
                 Files.createTempDirectory(getClass().getSimpleName() + "-").toFile(),
@@ -383,7 +384,7 @@ public class AzureCompact {
                     return 0;
                 }
             }
-            System.out.printf("    -> compacting\n");
+            System.out.print("    -> compacting\n");
 
             boolean success = false;
             switch (gcType) {
@@ -400,9 +401,9 @@ public class AzureCompact {
                 return 1;
             }
 
-            System.out.printf("    -> [skipping] cleaning up\n");
+            System.out.print("    -> [skipping] cleaning up\n");
             gcGeneration = store.getHead().getGcGeneration();
-            root = store.getHead().getRecordId().toString10();
+            root = store.getHead().getRecordId();
         } catch (Exception e) {
             watch.stop();
             e.printStackTrace(System.err);
@@ -411,7 +412,7 @@ public class AzureCompact {
         }
 
         watch.stop();
-        System.out.printf("    after\n");
+        System.out.print("    after\n");
         List<String> afterArchives = Collections.emptyList();
         try {
             afterArchives = rwArchiveManager.listArchives();
@@ -429,7 +430,7 @@ public class AzureCompact {
         return 0;
     }
 
-    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, String root) throws IOException {
+    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, RecordId root) throws IOException {
         GCJournalFile gcJournalFile = rwPersistence.getGCJournalFile();
         if (gcJournalFile != null) {
             GCJournal gcJournal = new GCJournal(gcJournalFile);

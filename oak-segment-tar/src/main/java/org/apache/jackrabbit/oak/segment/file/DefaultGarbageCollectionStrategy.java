@@ -32,12 +32,12 @@ class DefaultGarbageCollectionStrategy extends AbstractGarbageCollectionStrategy
     }
 
     @Override
-    CompactionStrategy getFullCompactionStrategy() {
+    CompactionStrategy getFullCompactionStrategy(Context context) {
         return new FullCompactionStrategy();
     }
 
     @Override
-    CompactionStrategy getTailCompactionStrategy() {
+    CompactionStrategy getTailCompactionStrategy(Context context) {
         return new FallbackCompactionStrategy(new TailCompactionStrategy(), new FullCompactionStrategy());
     }
 

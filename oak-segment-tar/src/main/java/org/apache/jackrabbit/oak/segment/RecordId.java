@@ -46,8 +46,6 @@ public final class RecordId implements Comparable<RecordId> {
 
     static final int SERIALIZED_RECORD_ID_BYTES = 20;
 
-    public static RecordId[] EMPTY_ARRAY = new RecordId[0];
-
     public static RecordId fromString(SegmentIdProvider idProvider, String id) {
         Matcher matcher = PATTERN.matcher(id);
         if (matcher.matches()) {

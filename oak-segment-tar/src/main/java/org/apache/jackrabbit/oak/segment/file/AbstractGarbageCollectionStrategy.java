@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
@@ -43,9 +44,9 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
 
     abstract EstimationStrategy getTailEstimationStrategy();
 
-    abstract CompactionStrategy getFullCompactionStrategy();
+    abstract CompactionStrategy getFullCompactionStrategy(Context context);
 
-    abstract CompactionStrategy getTailCompactionStrategy();
+    abstract CompactionStrategy getTailCompactionStrategy(Context context);
 
     abstract CleanupStrategy getCleanupStrategy();
 
@@ -65,22 +66,22 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
 
     @Override
     public void collectFullGarbage(Context context) throws IOException {
-        run(context, getFullEstimationStrategy(), getFullCompactionStrategy());
+        run(context, getFullEstimationStrategy(), getFullCompactionStrategy(context));
     }
 
     @Override
     public void collectTailGarbage(Context context) throws IOException {
-        run(context, getTailEstimationStrategy(), getTailCompactionStrategy());
+        run(context, getTailEstimationStrategy(), getTailCompactionStrategy(context));
     }
 
     @Override
     public CompactionResult compactFull(Context context) throws IOException {
-        return getFullCompactionStrategy().compact(newCompactionStrategyContext(context));
+        return getFullCompactionStrategy(context).compact(newCompactionStrategyContext(context));
     }
 
     @Override
     public CompactionResult compactTail(Context context) throws IOException {
-        return getTailCompactionStrategy().compact(newCompactionStrategyContext(context));
+        return getTailCompactionStrategy(context).compact(newCompactionStrategyContext(context));
     }
 
     @Override
@@ -293,7 +294,7 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
 
             @Override
             public GCJournal getGCJournal() {
-                return compactionResult.requiresGCJournalEntry() ? context.getGCJournal() : null;
+                return context.getGCJournal();
             }
 
             @Override
@@ -312,8 +313,8 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
             }
 
             @Override
-            public String getCompactedRootId() {
-                return compactionResult.getCompactedRootId().toString10();
+            public RecordId getCompactedRootId() {
+                return compactionResult.getCompactedRootId();
             }
 
             @Override
