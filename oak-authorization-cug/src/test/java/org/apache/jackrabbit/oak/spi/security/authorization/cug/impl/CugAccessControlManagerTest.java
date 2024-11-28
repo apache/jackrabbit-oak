@@ -31,7 +31,6 @@ import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -89,7 +88,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     @Test
     public void testGetSupportedPrivileges() throws Exception {
         Privilege[] readPrivs = privilegesFromNames(PrivilegeConstants.JCR_READ);
-        Map<String, Privilege[]> pathMap = ImmutableMap.of(
+        Map<String, Privilege[]> pathMap = Map.of(
                 SUPPORTED_PATH, readPrivs,
                 SUPPORTED_PATH + "/subtree", readPrivs,
                 UNSUPPORTED_PATH, new Privilege[0],

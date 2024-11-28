@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
@@ -46,7 +45,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
     private static final String EXCLUDED_PRINCIPAL_NAME = "excludedPrincipal";
     private static final String ANY_PRINCIPAL_NAME = "anyPrincipal";
 
-    private static final Map<String, Object> PROPERTIES = ImmutableMap.of(
+    private static final Map<String, Object> PROPERTIES = Map.of(
             CugConstants.PARAM_CUG_ENABLED, true,
             CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/"});
 
@@ -121,7 +120,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
     @Test
     public void testNotEnabled() {
         context.registerInjectActivateService(cugExclude, Map.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
-        context.registerInjectActivateService(cugConfiguration, ImmutableMap.of(
+        context.registerInjectActivateService(cugConfiguration, Map.of(
                 CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/"}));
 
@@ -133,7 +132,7 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
     @Test
     public void testNoSupportedPaths() {
         context.registerInjectActivateService(cugExclude, Map.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
-        context.registerInjectActivateService(cugConfiguration, ImmutableMap.of(
+        context.registerInjectActivateService(cugConfiguration, Map.of(
                 CugConstants.PARAM_CUG_ENABLED, true,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
 

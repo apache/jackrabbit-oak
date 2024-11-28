@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -204,7 +203,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     @Test
     public void testActivate() {
         CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
-        cugConfiguration.activate(ImmutableMap.of(
+        cugConfiguration.activate(Map.of(
                 CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/content", "/anotherContent"}
         ));
