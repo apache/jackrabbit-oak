@@ -265,4 +265,12 @@ public interface UserConstants {
      * @since Oak 1.3.3
      */
     int PASSWORD_HISTORY_DISABLED_SIZE = 0;
+
+    /**
+     * Optional configuration parameter indicating if the anonymous user can be disabled or not.
+     * By default, the anonymous user can be disabled.
+     *
+     * @since Oak 1.73.0
+     */
+    String PARAM_ALLOW_DISABLE_ANONYMOUS = "allowDisableAnonymous";
 }

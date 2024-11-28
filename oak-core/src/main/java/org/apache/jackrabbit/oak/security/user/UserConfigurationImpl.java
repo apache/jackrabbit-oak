@@ -195,6 +195,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                 name = "RFC7613 Username Comparison Profile",
                 description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
         boolean enableRFC7613UsercaseMappedProfile() default false;
+
+        @AttributeDefinition(
+                name = "Allow Disable Anonymous User",
+                description = "By default the anonymous user can be disabled. By changing this option to false trying "
+                        + "to disable the anonymous user will throw an exception.")
+        boolean allowDisableAnonymous() default true;
     }
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
