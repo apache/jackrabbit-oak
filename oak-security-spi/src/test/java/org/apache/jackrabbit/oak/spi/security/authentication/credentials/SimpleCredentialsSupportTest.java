@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -61,7 +60,7 @@ public class SimpleCredentialsSupportTest {
         assertNotNull(attributes);
         assertTrue(attributes.isEmpty());
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
@@ -78,7 +77,7 @@ public class SimpleCredentialsSupportTest {
 
         SimpleCredentials sc = new SimpleCredentials("uid", new char[0]);
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         credentialsSupport.setAttributes(sc, expected);
 
         expected.forEach((key, value) -> assertEquals(value, sc.getAttribute(key)));

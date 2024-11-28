@@ -115,7 +115,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsTypeGroupFromTree() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, true,
                 UserConstants.NT_REP_USER, false,
                 UserConstants.NT_REP_SYSTEM_USER, false,
@@ -128,7 +128,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsTypeUserFromTree() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, false,
                 UserConstants.NT_REP_USER, true,
                 UserConstants.NT_REP_SYSTEM_USER, true,
@@ -144,7 +144,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsTypeAuthorizableFromTree() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, true,
                 UserConstants.NT_REP_USER, true,
                 UserConstants.NT_REP_SYSTEM_USER, true,
@@ -160,7 +160,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetTypeFromTree() {
-        Map<String, AuthorizableType> test = ImmutableMap.of(
+        Map<String, AuthorizableType> test = Map.of(
                 UserConstants.NT_REP_GROUP, AuthorizableType.GROUP,
                 UserConstants.NT_REP_USER, AuthorizableType.USER,
                 UserConstants.NT_REP_SYSTEM_USER, AuthorizableType.USER
@@ -208,7 +208,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsSystemUser() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, false,
                 UserConstants.NT_REP_USER, false,
                 UserConstants.NT_REP_SYSTEM_USER, true,
@@ -381,7 +381,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetImportBehavior() {
-        Map<ConfigurationParameters, Integer> testMap = ImmutableMap.of(
+        Map<ConfigurationParameters, Integer> testMap = Map.of(
                 ConfigurationParameters.EMPTY, ImportBehavior.IGNORE,
                 ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, "anyString"), ImportBehavior.ABORT,
                 ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.BESTEFFORT), ImportBehavior.ABORT,

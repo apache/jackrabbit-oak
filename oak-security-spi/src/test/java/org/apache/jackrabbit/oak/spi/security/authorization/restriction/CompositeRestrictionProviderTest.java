@@ -187,7 +187,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testCreateRestriction() throws Exception {
-        Map<String, Value> valid = ImmutableMap.of(
+        Map<String, Value> valid = Map.of(
                 NAME_BOOLEAN, vf.createValue(true),
                 NAME_LONGS, vf.createValue(10),
                 REP_GLOB, vf.createValue("*")
@@ -206,7 +206,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testCreateInvalidRestriction() throws Exception {
-        Map<String, Value> invalid = ImmutableMap.of(
+        Map<String, Value> invalid = Map.of(
                 NAME_BOOLEAN, vf.createValue("wrong_type"),
                 REP_GLOB, vf.createValue(true)
         );
@@ -223,7 +223,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testMvCreateRestriction() throws RepositoryException {
-        Map<String, Value[]> valid = ImmutableMap.of(
+        Map<String, Value[]> valid = Map.of(
                 NAME_LONGS, new Value[] {vf.createValue(100)},
                 REP_PREFIXES, new Value[] {vf.createValue("prefix"), vf.createValue("prefix2")}
         );
@@ -241,7 +241,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testCreateInvalidMvRestriction() throws Exception {
-        Map<String, Value[]> invalid = ImmutableMap.of(
+        Map<String, Value[]> invalid = Map.of(
                 NAME_BOOLEAN, new Value[] {vf.createValue(true), vf.createValue(false)},
                 NAME_LONGS, new Value[] {vf.createValue("wrong_type")},
                 REP_PREFIXES, new Value[] {vf.createValue(true)}
