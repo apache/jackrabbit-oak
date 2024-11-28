@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 public class MongoDBConfig {
@@ -35,11 +36,11 @@ public class MongoDBConfig {
         private static final Map<String, CollectionCompressor> COLLECTION_COMPRESSOR_MAP;
 
         static {
-            ImmutableMap.Builder<String, CollectionCompressor> builder = new ImmutableMap.Builder<>();
+            Map<String, CollectionCompressor> builder = new HashMap<>();
             for (CollectionCompressor value : CollectionCompressor.values()) {
                 builder.put(value.getName().toLowerCase(), value);
             }
-            COLLECTION_COMPRESSOR_MAP = builder.build();
+            COLLECTION_COMPRESSOR_MAP = Collections.unmodifiableMap(builder);
         }
 
         CollectionCompressor(String compressionType) {

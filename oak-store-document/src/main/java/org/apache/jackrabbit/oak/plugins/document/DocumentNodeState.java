@@ -588,11 +588,11 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
-        ImmutableMap.Builder<String, PropertyState> builder = ImmutableMap.builder();
+        Map<String, PropertyState> builder = new HashMap<>();
         for (PropertyState ps : props){
             builder.put(ps.getName(), ps);
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     /**

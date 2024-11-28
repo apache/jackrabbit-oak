@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
@@ -96,14 +94,13 @@ final class DocumentNodeStoreServiceConfiguration {
      * property names are mapped to framework properties by prefixing them with
      * {@link #DEFAULT_FWK_PREFIX}.
      */
-    private static final Map<String, String> FWK_PROP_MAPPING = new ImmutableMap.Builder<String, String>()
-            .put(PROP_DB, FWK_PROP_DB)
-            .put(PROP_URI, FWK_PROP_URI)
-            .put(PROP_HOME, PROP_HOME)
-            .put(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE)
-            .put(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT)
-            .put(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT)
-            .build();
+    private static final Map<String, String> FWK_PROP_MAPPING = Map.of(
+            PROP_DB, FWK_PROP_DB,
+            PROP_URI, FWK_PROP_URI,
+            PROP_HOME, PROP_HOME,
+            PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE,
+            PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT,
+            PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT);
 
     private DocumentNodeStoreServiceConfiguration() {
     }
