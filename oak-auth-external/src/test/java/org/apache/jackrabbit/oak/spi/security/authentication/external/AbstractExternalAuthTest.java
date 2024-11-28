@@ -193,7 +193,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     }
 
     protected DefaultSyncHandler registerSyncHandler(@NotNull Map<String, Object> syncConfigMap, @NotNull String idpName) {
-        context.registerService(SyncHandlerMapping.class, mock(ExternalLoginModuleFactory.class), ImmutableMap.of(
+        context.registerService(SyncHandlerMapping.class, mock(ExternalLoginModuleFactory.class), Map.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idpName,
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfigMap.get(DefaultSyncConfigImpl.PARAM_NAME)
         ));

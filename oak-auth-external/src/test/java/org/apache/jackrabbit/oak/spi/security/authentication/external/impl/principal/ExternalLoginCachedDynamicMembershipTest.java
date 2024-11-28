@@ -36,7 +36,6 @@ import javax.security.auth.login.Configuration;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -69,14 +68,14 @@ public class ExternalLoginCachedDynamicMembershipTest extends ExternalLoginTestB
 
         // now register the sync-handler with the dynamic membership config
         // in order to enable dynamic membership with the external principal configuration
-        Map<String, Boolean> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP,
+        Map<String, Boolean> props = Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP,
                 syncConfig.user().getDynamicMembership(),
                 DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS,
                 syncConfig.group().getDynamicGroups());
         SyncHandler syncHandler = WhiteboardUtils.getService(whiteboard, SyncHandler.class);
         context.registerService(SyncHandler.class, syncHandler, props);
 
-        Map<String, String> mappingProps = ImmutableMap.of(
+        Map<String, String> mappingProps = Map.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idp.getName(),
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncHandler.getName());
         context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, mappingProps);

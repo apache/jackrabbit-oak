@@ -177,7 +177,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncUsers(TEST_IDS, false);
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "nsa",
                 TestIdentityProvider.ID_SECOND_USER, "nsa",
                 TestIdentityProvider.ID_WILDCARD_USER, "nsa"));
@@ -196,7 +196,7 @@ public class DelegateeTest extends AbstractJmxTest {
                 ID_TEST_USER,
                 TestIdentityProvider.ID_SECOND_USER,
                 TestIdentityProvider.ID_WILDCARD_USER}, false);
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "for",
                 TestIdentityProvider.ID_WILDCARD_USER, "nsa"));
@@ -296,7 +296,7 @@ public class DelegateeTest extends AbstractJmxTest {
                 externalIds.add(new ExternalIdentityRef(id, idp.getName()).getString());
         }
         String[] result = delegatee.syncExternalUsers(externalIds.toArray(new String[0]));
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "ERR",
                 TestIdentityProvider.ID_WILDCARD_USER, "ERR"));
@@ -322,7 +322,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncAllExternalUsers();
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "ERR",
                 TestIdentityProvider.ID_WILDCARD_USER, "ERR"));
@@ -377,7 +377,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.purgeOrphanedUsers();
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 "third", "ERR",
                 "forth", "ERR"));
         assertFalse(r.hasPendingChanges());
