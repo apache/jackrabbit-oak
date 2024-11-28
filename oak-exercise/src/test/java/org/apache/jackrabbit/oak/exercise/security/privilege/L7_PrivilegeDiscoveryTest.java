@@ -26,7 +26,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -191,7 +190,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
     public void testHasPrivileges() throws Exception {
         AccessControlManager acMgr = userSession.getAccessControlManager();
 
-        Map<String, String[]> expectedAllow = ImmutableMap.of(
+        Map<String, String[]> expectedAllow = Map.of(
                 testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
@@ -200,7 +199,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
             assertTrue(acMgr.hasPrivileges(path, AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
         }
 
-        Map<String, String[]> expectedDeny = ImmutableMap.of(
+        Map<String, String[]> expectedDeny = Map.of(
                 testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
@@ -257,7 +256,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // 1. EXERCISE: expected privileges for the 'uPrincipal' only
         Set<Principal> principals = Set.of(uPrincipal);
-        Map<String, Set<Privilege>> expected = ImmutableMap.of(
+        Map<String, Set<Privilege>> expected = Map.of(
                 testRoot, null, // EXERCISE
                 testPath, null, // EXERCISE
                 childPath, null // EXERCISE
@@ -270,7 +269,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // 2. EXERCISE: expected privileges for the 'gPrincipal' only
         principals = Set.of(gPrincipal);
-        expected = ImmutableMap.of(
+        expected = Map.of(
                 testRoot, null,
                 testPath, null,
                 childPath, null
@@ -283,7 +282,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // 3. EXERCISE: expected privileges for the 'uPrincipal' and 'gPrincipal'
         principals = Set.of(uPrincipal, gPrincipal);
-        expected = ImmutableMap.of(
+        expected = Map.of(
                 testRoot, null,
                 testPath, null,
                 childPath, null
@@ -296,7 +295,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // 4. EXERCISE: expected privileges for the 'uPrincipal', 'gPrincipal' + everyone
         principals = Set.of(uPrincipal, gPrincipal, EveryonePrincipal.getInstance());
-        expected = ImmutableMap.of(
+        expected = Map.of(
                 testRoot, null,
                 testPath, null,
                 childPath, null

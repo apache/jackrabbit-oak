@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -172,7 +171,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
 
     public void testReadAccess() throws RepositoryException {
         // EXERCISE: fill in the expected values
-        Map<String, Boolean[]> nodeTests = ImmutableMap.of(
+        Map<String, Boolean[]> nodeTests = Map.of(
                 "/", existsAndHasPermission(null, null),
                 testRoot, existsAndHasPermission(null, null),
                 childPath, existsAndHasPermission(null, null),
@@ -187,7 +186,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         }
 
         // EXERCISE: fill in the expected values
-        Map<String, Boolean[]> propertyTests = ImmutableMap.of(
+        Map<String, Boolean[]> propertyTests = Map.of(
                 "/jcr:primaryType", existsAndHasPermission(null, null),
                 propertyPath, existsAndHasPermission(null, null),
                 childPath + "/new", existsAndHasPermission(null, null)
@@ -203,7 +202,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
 
     public void testModifyPermissions() throws RepositoryException {
         // EXERCISE: fill in the expected values
-        Map<String, Boolean> modifyPropertyTests = ImmutableMap.of(
+        Map<String, Boolean> modifyPropertyTests = Map.of(
                 "/jcr:primaryType", null,
                 testRoot, null,
                 propertyPath, null
@@ -216,7 +215,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
 
     public void testRemovePermissions() throws RepositoryException {
         // EXERCISE: fill in the expected values
-        Map<String, Boolean> removePropertyTests = ImmutableMap.of(
+        Map<String, Boolean> removePropertyTests = Map.of(
                 "/jcr:primaryType", null,
                 propertyPath, null,
                 childPath + "/new", null
@@ -227,7 +226,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         }
 
         // EXERCISE: fill in the expected values
-        Map<String, Boolean> removeNodesTests = ImmutableMap.of(
+        Map<String, Boolean> removeNodesTests = Map.of(
                 "/", null,
                 testRoot, null,
                 childPath, null,
@@ -256,7 +255,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
 
     public void testAddPermissions() throws RepositoryException {
         // EXERCISE: fill in the expected values
-        Map<String, Boolean> addPropertyTests = ImmutableMap.of(
+        Map<String, Boolean> addPropertyTests = Map.of(
                 "/propertyName1", null,
                 testRoot, null,
                 propertyPath, null,
@@ -268,7 +267,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         }
 
         // EXERCISE: fill in the expected values
-        Map<String, Boolean> addNodesTests = ImmutableMap.of(
+        Map<String, Boolean> addNodesTests = Map.of(
                 "/childNode", null,
                 testRoot, null,
                 testRoot + "/new", null,
