@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
@@ -52,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -311,7 +310,7 @@ public class IndexCommand implements Command {
         }
 
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
-            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100), ImmutableMap.of(
+            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100), Map.of(
                     "creator", IndexCommand.class.getSimpleName(),
                     "created", now()));
         }
