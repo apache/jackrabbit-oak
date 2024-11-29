@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
@@ -277,10 +276,10 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableIdWithType() {
-        Map<AuthorizableType, String[]> test = ImmutableMap.<AuthorizableType,String[]>builder().
-                put(AuthorizableType.USER, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER}).
-                put(AuthorizableType.AUTHORIZABLE, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP}).
-                put(AuthorizableType.GROUP, new String[] {UserConstants.NT_REP_GROUP}).build();
+        Map<AuthorizableType, String[]> test = Map.of(
+                AuthorizableType.USER, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER},
+                AuthorizableType.AUTHORIZABLE, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP},
+                AuthorizableType.GROUP, new String[] {UserConstants.NT_REP_GROUP});
 
         test.forEach((key, value) -> {
             for (String ntName : value) {
@@ -291,10 +290,10 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableIdWithTypeFallback() {
-        Map<AuthorizableType, String[]> test = ImmutableMap.<AuthorizableType,String[]>builder().
-                put(AuthorizableType.USER, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER}).
-                put(AuthorizableType.AUTHORIZABLE, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP}).
-                put(AuthorizableType.GROUP, new String[]{UserConstants.NT_REP_GROUP}).build();
+        Map<AuthorizableType, String[]> test = Map.of(
+                AuthorizableType.USER, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER},
+                AuthorizableType.AUTHORIZABLE, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP},
+                AuthorizableType.GROUP, new String[]{UserConstants.NT_REP_GROUP});
 
         test.forEach((key, value) -> {
             for (String ntName : value) {

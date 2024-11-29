@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -38,6 +37,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,11 +97,11 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @NotNull
     private AbstractRestrictionProvider createRestrictionProvider(@Nullable RestrictionPattern pattern, @Nullable Restriction toRead, @NotNull RestrictionDefinition... supportedDefinitions) {
-        ImmutableMap.Builder<String, RestrictionDefinition> builder = ImmutableMap.builder();
+        Map<String, RestrictionDefinition> builder = new HashMap<>();
         for (RestrictionDefinition def : supportedDefinitions) {
             builder.put(def.getName(), def);
         }
-        return new AbstractRestrictionProvider(builder.build()) {
+        return new AbstractRestrictionProvider(Collections.unmodifiableMap(builder)) {
             @Override
             public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
                 if (toRead != null) {
