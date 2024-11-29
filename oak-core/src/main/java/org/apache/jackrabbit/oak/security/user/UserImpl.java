@@ -43,16 +43,13 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 class UserImpl extends AuthorizableImpl implements User {
 
     private final boolean isAdmin;
-    private final boolean isAnonymous;
     private final PasswordHistory pwHistory;
-    private final ConfigurationParameters configurationParameters;
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
 
-        configurationParameters = userManager.getConfig();
+        ConfigurationParameters configurationParameters = userManager.getConfig();
         isAdmin = UserUtil.isAdmin(configurationParameters, id);
-        isAnonymous = UserUtil.getAnonymousId(configurationParameters).equals(id);
         pwHistory = new PasswordHistory(configurationParameters);
     }
 
@@ -156,7 +153,8 @@ class UserImpl extends AuthorizableImpl implements User {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
 
-        boolean allowDisableAnonymous = configurationParameters.getConfigValue(UserConstants.PARAM_ALLOW_DISABLE_ANONYMOUS, true);
+        boolean isAnonymous = UserUtil.getAnonymousId(getUserManager().getConfig()).equals(getID());
+        boolean allowDisableAnonymous = getUserManager().getConfig().getConfigValue(UserConstants.PARAM_ALLOW_DISABLE_ANONYMOUS, true);
         if (isAnonymous && !allowDisableAnonymous) {
             throw new RepositoryException("The anonymous user cannot be disabled.");
         }
