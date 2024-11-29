@@ -24,8 +24,6 @@ import java.util.List;
 
 class SynchronizedGarbageCollectionStrategy implements GarbageCollectionStrategy {
 
-    private final Object lock = new Object();
-
     private final GarbageCollectionStrategy strategy;
 
     SynchronizedGarbageCollectionStrategy(GarbageCollectionStrategy strategy) {
@@ -33,45 +31,33 @@ class SynchronizedGarbageCollectionStrategy implements GarbageCollectionStrategy
     }
 
     @Override
-    public void collectGarbage(Context context) throws IOException {
-        synchronized (lock) {
-            strategy.collectGarbage(context);
-        }
+    public synchronized void collectGarbage(Context context) throws IOException {
+        strategy.collectGarbage(context);
     }
 
     @Override
-    public void collectFullGarbage(Context context) throws IOException {
-        synchronized (lock) {
-            strategy.collectFullGarbage(context);
-        }
+    public synchronized void  collectFullGarbage(Context context) throws IOException {
+        strategy.collectFullGarbage(context);
     }
 
     @Override
-    public void collectTailGarbage(Context context) throws IOException {
-        synchronized (lock) {
-            strategy.collectTailGarbage(context);
-        }
+    public synchronized void collectTailGarbage(Context context) throws IOException {
+        strategy.collectTailGarbage(context);
     }
 
     @Override
-    public CompactionResult compactFull(Context context) throws IOException {
-        synchronized (lock) {
-            return strategy.compactFull(context);
-        }
+    public synchronized CompactionResult compactFull(Context context) throws IOException {
+        return strategy.compactFull(context);
     }
 
     @Override
-    public CompactionResult compactTail(Context context) throws IOException {
-        synchronized (lock) {
-            return strategy.compactTail(context);
-        }
+    public synchronized CompactionResult compactTail(Context context) throws IOException {
+        return strategy.compactTail(context);
     }
 
     @Override
-    public List<String> cleanup(Context context) throws IOException {
-        synchronized (lock) {
-            return strategy.cleanup(context);
-        }
+    public synchronized List<String> cleanup(Context context) throws IOException {
+        return strategy.cleanup(context);
     }
 
 }

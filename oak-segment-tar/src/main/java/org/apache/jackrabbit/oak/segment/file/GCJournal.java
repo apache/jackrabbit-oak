@@ -68,7 +68,7 @@ public class GCJournal {
     ) {
         GCJournalEntry current = read();
         if (root.equals(RecordId.NULL) || root.toString10().equals(current.root)) {
-            // compaction failed, only update the journal if the root changed
+            // only update the journal if the root has changed
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
