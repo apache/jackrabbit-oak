@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
@@ -44,15 +45,15 @@ class UserImpl extends AuthorizableImpl implements User {
     private final boolean isAdmin;
     private final boolean isAnonymous;
     private final PasswordHistory pwHistory;
-    private final boolean allowDisableAnonymous;
+    private final ConfigurationParameters configurationParameters;
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
 
-        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
-        isAnonymous = UserUtil.getAnonymousId(userManager.getConfig()).equals(id);
-        allowDisableAnonymous = userManager.getConfig().getConfigValue(UserConstants.PARAM_ALLOW_DISABLE_ANONYMOUS, true);
-        pwHistory = new PasswordHistory(userManager.getConfig());
+        configurationParameters = userManager.getConfig();
+        isAdmin = UserUtil.isAdmin(configurationParameters, id);
+        isAnonymous = UserUtil.getAnonymousId(configurationParameters).equals(id);
+        pwHistory = new PasswordHistory(configurationParameters);
     }
 
     //---------------------------------------------------< AuthorizableImpl >---
@@ -135,7 +136,7 @@ class UserImpl extends AuthorizableImpl implements User {
 
     @Override
     public void disable(@Nullable String reason) throws RepositoryException {
-        canDisableUser();
+        validateDisableUser();
 
         getUserManager().onDisable(this, reason);
 
@@ -150,11 +151,12 @@ class UserImpl extends AuthorizableImpl implements User {
         }
     }
 
-    private void canDisableUser() throws RepositoryException {
+    private void validateDisableUser() throws RepositoryException {
         if (isAdmin) {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
 
+        boolean allowDisableAnonymous = configurationParameters.getConfigValue(UserConstants.PARAM_ALLOW_DISABLE_ANONYMOUS, true);
         if (isAnonymous && !allowDisableAnonymous) {
             throw new RepositoryException("The anonymous user cannot be disabled.");
         }

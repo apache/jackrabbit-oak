@@ -205,7 +205,7 @@ public class UserImplTest extends AbstractSecurityTest {
 
         anonymous.disable("Test anonymous disable");
 
-        fail("Shouldn'td have reached this point");
+        fail("Shouldn't have reached this point");
     }
 
     @Test(expected = RepositoryException.class)

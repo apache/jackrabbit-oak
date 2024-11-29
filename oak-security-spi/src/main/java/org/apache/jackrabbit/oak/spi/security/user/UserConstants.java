@@ -270,7 +270,6 @@ public interface UserConstants {
      * Optional configuration parameter indicating if the anonymous user can be disabled or not.
      * By default, the anonymous user can be disabled.
      *
-     * @since Oak 1.73.0
      */
     String PARAM_ALLOW_DISABLE_ANONYMOUS = "allowDisableAnonymous";
 }
