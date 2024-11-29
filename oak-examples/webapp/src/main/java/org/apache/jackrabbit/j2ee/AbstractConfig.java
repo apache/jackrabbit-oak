@@ -53,7 +53,7 @@ public abstract class AbstractConfig {
             String mapName = toMapName(name, '.');
             try {
                 if (map.containsKey(mapName)) {
-                    mapbuilder.put(mapName, props.getProperty(name));
+                    map.put(mapName, props.getProperty(name));
                 }
             } catch (Exception e) {
                 throw new ServletExceptionWithCause(
@@ -69,7 +69,7 @@ public abstract class AbstractConfig {
             String mapName = toMapName(name, '-');
             try {
                 if (map.containsKey(mapName)) {
-                    mapbuilder.put(mapName, ctx.getInitParameter(name));
+                    map.put(mapName, ctx.getInitParameter(name));
                 }
             } catch (Exception e) {
                 throw new ServletExceptionWithCause(
