@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.primitives.Ints;
@@ -55,6 +54,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeTypeIterator;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1937,7 +1937,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static Map<String, String> buildMimeTypeMap(NodeState node) {
-        ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
+        Map<String, String> map = new HashMap<>();
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
             for (ChildNodeEntry subChild : child.getNodeState().getChildNodeEntries()) {
                 StringBuilder typeBuilder = new StringBuilder(child.getName())
@@ -1949,7 +1949,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 }
             }
         }
-        return map.build();
+        return Collections.unmodifiableMap(map);
     }
 
     private PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
