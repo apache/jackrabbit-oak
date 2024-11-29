@@ -40,12 +40,23 @@ public class ElasticConnectionRule extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
 
+    // Set this connection string as
+    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
+    // key_id and key_secret are optional in case the ES server
+    // needs authentication
+    // Do not set this if docker is running and you want to run the tests on docker instead.
+    private static final String ELASTIC_CONNECTION_STRING = System.getProperty("elasticConnectionString");
+
     private final String indexPrefix;
     private static boolean useDocker = false;
 
     private final String elasticConnectionString;
 
     private ElasticConnectionModel elasticConnectionModel;
+
+    public ElasticConnectionRule() {
+        this(ELASTIC_CONNECTION_STRING);
+    }
 
     public ElasticConnectionRule(String elasticConnectionString) {
         this(elasticConnectionString,

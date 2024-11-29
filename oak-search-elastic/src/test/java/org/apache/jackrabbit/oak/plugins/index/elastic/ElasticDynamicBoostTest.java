@@ -28,8 +28,7 @@ import java.util.List;
 public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticDynamicBoostTest() {
         this.indexOptions = new ElasticIndexOptions();

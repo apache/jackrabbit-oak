@@ -43,8 +43,7 @@ import static org.junit.Assert.fail;
 public class ElasticIndexAggregation2Test extends IndexAggregation2CommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
 
     private final ElasticTestRepositoryBuilder builder;

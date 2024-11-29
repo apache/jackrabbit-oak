@@ -23,8 +23,7 @@ import org.junit.ClassRule;
 public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticFullTextIndexTest() {
         this.indexOptions = new ElasticIndexOptions();

@@ -34,19 +34,16 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
-import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.event.Level;
 
 import java.util.Collection;
 import java.util.Collections;
 
-@RunWith(Parameterized.class)
 public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
     // before it can get the estimated doc count from the remote ES index

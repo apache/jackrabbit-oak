@@ -33,8 +33,7 @@ import java.util.List;
 public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticFullTextAnalyzerTest() {
         this.indexOptions = new ElasticIndexOptions();

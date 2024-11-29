@@ -35,6 +35,7 @@ import java.time.Duration;
 
 public class ElasticTestServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
+    private static final String ELASTIC_DOCKER_IMAGE_VERSION = System.getProperty("elasticDockerImageVersion");
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;
@@ -62,10 +63,7 @@ public class ElasticTestServer implements AutoCloseable {
     }
 
     private synchronized void setup() {
-        String esDockerImageVersion = ElasticTestUtils.ELASTIC_DOCKER_IMAGE_VERSION;
-        if (esDockerImageVersion == null) {
-            esDockerImageVersion = Version.VERSION.toString();
-        }
+        String esDockerImageVersion = ELASTIC_DOCKER_IMAGE_VERSION != null ? ELASTIC_DOCKER_IMAGE_VERSION : Version.VERSION.toString();
         LOG.info("Elasticsearch test Docker image version: {}.", esDockerImageVersion);
         checkIfDockerClientAvailable();
         Network network = Network.newNetwork();

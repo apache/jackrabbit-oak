@@ -62,7 +62,7 @@ public class ElasticIndexProviderServiceTest {
     public final OsgiContext context = new OsgiContext();
 
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     private final ElasticIndexProviderService service = new ElasticIndexProviderService();
 

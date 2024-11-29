@@ -71,8 +71,7 @@ import static org.junit.Assert.assertTrue;
 public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
     // before it can get the estimated doc count from the remote ES index

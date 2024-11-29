@@ -33,8 +33,7 @@ import javax.jcr.query.Row;
 public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     protected Repository createJcrRepository() {
         indexOptions = new ElasticIndexOptions();
