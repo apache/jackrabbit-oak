@@ -27,7 +27,10 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -38,8 +41,6 @@ import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -384,14 +385,14 @@ public class SessionDelegate {
     }
 
     private void commit(Root root, String path) throws CommitFailedException {
-        ImmutableMap.Builder<String, Object> info = ImmutableMap.builder();
+        Map<String, Object> info = new HashMap<>();
         if (path != null && !denotesRoot(path)) {
             info.put(Root.COMMIT_PATH, path);
         }
         if (userData != null) {
             info.put(EventFactory.USER_DATA, userData);
         }
-        root.commit(info.build());
+        root.commit(Collections.unmodifiableMap(info));
         if (permissionProvider != null && refreshPermissionProvider) {
             permissionProvider.refresh();
         }
