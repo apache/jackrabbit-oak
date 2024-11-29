@@ -25,6 +25,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +36,6 @@ import javax.jcr.observation.Event;
 
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -97,10 +98,10 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("afterValue", createValue(after))
-                        .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("afterValue", createValue(after));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -116,11 +117,11 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("beforeValue", createValue(before))
-                        .put("afterValue", createValue(after))
-                        .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("beforeValue", createValue(before));
+                builder.put("afterValue", createValue(after));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -135,10 +136,10 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("beforeValue", createValue(before))
-                        .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("beforeValue", createValue(before));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -191,11 +192,11 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                    .put("srcAbsPath", mapper.getJcrPath(sourcePath))
-                    .put("destAbsPath", getPath())
-                    .putAll(createInfoMap(primaryType, mixinTypes))
-                    .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.put("srcAbsPath", mapper.getJcrPath(sourcePath));
+                builder.put("destAbsPath", getPath());
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -211,11 +212,11 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                    .put("srcChildRelPath", mapper.getJcrName(name))
-                    .put("destChildRelPath", mapper.getJcrName(destName))
-                    .putAll(createInfoMap(primaryType, mixinTypes))
-                    .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.put("srcChildRelPath", mapper.getJcrName(name));
+                builder.put("destChildRelPath", mapper.getJcrName(destName));
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
