@@ -384,7 +384,7 @@ public class AzureCompact {
                     return 0;
                 }
             }
-            System.out.print("    -> compacting\n");
+            System.out.printf("    -> compacting\n");
 
             boolean success = false;
             switch (gcType) {
@@ -401,7 +401,7 @@ public class AzureCompact {
                 return 1;
             }
 
-            System.out.print("    -> [skipping] cleaning up\n");
+            System.out.printf("    -> [skipping] cleaning up\n");
             gcGeneration = store.getHead().getGcGeneration();
             root = store.getHead().getRecordId();
         } catch (Exception e) {
@@ -412,7 +412,7 @@ public class AzureCompact {
         }
 
         watch.stop();
-        System.out.print("    after\n");
+        System.out.printf("    after\n");
         List<String> afterArchives = Collections.emptyList();
         try {
             afterArchives = rwArchiveManager.listArchives();

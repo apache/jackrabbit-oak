@@ -105,7 +105,11 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
         ));
     }
 
-    void run(Context context, EstimationStrategy estimationStrategy, CompactionStrategy compactionStrategy) throws IOException {
+    public List<String> cleanup(Context context, CompactionResult compactionResult) throws IOException {
+        return getCleanupStrategy().cleanup(newCleanupStrategyContext(context, compactionResult));
+    }
+
+    private void run(Context context, EstimationStrategy estimationStrategy, CompactionStrategy compactionStrategy) throws IOException {
         try {
             context.getGCListener().info("started");
 
@@ -157,10 +161,6 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
             context.getCompactionMonitor().finished();
             context.getGCListener().updateStatus(IDLE.message());
         }
-    }
-
-    public List<String> cleanup(Context context, CompactionResult compactionResult) throws IOException {
-        return getCleanupStrategy().cleanup(newCleanupStrategyContext(context, compactionResult));
     }
 
     private EstimationStrategy.Context newEstimationStrategyContext(Context context) {
