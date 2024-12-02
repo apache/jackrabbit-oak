@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -62,6 +61,7 @@ import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +86,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     private void registerSyncHandler(boolean dynamicMembership, boolean dynamicGroups) {
-        ImmutableMap.Builder<String, Object> config = new ImmutableMap.Builder<>();
+        Map<String, Object> config = new HashMap<>();
         config.put(DefaultSyncConfigImpl.PARAM_NAME, DefaultSyncConfig.DEFAULT_NAME);
         if (dynamicMembership) {
             config.put(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
@@ -94,7 +94,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         if (dynamicGroups) {
             config.put(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS, true);
         }
-        registerSyncHandler(config.build(), idp.getName());
+        registerSyncHandler(Collections.unmodifiableMap(config), idp.getName());
     }
 
     private void assertIsEnabled(ExternalPrincipalConfiguration externalPrincipalConfiguration, boolean expected) {
