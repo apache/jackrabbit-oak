@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.NoSuchWorkspaceException;
@@ -60,9 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class ChangeCollectorProviderTest {
 
@@ -190,7 +188,7 @@ public class ChangeCollectorProviderTest {
 
     private static CommitInfo newCommitInfoWithCommitContext(String sessionId, String userId) {
         return new CommitInfo(sessionId, userId,
-                ImmutableMap.<String, Object> builder().put(CommitContext.NAME, new SimpleCommitContext()).build());
+                Map.of(CommitContext.NAME, new SimpleCommitContext()));
     }
 
     @Test
