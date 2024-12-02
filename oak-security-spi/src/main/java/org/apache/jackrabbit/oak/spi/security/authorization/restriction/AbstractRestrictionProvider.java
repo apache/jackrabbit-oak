@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,7 +52,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     private CompositeRestrictionProvider composite = null;
 
     public AbstractRestrictionProvider(@NotNull Map<String, ? extends RestrictionDefinition> definitions) {
-        this.supported = Map.copyOf(definitions);
+        Map<String, RestrictionDefinition> builder = new LinkedHashMap<>();
+        builder.putAll(definitions);
+        this.supported = Collections.unmodifiableMap(builder);
     }
 
     //---------------------------------------------------< AggregationAware >---
