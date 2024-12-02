@@ -30,7 +30,6 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -52,7 +51,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     private CompositeRestrictionProvider composite = null;
 
     public AbstractRestrictionProvider(@NotNull Map<String, ? extends RestrictionDefinition> definitions) {
-        this.supported = ImmutableMap.copyOf(definitions);
+        this.supported = Map.copyOf(definitions);
     }
 
     //---------------------------------------------------< AggregationAware >---
