@@ -96,7 +96,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_
 public abstract class DocumentStoreIndexerBase implements Closeable {
     public static final String INDEXER_METRICS_PREFIX = "oak_indexer_";
     public static final String METRIC_INDEXING_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "indexing_duration_seconds";
-    public static final String METRIC_MERGE_NODE_STORE_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "merge_node_store_duration_seconds";
     public static final String METRIC_FULL_INDEX_CREATION_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "full_index_creation_duration_seconds";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
