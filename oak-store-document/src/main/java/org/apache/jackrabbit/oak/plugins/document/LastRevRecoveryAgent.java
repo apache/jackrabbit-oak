@@ -29,7 +29,8 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -82,7 +83,10 @@ public class LastRevRecoveryAgent {
 
     private final Consumer<Integer> afterRecovery;
 
-    private static final SystemPropertySupplier<Long> SYNC_RECOVERY_TIMEOUT_MILLIS = SystemPropertySupplier.create("oak.syncRecoveryTimeoutMillis", Long.MAX_VALUE);
+    private static final long SYNC_RECOVERY_TIMEOUT_MILLIS =
+            SystemPropertySupplier
+                    .create("oak.documentMK.syncRecoveryTimeoutMillis", Long.MAX_VALUE)
+                    .validateWith(value -> value >= 0).get();
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
@@ -271,12 +275,13 @@ public class LastRevRecoveryAgent {
         if (clusterId == revisionContext.getClusterId()) {
             ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
             if (nodeInfo != null && nodeInfo.isActive()) {
-                deadline = nodeInfo.getLeaseEndTime() - ClusterNodeInfo.DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
-            }
-            long now = System.currentTimeMillis();
-            if (Long.MAX_VALUE - SYNC_RECOVERY_TIMEOUT_MILLIS.get() > now) {
-                deadline = Math.min(deadline, now + SYNC_RECOVERY_TIMEOUT_MILLIS.get());
-                log.info("Adjusted deadline for synchronous recovery. New deadline is {}", SimpleDateFormat.getDateTimeInstance().format(new Date(deadline)));
+                long defaultDeadline = nodeInfo.getLeaseEndTime() - ClusterNodeInfo.DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
+                deadline = Math.min(defaultDeadline, revisionContext.getClock().millis() + SYNC_RECOVERY_TIMEOUT_MILLIS);
+                if (deadline != defaultDeadline) {
+                    log.info("Adjusted deadline for synchronous recovery from {} to {}.",
+                            LocalDateTime.ofEpochSecond(defaultDeadline / 1000, 0, ZoneOffset.UTC),
+                            LocalDateTime.ofEpochSecond(deadline / 1000, 0, ZoneOffset.UTC));
+                }
             }
         }
 
