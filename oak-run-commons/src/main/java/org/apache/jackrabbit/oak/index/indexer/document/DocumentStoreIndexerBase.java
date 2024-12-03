@@ -198,7 +198,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
                         .withMongoClientURI(getMongoClientURI())
-                        .withMongoDatabase(getMongoDatabase())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
                         .withCheckpoint(indexerSupport.getCheckpoint())
@@ -420,21 +419,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         MetricsFormatter.createMetricsWithDurationOnly(indexerWatch), t.toString());
                 throw t;
             }
-
-            INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
-            Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
-            try {
-                copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-                long mergeNodeStoreDurationSeconds = mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS);
-                INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreDurationSeconds));
-                MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
-                indexingReporter.addTiming("Merge node store", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds));
-            } catch (Throwable t) {
-                INDEXING_PHASE_LOGGER.info("[TASK:MERGE_NODE_STORE:FAIL] Metrics: {}, Error: {}",
-                        MetricsFormatter.createMetricsWithDurationOnly(mergeNodeStoreWatch), t.toString());
-                throw t;
-            }
-
+            copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             indexerSupport.postIndexWork(copyOnWriteStore);
 
             long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);

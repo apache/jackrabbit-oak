@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
@@ -56,6 +57,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -199,6 +201,9 @@ public class ElasticIndexCommand implements Command {
         IndexerSupport indexerSupport = createIndexerSupport(indexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
+
+        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+        indexHelper.getIndexReporter().setIndexNames(indexNames);
 
         if (opts.getCommonOpts().isMongo() && indexOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");

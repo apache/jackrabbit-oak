@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index;
 
 import com.codahale.metrics.MetricRegistry;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
@@ -38,15 +39,20 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase.METRIC_INDEXING_DURATION_SECONDS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback{
 
     protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
+    private final IndexerSupport indexerSupport;
+    private final IndexingReporter indexingReporter;
+    private final StatisticsProvider statisticsProvider;
     private NodeStore copyOnWriteStore;
-    private IndexerSupport indexerSupport;
 
     /**
      * Index lane name which is used for indexing
@@ -64,18 +70,33 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     public OutOfBandIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = requireNonNull(indexHelper);
         this.indexerSupport = requireNonNull(indexerSupport);
+        this.indexingReporter = indexHelper.getIndexReporter();
+        this.statisticsProvider = indexHelper.getStatisticsProvider();
     }
 
     public void reindex() throws CommitFailedException, IOException {
-        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        Stopwatch indexJobWatch = Stopwatch.createStarted();
+        try {
+            NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
 
-        copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        NodeState baseState = copyOnWriteStore.getRoot();
-        //TODO Check for indexPaths being empty
+            copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+            NodeState baseState = copyOnWriteStore.getRoot();
+            //TODO Check for indexPaths being empty
 
-        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-        preformIndexUpdate(baseState);
-        indexerSupport.postIndexWork(copyOnWriteStore);
+            indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
+            preformIndexUpdate(baseState);
+            indexerSupport.postIndexWork(copyOnWriteStore);
+
+            long indexingDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
+            INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
+            indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
+        } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
+                    MetricsFormatter.createMetricsWithDurationOnly(indexJobWatch), t.toString());
+            throw t;
+        }
     }
 
     protected File getLocalIndexDir() throws IOException {
@@ -90,12 +111,12 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     //~---------------------------------------------------< callbacks >
 
     @Override
-    public void indexUpdate() throws CommitFailedException {
+    public void indexUpdate() {
 
     }
 
     @Override
-    public void traversedNode(NodeTraversalCallback.PathSource pathSource) throws CommitFailedException {
+    public void traversedNode(NodeTraversalCallback.PathSource pathSource) {
 
     }
 

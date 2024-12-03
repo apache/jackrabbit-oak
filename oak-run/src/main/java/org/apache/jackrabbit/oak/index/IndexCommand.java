@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -53,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.emptyMap;
@@ -246,6 +248,9 @@ public class IndexCommand implements Command {
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", extendedIndexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
+
+        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+        extendedIndexHelper.getIndexReporter().setIndexNames(indexNames);
 
         if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
