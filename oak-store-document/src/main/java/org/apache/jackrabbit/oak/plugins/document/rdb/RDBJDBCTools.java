@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -41,8 +38,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
  * Convenience methods dealing with JDBC specifics.
@@ -379,7 +374,12 @@ public class RDBJDBCTools {
 
     private static void appendInCondition(StringBuilder builder, String field, int placeholdersCount) {
         builder.append(field).append(" in (");
-        Joiner.on(',').appendTo(builder, limit(cycle('?'), placeholdersCount));
+        String append = "?";
+        for (int i = 0; i < placeholdersCount; i++){
+            builder.append(append);
+            append = ",?";
+        }
+
         builder.append(')');
     }
 
