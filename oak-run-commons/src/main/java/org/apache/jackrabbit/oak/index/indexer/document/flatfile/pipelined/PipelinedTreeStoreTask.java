@@ -52,7 +52,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTreeStoreTask.class);
     private static final String THREAD_NAME = "tree-store-task";
 
-    private static final int MERGE_BATCH = 10;
+    private static final int MERGE_BATCH = 25;
     private static final boolean SKIP_FINAL_MERGE = false;
 
     private final TreeStore treeStore;
