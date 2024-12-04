@@ -42,10 +42,12 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase.METRIC_INDEXING_DURATION_SECONDS;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_DURATION_SECONDS;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_NODES_INDEXED;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_NODES_TRAVERSED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
-public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback{
+public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback {
 
     protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
@@ -53,6 +55,8 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     private final IndexingReporter indexingReporter;
     private final StatisticsProvider statisticsProvider;
     private NodeStore copyOnWriteStore;
+    private long nodesTraversed = 0;
+    private long nodesIndexed = 0;
 
     /**
      * Index lane name which is used for indexing
@@ -90,7 +94,9 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
 
             long indexingDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
-            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_DURATION_SECONDS, indexingDurationSeconds);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_NODES_TRAVERSED, nodesTraversed);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_NODES_INDEXED, nodesIndexed);
             indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
         } catch (Throwable t) {
             INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
@@ -112,12 +118,12 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
 
     @Override
     public void indexUpdate() {
-
+        nodesIndexed++;
     }
 
     @Override
     public void traversedNode(NodeTraversalCallback.PathSource pathSource) {
-
+        nodesTraversed++;
     }
 
     protected void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {

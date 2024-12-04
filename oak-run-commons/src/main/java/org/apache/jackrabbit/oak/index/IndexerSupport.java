@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -29,6 +30,7 @@ import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
+
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -54,7 +56,7 @@ import org.slf4j.LoggerFactory;
 import static java.util.Objects.requireNonNull;
 
 public class IndexerSupport {
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger LOG = LoggerFactory.getLogger(getClass());
     /**
      * Directory name in output directory under which indexes are
      * stored
@@ -131,7 +133,7 @@ public class IndexerSupport {
         NodeState checkpointedState;
         if (HEAD_AS_CHECKPOINT.equals(checkpoint)) {
             checkpointedState = indexHelper.getNodeStore().getRoot();
-            log.warn("Using head state for indexing. Such an index cannot be imported back");
+            LOG.warn("Using head state for indexing. Such an index cannot be imported back");
         } else {
             checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
             requireNonNull(checkpointedState, String.format("Not able to retrieve revision referred via checkpoint [%s]", checkpoint));
@@ -169,7 +171,7 @@ public class IndexerSupport {
         }
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
+        LOG.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
     }
 
     public void postIndexWork(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
@@ -187,7 +189,7 @@ public class IndexerSupport {
         }
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Switched the async lane for indexes at {} back to there original lanes", indexHelper.getIndexPaths());
+        LOG.info("Switched the async lane for indexes at {} back to there original lanes", indexHelper.getIndexPaths());
     }
 
     public Map<String, String> getCheckpointInfo() {
@@ -253,5 +255,33 @@ public class IndexerSupport {
      */
     public <T> Predicate<T> getFilterPredicateBasedOnCustomRegex(Pattern pattern, Function<T, String> typeToRepositoryPath) {
         return t -> !pattern.matcher(typeToRepositoryPath.apply(t)).find();
+    }
+
+    public long computeSizeOfGeneratedIndexData() throws IOException {
+        File localIndexDir = getLocalIndexDir();
+        long totalSize = 0;
+        try {
+            if (localIndexDir == null || !localIndexDir.isDirectory()) {
+                LOG.warn("Local index directory is invalid, this should not happen: {}", localIndexDir);
+                return -1;
+            } else {
+                StringBuilder sb = new StringBuilder();
+                File[] directories = localIndexDir.listFiles(File::isDirectory);
+                Arrays.sort(directories);
+                for (File indexDir : directories) {
+                    long size = FileUtils.sizeOfDirectory(indexDir);
+                    long numberOfFiles = indexDir.listFiles(File::isFile).length;
+                    totalSize += size;
+                    sb.append("\n  - " + indexDir.getName() + ": " + numberOfFiles + " files, " +
+                            size + " (" + FileUtils.byteCountToDisplaySize(size) + ")");
+                }
+                LOG.info("Total size of index data generated: {} ({}){}",
+                        totalSize, FileUtils.byteCountToDisplaySize(totalSize), sb);
+                return totalSize;
+            }
+        } catch (Throwable t) {
+            LOG.warn("Error while computing size of generated index data: {}", t.toString());
+            return -1;
+        }
     }
 }
