@@ -24,7 +24,6 @@ import joptsimple.OptionSpec;
 import org.apache.commons.io.IOUtils;
 
 import javax.swing.*;
-import javax.swing.UIManager.LookAndFeelInfo;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -41,15 +40,9 @@ public class Explorer {
 
     private static void initLF() {
         try {
-            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            // If Nimbus is not available, you can set the GUI to another look
-            // and feel.
+            UIManager.setLookAndFeel("com.formdev.flatlaf.FlatLightLaf");
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize LaF");
         }
     }
 
@@ -93,12 +86,9 @@ public class Explorer {
     }
 
     private void createAndShowGUI(final String path, boolean skipSizeCheck) throws IOException {
-        JTextArea log = new JTextArea(5, 20);
-        log.setMargin(new Insets(5, 5, 5, 5));
-        log.setLineWrap(true);
-        log.setEditable(false);
-
-        final NodeStoreTree treePanel = new NodeStoreTree(backend, log, skipSizeCheck);
+        final LogPanel logPanel = new LogPanel();
+        final NodeStoreTree treePanel = new NodeStoreTree(backend, logPanel, skipSizeCheck);
+        logPanel.addTarSelectedListener(treePanel::printTarInfo);
 
         final JFrame frame = new JFrame("Explore " + path + " @head");
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
@@ -109,18 +99,13 @@ public class Explorer {
             }
         });
 
-        JPanel content = new JPanel(new GridBagLayout());
+        treePanel.getComponent().setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 10));
+        logPanel.getComponent().setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 20));
 
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.BOTH;
-        c.weightx = 1;
-        c.weighty = 1;
-
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(treePanel), new JScrollPane(log));
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treePanel.getComponent(), logPanel.getComponent());
         splitPane.setDividerLocation(0.3);
-        content.add(new JScrollPane(splitPane), c);
-        frame.getContentPane().add(content);
+
+        frame.getContentPane().add(splitPane);
 
         JMenuBar menuBar = new JMenuBar();
         menuBar.setMargin(new Insets(2, 2, 2, 2));
