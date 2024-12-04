@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.felix.scr.annotations.Component;
@@ -133,7 +132,7 @@ public class IndexAugmentorFactory {
             providerMap.put(nodeType, compositeIndexFieldProvider);
         }
 
-        indexFieldProviderMap = ImmutableMap.copyOf(providerMap);
+        indexFieldProviderMap = Collections.unmodifiableMap(providerMap);
     }
 
     private void refreshFulltextQueryTermsProviders() {
@@ -154,7 +153,7 @@ public class IndexAugmentorFactory {
             providerMap.put(nodeType, compositeFulltextQueryTermsProvider);
         }
 
-        fulltextQueryTermsProviderMap = ImmutableMap.copyOf(providerMap);
+        fulltextQueryTermsProviderMap = Collections.unmodifiableMap(providerMap);
     }
 
     private void resetState() {
