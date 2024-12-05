@@ -83,6 +83,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_INDEX_DATA_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
@@ -339,6 +340,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     public void reindex() throws CommitFailedException, IOException {
         INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+        indexingReporter.setIndexNames(indexNames);
         Stopwatch indexJobWatch = Stopwatch.createStarted();
         try {
             IndexingProgressReporter progressReporter =
@@ -423,6 +426,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
             long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
             INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.createMetricsWithDurationOnly(fullIndexCreationDurationSeconds));
+            long totalSize = indexerSupport.computeSizeOfGeneratedIndexData();
+            MetricsUtils.addMetricByteSize(statisticsProvider, indexingReporter, METRIC_INDEXING_INDEX_DATA_SIZE, totalSize);
             MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
             indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
         } catch (Throwable t) {

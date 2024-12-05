@@ -29,10 +29,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
-import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -41,7 +39,6 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.emptyMap;
@@ -252,11 +248,6 @@ public class IndexCommand implements Command {
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", extendedIndexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
-        IndexingReporter indexReporter = extendedIndexHelper.getIndexReporter();
-        StatisticsProvider statisticsProvider = extendedIndexHelper.getStatisticsProvider();
-
-        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
-        indexReporter.setIndexNames(indexNames);
 
         if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
@@ -275,7 +266,8 @@ public class IndexCommand implements Command {
         }
 
         long totalSize = indexerSupport.computeSizeOfGeneratedIndexData();
-        MetricsUtils.addMetricByteSize(statisticsProvider, indexReporter, METRIC_INDEXING_INDEX_DATA_SIZE, totalSize);
+        MetricsUtils.addMetricByteSize(extendedIndexHelper.getStatisticsProvider(), extendedIndexHelper.getIndexReporter(),
+                METRIC_INDEXING_INDEX_DATA_SIZE, totalSize);
 
         indexerSupport.writeMetaInfo(checkpoint);
         File destDir = indexerSupport.copyIndexFilesToOutput();
