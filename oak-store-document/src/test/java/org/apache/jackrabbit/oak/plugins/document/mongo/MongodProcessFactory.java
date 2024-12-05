@@ -132,7 +132,7 @@ public class MongodProcessFactory extends ExternalResource {
         if (portsWithHost.isEmpty()) {
             return host;
         }
-        return String.join(" ", portsWithHost);
+        return String.join(",", portsWithHost);
     }
 
     //----------------------------< internal >----------------------------------
