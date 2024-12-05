@@ -84,8 +84,8 @@ public class LastRevRecoveryAgent {
 
     private static final long SYNC_RECOVERY_TIMEOUT_MILLIS =
             SystemPropertySupplier
-                    .create("oak.documentMK.syncRecoveryTimeoutMillis", Long.MAX_VALUE)
-                    .validateWith(value -> value >= 0).get();
+                    .create("oak.documentMK.syncRecoveryTimeoutMillis", -1)
+                    .get();
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
@@ -275,7 +275,7 @@ public class LastRevRecoveryAgent {
             ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
             if (nodeInfo != null && nodeInfo.isActive()) {
                 long defaultDeadline = nodeInfo.getLeaseEndTime() - ClusterNodeInfo.DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
-                deadline = Math.min(defaultDeadline, revisionContext.getClock().millis() + SYNC_RECOVERY_TIMEOUT_MILLIS);
+                deadline = SYNC_RECOVERY_TIMEOUT_MILLIS < 0 ? defaultDeadline : Math.min(defaultDeadline, revisionContext.getClock().millis() + SYNC_RECOVERY_TIMEOUT_MILLIS);
                 if (deadline != defaultDeadline) {
                     log.info("Adjusted deadline for synchronous recovery from {} to {}.",
                             LocalDateTime.ofEpochSecond(defaultDeadline / 1000, 0, ZoneOffset.UTC),
