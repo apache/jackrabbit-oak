@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.run;
 
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -54,7 +53,7 @@ public class CreateGarbageCommand implements Command {
 
     private final ScheduledExecutorService continuousRunExecutor = Executors.newScheduledThreadPool(1);
 
-    private static final String USAGE = Joiner.on(System.lineSeparator()).join(
+    private static final String USAGE = String.join(System.lineSeparator(),
             "create-test-garbage {<jdbc-uri> | <mongodb-uri>} <sub-command> [options] ",
             "where sub-command is one of: ",
             "  clean - clean up all generated garbage under the specified root node",

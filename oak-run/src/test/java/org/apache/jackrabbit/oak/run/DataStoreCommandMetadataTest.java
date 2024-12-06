@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -166,12 +165,15 @@ public class DataStoreCommandMetadataTest {
             REFERENCES.getNameFromIdPrefix(rep2Id, sessionId));
 
         List<String> expectations = new ArrayList<>();
-        expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
-            MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()), "-"));
-        expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),
-            MILLISECONDS.toSeconds(expectMainMetadataRecord.getLastModified()), "*"));
-        expectations.add(Joiner.on("|").join(rep3Id, MILLISECONDS.toSeconds(expectAux2MarkerMetadataRecord.getLastModified()),
-            MILLISECONDS.toSeconds(expectAux2MetadataRecord.getLastModified()), "-"));
+        expectations.add(String.join("|", rep2Id,
+            Long.toString(MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified())),
+            Long.toString(MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified())), "-"));
+        expectations.add(String.join("|", repoId,
+            Long.toString(MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified())),
+            Long.toString(MILLISECONDS.toSeconds(expectMainMetadataRecord.getLastModified())), "*"));
+        expectations.add(String.join("|", rep3Id,
+            Long.toString(MILLISECONDS.toSeconds(expectAux2MarkerMetadataRecord.getLastModified())),
+            Long.toString(MILLISECONDS.toSeconds(expectAux2MetadataRecord.getLastModified())), "-"));
 
         storeFixture.close();
         return expectations;

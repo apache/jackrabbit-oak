@@ -40,7 +40,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -438,8 +437,8 @@ public class DataStoreCheckTest {
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
         return CollectionUtils.toSet(Iterators.transform(ids.iterator(),
-                input -> Joiner.on(",").join(
-                        DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                input -> String.join(",",
+                        DataStoreCheckCommand.encodeId(input, "--" + dsOption),
                         blobsAddedWithNodes.get(input))));
     }
 }
