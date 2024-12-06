@@ -274,22 +274,32 @@ public class IndexerSupport {
             } else {
                 // Each index is stored in a separate directory
                 File[] directories = localIndexDir.listFiles(File::isDirectory);
+                if (directories == null) {
+                    LOG.warn("Error listing sub directories in the local index directory: {}", localIndexDir);
+                    return -1;
+                }
                 // Print the indexes in alphabetic order
                 Arrays.sort(directories);
                 StringBuilder sb = new StringBuilder();
                 for (File indexDir : directories) {
                     long size = FileUtils.sizeOfDirectory(indexDir);
                     totalSize += size;
-                    long numberOfFiles = indexDir.listFiles(File::isFile).length;
-                    sb.append("\n  - " + indexDir.getName() + ": " + numberOfFiles + " files, " +
-                            size + " (" + FileUtils.byteCountToDisplaySize(size) + ")");
+                    File[] files = indexDir.listFiles(File::isFile);
+                    if (files == null) {
+                        LOG.warn("Error listing files in directory: {}", indexDir);
+                        // continue to the next index
+                    } else {
+                        long numberOfFiles = files.length;
+                        sb.append("\n  - " + indexDir.getName() + ": " + numberOfFiles + " files, " +
+                                size + " (" + FileUtils.byteCountToDisplaySize(size) + ")");
+                    }
                 }
                 LOG.info("Total size of index data generated: {} ({}){}",
                         totalSize, FileUtils.byteCountToDisplaySize(totalSize), sb);
                 return totalSize;
             }
         } catch (Throwable t) {
-            LOG.warn("Error while computing size of generated index data: {}", t.toString());
+            LOG.warn("Error while computing size of generated index data.", t);
             return -1;
         }
     }

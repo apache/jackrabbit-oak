@@ -92,7 +92,6 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
 
             copyOnWriteStore = new MemoryNodeStore(checkpointedState);
             NodeState baseState = copyOnWriteStore.getRoot();
-            //TODO Check for indexPaths being empty
 
             indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
             preformIndexUpdate(baseState);
