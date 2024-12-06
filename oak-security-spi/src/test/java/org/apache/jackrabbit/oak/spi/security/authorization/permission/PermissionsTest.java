@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -53,7 +52,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
-
 
 public class PermissionsTest {
 
@@ -520,7 +518,7 @@ public class PermissionsTest {
             for (long p : value) {
                 names.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            String s = Joiner.on(',').join(names);
+            String s = String.join(",", names);
 
             assertEquals(key.longValue(), Permissions.getPermissions(s));
         });
