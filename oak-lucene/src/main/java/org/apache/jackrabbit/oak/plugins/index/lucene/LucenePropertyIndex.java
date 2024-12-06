@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -719,7 +718,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         if (requireNodeLevelExcerpt) {
-            String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
+            String nodeExcerpt = String.join("...", columnNameToExcerpts.values());
 
             nodeExcerptColumns.forEach(nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }

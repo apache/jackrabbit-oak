@@ -37,7 +37,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
@@ -538,7 +537,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
             @Override
             public String toString() {
-                return String.format("%s|%s|%s", blobId, clock.getTime(), Joiner.on("|").join(ids));
+                return String.format("%s|%s|%s", blobId, clock.getTime(), String.join("|", ids));
             }
         }
     }
