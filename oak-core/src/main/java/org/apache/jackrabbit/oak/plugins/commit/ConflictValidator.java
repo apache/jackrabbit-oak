@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 /**
  * {@link Validator} which checks the presence of conflict markers
  * in the tree in fails the commit if any are found.
@@ -178,7 +176,7 @@ public class ConflictValidator extends DefaultValidator {
     }
 
     private static String getChildNodeNamesAsString(NodeState ns) {
-        return Joiner.on(',').join(ns.getChildNodeNames());
+        return String.join(",", ns.getChildNodeNames());
     }
 
     private static String toString(PropertyState ps) {

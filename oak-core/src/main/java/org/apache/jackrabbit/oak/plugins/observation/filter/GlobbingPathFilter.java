@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -180,7 +178,7 @@ public class GlobbingPathFilter implements EventFilter {
     @Override
     public String toString() {
         return toStringHelper(this)
-                .add("path", Joiner.on('/').join(pattern))
+                .add("path", String.join("/", pattern))
                 .toString();
     }
 
