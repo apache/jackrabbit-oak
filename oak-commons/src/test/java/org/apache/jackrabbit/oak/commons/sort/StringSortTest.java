@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons.sort;
 
 import java.io.IOException;
@@ -29,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.junit.Test;
@@ -127,7 +125,7 @@ public class StringSortTest {
         if (permutation){
             List<String> newRoots = new ArrayList<String>();
             for (List<String> permuts : Collections2.orderedPermutations(rootPaths)){
-                newRoots.add(Joiner.on("").join(permuts));
+                newRoots.add(String.join("", permuts));
             }
             rootPaths = newRoots;
         }
@@ -150,7 +148,7 @@ public class StringSortTest {
     }
 
     private static String createId(Iterable<String> pathElements){
-        return "/" + Joiner.on('/').join(pathElements);
+        return "/" + String.join("/", pathElements);
     }
 
     private static  class PathComparator implements Comparator<String>, Serializable {
