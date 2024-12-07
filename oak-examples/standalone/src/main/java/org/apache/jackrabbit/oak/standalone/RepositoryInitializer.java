@@ -33,7 +33,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.servlet.ServletContext;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
@@ -140,7 +139,7 @@ public class RepositoryInitializer {
     }
 
     private Object commaSepFilePaths(List<String> repoConfigs) {
-        return Joiner.on(",").join(repoConfigs);
+        return String.join(",", repoConfigs);
     }
 
     private List<String> copyConfigs(File repoHomeDir, List<String> configFileNames)
