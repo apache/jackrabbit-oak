@@ -52,8 +52,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -634,14 +632,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                             try {
                                 Iterator<String> idIter = blobStore.resolveChunks(blobId);
-                                final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                 Iterator<List<String>> partitions = Iterators.partition(idIter, getBatchCount());
                                 while (partitions.hasNext()) {
                                     List<String> idBatch = Lists.transform(partitions.next(), id -> {
-                                            if (logPath) {
-                                                return delimJoiner.join(id, nodeId);
+                                            if (logPath && nodeId != null) {
+                                                return id + DELIM + nodeId;
+                                            } else {
+                                                return id;
                                             }
-                                            return id;
                                         });
                                     if (debugMode) {
                                         LOG.trace("chunkIds : {}", idBatch);

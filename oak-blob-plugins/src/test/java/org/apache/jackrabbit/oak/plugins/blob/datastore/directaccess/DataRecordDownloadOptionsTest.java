@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +24,6 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -118,7 +116,7 @@ public class DataRecordDownloadOptionsTest {
                 null :
                 (Strings.isNullOrEmpty(characterEncoding) ?
                         mediaType :
-                        Joiner.on("; charset=").join(mediaType, characterEncoding)
+                        mediaType + "; charset=" + characterEncoding
                 );
     }
 

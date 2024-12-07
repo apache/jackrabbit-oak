@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.migration;
 
 import java.util.ArrayDeque;
@@ -27,7 +26,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,8 +87,7 @@ public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
     }
 
     public String getPath() {
-        StringBuilder path = new StringBuilder("/");
-        return Joiner.on('/').appendTo(path, nameQueue).toString();
+        return new StringBuilder("/").append(String.join("/", nameQueue)).toString();
     }
 
     public DepthFirstNodeIterator switchRoot(NodeState newRoot) {
