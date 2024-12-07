@@ -33,7 +33,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
@@ -277,15 +276,13 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
             String commentPattern = commaSeparated ? "#%s" : "    #%s";
             formatPattern = (String[])ArrayUtils.add(formatPattern, commentPattern);
         }
-        Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
-        return joiner.join(formatPattern);
+        return String.join(commaSeparated ? "," : "  ", formatPattern);
     }
 
     private String statsNamesJoined(boolean commaSeparated) {
-        Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
-        String names = joiner.join(statsNames());
+        String names = String.join(commaSeparated ? "," : "  ", statsNames());
         if (!commaSeparated) {
-            names =  " " + names;
+            names = " " + names;
         }
         return names;
     }
