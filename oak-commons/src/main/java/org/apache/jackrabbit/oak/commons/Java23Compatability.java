@@ -39,7 +39,7 @@ public class Java23Compatability {
         T result;
         if (callAs != null) {
             try {
-                result = (T) callAs.invoke(subject, action);
+                result = (T) callAs.invoke(null, subject, action);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new SecurityException(e);
             }
@@ -53,7 +53,7 @@ public class Java23Compatability {
         T result;
         if (callAs != null) {
             try {
-                result = (T) callAs.invoke(subject, action);
+                result = (T) callAs.invoke(null, subject, action);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new SecurityException(e);
             }
@@ -67,7 +67,7 @@ public class Java23Compatability {
         T result;
         if (callAs != null) {
             try {
-                result = (T) callAs.invoke(subject, action);
+                result = (T) callAs.invoke(null, subject, action);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new SecurityException(e);
             }
@@ -81,7 +81,7 @@ public class Java23Compatability {
         T result;
         if (callAs != null) {
             try {
-                result = (T) callAs.invoke(subject, action);
+                result = (T) callAs.invoke(null, subject, action);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new SecurityException(e);
             }
