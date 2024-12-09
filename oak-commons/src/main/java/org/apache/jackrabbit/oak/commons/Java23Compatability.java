@@ -16,7 +16,7 @@ public class Java23Compatability {
 
     static {
         try {
-            current = Subject.class.getMethod("current", Subject.class);
+            current = Subject.class.getMethod("current");
             callAs = Subject.class.getMethod("callAs", Subject.class, Callable.class);
         } catch (NoSuchMethodException ignored) {}
     }
