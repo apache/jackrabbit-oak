@@ -215,7 +215,7 @@ public class DataStoreCommand implements Command {
                                     // concat the path that has the ref. Otherwise simply add the ID to the o/p file
                                     // as it is.
                                     String line = dataStoreOpts.isVerbose() ?
-                                        VerboseIdLogger.encodeId(String.join(DELIM, id, escapeLineBreak(nodeId)),
+                                        VerboseIdLogger.encodeId(nodeId != null ? id + DELIM + escapeLineBreak(nodeId) : id,
                                             optionBean.getBlobStoreType()) :
                                         id;
                                     writeAsLine(writer, line, true);

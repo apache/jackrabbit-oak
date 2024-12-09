@@ -405,7 +405,7 @@ public class IndexCommand implements Command {
     }
 
     private static void logCliArgs(String[] args) {
-        log.info("Command line arguments used for indexing [{}]", Strings.join(" ", args));
+        log.info("Command line arguments used for indexing [{}]", String.join(" ", args));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);
