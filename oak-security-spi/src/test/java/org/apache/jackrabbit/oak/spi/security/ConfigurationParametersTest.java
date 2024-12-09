@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -72,7 +71,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testCreationFromMap() {
-        Map<String, String> m = ImmutableMap.of("a", "b");
+        Map<String, String> m = Map.of("a", "b");
         ConfigurationParameters cp = ConfigurationParameters.of(m);
         assertEquals(m.size(), cp.size());
 
@@ -570,7 +569,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testEntrySet() {
-        Map m = ImmutableMap.of("test", new TestObject("name"));
+        Map m = Map.of("test", new TestObject("name"));
         ConfigurationParameters options = ConfigurationParameters.of(m);
         assertEquals(m.entrySet(), options.entrySet());
     }
@@ -589,7 +588,7 @@ public class ConfigurationParametersTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testPutAll() {
         ConfigurationParameters options = ConfigurationParameters.of();
-        options.putAll(ImmutableMap.of("test", "val", "test2", "val2"));
+        options.putAll(Map.of("test", "val", "test2", "val2"));
     }
 
     @Test(expected = UnsupportedOperationException.class)

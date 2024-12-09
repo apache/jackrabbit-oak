@@ -37,7 +37,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -505,7 +504,7 @@ public class ImporterImpl implements Importer {
             Reference reference = (Reference) ref;
             if (reference.isMultiple()) {
                 Iterable<String> values = reference.property.getValue(Type.STRINGS);
-                List<String> newValues = Lists.newArrayList();
+                List<String> newValues = new ArrayList<>();
                 for (String original : values) {
                     String adjusted = refTracker.get(original);
                     if (adjusted != null) {

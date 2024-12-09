@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
@@ -386,7 +385,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
     private void addNameToList(NodeBuilder type, String name, String value) {
         List<String> values;
-        values = newArrayList(getNames(type, name));
+        values = CollectionUtils.toList(getNames(type, name));
         if (!values.contains(value)) {
             values.add(value);
         }

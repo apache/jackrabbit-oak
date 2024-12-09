@@ -30,9 +30,9 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 
 public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
@@ -49,7 +49,7 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
         }
         this.editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         this.indexProvider = new LuceneIndexProvider(copier);
-        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
                 editorProvider,
                 new NodeCounterEditorProvider()
         )));

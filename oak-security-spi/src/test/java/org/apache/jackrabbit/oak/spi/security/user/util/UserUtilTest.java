@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
@@ -115,7 +114,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsTypeGroupFromTree() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, true,
                 UserConstants.NT_REP_USER, false,
                 UserConstants.NT_REP_SYSTEM_USER, false,
@@ -128,7 +127,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsTypeUserFromTree() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, false,
                 UserConstants.NT_REP_USER, true,
                 UserConstants.NT_REP_SYSTEM_USER, true,
@@ -144,7 +143,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsTypeAuthorizableFromTree() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, true,
                 UserConstants.NT_REP_USER, true,
                 UserConstants.NT_REP_SYSTEM_USER, true,
@@ -160,7 +159,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetTypeFromTree() {
-        Map<String, AuthorizableType> test = ImmutableMap.of(
+        Map<String, AuthorizableType> test = Map.of(
                 UserConstants.NT_REP_GROUP, AuthorizableType.GROUP,
                 UserConstants.NT_REP_USER, AuthorizableType.USER,
                 UserConstants.NT_REP_SYSTEM_USER, AuthorizableType.USER
@@ -208,7 +207,7 @@ public class UserUtilTest {
 
     @Test
     public void testIsSystemUser() {
-        Map<String, Boolean> test = ImmutableMap.of(
+        Map<String, Boolean> test = Map.of(
                 UserConstants.NT_REP_GROUP, false,
                 UserConstants.NT_REP_USER, false,
                 UserConstants.NT_REP_SYSTEM_USER, true,
@@ -277,10 +276,10 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableIdWithType() {
-        Map<AuthorizableType, String[]> test = ImmutableMap.<AuthorizableType,String[]>builder().
-                put(AuthorizableType.USER, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER}).
-                put(AuthorizableType.AUTHORIZABLE, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP}).
-                put(AuthorizableType.GROUP, new String[] {UserConstants.NT_REP_GROUP}).build();
+        Map<AuthorizableType, String[]> test = Map.of(
+                AuthorizableType.USER, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER},
+                AuthorizableType.AUTHORIZABLE, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP},
+                AuthorizableType.GROUP, new String[] {UserConstants.NT_REP_GROUP});
 
         test.forEach((key, value) -> {
             for (String ntName : value) {
@@ -291,10 +290,10 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableIdWithTypeFallback() {
-        Map<AuthorizableType, String[]> test = ImmutableMap.<AuthorizableType,String[]>builder().
-                put(AuthorizableType.USER, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER}).
-                put(AuthorizableType.AUTHORIZABLE, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP}).
-                put(AuthorizableType.GROUP, new String[]{UserConstants.NT_REP_GROUP}).build();
+        Map<AuthorizableType, String[]> test = Map.of(
+                AuthorizableType.USER, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER},
+                AuthorizableType.AUTHORIZABLE, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP},
+                AuthorizableType.GROUP, new String[]{UserConstants.NT_REP_GROUP});
 
         test.forEach((key, value) -> {
             for (String ntName : value) {
@@ -381,7 +380,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetImportBehavior() {
-        Map<ConfigurationParameters, Integer> testMap = ImmutableMap.of(
+        Map<ConfigurationParameters, Integer> testMap = Map.of(
                 ConfigurationParameters.EMPTY, ImportBehavior.IGNORE,
                 ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, "anyString"), ImportBehavior.ABORT,
                 ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.BESTEFFORT), ImportBehavior.ABORT,

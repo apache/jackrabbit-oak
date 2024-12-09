@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
@@ -528,7 +527,7 @@ public class NodeDelegate extends ItemDelegate {
 
     private List<Tree> getNodeTypes(Tree tree, Tree typeRoot) {
         // Find applicable node types
-        List<Tree> types = newArrayList();
+        List<Tree> types = new ArrayList<>();
         String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
         if (primaryName == null) {
             primaryName = NT_BASE;

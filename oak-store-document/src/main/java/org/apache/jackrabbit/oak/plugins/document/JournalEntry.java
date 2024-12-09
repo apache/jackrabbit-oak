@@ -17,18 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -44,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
@@ -603,7 +604,7 @@ public final class JournalEntry extends Document {
     }
 
     private Iterable<JournalEntry> getLinkedEntries(final String name) {
-        final List<String> ids = Lists.newArrayList();
+        final List<String> ids = new ArrayList<>();
         String bc = (String) get(name);
         if (bc != null) {
             for (String id : bc.split(",")) {
@@ -817,14 +818,14 @@ public final class JournalEntry extends Document {
         MapFactory DEFAULT = new MapFactory() {
             @Override
             public Map<String, TreeNode> newMap() {
-                return Maps.newHashMap();
+                return new HashMap<>();
             }
         };
 
         MapFactory CONCURRENT = new MapFactory() {
             @Override
             public Map<String, TreeNode> newMap() {
-                return Maps.newConcurrentMap();
+                return new ConcurrentHashMap<>();
             }
         };
 

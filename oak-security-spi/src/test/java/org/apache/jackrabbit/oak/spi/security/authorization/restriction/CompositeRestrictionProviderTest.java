@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -39,6 +37,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -98,11 +97,11 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @NotNull
     private AbstractRestrictionProvider createRestrictionProvider(@Nullable RestrictionPattern pattern, @Nullable Restriction toRead, @NotNull RestrictionDefinition... supportedDefinitions) {
-        ImmutableMap.Builder<String, RestrictionDefinition> builder = ImmutableMap.builder();
+        Map<String, RestrictionDefinition> builder = new HashMap<>();
         for (RestrictionDefinition def : supportedDefinitions) {
             builder.put(def.getName(), def);
         }
-        return new AbstractRestrictionProvider(builder.build()) {
+        return new AbstractRestrictionProvider(Collections.unmodifiableMap(builder)) {
             @Override
             public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
                 if (toRead != null) {
@@ -188,7 +187,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testCreateRestriction() throws Exception {
-        Map<String, Value> valid = ImmutableMap.of(
+        Map<String, Value> valid = Map.of(
                 NAME_BOOLEAN, vf.createValue(true),
                 NAME_LONGS, vf.createValue(10),
                 REP_GLOB, vf.createValue("*")
@@ -207,7 +206,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testCreateInvalidRestriction() throws Exception {
-        Map<String, Value> invalid = ImmutableMap.of(
+        Map<String, Value> invalid = Map.of(
                 NAME_BOOLEAN, vf.createValue("wrong_type"),
                 REP_GLOB, vf.createValue(true)
         );
@@ -224,7 +223,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testMvCreateRestriction() throws RepositoryException {
-        Map<String, Value[]> valid = ImmutableMap.of(
+        Map<String, Value[]> valid = Map.of(
                 NAME_LONGS, new Value[] {vf.createValue(100)},
                 REP_PREFIXES, new Value[] {vf.createValue("prefix"), vf.createValue("prefix2")}
         );
@@ -242,7 +241,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testCreateInvalidMvRestriction() throws Exception {
-        Map<String, Value[]> invalid = ImmutableMap.of(
+        Map<String, Value[]> invalid = Map.of(
                 NAME_BOOLEAN, new Value[] {vf.createValue(true), vf.createValue(false)},
                 NAME_LONGS, new Value[] {vf.createValue("wrong_type")},
                 REP_PREFIXES, new Value[] {vf.createValue(true)}

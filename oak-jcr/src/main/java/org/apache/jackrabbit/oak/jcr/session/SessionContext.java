@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
@@ -26,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
@@ -110,7 +110,7 @@ public class SessionContext implements NamePathMapper {
     private BlobAccessProvider blobAccessProvider;
 
     /** Paths (tokens) of all open scoped locks held by this session. */
-    private final Set<String> openScopedLocks = newTreeSet();
+    private final Set<String> openScopedLocks = new TreeSet<>();
 
     /** Paths of all session scoped locks held by this session. */
     private final Set<String> sessionScopedLocks = new HashSet<>();

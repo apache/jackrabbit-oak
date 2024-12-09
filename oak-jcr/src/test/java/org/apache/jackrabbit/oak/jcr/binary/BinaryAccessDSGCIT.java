@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.binary;
 
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.getBinary;
@@ -34,6 +33,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -74,7 +74,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runners.Parameterized;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -238,15 +237,15 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
     public void testGC() throws Exception {
         LOG.info("Starting testGC [{}]", fixture);
 
-        Map<String, Content> binaryContent = Maps.newHashMap();
-        Map<String, Binary> binaries = Maps.newHashMap();
+        Map<String, Content> binaryContent = new HashMap<>();
+        Map<String, Binary> binaries = new HashMap<>();
 
-        for (String key : Lists.newArrayList(TRADITIONAL_UPLOAD_1, TRADITIONAL_UPLOAD_2)) {
+        for (String key : List.of(TRADITIONAL_UPLOAD_1, TRADITIONAL_UPLOAD_2)) {
             Content content = Content.createRandom(BINARY_SIZE);
             binaryContent.put(key, content);
             binaries.put(key, storeBinaryAndRetrieve(session, toAbsolutePath(key), content));
         }
-        for (String key : Lists.newArrayList(DIRECT_UPLOAD_1, DIRECT_UPLOAD_2)) {
+        for (String key : List.of(DIRECT_UPLOAD_1, DIRECT_UPLOAD_2)) {
             Content content = Content.createRandom(BINARY_SIZE);
             binaryContent.put(key, content);
             binaries.put(key, createDirectBinary(toAbsolutePath(key), content));
@@ -262,7 +261,7 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
         // Delete one of the binaries uploaded via repo and one uploaded directly
         Node testRoot = session.getNode("/" + TEST_ROOT);
-        List<String> deletedBinaryPaths = Lists.newArrayList(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2);
+        List<String> deletedBinaryPaths = List.of(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2);
         for (String path : deletedBinaryPaths) {
             Node toRemove = testRoot.getNode(path);
             toRemove.remove();
@@ -287,8 +286,8 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         assertEquals(2, getBlobCount());
 
         // Verify that the two binaries remaining can still be accessed
-        Map<String, Binary> deletedBinaries = Maps.newHashMap();
-        for (String deletedPath : Lists.newArrayList(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2)) {
+        Map<String, Binary> deletedBinaries = new HashMap<>();
+        for (String deletedPath : List.of(TRADITIONAL_UPLOAD_2, DIRECT_UPLOAD_2)) {
             deletedBinaries.put(deletedPath, binaries.get(deletedPath));
             binaries.remove(deletedPath);
             binaryContent.remove(deletedPath);

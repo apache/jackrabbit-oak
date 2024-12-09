@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -54,6 +53,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -144,7 +144,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testAuthorizableByUnresolvablePath() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("a","internal")));
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, Map.of("a","internal")));
         UserManagerImpl um = createUserManager(root, new PartialValueFactory(mapper));
         um.getAuthorizableByPath(getTestUser().getPath());
     }

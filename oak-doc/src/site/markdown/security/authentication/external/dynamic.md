@@ -53,7 +53,7 @@ effects:
 - By default, external groups will no longer be synchronized into the repository's user management 
   but will only be available as `Principal`s (see section _User Management_ below).
 - If the `Dynamic Groups` option is enabled together with the `Dynamic Membership`, external groups will be 
-  synchronized into the user management but marked as _dynamic_. User-Group relationship for these dynamic external  
+  synchronized into the user management but marked as _dynamic_. User-Group relationship for these dynamic external 
   groups will be determined by a dedicated `DynamicMembershipService` that is registered if both options are enabled
   for a given `SyncHandler` mapping.
   
@@ -213,6 +213,16 @@ The authorization modules shipped with Oak only depend on `Principal`s (and not 
 user management functionality) and are therefore not affected by the dynamic 
 membership configuration.
 
+### Principal Resolution Cache
+
+Since Oak 1.72 `ExternalGroupPrincipalProvider`, see [OAK-11026], will cache the principal resolution for 
+those dynamic groups that have been added to local groups. Caching is disabled by default and can be enabled 
+as described in the section [Caching Results of Principal Resolution](../../principal/cache.html#configuration).
+
+Cache enablement has a direct impact on the performance of the principal resolution for dynamic groups included in 
+local groups. Benchmarks have shown that the cache can significantly reduce the time required for principal resolution
+is subsequent login attempts, see [OAK-11171] for benchmark results.
+
 <!-- references -->
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
 [SyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncContext.html
@@ -229,3 +239,5 @@ membership configuration.
 [OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210
 [OAK-9462]: https://issues.apache.org/jira/browse/OAK-9462
 [OAK-9463]: https://issues.apache.org/jira/browse/OAK-9463
+[OAK-11026]: https://issues.apache.org/jira/browse/OAK-11026
+[OAK-11171] https://issues.apache.org/jira/browse/OAK-11171

@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,7 +48,7 @@ public class RevisionVectorTest {
         rv = new RevisionVector(Set.of(rev1, rev2));
         assertEquals(Set.of(rev1, rev2), CollectionUtils.toSet(rv));
 
-        rv = new RevisionVector(Lists.newArrayList(rev1, rev2));
+        rv = new RevisionVector(List.of(rev1, rev2));
         assertEquals(Set.of(rev1, rev2), CollectionUtils.toSet(rv));
     }
 

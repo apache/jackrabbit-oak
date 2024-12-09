@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 
@@ -47,7 +47,7 @@ public class HasPermissionTest extends AbstractEvaluationTest {
     }
 
     public void testSingle() throws Exception {
-        Map<String, Boolean> map = Maps.newHashMap();
+        Map<String, Boolean> map = new HashMap<>();
         map.put("/", true);
         map.put(path, true);
         map.put(childPPath, true);
@@ -63,7 +63,7 @@ public class HasPermissionTest extends AbstractEvaluationTest {
     }
 
     public void testDuplicate() throws Exception {
-        Map<String, Boolean> map = Maps.newHashMap();
+        Map<String, Boolean> map = new HashMap<>();
         map.put("/", true);
         map.put(path, true);
         map.put(childPPath, true);

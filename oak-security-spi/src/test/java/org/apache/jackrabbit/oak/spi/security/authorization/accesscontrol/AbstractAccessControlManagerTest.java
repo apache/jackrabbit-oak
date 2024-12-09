@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -54,6 +52,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ADD_CHILD_NODES;
@@ -106,7 +105,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
         cs = mock(ContentSession.class);
         when(cs.getWorkspaceName()).thenReturn(WSP_NAME);
-        when(cs.getAuthInfo()).thenReturn(new AuthInfoImpl(null, ImmutableMap.of(), testPrincipals));
+        when(cs.getAuthInfo()).thenReturn(new AuthInfoImpl(null, Map.of(), testPrincipals));
 
         when(root.getContentSession()).thenReturn(cs);
 
@@ -288,7 +287,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Test(expected = AccessDeniedException.class)
     public void testGetTreeDefinesNoAccess() throws Exception {
-        when(cs.getAuthInfo()).thenReturn(new AuthInfoImpl(null, ImmutableMap.of(), getEveryonePrincipalSet()));
+        when(cs.getAuthInfo()).thenReturn(new AuthInfoImpl(null, Map.of(), getEveryonePrincipalSet()));
 
         AbstractAccessControlManager mgr = createAccessControlManager(root, getNamePathMapper());
         mgr.getTree(testPath, Permissions.ALL, true);

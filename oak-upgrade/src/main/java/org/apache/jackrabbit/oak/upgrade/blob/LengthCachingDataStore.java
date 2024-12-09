@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.upgrade.blob;
 
 import java.io.BufferedWriter;
@@ -32,10 +31,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -47,12 +46,12 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * A DelegatingDataStore can avoid performing expensive file system access by making
@@ -89,7 +88,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //this might consume lots of memory. For such case we would need to switch to
     //some off heap map
     private Map<String, Long> existingMappings = Collections.emptyMap();
-    private Map<String, Long> newMappings = Maps.newConcurrentMap();
+    private Map<String, Long> newMappings = new ConcurrentHashMap<>();
 
     private String mappingFilePath = "datastore-list.txt";
     private String delegateClass;
@@ -245,7 +244,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //~---------------------------------< internal >
 
     private void checkIfReadOnly() {
-        checkState(!readOnly, "Read only DataStore in use");
+        Validate.checkState(!readOnly, "Read only DataStore in use");
     }
 
     private DataStore getDelegate() {
@@ -335,7 +334,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             while (itr.hasNext()) {
                 String line = itr.nextLine();
                 int indexOfBar = line.indexOf(SEPARATOR);
-                checkState(indexOfBar > 0, "Malformed entry found [%s]", line);
+                Validate.checkState(indexOfBar > 0, "Malformed entry found [%s]", line);
                 String length = line.substring(0, indexOfBar);
                 String id = line.substring(indexOfBar + 1);
                 mapping.put(id.trim(), Long.valueOf(length));
@@ -348,7 +347,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private static Map<String, Object> propsToMap(Properties p) {
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = new HashMap<>();
         for (String keyName : p.stringPropertyNames()) {
             result.put(keyName, p.getProperty(keyName));
         }

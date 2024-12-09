@@ -19,11 +19,12 @@ package org.apache.jackrabbit.oak.security.user;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -55,7 +56,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, CONFIG));
+        return ConfigurationParameters.of(Map.of(UserConfiguration.NAME, CONFIG));
     }
 
     @NotNull

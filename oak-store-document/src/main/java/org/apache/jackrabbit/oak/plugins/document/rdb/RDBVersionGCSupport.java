@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * RDB specific version of {@link VersionGCSupport} which uses an extended query
@@ -124,7 +123,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
 
         try {
-            List<Integer> gcTypeCodes = Lists.newArrayList();
+            List<Integer> gcTypeCodes = new ArrayList<>();
             for (SplitDocType type : gcTypes) {
                 gcTypeCodes.add(type.typeCode());
             }

@@ -14,7 +14,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.math.BigInteger;
@@ -106,8 +105,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 
 /**
@@ -655,7 +652,7 @@ public class QueryImpl implements Query {
 
                 @Override
                 protected Map<String, Long> getSelectorScanCount() {
-                    Map<String, Long> selectorReadCounts = Maps.newHashMap();
+                    Map<String, Long> selectorReadCounts = new HashMap<>();
                     for (SelectorImpl selector : selectors) {
                         selectorReadCounts.put(selector.getSelectorName(), selector.getScanCount());
                     }
@@ -825,7 +822,7 @@ public class QueryImpl implements Query {
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
             this.query = query;
             this.delegate = delegate;
-            results = Lists.newArrayList();
+            results = new ArrayList<>();
         }
 
         @Override
@@ -1542,7 +1539,7 @@ public class QueryImpl implements Query {
             throw new IllegalStateException("QueryImpl cannot be cloned once initialised.");
         }
         
-        List<ColumnImpl> cols = newArrayList();
+        List<ColumnImpl> cols = new ArrayList<>();
         for (ColumnImpl c : columns) {
             cols.add((ColumnImpl) copyElementAndCheckReference(c));
         }

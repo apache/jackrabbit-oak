@@ -23,8 +23,7 @@ import org.junit.ClassRule;
 public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticPropertyIndexCommonTest() {
         indexOptions = new ElasticIndexOptions();

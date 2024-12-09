@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_ENCODING;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIMETYPE;

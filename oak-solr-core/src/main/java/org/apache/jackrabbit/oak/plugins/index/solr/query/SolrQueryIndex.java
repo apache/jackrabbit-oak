@@ -21,9 +21,6 @@ import java.util.*;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -262,7 +259,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         return new AbstractIterator<SolrResultRow>() {
             public Collection<FacetField> facetFields = new LinkedList<FacetField>();
             private final Set<String> seenPaths = new HashSet<>();
-            private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
+            private final Deque<SolrResultRow> queue = new ArrayDeque<>();
             private int offset = 0;
             private boolean noDocs = false;
             private long numFound = 0;

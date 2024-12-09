@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
@@ -66,8 +64,8 @@ public final class UpdateOp {
     }
 
     static UpdateOp combine(String id, Iterable<UpdateOp> ops) {
-        Map<Key, Operation> changes = Maps.newHashMap();
-        Map<Key, Condition> conditions = Maps.newHashMap();
+        Map<Key, Operation> changes = new HashMap<>();
+        Map<Key, Condition> conditions = new HashMap<>();
         for (UpdateOp op : ops) {
             changes.putAll(op.getChanges());
             if (op.conditions != null) {
@@ -369,7 +367,7 @@ public final class UpdateOp {
 
     private Map<Key, Condition> getOrCreateConditions() {
         if (conditions == null) {
-            conditions = Maps.newHashMap();
+            conditions = new HashMap<>();
         }
         return conditions;
     }

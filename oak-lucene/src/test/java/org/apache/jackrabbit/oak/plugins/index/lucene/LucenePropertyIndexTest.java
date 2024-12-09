@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,7 +46,6 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -105,7 +106,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -300,7 +300,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
 
-        List<String> paths = Lists.newArrayList();
+        List<String> paths = new ArrayList<>();
         for (int idx = 0; idx < 15; idx++) {
             Tree a = test.addChild("n"+idx);
             a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -1182,11 +1182,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         child.setProperty("bar", "baz");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", Lists
-            .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
-            )));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
+                .toList(Iterables.concat(List.of("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
+                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/a"))));
     }
 
     void assertSortedString() throws CommitFailedException {
@@ -1273,14 +1272,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         // Add the path of property added as timestamp string in the sorted list
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-                Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
-                        getSortedPaths(tuples, OrderDirection.ASC))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
+                .toList(Iterables.concat(List.of("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
-        assertOrderedQuery(
-                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-                        .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC),
-                                Lists.newArrayList("/test/n0"))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
+                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/n0"))));
     }
 
     @Test
@@ -1508,7 +1504,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
-        List<? extends ResultRow> result = Lists.newArrayList(
+        List<? extends ResultRow> result = CollectionUtils.toList(
             qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
                 NO_MAPPINGS).getRows());
 
@@ -1804,7 +1800,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         root.commit();
 
-        List<Integer> nodes = Lists.newArrayList();
+        List<Integer> nodes = new ArrayList<>();
         Random r = new Random();
         int seed = -2;
         for (int i = 0; i < 1000; i++) {
@@ -1894,8 +1890,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(TestUtil.NT_TEST, List.of("/*"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -1931,8 +1927,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop1.setProperty(PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(TestUtil.NT_TEST, List.of("/*"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -3481,7 +3477,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private static class MapBasedProvider implements PreExtractedTextProvider {
-        final Map<String, ExtractedText> idMap = Maps.newHashMap();
+        final Map<String, ExtractedText> idMap = new HashMap<>();
         int accessCount = 0;
 
         @Override

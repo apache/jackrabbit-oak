@@ -32,7 +32,6 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -56,7 +55,7 @@ public class DataStoreServiceTest {
 
     @Test
     public void mbeanRegs() throws Exception{
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
+        Map<String, Object> config = Map.of(
                 "repository.home", folder.getRoot().getAbsolutePath()
         );
 

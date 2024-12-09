@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -108,7 +109,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     static S3DataStore createDS(String directory, Properties props) {
         Properties strippedProperties = new Properties();
-        Map<String, String> map = Maps.newHashMap();
+        Map<String, String> map = new HashMap<>();
 
         for (Object key : new HashSet<>(props.keySet())) {
             String strippedValue = stripValue(props.getProperty((String) key));

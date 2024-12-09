@@ -55,7 +55,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -71,8 +71,7 @@ import static org.junit.Assert.assertTrue;
 public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
     // before it can get the estimated doc count from the remote ES index

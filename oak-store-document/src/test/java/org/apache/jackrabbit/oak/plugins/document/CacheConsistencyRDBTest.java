@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -36,8 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
 
@@ -100,7 +99,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
 
     private static final class TestStore extends RDBDocumentStore {
 
-        final Map<Thread, Semaphore> semaphores = Maps.newConcurrentMap();
+        final Map<Thread, Semaphore> semaphores = new ConcurrentHashMap<>();
 
         public TestStore(DataSource dataSource, Builder builder, RDBOptions opt) {
             super(dataSource, builder, opt);

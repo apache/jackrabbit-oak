@@ -37,6 +37,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -48,7 +49,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
     @Test
     public void testPassthrough() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final List<String> disallowedMethods = Lists.newArrayList(
+        final List<String> disallowedMethods = List.of(
                 "create", "update", "remove", "createOrUpdate", "findAndUpdate");
         InvocationHandler handler = new InvocationHandler() {
             @Override
@@ -93,7 +94,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
             uoeThrown = false;
             try {
-                readOnlyStore.remove(collection, Lists.<String>newArrayList());
+                readOnlyStore.remove(collection, Collections.emptyList());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;
@@ -129,7 +130,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
             uoeThrown = false;
 
             try {
-                readOnlyStore.createOrUpdate(collection, Lists.<UpdateOp>newArrayList());
+                readOnlyStore.createOrUpdate(collection, Collections.emptyList());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;

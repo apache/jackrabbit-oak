@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.explorer;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -38,6 +38,7 @@ import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.reverseOrder;
 
 /**
@@ -73,10 +73,10 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         JournalFile journal = getJournal();
 
         if (!journal.exists()) {
-            return newArrayList();
+            return new ArrayList<>();
         }
 
-        List<String> revs = newArrayList();
+        List<String> revs = new ArrayList<>();
         JournalReader journalReader = null;
 
         try {
@@ -85,7 +85,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
                     entry -> entry.getRevision());
 
             try {
-                revs = newArrayList(revisionIterator);
+                revs = CollectionUtils.toList(revisionIterator);
             } finally {
                 journalReader.close();
             }
@@ -271,7 +271,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     @Override
     public Map<UUID, String> getBulkSegmentIds(Blob blob) {
-        Map<UUID, String> result = Maps.newHashMap();
+        Map<UUID, String> result = new HashMap<>();
 
         for (SegmentId segmentId : SegmentBlob.getBulkSegmentIds(blob)) {
             result.put(segmentId.asUUID(), getFile(segmentId));

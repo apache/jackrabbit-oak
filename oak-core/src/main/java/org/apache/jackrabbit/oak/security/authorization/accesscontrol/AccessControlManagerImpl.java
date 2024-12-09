@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
@@ -42,8 +43,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -219,7 +218,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
         PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
 
-        List<ACE> toAdd = Lists.newArrayList(principalAcl.getEntries());
+        List<ACE> toAdd = new ArrayList<>(principalAcl.getEntries());
         List<ACE> toRemove = Collections.emptyList();
         if (existing != null) {
             toAdd.removeAll(existing.getEntries());
@@ -596,7 +595,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     private Set<AccessControlPolicy> internalGetEffectivePolicies(@NotNull Set<Principal> principals, Collection<String> oakPaths) throws RepositoryException {
         Root r = getLatestRoot();
         Result aceResult = searchAces(principals, r);
-        Set<AccessControlPolicy> effective = Sets.newTreeSet(new PolicyComparator());
+        Set<AccessControlPolicy> effective = new TreeSet<>(new PolicyComparator());
 
         Set<String> processed = new HashSet<>();
         for (ResultRow row : aceResult.getRows()) {

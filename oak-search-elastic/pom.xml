@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.71-SNAPSHOT</version>
+    <version>1.73-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -59,6 +59,7 @@
               !org.glassfish.json.*,
               !com.sun.management.*,
               !jakarta.json.bind.*,
+              !java.net.http.*,
               *
             </Import-Package>
             <Embed-Dependency>
@@ -311,6 +312,12 @@
       <groupId>com.github.stefanbirkner</groupId>
       <artifactId>system-rules</artifactId>
       <version>1.19.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock</artifactId>
+      <version>3.9.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

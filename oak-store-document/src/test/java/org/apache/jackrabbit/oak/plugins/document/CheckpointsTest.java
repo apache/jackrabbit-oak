@@ -33,8 +33,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
@@ -245,7 +243,7 @@ public class CheckpointsTest {
 
     @Test
     public void userInfoNamedExpires() throws Exception {
-        Map<String, String> props = ImmutableMap.of("expires", "today");
+        Map<String, String> props = Map.of("expires", "today");
         Revision r = Revision.fromString(
                 store.checkpoint(Integer.MAX_VALUE, props));
         Map<String, String> info = store.checkpointInfo(r.toString());

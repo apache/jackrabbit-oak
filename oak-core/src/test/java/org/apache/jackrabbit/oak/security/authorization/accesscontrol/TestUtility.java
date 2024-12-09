@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -67,6 +66,6 @@ final class TestUtility {
 
     @NotNull
     static Map<String, Value> getGlobRestriction(@NotNull String value, @NotNull ValueFactory valueFactory) {
-        return ImmutableMap.of(REP_GLOB, valueFactory.createValue(value));
+        return Map.of(REP_GLOB, valueFactory.createValue(value));
     }
 }

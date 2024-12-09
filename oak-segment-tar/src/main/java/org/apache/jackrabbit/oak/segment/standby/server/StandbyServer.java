@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 import java.io.File;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +44,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
@@ -189,7 +188,7 @@ class StandbyServer implements AutoCloseable {
         }
 
         StandbyServer build() throws CertificateException, SSLException {
-            checkState(storeProvider != null);
+            Validate.checkState(storeProvider != null);
 
             FileStore store = storeProvider.provideStore();
 

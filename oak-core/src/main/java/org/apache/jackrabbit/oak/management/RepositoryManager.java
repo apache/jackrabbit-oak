@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.management;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
@@ -28,6 +27,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.s
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.toTabularData;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.unavailable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +97,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
 
     private <T> Iterable<Status> executeAll(Class<T> serviceType, Function<T, Status> operation) {
         Tracker<T> tracker = whiteboard.track(serviceType);
-        List<Status> statuses = newArrayList();
+        List<Status> statuses = new ArrayList<>();
         try {
             for (T service : tracker.getServices()) {
                 statuses.add(operation.apply(service));

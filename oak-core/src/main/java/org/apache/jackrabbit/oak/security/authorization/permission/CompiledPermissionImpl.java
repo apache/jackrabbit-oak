@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -62,7 +62,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private static final Logger log = LoggerFactory.getLogger(CompiledPermissionImpl.class);
 
-    private static final Map<Long, PrivilegeBits> READ_BITS = ImmutableMap.of(
+    private static final Map<Long, PrivilegeBits> READ_BITS = Map.of(
             Permissions.READ, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ),
             Permissions.READ_NODE, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES),
             Permissions.READ_PROPERTY, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES),

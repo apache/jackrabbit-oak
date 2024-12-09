@@ -106,8 +106,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -188,7 +186,7 @@ public class Persistence {
         userConfigMap.put(UserConstants.PARAM_GROUP_PATH, "/home/groups");
         userConfigMap.put(UserConstants.PARAM_USER_PATH, "/home/users");
         userConfigMap.put(UserConstants.PARAM_DEFAULT_DEPTH, 1);
-        ConfigurationParameters userConfig = ConfigurationParameters.of(ImmutableMap.of(
+        ConfigurationParameters userConfig = ConfigurationParameters.of(Map.of(
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(userConfigMap)));
         SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(userConfig).build();

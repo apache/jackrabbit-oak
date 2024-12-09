@@ -27,10 +27,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import junit.framework.TestCase;
 
 /**
@@ -309,13 +309,13 @@ public class IOUtilsTest extends TestCase {
         testLong(Long.MIN_VALUE);
         testLong(Long.MAX_VALUE);
         testLong(0x0L);
-        for (long l : Lists.newArrayList(0x01L, 0x08L)) {
+        for (long l : List.of(0x01L, 0x08L)) {
             for (long x = l; x != 0; x = (x << 4)) {
                 testLong(x);
             }
         }
         long loopMax = (Long.MAX_VALUE >> 4) + 1;
-        for (long l : Lists.newArrayList(0x07L, 0x0FL)) {
+        for (long l : List.of(0x07L, 0x0FL)) {
             for (long x = l; x <= loopMax; x = ((x << 4) | 0x0FL)) {
                 testLong(x);
             }
@@ -326,13 +326,13 @@ public class IOUtilsTest extends TestCase {
         testInt(Integer.MIN_VALUE);
         testInt(Integer.MAX_VALUE);
         testInt(0x0);
-        for (int i : Lists.newArrayList(0x01, 0x08)) {
+        for (int i : List.of(0x01, 0x08)) {
             for (int x = i; x != 0; x = (x << 4)) {
                 testInt(x);
             }
         }
         int loopMax = (Integer.MAX_VALUE >> 4) + 1;
-        for (int i : Lists.newArrayList(0x07, 0x0F)) {
+        for (int i : List.of(0x07, 0x0F)) {
             for (int x = i; x <= loopMax; x = ((x << 4) | 0x0F)) {
                 testInt(x);
             }
@@ -365,7 +365,7 @@ public class IOUtilsTest extends TestCase {
 
     public void testCopyStream() throws IOException {
         final Random r = new Random(1);
-        for (int length : Lists.newArrayList(0, 1, 1000, 4096, 4097, 1024*1024)) {
+        for (int length : List.of(0, 1, 1000, 4096, 4097, 1024*1024)) {
             byte[] inData = new byte[length];
             r.nextBytes(inData);
             ByteArrayInputStream in = new ByteArrayInputStream(inData);

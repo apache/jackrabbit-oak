@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import java.nio.ByteBuffer;
@@ -26,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
@@ -964,7 +962,7 @@ public class DocumentBundlingTest {
         childBuilder(builder, "/test/book.jpg").setProperty("fooBook", "bar");
         NodeState r2 = merge(builder);
 
-        final List<String> addedPropertyNames = Lists.newArrayList();
+        final List<String> addedPropertyNames = new ArrayList<>();
         r2.compareAgainstBaseState(r1, new DefaultNodeStateDiff(){
 
             @Override

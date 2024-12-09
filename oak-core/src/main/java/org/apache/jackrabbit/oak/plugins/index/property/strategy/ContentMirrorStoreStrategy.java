@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static org.apache.jackrabbit.guava.common.collect.Queues.newArrayDeque;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 
 /**
  * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
@@ -75,7 +74,7 @@ import org.apache.jackrabbit.guava.common.collect.Queues;
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(ContentMirrorStoreStrategy.class);
-    
+
     /**
      * logging a warning every {@code oak.traversing.warn} traversed nodes. Default {@code 10000}
      */
@@ -131,7 +130,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         if (builder.exists()) {
             ApproximateCounter.adjustCountSync(builder, -1);
             // Collect all builders along the given path
-            Deque<NodeBuilder> builders = newArrayDeque();
+            Deque<NodeBuilder> builders = new ArrayDeque<>();
             builders.addFirst(builder);
 
             // Descend to the correct location in the index tree
@@ -339,8 +338,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
         private final Filter filter;
         private final String indexName;
-        private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
-                Queues.newArrayDeque();
+        private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators = new ArrayDeque<>();
         private int readCount;
         private int intermediateNodeReadCount;
         private boolean init;
@@ -588,7 +586,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
 
     }
-    
+
     /**
      * fetch from the index the <i>key</i> node
      * 

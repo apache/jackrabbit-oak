@@ -16,16 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import co.elastic.clients.elasticsearch._types.Time;
-import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
-import co.elastic.clients.elasticsearch._types.mapping.Property;
-import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
-import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
-import co.elastic.clients.elasticsearch.indices.IndexSettings;
-import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
-import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
+
 import co.elastic.clients.json.JsonData;
-import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
@@ -33,8 +26,17 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.Reader;
-import java.io.StringReader;
+import co.elastic.clients.elasticsearch._types.Time;
+import co.elastic.clients.elasticsearch._types.mapping.DenseVectorProperty;
+import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
+import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
+import co.elastic.clients.util.ObjectBuilder;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -90,12 +92,17 @@ class ElasticIndexHelper {
         );
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
+        if (indexDefinition.inferenceDefinition != null) {
+            mapInferenceDefinition(builder, indexDefinition.inferenceDefinition);
+        }
         return builder;
     }
 
     private static void mapInternalProperties(@NotNull TypeMapping.Builder builder) {
         builder.properties(FieldNames.PATH,
                         b1 -> b1.keyword(builder3 -> builder3))
+                .properties(ElasticIndexDefinition.PATH_RANDOM_VALUE,
+                        b1 -> b1.integer(b2 -> b2.docValues(true).index(false)))
                 .properties(FieldNames.ANCESTORS,
                         b1 -> b1.text(
                                 b2 -> b2.analyzer("ancestor_analyzer")
@@ -125,7 +132,8 @@ class ElasticIndexHelper {
                                                 b3 -> b3.text(b4 -> b4.analyzer("oak_analyzer"))
                                         )
                         )
-                );
+                )
+                .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")
@@ -133,6 +141,25 @@ class ElasticIndexHelper {
         // mappingBuilder.startObject(FieldNames.NULL_PROPS)
         // .field("type", "keyword")
         // .endObject();
+    }
+
+    private static void mapInferenceDefinition(@NotNull TypeMapping.Builder builder, @NotNull ElasticIndexDefinition.InferenceDefinition inferenceDefinition) {
+        // Store the inference configuration in the index metadata so that it can be used by the inference service
+        builder.meta("inference", JsonData.of(inferenceDefinition));
+
+        if (inferenceDefinition.properties != null) {
+            inferenceDefinition.properties.forEach(p -> builder.properties(p.name,
+                    b -> b.object(bo -> bo
+                            .properties("value", pb -> pb.denseVector(dv ->
+                                            dv.index(true)
+                                                    .dims(p.dims)
+                                                    .similarity(p.similarity)
+                                    )
+                            )
+                            .properties("metadata", pb -> pb.flattened(b1 -> b1))
+                    )
+            ));
+        }
     }
 
     /**
@@ -156,10 +183,6 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
-        }
-
         // collect analyzer settings
         IndexSettingsAnalysis.Builder analyzerBuilder =
                 ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
@@ -263,20 +286,13 @@ class ElasticIndexHelper {
                 ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
                 int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
 
-                Reader eknnConfig = new StringReader(
-                        "{" +
-                                "  \"type\": \"elastiknn_dense_float_vector\"," +
-                                "  \"elastiknn\": {" +
-                                "    \"dims\": " + denseVectorSize + "," +
-                                "    \"model\": \"lsh\"," +
-                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
-                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
-                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
-                                "  }" +
-                                "}");
+                DenseVectorProperty denseVectorProperty = new DenseVectorProperty.Builder()
+                    .index(true)
+                    .dims(denseVectorSize)
+                    .similarity(DEFAULT_SIMILARITY_METRIC)
+                    .build();
 
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
+                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.denseVector(denseVectorProperty));
             }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,

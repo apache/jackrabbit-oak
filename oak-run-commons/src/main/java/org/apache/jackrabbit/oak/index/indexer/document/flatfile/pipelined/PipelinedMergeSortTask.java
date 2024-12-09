@@ -19,10 +19,10 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
@@ -180,27 +180,27 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         this.reporter = reporter;
 
         this.mergeTriggerThreshold = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD);
-        Preconditions.checkArgument(mergeTriggerThreshold >= 16,
+        Validate.checkArgument(mergeTriggerThreshold >= 16,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD + ": " + mergeTriggerThreshold + ". Must be >= 16");
         reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, mergeTriggerThreshold);
 
         this.minFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE);
-        Preconditions.checkArgument(minFilesToMerge >= 2,
+        Validate.checkArgument(minFilesToMerge >= 2,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + ": " + minFilesToMerge + ". Must be >= 2");
         reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, minFilesToMerge);
 
         this.maxFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE);
-        Preconditions.checkArgument(maxFilesToMerge >= minFilesToMerge,
+        Validate.checkArgument(maxFilesToMerge >= minFilesToMerge,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE + ": " + maxFilesToMerge + ". Must be >= " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + " (" + minFilesToMerge + ")");
         reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, maxFilesToMerge);
 
         this.maxSizeToMergeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB);
-        Preconditions.checkArgument(maxSizeToMergeMB >= 1,
+        Validate.checkArgument(maxSizeToMergeMB >= 1,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB + ": " + maxSizeToMergeMB + ". Must be >= 1");
         reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, maxSizeToMergeMB);
 
         this.externalMergeReadBufferSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE);
-        Preconditions.checkArgument(externalMergeReadBufferSize >= FileUtils.ONE_KB,
+        Validate.checkArgument(externalMergeReadBufferSize >= FileUtils.ONE_KB,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE + ": " + externalMergeReadBufferSize + ". Must be >= 1 KB");
         reporter.addConfig(OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE, externalMergeReadBufferSize);
     }

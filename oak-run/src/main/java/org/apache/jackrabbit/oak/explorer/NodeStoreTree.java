@@ -18,11 +18,7 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
@@ -37,15 +33,21 @@ import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 import java.awt.GridLayout;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.JTree;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -54,6 +56,7 @@ import javax.swing.tree.DefaultTreeModel;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -217,7 +220,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             return;
         }
 
-        List<NamePathModel> kids = newArrayList();
+        List<NamePathModel> kids = new ArrayList<>();
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
             NamePathModel c = new NamePathModel(ce.getName(), concat(
                     model.getPath(), ce.getName()), ce.getNodeState(),
@@ -271,7 +274,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append("Properties (count: ").append(state.getPropertyCount()).append(")");
         sb.append(newline);
-        Map<String, String> propLines = newTreeMap();
+        Map<String, String> propLines = new TreeMap<>();
         for (PropertyState ps : state.getProperties()) {
             StringBuilder l = new StringBuilder();
             l.append("  - ").append(ps.getName()).append(" = {").append(ps.getType()).append("} ");
@@ -314,7 +317,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append("Child nodes (count: ").append(state.getChildNodeCount(Long.MAX_VALUE)).append(")");
         sb.append(newline);
-        Map<String, String> childLines = newTreeMap();
+        Map<String, String> childLines = new TreeMap<>();
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
             StringBuilder l = new StringBuilder();
             l.append("  + ").append(ce.getName());
@@ -418,7 +421,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             sb.append(newline);
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(uuids, paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -460,7 +463,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        List<String> paths = newArrayList();
+        List<String> paths = new ArrayList<>();
         filterNodeStates(Set.of(id), paths, backend.getHead(), "/", backend);
         printPaths(paths, sb);
 
@@ -481,7 +484,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
     }
 
     private static void filterNodeStates(Set<UUID> uuids, List<String> paths, NodeState state, String path, ExplorerBackend store) {
-        Set<String> localPaths = newTreeSet();
+        Set<String> localPaths = new TreeSet<>();
         for (PropertyState ps : state.getProperties()) {
             if (store.isPersisted(ps)) {
                 String recordId = store.getRecordId(ps);
@@ -705,10 +708,10 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         Long[] s = {0L, 0L};
 
-        List<String> names = newArrayList(ns.getChildNodeNames());
+        List<String> names = CollectionUtils.toList(ns.getChildNodeNames());
 
         if (names.contains("root")) {
-            List<String> temp = newArrayList();
+            List<String> temp = new ArrayList<>();
             int poz = 0;
             // push 'root' to the beginning
             for (String n : names) {

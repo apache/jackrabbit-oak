@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -66,7 +64,7 @@ public class InImpl extends ConstraintImpl {
             return new ComparisonImpl(
                     operand1, Operator.EQUAL, set.iterator().next());
         } else if (set.size() != operand2.size()) {
-            return new InImpl(operand1, newArrayList(set));
+            return new InImpl(operand1, new ArrayList<>(set));
         } else {
             return this;
         }

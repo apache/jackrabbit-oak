@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -193,22 +192,22 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     }
 
     protected DefaultSyncHandler registerSyncHandler(@NotNull Map<String, Object> syncConfigMap, @NotNull String idpName) {
-        context.registerService(SyncHandlerMapping.class, mock(ExternalLoginModuleFactory.class), ImmutableMap.of(
+        context.registerService(SyncHandlerMapping.class, mock(ExternalLoginModuleFactory.class), Map.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idpName,
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfigMap.get(DefaultSyncConfigImpl.PARAM_NAME)
         ));
         return (DefaultSyncHandler) context.registerService(SyncHandler.class, new DefaultSyncHandler(), syncConfigMap);
     }
-    
+
     protected @NotNull Map<String, Object> syncConfigAsMap() {
-        ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<>();
-        builder.put(DefaultSyncConfigImpl.PARAM_NAME, syncConfig.getName())
-                .put(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership())
-                .put(DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH, syncConfig.user().getMembershipNestingDepth())
-                .put(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership().toArray(new String[0]))
-                .put(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.group().getAutoMembership().toArray(new String[0]))
-                .put(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS, syncConfig.group().getDynamicGroups());
-        return builder.build();
+        Map<String, Object> builder = Map.of(
+            DefaultSyncConfigImpl.PARAM_NAME, syncConfig.getName(),
+            DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership(),
+            DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH, syncConfig.user().getMembershipNestingDepth(),
+            DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership().toArray(new String[0]),
+            DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.group().getAutoMembership().toArray(new String[0]),
+            DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS, syncConfig.group().getDynamicGroups());
+        return Collections.unmodifiableMap(builder);
     }
 
     @NotNull

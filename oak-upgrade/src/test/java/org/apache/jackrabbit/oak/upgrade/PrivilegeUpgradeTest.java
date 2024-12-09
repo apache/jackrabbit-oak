@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,6 @@ import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -101,7 +100,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
             REP_INDEX_DEFINITION_MANAGEMENT, "test:privilege", "test:privilege2");
 
-        Map<String, Set<String>> aggregatePrivileges = Maps.newHashMap();
+        Map<String, Set<String>> aggregatePrivileges = new HashMap<>();
         aggregatePrivileges.put(JCR_READ,
                 Set.of(REP_READ_NODES, REP_READ_PROPERTIES));
         aggregatePrivileges.put(JCR_MODIFY_PROPERTIES,

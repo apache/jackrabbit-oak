@@ -19,16 +19,16 @@
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -66,7 +66,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
   private boolean propertiesChanged = false;
 
-  private final List<PropertyState> propertiesModified = Lists.newArrayList();
+  private final List<PropertyState> propertiesModified = new ArrayList<>();
 
   /*
    * Flag indicating if the current tree being traversed has a deleted parent.
@@ -285,8 +285,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
   }
 
   private MatcherState getMatcherState(String name, NodeState after) {
-    List<Aggregate.Matcher> matched = Lists.newArrayList();
-    List<Aggregate.Matcher> inherited = Lists.newArrayList();
+    List<Aggregate.Matcher> matched = new ArrayList<>();
+    List<Aggregate.Matcher> inherited = new ArrayList<>();
     for (Aggregate.Matcher m : Iterables.concat(matcherState.inherited, currentMatchers)) {
       Aggregate.Matcher result = m.match(name, after);
       if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND){
@@ -337,7 +337,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
       if (matched.isEmpty()){
         affectedMatchers = Collections.emptySet();
       } else {
-        affectedMatchers = Sets.newIdentityHashSet();
+        affectedMatchers = CollectionUtils.newIdentityHashSet();
       }
     }
 

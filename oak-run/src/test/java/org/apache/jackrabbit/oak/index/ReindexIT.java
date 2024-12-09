@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
@@ -53,6 +52,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -361,7 +361,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         assertThat(explain, containsString("/oak:index/barIndex"));
 
         IndexPathService idxPathService = new IndexPathServiceImpl(fixture2.getNodeStore());
-        List<String> indexPaths = Lists.newArrayList(idxPathService.getIndexPaths());
+        List<String> indexPaths = CollectionUtils.toList(idxPathService.getIndexPaths());
 
         assertThat(indexPaths, hasItem("/oak:index/nodetype"));
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
@@ -419,7 +419,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();

@@ -34,6 +34,22 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
  *
  * The use case is to speed up indexing by only traversing over the nodes that
  * are included in the set of indexes.
+ *
+ * The class has an efficient way to get the prefix of the _next_ included path,
+ * given a path: nextIncludedPath().
+ *
+ * For the root node, we remember that the root node is included.
+ * For all other included paths, we internally retain two prefix entries:
+ * the entry itself (e.g. /content), and the entry with children (e.g. /content/).
+ * This is because the alphabetically sorted list of path does not always go from parent to child.
+ * As an example, the entries are sorted like this:
+ *
+ * - /content
+ * - /content-more
+ * - /content/child
+ *
+ * In this case, /content-more is sorted up before the direct children of /content.
+ * So the next included path of /content, after /content-more, is /content/.
  */
 public class PathIteratorFilter {
 
@@ -43,12 +59,21 @@ public class PathIteratorFilter {
     private String cachedMatchingPrefix;
 
     PathIteratorFilter(SortedSet<String> includedPaths) {
-        this.includedPaths = new TreeSet<>(includedPaths);
+        this.includedPaths = new TreeSet<>();
+        for(String s : includedPaths) {
+            if (PathUtils.denotesRoot(s)) {
+                includedPaths.add(s);
+            } else {
+                this.includedPaths.add(s);
+                this.includedPaths.add(s + "/");
+            }
+        }
         this.includeAll = includedPaths.contains(PathUtils.ROOT_PATH);
     }
 
     public PathIteratorFilter() {
         this.includedPaths = new TreeSet<>();
+        includedPaths.add("/");
         this.includeAll = true;
     }
 
@@ -131,6 +156,10 @@ public class PathIteratorFilter {
             return null;
         }
         return includedPaths.higher(path);
+    }
+
+    public String toString() {
+        return includedPaths.toString();
     }
 
 }

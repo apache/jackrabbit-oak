@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -87,12 +86,12 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
-        Map<String, Long> grantMap = Maps.newHashMap();
+        Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
         grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
         grantMap.put(JCR_WRITE, Permissions.WRITE);
 
-        Map<String, String> actionMap = Maps.newHashMap();
+        Map<String, String> actionMap = new HashMap<>();
         actionMap.put(JCR_READ, JackrabbitSession.ACTION_READ);
         actionMap.put(JCR_NODE_TYPE_MANAGEMENT, JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT);
         actionMap.put(JCR_WRITE, JackrabbitSession.ACTION_ADD_NODE);
@@ -134,7 +133,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
-        Map<String, Long> grantMap = Maps.newHashMap();
+        Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
         grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
         grantMap.put(JCR_WRITE, Permissions.WRITE);
@@ -164,7 +163,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
         Set<String> all = Sets.union(supp1, supp2);
 
-        Map<String, Long> grantMap = Maps.newHashMap();
+        Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
         grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
         grantMap.put(JCR_WRITE, Permissions.WRITE);

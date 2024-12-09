@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import java.util.Map;
+
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -36,7 +37,7 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userParams = ConfigurationParameters.of(
-                ImmutableMap.of(
+                Map.of(
                         UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
                         ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior(),
                         UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE

@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.mount;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 

@@ -1467,11 +1467,11 @@ suggestion dictionary (See [property name](#property-names) for node name indexi
 Since, Oak 1.3.16/1.2.14, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
 on a sub-tree.  It requires `evaluatePathRestrictions=true` on index definition. e.g.
 ```
-SELECT rep:suggest() FROM [nt:base] WHERE SUGGEST('test') AND ISDESCENDANTNODE('/a/b')
+select [rep:suggest()] from [nt:base] where suggest('in ') and issamenode('/')
 ```
 or
 ```
-/jcr:root/a/b//[rep:suggest('in 201')]/(rep:suggest())
+/jcr:root/content//*[rep:suggest('in ')]/(rep:suggest())
 ```
 Note, the subset is done by filtering top 10 suggestions. So, it's possible to get no suggestions for a subtree query,
 if top 10 suggestions are not part of that subtree. For details look at [OAK-3994] and related issues.
@@ -1511,11 +1511,11 @@ Since Oak 1.3.11/1.2.14, each suggestion would be returned per row.
 Since, Oak 1.3.16/1.2.14, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
 on a sub-tree. It requires `evaluatePathRestrictions=true` on index definition. e.g.
 ```
-SELECT rep:suggest() FROM [nt:base] WHERE SUGGEST('test') AND ISDESCENDANTNODE('/a/b')
+select [rep:spellcheck()] from [nt:base] as a where spellcheck('helo') and issamenode(a, '/')
 ```
 or
 ```
-/jcr:root/a/b//[rep:suggest('in 201')]/(rep:suggest())
+/jcr:root/a/b//*[rep:spellcheck('in 201')]/(rep:spellcheck())
 ```
 Note, the subset is done by filtering top 10 spellchecks. So, it's possible to get no results for a subtree query,
 if top 10 spellchecks are not part of that subtree. For details look at [OAK-3994] and related issues.

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.composite;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Component;
@@ -55,7 +56,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static java.util.stream.Collectors.toSet;
 
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
@@ -102,7 +102,7 @@ public class CompositeNodeStoreService {
 
     private ComponentContext context;
 
-    private final Set<NodeStoreProvider> nodeStoresInUse = newIdentityHashSet();
+    private final Set<NodeStoreProvider> nodeStoresInUse = CollectionUtils.newIdentityHashSet();
 
     private ServiceRegistration nsReg;
 

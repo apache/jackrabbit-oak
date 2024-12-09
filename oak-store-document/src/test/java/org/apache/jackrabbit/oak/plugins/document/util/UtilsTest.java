@@ -49,11 +49,14 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
@@ -308,6 +311,45 @@ public class UtilsTest {
         builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
         assertFalse("Embedded Verification is disabled for RDB Document Store", embeddedVerificationEnabled);
+    }
+
+    @Test
+    public void prevNoPropDisabledByDefault() {
+        assertPrevNoPropDisabled(newDocumentNodeStoreBuilder());
+    }
+
+    @Test
+    public void prevNoPropDisabled() {
+        assertPrevNoPropDisabled(newDocumentNodeStoreBuilder()
+                .setPrevNoPropCacheFeature(createFeature(false)));
+    }
+
+    private void assertPrevNoPropDisabled(DocumentNodeStoreBuilder<?> builder) {
+        assertNotNull(builder);
+        @Nullable
+        Feature feature = builder.getPrevNoPropCacheFeature();
+        if (feature != null) {
+            assertFalse(feature.isEnabled());
+        }
+        assertEquals(0, builder.getPrevNoPropCacheSize());
+        assertNull(builder.buildPrevNoPropCache());
+    }
+
+    @Test
+    public void prevNoPropEnabled() {
+        DocumentNodeStoreBuilder<?> b =
+                newDocumentNodeStoreBuilder().setPrevNoPropCacheFeature(createFeature(true));
+        assertNotNull(b);
+        assertTrue(b.getPrevNoPropCacheFeature().isEnabled());
+        assertEquals(DEFAULT_MEMORY_CACHE_SIZE * DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE / 100,
+                b.getPrevNoPropCacheSize());
+        assertNotNull(b.buildPrevNoPropCache());
+    }
+
+    public static Feature createFeature(boolean enabled) {
+        Feature f = mock(Feature.class);
+        when(f.isEnabled()).thenReturn(enabled);
+        return f;
     }
 
     @Test

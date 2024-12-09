@@ -28,6 +28,11 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 public class FulltextBinaryTextExtractorTest {
     private final NodeState root = INITIAL_CONTENT;
 
@@ -39,6 +44,43 @@ public class FulltextBinaryTextExtractorTest {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn, false);
         assertTrue(extractor.getTikaConfig().getServiceLoader().isDynamic());
+    }
+
+    @Test
+    public void concurrentTest() throws Exception {
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn, false);
+        int THREAD_COUNT = 100;
+        final int LOOP_COUNT = 10;
+        ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(THREAD_COUNT);
+        Exception[] firstException = new Exception[1];
+        for (int i = 0; i < THREAD_COUNT; i++) {
+            executorService.submit(() -> {
+                try {
+                    // wait for the signal
+                    startLatch.await();
+                    for (int j = 0; j < LOOP_COUNT; j++) {
+                        extractor.isSupportedMediaType("image/png");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    firstException[0] = e;
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+        // signal
+        startLatch.countDown();
+        doneLatch.await();
+        executorService.shutdown();
+        executorService.awaitTermination(10, TimeUnit.SECONDS);
+        if (firstException[0] != null) {
+            throw firstException[0];
+        }
     }
 
 }

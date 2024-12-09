@@ -95,7 +95,7 @@ public class SecondaryStoreObserverTest {
 
     @Test
     public void childNodeChangedAndExclude() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), of("a/b"));
+        PathFilter pathFilter = new PathFilter(of("/a"), of("/a/b"));
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 

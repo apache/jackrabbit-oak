@@ -26,7 +26,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -42,7 +44,6 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.EvictingQueue;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
@@ -250,7 +251,12 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
         final Session session = loginWriter();
         final Queue<String> paths = new LinkedBlockingDeque<>();
         final int assetSampleSize = 50;
-        final EvictingQueue<String> buffer = EvictingQueue.create(assetSampleSize);
+        final LinkedHashMap<String, Boolean> buffer = new LinkedHashMap<>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                return size() > assetSampleSize;
+            }
+        };
         private List<String> assets;
         private int assetCount = 0;
 
@@ -275,13 +281,13 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
             if (assets != null){
                 return assets.get(random.nextInt(assets.size()));
             }
-            return buffer.peek();
+            return buffer.keySet().stream().findFirst().orElse(null);
         }
 
         public void addAssetPath(String path) {
-            buffer.add(path);
+            buffer.put(path, Boolean.TRUE);
             if (++assetCount % assetSampleSize == 0){
-                assets = new ArrayList<>(buffer);
+                assets = new ArrayList<>(buffer.keySet());
             }
         }
 

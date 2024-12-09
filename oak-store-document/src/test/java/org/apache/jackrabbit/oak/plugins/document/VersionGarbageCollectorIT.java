@@ -63,6 +63,9 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
@@ -104,13 +107,13 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.util.concurrent.Atomics;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
@@ -142,6 +145,9 @@ import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
+
+    // OAK-10845 : temporary hacky exposure of test store to include its dump in error message
+    static DocumentNodeStore staticStore;
 
     @Rule
     public TestName name = new TestName();
@@ -311,6 +317,13 @@ public class VersionGarbageCollectorIT {
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(ds1).setAsyncDelay(0);
         store1 = documentMKBuilder.getNodeStore();
+        // OAK-11254 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
     }
 
     private void createSecondaryStore(LeaseCheckMode leaseCheckNode)
@@ -341,6 +354,13 @@ public class VersionGarbageCollectorIT {
         // custom fullGcMode needs to be set after each node store creation, since the VersionGarbageCollector
         // constructor sets the fullGcMode to the value read from OSGI Configuration - method setFullGcMode
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
+        // OAK-11254 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
     }
 
     private static final Set<Thread> tbefore = new HashSet<>();
@@ -982,6 +1002,13 @@ public class VersionGarbageCollectorIT {
         };
         store1 = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(fds).setAsyncDelay(0).getNodeStore();
+        // OAK-11254 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
 
         assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
 
@@ -1026,6 +1053,13 @@ public class VersionGarbageCollectorIT {
         store1 = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(fds).setAsyncDelay(0)
                 .getNodeStore();
+        // OAK-11254 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
         assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
         MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
         gc = store1.getVersionGarbageCollector();
@@ -1507,13 +1541,24 @@ public class VersionGarbageCollectorIT {
         }
         assertNotNull(stats);
         assertNotNull(c);
-        assertEquals(c.mode + "/docGC", c.deletedDocGCCount, stats.deletedDocGCCount);
-        assertEquals(c.mode + "/props", c.deletedPropsCount, stats.deletedPropsCount);
-        assertEquals(c.mode + "/internalProps", c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
-        assertEquals(c.mode + "/propRevs", c.deletedPropRevsCount, stats.deletedPropRevsCount);
-        assertEquals(c.mode + "/internalPropRevs", c.deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
-        assertEquals(c.mode + "/unmergedBC", c.deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
-        assertEquals(c.mode + "/updatedFullGCDocsCount", c.updatedFullGCDocsCount, stats.updatedFullGCDocsCount);
+        doAssertEquals(c.mode + "/docGC", c.deletedDocGCCount, stats.deletedDocGCCount);
+        doAssertEquals(c.mode + "/props", c.deletedPropsCount, stats.deletedPropsCount);
+        doAssertEquals(c.mode + "/internalProps", c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
+        doAssertEquals(c.mode + "/propRevs", c.deletedPropRevsCount, stats.deletedPropRevsCount);
+        doAssertEquals(c.mode + "/internalPropRevs", c.deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
+        doAssertEquals(c.mode + "/unmergedBC", c.deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
+        doAssertEquals(c.mode + "/updatedFullGCDocsCount", c.updatedFullGCDocsCount, stats.updatedFullGCDocsCount);
+    }
+
+    private static void doAssertEquals(String msg, long expected, long actual) {
+        if (expected != actual) {
+            // then let's expand the error message with a dump of the store
+            // to help debug flaky tests
+            if (staticStore != null) {
+                msg = msg + " - staticStore : " + staticStore.getDocumentStore();
+            }
+        }
+        assertEquals(msg, expected, actual);
     }
 
     @Test
@@ -1618,7 +1663,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1701,7 +1746,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         final VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
 
             @Override
@@ -1717,7 +1762,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -3509,7 +3554,7 @@ public class VersionGarbageCollectorIT {
         }
 
         // read children again after GC finished
-        List<String> names = Lists.newArrayList();
+        List<String> names = new ArrayList<>();
         for (ChildNodeEntry cne : store1.getRoot().getChildNodeEntries()) {
             names.add(cne.getName());
         }
@@ -3546,7 +3591,7 @@ public class VersionGarbageCollectorIT {
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setDeletedOnce(op);
         NodeDocument.setModified(op, store1.newRevision());
-        store1.getDocumentStore().create(NODES, Lists.newArrayList(op));
+        store1.getDocumentStore().create(NODES, List.of(op));
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
@@ -3581,7 +3626,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
-        List<String> prevIds = Lists.newArrayList(Iterators.transform(
+        List<String> prevIds = CollectionUtils.toList(Iterators.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store
@@ -3621,7 +3666,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
@@ -3654,7 +3699,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final AtomicReference<VersionGarbageCollector> gcRef = new AtomicReference<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {

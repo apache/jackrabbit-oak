@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.osgi;
 
 import java.io.IOException;
@@ -24,17 +23,17 @@ import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.felix.connect.Revision;
 import org.apache.felix.connect.launch.BundleDescriptor;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +46,14 @@ import org.slf4j.LoggerFactory;
  * on reflection as the Spring Jar support is not visible to PojoSR classloader
  */
 class SpringBootSupport {
+
     private static Logger log = LoggerFactory.getLogger(SpringBootSupport.class);
 
     public static final String SPRING_BOOT_PACKAGE = "org.springframework.boot.loader.jar";
 
     public static List<BundleDescriptor> processDescriptors(List<BundleDescriptor> descriptors)
             throws IOException {
-        List<BundleDescriptor> processed = Lists.newArrayList();
+        List<BundleDescriptor> processed = new ArrayList<>();
         for (BundleDescriptor desc : descriptors) {
             if (desc.getRevision() == null) {
                 URL u = new URL(desc.getUrl());
@@ -130,7 +130,7 @@ class SpringBootSupport {
 
         private static Method getUrlMethod(JarEntry jarEntry) throws NoSuchMethodException {
             if (ENTRY_URL_METHOD == null){
-                Preconditions.checkState(jarEntry.getClass().getName().startsWith(SPRING_BOOT_PACKAGE),
+                Validate.checkState(jarEntry.getClass().getName().startsWith(SPRING_BOOT_PACKAGE),
                         "JarEntry class %s does not belong to Spring package", jarEntry.getClass());
                 ENTRY_URL_METHOD = jarEntry.getClass().getDeclaredMethod("getUrl");
                 ENTRY_URL_METHOD.setAccessible(true);

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -26,9 +26,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
@@ -224,7 +223,7 @@ public class ExternalChangesTest {
     }
 
     private CommitInfo newCommitInfo(CommitContext commitContext){
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        Map<String, Object> info = Map.of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
@@ -239,7 +238,7 @@ public class ExternalChangesTest {
     }
 
     private static class CommitInfoCollector implements Observer {
-        List<CommitInfo> infos = Lists.newArrayList();
+        List<CommitInfo> infos = new ArrayList<>();
 
         @Override
         public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
@@ -247,7 +246,7 @@ public class ExternalChangesTest {
         }
 
         public CommitInfo getExternalChange(){
-            List<CommitInfo> result = Lists.newArrayList();
+            List<CommitInfo> result = new ArrayList<>();
             for (CommitInfo info : infos){
                 if (info.isExternal()) {
                     result.add(info);

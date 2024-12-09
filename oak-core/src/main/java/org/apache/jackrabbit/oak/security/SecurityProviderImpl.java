@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -228,7 +228,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
                         AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
 
-        Map<String, Object> userMap = ImmutableMap.<String,Object>of(
+        Map<String, Object> userMap = Map.of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
                 UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName,
                 UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, userAuthenticationFactory);

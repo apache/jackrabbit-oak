@@ -268,6 +268,9 @@ public interface JackrabbitSession extends Session {
      */
     @Nullable 
     default Node getParentOrNull(@NotNull Item item) throws RepositoryException {
+        if (item instanceof JackrabbitNode) {
+            return ((JackrabbitNode) item).getParentOrNull();
+        }
         try {
             return item.getParent();
         } catch (ItemNotFoundException | AccessDeniedException e) {

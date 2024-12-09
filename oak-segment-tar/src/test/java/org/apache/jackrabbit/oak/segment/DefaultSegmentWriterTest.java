@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.MAX_ELEMENTS;
@@ -35,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,8 +55,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -182,7 +179,7 @@ public class DefaultSegmentWriterTest {
 
     @Test
     public void testListWithLotsOfReferences() throws IOException { // OAK-1184
-        List<RecordId> list = newArrayList();
+        List<RecordId> list = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             list.add(new RecordId(store.fileStore().getSegmentIdProvider().newBulkSegmentId(), 0));
         }
@@ -213,9 +210,9 @@ public class DefaultSegmentWriterTest {
     public void testMapRecord() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.<String, RecordId>of()));
-        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
-        MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId, "two", blockId)));
+        MapRecord zero = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of()));
+        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
+        MapRecord two = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId, "two", blockId)));
         Map<String, RecordId> map = new HashMap<>();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
@@ -277,11 +274,11 @@ public class DefaultSegmentWriterTest {
     public void testHugeMapRecordErrorSizeDiscardWrites() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
+        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
         MapRecord hugeMapRecord = Mockito.spy(one);
         Mockito.when(hugeMapRecord.size()).thenReturn(MapRecord.ERROR_SIZE_DISCARD_WRITES);
 
-        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
+        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, Map.of("one", blockId)));
     }
 
     @Test
@@ -289,11 +286,11 @@ public class DefaultSegmentWriterTest {
         System.setProperty("oak.segmentNodeStore.allowWritesOnHugeMapRecord", "true");
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
+        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
         MapRecord hugeMapRecord = Mockito.spy(one);
         Mockito.when(hugeMapRecord.size()).thenReturn(MapRecord.ERROR_SIZE_DISCARD_WRITES);
 
-        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
+        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, Map.of("one", blockId)));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -302,11 +299,11 @@ public class DefaultSegmentWriterTest {
         System.setProperty(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, String.valueOf(0));
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
+        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
         MapRecord hugeMapRecord = Mockito.spy(one);
         Mockito.when(hugeMapRecord.size()).thenReturn(MapRecord.ERROR_SIZE_HARD_STOP);
 
-        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
+        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, Map.of("one", blockId)));
         assertEquals(MapRecord.ERROR_SIZE_HARD_STOP, (int) Integer.getInteger(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, 0));
     }
 
@@ -317,11 +314,11 @@ public class DefaultSegmentWriterTest {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
         final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
-        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
+        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
         MapRecord hugeMapRecord = Mockito.spy(one);
         Mockito.when(hugeMapRecord.size()).thenReturn(MapRecord.ERROR_SIZE);
 
-        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
+        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, Map.of("one", blockId)));
         assertEquals(logAppender.list.get(0).getFormattedMessage(), "Map entry has more than 450000000 entries. Please remove entries.");
         assertEquals(logAppender.list.get(0).getLevel(), Level.ERROR);
         assertEquals(MapRecord.ERROR_SIZE, (int) Integer.getInteger(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, 0));
@@ -335,11 +332,11 @@ public class DefaultSegmentWriterTest {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
         final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
-        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
+        MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, Map.of("one", blockId)));
         MapRecord hugeMapRecord = Mockito.spy(one);
         Mockito.when(hugeMapRecord.size()).thenReturn(MapRecord.WARN_SIZE);
 
-        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
+        MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, Map.of("one", blockId)));
         assertEquals(logAppender.list.get(0).getFormattedMessage(), "Map entry has more than 400000000 entries. Please remove entries.");
         assertEquals(logAppender.list.get(0).getLevel(), Level.WARN);
         assertEquals(MapRecord.WARN_SIZE, (int) Integer.getInteger(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, 0));

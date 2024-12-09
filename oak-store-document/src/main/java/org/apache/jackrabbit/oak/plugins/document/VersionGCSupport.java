@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -101,14 +102,23 @@ public class VersionGCSupport {
                                                   @NotNull final String fromId,
                                                   @NotNull final Set<String> includePaths,
                                                   @NotNull final Set<String> excludePaths) {
+        final long fromModifiedQuery;
+        if (MIN_ID_VALUE.equals(fromId)) {
+            // If fromId is MIN_ID_VALUE, round fromModified to 5 second resolution
+            fromModifiedQuery = getModifiedInSecs(fromModified);
+        } else {
+            // If fromId is not MIN_ID_VALUE, don't round fromModified to 5 second resolution
+            fromModifiedQuery = TimeUnit.MILLISECONDS.toSeconds(fromModified);
+        }
+
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Stream<NodeDocument> s1 = StreamSupport.stream(getSelectedDocuments(store,
                 MODIFIED_IN_SECS, 1, fromId, includePaths, excludePaths).spliterator(), false)
-                .filter(input -> modifiedEqualsTo(input, fromModified));
+                .filter(input -> modifiedEqualsToExactTime(input, fromModifiedQuery));
 
         final Stream<NodeDocument> s2 = StreamSupport.stream(getSelectedDocuments(store,
                 MODIFIED_IN_SECS, 1, includePaths, excludePaths).spliterator(), false)
-                .filter(input -> modifiedGreaterThan(input, fromModified) && modifiedLessThan(input, toModified));
+                .filter(input -> modifiedGreaterThanExactTime(input, fromModifiedQuery) && modifiedLessThan(input, toModified));
 
         return concat(s1, s2)
                 .sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2))
@@ -121,14 +131,14 @@ public class VersionGCSupport {
         return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
     }
 
-    private boolean modifiedGreaterThan(final NodeDocument doc, final long time) {
+    private boolean modifiedGreaterThanExactTime(final NodeDocument doc, final long time) {
         Long modified = doc.getModified();
-        return modified != null && modified.compareTo(getModifiedInSecs(time)) > 0;
+        return modified != null && modified.compareTo(time) > 0;
     }
 
-    private boolean modifiedEqualsTo(final NodeDocument doc, final long time) {
+    private boolean modifiedEqualsToExactTime(final NodeDocument doc, final long time) {
         Long modified = doc.getModified();
-        return modified != null && modified.compareTo(getModifiedInSecs(time)) == 0;
+        return modified != null && modified.compareTo(time) == 0;
     }
 
     private boolean modifiedLessThan(final NodeDocument doc, final long time) {

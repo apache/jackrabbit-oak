@@ -32,7 +32,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -105,9 +104,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     public MemoryDocumentStore(boolean maintainModCount) {
-        metadata = ImmutableMap.<String,String>builder()
-                        .put("type", "memory")
-                        .build();
+        metadata = Map.of("type", "memory");
         this.maintainModCount = maintainModCount;
     }
 
@@ -456,12 +453,11 @@ public class MemoryDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        return ImmutableMap.<String, String>builder()
-                .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
-                .put(Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()))
-                .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
-                .put(Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()))
-                .build();
+        return Map.of(
+                Collection.NODES.toString(), String.valueOf(nodes.size()),
+                Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()),
+                Collection.SETTINGS.toString(), String.valueOf(settings.size()),
+                Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()));
     }
 
     @Override

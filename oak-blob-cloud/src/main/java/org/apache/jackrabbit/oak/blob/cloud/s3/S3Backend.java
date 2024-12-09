@@ -28,7 +28,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -47,6 +49,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -94,10 +97,9 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.lang.Thread.currentThread;
 
@@ -246,7 +248,7 @@ public class S3Backend extends AbstractSharedBackend {
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.error("Error ", e);
-            Map<String, Object> filteredMap = Maps.newHashMap();
+            Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
                 filteredMap = Maps.filterKeys(Utils.asMap(properties),
                         input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
@@ -783,7 +785,7 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
 
-            Map<String, String> requestParams = Maps.newHashMap();
+            Map<String, String> requestParams = new HashMap<>();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",
                             httpDownloadURIExpirySeconds)
@@ -813,7 +815,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
@@ -880,7 +882,7 @@ public class S3Backend extends AbstractSharedBackend {
                     numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URIS);
                 }
 
-                Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+                Map<String, String> presignedURIRequestParams = new HashMap<>();
                 for (long blockId = 1; blockId <= numParts; ++blockId) {
                     presignedURIRequestParams.put("partNumber", String.valueOf(blockId));
                     presignedURIRequestParams.put("uploadId", uploadId);
@@ -951,7 +953,7 @@ public class S3Backend extends AbstractSharedBackend {
                 String uploadId = uploadToken.getUploadId().get();
                 ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
                 PartListing listing = s3service.listParts(listPartsRequest);
-                List<PartETag> eTags = Lists.newArrayList();
+                List<PartETag> eTags = new ArrayList<>();
                 long size = 0L;
                 Date lastModified = null;
                 for (PartSummary partSummary : listing.getParts()) {
@@ -998,7 +1000,7 @@ public class S3Backend extends AbstractSharedBackend {
     private URI createPresignedURI(DataIdentifier identifier,
                                    HttpMethod method,
                                    int expirySeconds) {
-        return createPresignedURI(identifier, method, expirySeconds, Maps.newHashMap());
+        return createPresignedURI(identifier, method, expirySeconds, new HashMap<>());
     }
 
     private URI createPresignedURI(DataIdentifier identifier,
@@ -1055,7 +1057,7 @@ public class S3Backend extends AbstractSharedBackend {
         Function<S3ObjectSummary, T> transformer;
 
         public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
-            queue = Lists.newLinkedList();
+            queue = new LinkedList<>();
             this.transformer = transformer;
         }
 
@@ -1098,7 +1100,7 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = Lists.newArrayList(
+                List<S3ObjectSummary> listing = CollectionUtils.toList(
                     filter(prevObjectListing.getObjectSummaries(),
                             input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 

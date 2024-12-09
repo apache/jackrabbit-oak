@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
@@ -25,13 +24,13 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -60,7 +59,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 /**
  * Constructs a Lucene Analyzer from nodes (based on NodeState content).
@@ -70,6 +68,7 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
  * based config. Resource lookup are performed via binary property access
  */
 final class NodeStateAnalyzerFactory {
+
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
     private static final Set<String> IGNORE_PROP_NAMES = Set.of(
@@ -107,7 +106,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenFilterFactory[] loadTokenFilterFactories(NodeState tokenFiltersState) {
-        List<TokenFilterFactory> result = newArrayList();
+        List<TokenFilterFactory> result = new ArrayList<>();
 
         Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
         for (Tree t : tree.getChildren()){
@@ -124,7 +123,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private CharFilterFactory[] loadCharFilterFactories(NodeState charFiltersState) {
-        List<CharFilterFactory> result = newArrayList();
+        List<CharFilterFactory> result = new ArrayList<>();
 
         //Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);
@@ -200,7 +199,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     Map<String, String> convertNodeState(NodeState state) {
-        Map<String, String> result = Maps.newHashMap();
+        Map<String, String> result = new HashMap<>();
         for (PropertyState ps : state.getProperties()) {
             String name = ps.getName();
             if (ps.getType() != Type.BINARY

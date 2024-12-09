@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
@@ -68,7 +67,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     static final String TEST_OAK_PATH = "/oak:content/child/grandchild/oak:subtree";
 
-    static final Map<String, String> LOCAL_NAME_MAPPINGS = ImmutableMap.of(
+    static final Map<String, String> LOCAL_NAME_MAPPINGS = Map.of(
             "a","internal",
             "b","http://www.jcp.org/jcr/1.0",
             "c","http://jackrabbit.apache.org/oak/ns/1.0"

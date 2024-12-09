@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 /**
  * Information about a cluster node.
@@ -209,7 +208,7 @@ public class ClusterNodeInfo {
     /** OAK-3398 : default lease duration 120sec **/
     private static final int DEFAULT_LEASE_DURATION_SEC = SystemPropertySupplier.create("oak.documentMK.leaseDurationSeconds", 120)
             .loggingTo(LOG).validateWith(value -> value >= 0)
-            .formatSetMessage((name, value) -> String.format("Lease duration set to: %ss (using system property %s)", name, value)).get();
+            .formatSetMessage((name, value) -> String.format("Lease duration set to: %ss (using system property %s)", value, name)).get();
     public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * DEFAULT_LEASE_DURATION_SEC;
 
     /** OAK-3398 : default update interval 10sec **/

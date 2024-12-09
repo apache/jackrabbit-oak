@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
@@ -70,11 +69,11 @@ public class AutomembershipServiceTest extends AbstractAutoMembershipTest {
     }
     
     private static Map<String, String> getMappingParams() {
-        return ImmutableMap.of(PARAM_IDP_NAME, IDP_VALID_AM, PARAM_SYNC_HANDLER_NAME, "sh");
+        return Map.of(PARAM_IDP_NAME, IDP_VALID_AM, PARAM_SYNC_HANDLER_NAME, "sh");
     }
     
     private static Map<String, Object> getSyncHandlerParams() {
-        return ImmutableMap.of(
+        return Map.of(
                 PARAM_USER_DYNAMIC_MEMBERSHIP, true,
                 PARAM_NAME, "sh",
                 PARAM_USER_AUTO_MEMBERSHIP, new String[] {AUTOMEMBERSHIP_GROUP_ID_1});

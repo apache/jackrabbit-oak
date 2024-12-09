@@ -28,10 +28,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 /**
@@ -122,11 +122,13 @@ public class PathFilter {
      * @param includes list of paths which should be included
      * @param excludes list of paths which should not be included
      */
-    public PathFilter(Iterable<String> includes, Iterable<String> excludes) {
+    public PathFilter(@NotNull Iterable<String> includes, @NotNull Iterable<String> excludes) {
+        checkPathsAreAbsolute(includes, "included");
+        checkPathsAreAbsolute(excludes, "excluded");
         Set<String> includeCopy = CollectionUtils.toSet(includes);
         Set<String> excludeCopy = CollectionUtils.toSet(excludes);
         PathUtils.unifyInExcludes(includeCopy, excludeCopy);
-        checkState(!includeCopy.isEmpty(), "No valid include provided. Includes %s, " +
+        Validate.checkState(!includeCopy.isEmpty(), "No valid include provided. Includes %s, " +
                 "Excludes %s", includes, excludes);
         this.includedPaths = includeCopy.toArray(new String[0]);
         this.excludedPaths = excludeCopy.toArray(new String[0]);
@@ -194,5 +196,13 @@ public class PathFilter {
             }
         }
         return false;
+    }
+
+    private static void checkPathsAreAbsolute(Iterable<String> paths, String pathType) {
+        for (String path : paths) {
+            if (!PathUtils.isAbsolute(path)) {
+                throw new IllegalStateException("Invalid path in " + pathType + " paths list: " + path + ". Paths must be absolute.");
+            }
+        }
     }
 }

@@ -23,6 +23,7 @@ import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
+import co.elastic.clients.json.JsonData;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -179,8 +180,37 @@ class ElasticBulkProcessorHandler {
         }
     }
 
-    public void update(String id, ElasticDocument document) throws IOException {
+    /**
+     * Indexes a document in the bulk processor. The document is identified by the given id. If the document already exists it will be replaced by the new one.
+     * @param id the document id
+     * @param document the document to index
+     * @throws IOException if an error happened while processing the bulk request
+     */
+    public void index(String id, ElasticDocument document) throws IOException {
         add(BulkOperation.of(op -> op.index(idx -> idx.index(indexName).id(id).document(document))), id);
+    }
+
+    public void update(String id, ElasticDocument document) throws IOException {
+        if (document.getPropertiesToRemove().isEmpty()) {
+            add(BulkOperation.of(op ->
+                    op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.doc(document).docAsUpsert(true)))
+            ), id);
+        } else {
+            // when updating a document we need to remove the properties that are not present in the new document
+            // to do so we need to keep track of the properties that are present in the document before the update
+            // and add a specific script bulk operation to remove them
+            // Create a script to update the document and remove properties in one operation
+            StringBuilder script = new StringBuilder();
+            script.append("ctx._source.putAll(params.document);");
+            for (String property : document.getPropertiesToRemove()) {
+                script.append("ctx._source.remove('").append(property).append("');");
+            }
+
+            // Add the update operation with the script
+            add(BulkOperation.of(op -> op.update(uf -> uf.index(indexName).id(id)
+                    .action(uaf -> uaf.script(s -> s.source(script.toString()).params("document", JsonData.of(document)))
+                            .upsert(document)))), id);
+        }
     }
 
     public void delete(String id) throws IOException {

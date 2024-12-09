@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -66,7 +65,7 @@ class DynamicGroupUtil {
     static boolean isMemberProperty(@NotNull PropertyState propertyState) {
         return UserConstants.REP_MEMBERS.equals(propertyState.getName());
     }
-    
+
     static @Nullable String findGroupIdInHierarchy(@NotNull Tree tree) {
         Tree t = tree;
         while (!t.isRoot()) {
@@ -119,7 +118,7 @@ class DynamicGroupUtil {
         ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(authorizable);
         return (ref == null) ? null : ref.getProviderName();
     }
-    
+
     static boolean isSameIDP(@NotNull Authorizable group, @NotNull Authorizable member) throws RepositoryException {
         String groupIdpName = getIdpName(group);
         if (groupIdpName == null) {
@@ -135,7 +134,7 @@ class DynamicGroupUtil {
             return false;
         }
     }
-    
+
     static Set<Principal> getInheritedPrincipals(@NotNull Principal dynamicGroupPrincipal, @NotNull UserManager userManager) {
         try {
             Authorizable gr = userManager.getAuthorizable(dynamicGroupPrincipal);

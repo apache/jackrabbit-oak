@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -52,7 +51,7 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
 
-        Map<Type, Object> valMap = ImmutableMap.of(
+        Map<Type, Object> valMap = Map.of(
                 Type.BOOLEAN, Boolean.TRUE,
                 Type.LONG, 1234L,
                 Type.NAME, "id"

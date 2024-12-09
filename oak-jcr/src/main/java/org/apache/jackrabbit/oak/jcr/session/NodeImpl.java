@@ -69,7 +69,6 @@ import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -936,7 +935,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Iterator<String> mixinNames = getMixinTypeNames(tree).iterator();
                 if (mixinNames.hasNext()) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
-                    List<NodeType> mixinTypes = Lists.newArrayList();
+                    List<NodeType> mixinTypes = new ArrayList<>();
                     while (mixinNames.hasNext()) {
                         mixinTypes.add(ntMgr.getNodeType(sessionContext.getJcrName(mixinNames.next())));
                     }
@@ -1674,6 +1673,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     return null;
                 } else {
                     return new PropertyImpl(pd, sessionContext);
+                }
+            }
+        });
+    }
+
+    @Override
+    public @Nullable Node getParentOrNull() throws RepositoryException {
+        return sessionDelegate.performNullable(new NodeOperation<Node>(dlg, "getParentOrNull") {
+            @Nullable
+            @Override
+            public Node performNullable() throws RepositoryException {
+                if (node.isRoot()) {
+                    return null;
+                } else {
+                    NodeDelegate parent = node.getParent();
+                    if (parent == null) {
+                        return null;
+                    }
+                    return createNode(parent, sessionContext);
                 }
             }
         });

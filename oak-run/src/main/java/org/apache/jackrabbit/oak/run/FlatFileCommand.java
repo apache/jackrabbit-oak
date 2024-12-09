@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SimpleFlatFileUtil;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
@@ -37,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -133,7 +133,7 @@ public class MongoStatus implements ServerMonitorListener {
 
     @NotNull
     public String getServerDetails() {
-        Map<String, Object> details = Maps.newHashMap();
+        Map<String, Object> details = new HashMap<>();
         for (String key : SERVER_DETAIL_FIELD_NAMES) {
             Object value = getServerStatus().get(key);
             if (value != null) {

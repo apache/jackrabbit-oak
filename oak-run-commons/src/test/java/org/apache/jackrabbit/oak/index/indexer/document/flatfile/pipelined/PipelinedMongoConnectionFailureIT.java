@@ -25,6 +25,7 @@ import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -59,6 +61,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
@@ -69,7 +72,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 public class PipelinedMongoConnectionFailureIT {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoConnectionFailureIT.class);
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.9.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.11.0");
     // We cannot use the MongoDockerRule/MongoConnectionFactory because they don't allow customizing the docker network
     // used to launch the Mongo container.
     private static final int MONGODB_DEFAULT_PORT = 27017;
@@ -166,7 +169,7 @@ public class PipelinedMongoConnectionFailureIT {
             // Closes connections after transmitting 50KB. This is per connection. The reconnect attempts by
             // the download task will succeed, but the new connections will once again be closed after 50KB of data.
             LimitData cutConnectionUpstream = proxy.toxics()
-                    .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 100_000L);
+                    .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 300_000L);
 
             ScheduledExecutorService scheduleExecutor = Executors.newScheduledThreadPool(2);
             try {
@@ -193,7 +196,7 @@ public class PipelinedMongoConnectionFailureIT {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                }, 3, TimeUnit.SECONDS);
+                }, 5, TimeUnit.SECONDS);
 
                 PipelinedStrategy strategy = createStrategy(roBackend);
                 resultWithInterruption = strategy.createSortedStoreFile().toPath();
@@ -216,8 +219,15 @@ public class PipelinedMongoConnectionFailureIT {
             }
         }
 
-        LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}", resultWithoutInterruption, resultWithInterruption);
-        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
+        List<String> ffsLinesNoFailure = Files.readAllLines(resultWithoutInterruption);
+        List<String> allLinesWithFailure = Files.readAllLines(resultWithInterruption);
+        if (!ffsLinesNoFailure.equals(allLinesWithFailure)) {
+            List<String> pathsInFFSNoFailures = ffsLinesNoFailure.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
+            List<String> pathsInFFSFailures = allLinesWithFailure.stream().map(l -> l.substring(0, l.indexOf('|'))).collect(Collectors.toList());
+            Assert.fail("Results differ when downloading with no failures and with failures.\n" +
+                    "  No failures  : " + pathsInFFSNoFailures + "\n" +
+                    "  With failures: " + pathsInFFSFailures);
+        }
     }
 
 
@@ -225,13 +235,14 @@ public class PipelinedMongoConnectionFailureIT {
         return PipelineITUtil.createStrategy(roStore, s -> true, null, sortFolder.newFolder());
     }
 
-    private static final int N_TREES = 10;
-    private static final int N_NODES_PER_TREE = 100;
+    private static final int N_TREES = 20;
+    private static final int N_NODES_PER_TREE = 50;
 
-    private static void createContent(NodeStore rwNodeStore) throws CommitFailedException {
+    private static void createContent(DocumentNodeStore rwNodeStore) throws CommitFailedException {
         LOG.info("Creating content");
-        var payload = "0123456789".repeat(500); // 5KB per entry. 500KB per tree, 5MB per 10 trees.
+        String payload = "0123456789".repeat(500); // 5KB per entry. 500KB per tree, 5MB per 10 trees.
         Stopwatch start = Stopwatch.createStarted();
+        Clock.Virtual clock = rwNodeStore.getClock() instanceof Clock.Virtual ? (Clock.Virtual) rwNodeStore.getClock() : null;
         for (int i = 0; i < N_TREES; i++) {
             @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
             @NotNull NodeBuilder tree = rootBuilder.child("content").child("dam").child("parent" + i);
@@ -241,6 +252,11 @@ public class PipelinedMongoConnectionFailureIT {
                         .setProperty("p1", "value-" + i + "-" + j);
             }
             rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            // The _modified field has a precision of 5 seconds, so we advance the virtual clock by 5000 milliseconds
+            // to ensure that the next batch of documents will have a different _modified field.
+            if (clock != null) {
+                clock.waitUntil(clock.getTime() + 5000);
+            }
         }
         LOG.info("Done creating content in {} ms", start.elapsed(TimeUnit.MILLISECONDS));
     }

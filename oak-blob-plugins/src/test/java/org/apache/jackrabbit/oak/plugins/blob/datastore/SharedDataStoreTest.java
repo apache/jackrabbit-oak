@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.ByteArrayInputStream;
@@ -25,6 +24,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +35,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -86,7 +87,7 @@ public class SharedDataStoreTest {
         }
 
         static List<Object[]> get() {
-            return Lists.newArrayList(new Object[] {CACHING_FDS}, new Object[] {FDS});
+            return List.of(new Object[] {CACHING_FDS}, new Object[] {FDS});
         }
     }
 
@@ -157,10 +158,10 @@ public class SharedDataStoreTest {
     public void testBackendAddMetadataRecordsFromInputStream() throws Exception {
         SharedDataStore fds = dataStore;
 
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
+        for (boolean fromInputStream : List.of(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
-            for (int count : Lists.newArrayList(1, 3)) {
-                Map<String, String> records = Maps.newHashMap();
+            for (int count : List.of(1, 3)) {
+                Map<String, String> records = new HashMap<>();
                 for (int i = 0; i < count; i++) {
                     String recordName = String.format("%sname.%d", prefix, i);
                     String data = String.format("testData%d", i);
@@ -230,8 +231,8 @@ public class SharedDataStoreTest {
         SharedDataStore fds = dataStore;
 
         final String data = "testData";
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
-            for (String name : Lists.newArrayList(null, "")) {
+        for (boolean fromInputStream : List.of(false, true)) {
+            for (String name : new ArrayList<>(Arrays.asList(null, ""))) {
                 try {
                     if (fromInputStream) {
                         fds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), name);
@@ -256,7 +257,7 @@ public class SharedDataStoreTest {
 
         fds.addMetadataRecord(randomStream(0, 10), "testRecord");
         assertNull(fds.getMetadataRecord("invalid"));
-        for (String name : Lists.newArrayList("", null)) {
+        for (String name : new ArrayList<>(Arrays.asList("", null))) {
             try {
                 fds.getMetadataRecord(name);
                 fail("Expect to throw");
@@ -311,7 +312,7 @@ public class SharedDataStoreTest {
         SharedDataStore fds = dataStore;
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("", null)) {
+        for (String name : new ArrayList<>(Arrays.asList("", null))) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     fds.deleteMetadataRecord(name);
@@ -337,7 +338,7 @@ public class SharedDataStoreTest {
         String prefixOne = "prefix1.prefix3";
         String prefixNone = "prefix4";
 
-        Map<String, Integer> prefixCounts = Maps.newHashMap();
+        Map<String, Integer> prefixCounts = new HashMap<>();
         prefixCounts.put(prefixAll, 4);
         prefixCounts.put(prefixSome, 2);
         prefixCounts.put(prefixOne, 1);
@@ -385,7 +386,7 @@ public class SharedDataStoreTest {
         SharedDataStore fds = dataStore;
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("invalid", "", null)) {
+        for (String name : new ArrayList<>(Arrays.asList("invalid", "", null))) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     fds.metadataRecordExists(name);

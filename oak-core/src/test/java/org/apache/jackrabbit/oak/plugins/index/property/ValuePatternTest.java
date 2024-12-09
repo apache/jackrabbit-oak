@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,8 +37,6 @@ import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class ValuePatternTest {
     
@@ -143,7 +142,7 @@ public class ValuePatternTest {
     
     @Test
     public void included() {
-        ValuePattern vp = new ValuePattern(null, Lists.newArrayList("abc", "bcd"), null);
+        ValuePattern vp = new ValuePattern(null, List.of("abc", "bcd"), null);
         assertTrue(vp.matches(null));
         assertTrue(vp.matches("abc1"));
         assertTrue(vp.matches("bcd"));
@@ -164,7 +163,7 @@ public class ValuePatternTest {
     
     @Test
     public void excluded() {
-        ValuePattern vp = new ValuePattern(null, null, Lists.newArrayList("abc", "bcd"));
+        ValuePattern vp = new ValuePattern(null, null, List.of("abc", "bcd"));
         assertTrue(vp.matches(null));
         assertFalse(vp.matches("abc1"));
         assertFalse(vp.matches("bcd"));

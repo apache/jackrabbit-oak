@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -335,7 +335,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     static class FileRegister implements Closeable {
-        Map<OptionSpec, File> opFiles = Maps.newHashMap();
+        Map<OptionSpec, File> opFiles = new HashMap<>();
         String suffix = String.valueOf(System.currentTimeMillis());
         OptionSet options;
 

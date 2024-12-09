@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
+import java.util.Map;
 
 import javax.management.MBeanServer;
 
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
@@ -61,13 +60,13 @@ public class StatisticsProviderFactoryTest {
 
     @Test
     public void noneMode() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("providerType", "NONE"));
+        MockOsgi.activate(service, context.bundleContext(), Map.of("providerType", "NONE"));
         assertNull(context.getService(StatisticsProvider.class));
     }
 
     @Test
     public void defaultMode() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("providerType", "DEFAULT"));
+        MockOsgi.activate(service, context.bundleContext(), Map.of("providerType", "DEFAULT"));
         assertTrue(context.getService(StatisticsProvider.class) instanceof DefaultStatisticsProvider);
     }
 }

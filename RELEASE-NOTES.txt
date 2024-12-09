@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.70.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.72.0
 
 Introduction
 ------------
@@ -7,122 +7,128 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.70.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.72.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.70.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.72.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.70.0
+Changes in Oak 1.72.0
 ---------------------
 
 Technical task
 
-    [OAK-10711] - remove use of Guava Preconditions.checkNotNull()
-    [OAK-11020] - Remove usage of Guava StandardSystemProperty
-    [OAK-11024] - Remove usage of Guava newHashSet
-    [OAK-11033] - Remove usage of Guava Objects class
-    [OAK-11035] - Remove usage of Guava Strings.nullToEmpty
-    [OAK-11046] - Update Easymock dependency to 5.4
-    [OAK-11048] - update groovy dependency to 3.0.22
-    [OAK-11049] - Remove usage of Guava Strings.isNullToEmpty
-    [OAK-11050] - Remove usage of Guava Strings.repeat
-    [OAK-11059] - Remove usage of Guava BiMap
-    [OAK-11073] - Create utils in oak-commons to convert iterables/iterators to set/list/stream, and to support HashMaps with known capacity
-    [OAK-11087] - Remove usage of Guava Predicates.in()
-    [OAK-11095] - Remove usage of Guava Predicates.not()
-    [OAK-11097] - remove remaining use of Guava predicates
-    [OAK-11101] - Remove usage of Guava ImmutableSet.of()
-    [OAK-11103] - Remove usage of Guava Lists.newArrayListWithCapacity
-    [OAK-11110] - Remove usage of Guava Iterables.any()
-    [OAK-11112] - Remove usage of Guava Maps.newHashMapWithExpectedSize()
+    [OAK-11023] - Remove usage of Guava newArrayList
+    [OAK-11078] - Remove usage of Guava checkArgument
+    [OAK-11104] - Remove usage of Guava Preconditions.checkState
+    [OAK-11116] - Remove usage of Guava Sets.newHashSetWithExpectedSize()
+    [OAK-11117] - Remove usage of Guava Sets.newLinkedHashSet
+    [OAK-11118] - Remove usage of Guava Sets.newTreeSet
+    [OAK-11148] - Remove usage of Guava Atomics.newReference
+    [OAK-11153] - Create utils in oak-commons to convert iterables set/linkedHashSet and to support HashSet/LinkedHashSet with known capacity
+    [OAK-11171] - Create benchmark
+    [OAK-11188] - Create utils in oak-commons to convert iterables to TreeSet
+    [OAK-11189] - Remove usage of Guava Maps.newConcurrentMap
+    [OAK-11191] - Remove usage of Guava Lists.newLinkedList
+    [OAK-11192] - Remove usage of Guava Maps.newLinkedHashMap
+    [OAK-11193] - Remove usage of Guava Sets.newIdentityHashSet
+    [OAK-11195] - Create utils in oak-commons to convert iterables to LinkedList and create IdentityHashSet
+    [OAK-11205] - Remove usage of Guava Maps.newTreeMap
+    [OAK-11206] - Removal of Guava Queues.newArrayDeque
+    [OAK-11207] - Remove usage of Guava Lists.partition
+    [OAK-11208] - Create utils in oak-commons to partition lists
+    [OAK-11210] - Create utils in oak-commons to convert iterables to ArrayDeque
+    [OAK-11211] - Removal of Guava Queues.newArrayBlockingQueue
+    [OAK-11213] - Remove usage of Guava Queues.newConcurrentLinkedQueue
+    [OAK-11222] - Remove usage of Guava newArrayList (no param variant)
+    [OAK-11228] - remove usage of newArrayListWithExpectedSize
+    [OAK-11229] - remove usage of newArrayList(Iterable/Iterator)
+    [OAK-11239] - Remove usage of Guava newArrayList(vargargs) in test classes
 
 Bug
 
-    [OAK-10812] - DocumentNodeStore#diffManyChildren(...) may produce incorrect results in readonly mode
-    [OAK-11056] - o.a.j.o.plugins.document.ClusterTest fails if neither MongoDB nor Docker are available
-    [OAK-11069] - AzureRepositoryLock: Thread should not die silently on exceptions other than StorageException
-    [OAK-11070] - WriteAccessController: avoid race condition
-    [OAK-11072] - flaky test: ElasticReliabilityTest.connectionCutOnQuery
-    [OAK-11076] - oak-it-osgi fails with '-Prdb-derby' due to Derby-related import dependencies
-    [OAK-11077] - Resource leak in tests
-    [OAK-11083] - Update Mockito dependency to 5.13.0
-    [OAK-11132] - AOT blob downloader: may download a blob for a node that has already been indexed
-    [OAK-11133] - oak-search-elastic: type filter is not supported
+    [OAK-10957] - oak-run datastorecheck broken for AWS since 1.22.14
+    [OAK-11111] - CachedPrincipalMembershipReader could return empty principal under concurrency
+    [OAK-11131] - indexing-job: AOT Blob downloader may download blobs that are not needed for the indexes
+    [OAK-11145] - indexing-job: indexer statistics show wrong value for makeDocument time
+    [OAK-11146] - RDBDocumentStore should handle queries with '>' condition on 0x00
+    [OAK-11156] - VersionGarbageCollectorIT fails to dispose some DocumentStore instances
+    [OAK-11157] - indexing-job/parallel download: if one of the download tasks fails, the download is interrupted but considered as successful
+    [OAK-11161] - Fix cases where checkArgument is used with the incorrect template syntax
+    [OAK-11169] - MongoVersionGCSupport (oak-document-store) uses incorrect syntax for sort mongodb function
+    [OAK-11184] - Resolving a node with an unmerged or not-yet-visible revision as the only revision results in previous document scan (which can be expensive on root)
+    [OAK-11186] - Failure in RDBConnectionHandlerTest
+    [OAK-11204] - Incorrect order with more than 2^16 segments in remote archive
+    [OAK-11218] - FullGC Exclude list parsing should ignore an Array of empty String
+    [OAK-11231] - FullGC iterates same documents on certain cases
+    [OAK-11242] - AzureRepositoryLock: Thread should not die silently on any kind of error
+    [OAK-11243] - oak-segment-azure tests have broken package names
+    [OAK-11245] - fix java.net.http wiring in oak-search-elastic
+    [OAK-11249] - Lease refresh thread in AzureRepositoryLock should catch and log Throwable
 
 Improvement
 
-    [OAK-10341] - Indexing: replace FlatFileStore+PersistedLinkedList with a tree store
-    [OAK-10532] - Cost estimation for "not(@x)" calculates cost for "@x='value'" instead
-    [OAK-10741] - Improve logging for detailedGC
-    [OAK-10792] - Rename DetailedGC to FullGC
-    [OAK-11025] - Silence more warnings for ordered properties
-    [OAK-11031] - Improve logging of indexer statistics
-    [OAK-11034] - DataStore caches: log configuration at construction time and fix resource leak
-    [OAK-11043] - Azure compaction should persist gc.log to allow skipping compaction
-    [OAK-11051] - indexing-job: parallel download: when one of the download threads finish, stop the other thread
-    [OAK-11053] - RDB utils/fixtures: silence stack traces, slightly refactor
-    [OAK-11054] - Oak AsyncCheckpointCreatorTest sometimes fails
-    [OAK-11055] - Warnings "falling back to classic diff" fill the log
-    [OAK-11060] - Avoid String allocation in ListRecord constructor
-    [OAK-11061] - Indexing job: during indexing phase, download blobs ahead of time in separate thread pool
-    [OAK-11064] - Bump testcontainers to v1.20.1 / toxiproxy 2.9.0
-    [OAK-11075] - Add a Buffer#getShort() API
-    [OAK-11079] - Indexing-job: reduce object allocation when parsing lines from the FlatFileStore
-    [OAK-11081] - PersistedLinkedListV2: do not log duplicate messages when max buffer size and capacity increase at the same time
-    [OAK-11082] - indexing-job: improve interning of strings for sort phase
-    [OAK-11084] - Improve error handling and logging while iterating over FlatFileStore
-    [OAK-11085] - Constant MAX_SEGMENT_SIZE is duplicated in Segment/SegmentDataUtils
-    [OAK-11086] - Do not log stack traces of exceptions caused by reconnection attempts to Mongo
-    [OAK-11088] - Create default implementations of readLength/readString/readRecordId in SegmentData
-    [OAK-11090] - Move the code that creates instances of RecordNumbers/SegmentReferences from SegmentData out of Segment
-    [OAK-11091] - Make Segment#readByte/readBytes public
-    [OAK-11092] - Make the constructors of RecordIdData/StringData public
-    [OAK-11094] - Allow the creation of Segment instances with a provided SegmentData instance
-    [OAK-11099] - Tree Store: support indexing from a pack file (without unpacking)
-    [OAK-11107] - Index statistics support for multi-threaded indexing
-    [OAK-11108] - Tree store: support parallel indexing
-    [OAK-11109] - indexing-job: download might fail when parallel download threads terminate at approximately the same time
-    [OAK-11114] - Indexing job: add support for filtering Mongo documents in the downloader based on path prefix and suffix
-    [OAK-11121] - indexing-job: print thread CPU, GC and memory usage statistics periodically during indexing download
-    [OAK-11129] - Improve Lucene documentation
-    [OAK-11130] - indexing-job: Improvements to logging of AOT Blob downloader
-    [OAK-11134] - Remove SegmentReader from Segment
+    [OAK-11026] - ExternalGroupPrincipalProvider needs to cache results of local group resolution
+    [OAK-11062] - document-store: refine skipping of MongoDB tests
+    [OAK-11139] - Allow downloading only recently changed nodes from MongoDB
+    [OAK-11142] - org.apache.jackrabbit.oak.plugins.memory is for internal use only and should be marked as such
+    [OAK-11151] - rdbmk: when wrapping into DocumentStoreException, add message for causing exception to new message
+    [OAK-11174] - VersionGCSupportTest should use standard fixtures
+    [OAK-11175] - rdbmk: use StandardCharsets.UTF_8 where applicable
+    [OAK-11176] - rdbmk json support: use LongUtils.tryParse()
+    [OAK-11178] - rdbmk: address Java warnings
+    [OAK-11179] - RDB*: remove 'throws' clause from connection handler 'close', tune exception messages
+    [OAK-11181] - SystemPropertySupplier: add feature to avoid logging of values (for instance, passwords)
+    [OAK-11183] - rdb: refactor system test property handling and availability checks
+    [OAK-11187] - Implement NodeImpl.getParentOrNull
+    [OAK-11197] - oak-search-elastic: pre-compute and store random values to improve statistical facets performance
+    [OAK-11200] - Make JackrabbitSession.getParentOrNull() use JackrabbitNode.getParentOrNull
+    [OAK-11214] - Support "IN" restrictions for functions
+    [OAK-11230] - CollectionUtils: relax generics constraints on iterator-consuming methods
+    [OAK-11232] - indexing-job - Simplify download from Mongo logic by traversing only by _modified instead of (_modified, _id)
+    [OAK-11233] - Don't apply MongoDockerRule if the Mongo Docker image isn't actually used.
+    [OAK-11234] - Use virtual clock to generate test content on Mongo document store in Pipelined strategy IT tests
+    [OAK-11235] - Tree store path iterator filter: nextIncludedPath bugfix
+    [OAK-11238] - indexing-job - de-duplicate entries in sorted batches when saving them to disk
+    [OAK-11261] - Flaky test preventing Oak release: BranchCommitGCTest.unmergedAddThenMergedAddAndRemoveChildren
 
 Test
 
-    [OAK-11052] - AbstractDocumentStore: log when NODES not empty before/after test
+    [OAK-11250] - flaky RDBConnectionHandlerTest
+    [OAK-11253] - flakyness in DocumentNodeStoreIT with new prevNoProp tests introduced
+    [OAK-11254] - backgroundPurge interferes with fullgc tests
 
 Task
 
-    [OAK-10690] - Update docs and test config for recommended MongoDB version (5.0)
-    [OAK-10836] - Improve message 'Another copy of the index update is already running'
-    [OAK-10849] - query-spi: remove deprecated slf4j.event.Level based method
-    [OAK-10992] - rdbmk: update to Derby 15.x
-    [OAK-11029] - oak-search-elastic: index alias should include the internal version
-    [OAK-11042] - Bump elasticsearch version to 8.15.0 / lucene 9.11.1
-    [OAK-11058] - Update (shaded) Guava to 33.3.0
-    [OAK-11068] - oak-run revisions fullGC should set (and have an option for) fullGCMode
-    [OAK-11080] - use consistent commons-collections4 version from oak-parent/pom.xml throughout
-    [OAK-11096] - Upgrade jackson-databind dependency to 2.17.2
-    [OAK-11113] - MissingLastRevSeekerTest occasionally fails for RDB-H2
-    [OAK-11119] - oak-search-elastic: increase test container startup timeout
-    [OAK-11120] - update maven-shade-plugin version to 3.6.0
-    [OAK-11123] - Update checkstyle-plugin dependency to version 3.5.0
-    [OAK-11125] - Update spotbugs plugin to 4.8.6.3
-    [OAK-11126] - Upgrade maven-versions-plugin to 2.17.1
-    [OAK-11128] - examples: update jetty-maven-plugin to 11.0.24
-    [OAK-11136] - oak-search-elastic: (refactor) remove duplicate assertEventually in tests
+    [OAK-10745] - Osgi Config for a delayFactor & batch-size while removing fullGC
+    [OAK-10953] - Migrate from elastiknn to ES native vector search
+    [OAK-11063] - oak-search-elastic: integrate inference api as experimental feature
+    [OAK-11113] - Perform cleanup after CompressedDocumentPropertyStateTest runs for RDB-H2
+    [OAK-11138] - add test coverage for changing a persisted namespace mapping when node exists that uses the prefix
+    [OAK-11147] - RDBMK: update PostgreSQL driver/database
+    [OAK-11150] - add documentation about how to run DBs in Docker (here: PostgreSQL)
+    [OAK-11152] - Segment copy - avoid instantiation of source persistence if it is not null
+    [OAK-11158] - indexing-job/downloader - Move the conversion of Mongo responses to NodeDocument from the download to the transform threads
+    [OAK-11168] - update mongo-driver version to 3.12.14
+    [OAK-11172] - add documentation about how to run DB2 in Docker
+    [OAK-11173] - Update (shaded) Guava to 33.3.1
+    [OAK-11177] - Update commons-io dependency to 2.17.0
+    [OAK-11196] - oak-auth-ldap: update mina dependency to 2.1.8
+    [OAK-11198] - commons: add helper class for argument checking
+    [OAK-11203] - Add delayFactor and progress/batchSize for fullGC in Oak-Run Command
+    [OAK-11209] - commons: add helper class for state checking
+    [OAK-11226] - Create Sets.newConcurrentHashSet api in oak-commons
 
 Documentation
 
-    [OAK-11037] - shaded-guava: add notes how to use in IDEs
-    [OAK-11038] - javadoc: missing linking to JDK methods
+    [OAK-10759] - JavaDoc of o.a.j.o.namepath.PathMapper is inaccurate
+    [OAK-11237] - Document external membership caching properties
+    [OAK-11241] - Document mechanism for registering MBeans
 
 
 In addition to the above-mentioned changes, this release contains all

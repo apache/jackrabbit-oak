@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -39,6 +37,7 @@ import javax.jcr.RepositoryException;
 import java.text.ParseException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,7 +62,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { false, "Dynamic-Groups = false" },
                 new Object[] { true, "Dynamic-Groups = true" });
     }
@@ -224,7 +223,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         
         // create provider with a group mapping that contains same group as user-mapping
         if (dynamicGroupsEnabled) {
-            Map<String, String[]> grMapping = ImmutableMap.of(IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1});
+            Map<String, String[]> grMapping = Map.of(IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1});
             AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, grMapping, getAutoMembershipConfigMapping());
             // external group does have 'automembershipGroup3' as configured autom-membership
             Iterator<Authorizable> it = amp.getMembers(automembershipGroup1, false);

@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -35,8 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
@@ -154,15 +155,15 @@ class UnsavedModifications {
         Map<Path, Revision> pending;
         try {
             snapshot.acquiring(getMostRecentRevision());
-            pending = Maps.newTreeMap(PathComparator.INSTANCE);
+            pending = new TreeMap<>(PathComparator.INSTANCE);
             pending.putAll(map);
             sweepRev = sweepRevision.get();
         } finally {
             lock.unlock();
         }
         stats.num = pending.size();
-        List<UpdateOp> updates = Lists.newArrayList();
-        Map<Path, Revision> pathToRevision = Maps.newHashMap();
+        List<UpdateOp> updates = new ArrayList<>();
+        Map<Path, Revision> pathToRevision = new HashMap<>();
         for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
                 pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
             for (Map.Entry<Path, Revision> entry : batch) {

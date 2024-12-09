@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
@@ -28,6 +27,7 @@ import java.util.function.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -141,7 +141,7 @@ public class PersistingDiff implements NodeStateDiff {
             throw new IOException(exception);
         } else if (success) {
             NodeState nodeState = builder.getNodeState();
-            checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
+            Validate.checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
             RecordId nodeId = writer.writeNode(nodeState, getStableIdBytes(after));
             reporter.reportNode(this::getPath);
             return new SegmentNodeState(reader, writer, blobStore, nodeId);

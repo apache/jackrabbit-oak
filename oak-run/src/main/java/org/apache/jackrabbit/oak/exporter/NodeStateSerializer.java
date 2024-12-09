@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.jackrabbit.guava.common.io.Files;
 import com.google.gson.stream.JsonWriter;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
@@ -37,8 +38,7 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 public class NodeStateSerializer {
     public enum Format {JSON, TXT}
@@ -72,7 +72,7 @@ public class NodeStateSerializer {
         if (dir.exists()) {
             checkArgument(dir.isDirectory(), "Input file must be directory [%s]", dir.getAbsolutePath());
         } else {
-            checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
+            Validate.checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
         }
         File file = new File(dir, getFileName());
         try (Writer writer = Files.newWriter(file, StandardCharsets.UTF_8)){

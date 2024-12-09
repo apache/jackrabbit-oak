@@ -26,8 +26,7 @@ import javax.jcr.Repository;
 public class ElasticIndexDescendantSuggestionCommonTest extends IndexDescendantSuggestionCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     @Override
     protected Repository createJcrRepository() {

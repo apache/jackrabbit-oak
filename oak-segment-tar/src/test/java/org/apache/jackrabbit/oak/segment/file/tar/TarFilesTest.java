@@ -42,9 +42,16 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -415,10 +422,9 @@ public class TarFilesTest {
         assertEquals(0, tarFiles.readerCount());
         assertEquals(0, tarFiles.segmentCount());
         assertEquals(0, tarFiles.size());
-        assertFalse(tarFiles.containsSegment(0l, 0l));
-        assertNull(tarFiles.readSegment(0l, 0l));
+        assertFalse(tarFiles.containsSegment(0L, 0L));
+        assertNull(tarFiles.readSegment(0L, 0L));
 
-        tarFiles.toString();
         assertThrows(IllegalRepositoryStateException.class, () -> tarFiles.flush());
         assertThrows(IllegalRepositoryStateException.class, () -> writeSegment(randomUUID()));
         assertThrows(IllegalRepositoryStateException.class, () -> tarFiles.cleanup(new CleanupContext() {
@@ -444,5 +450,57 @@ public class TarFilesTest {
         assertTrue(tarFiles.getGraph("").isEmpty());
 
         assertThrows(IllegalRepositoryStateException.class, () -> tarFiles.createFileReaper());
+    }
+
+    @Test
+    public void testWriterRolloverOnExcessiveEntryCount() throws IOException {
+        // TOTAL_ENTRIES > WRITER_ENTRY_LIMIT;
+        final int WRITER_ENTRY_LIMIT = 8;
+        final int TOTAL_ENTRIES = 42;
+
+        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
+        FileStoreMonitor fsMonitor = new FileStoreMonitorAdapter();
+        RemoteStoreMonitor remoteStoreMonitor = new RemoteStoreMonitorAdapter();
+        File rootDirectory = folder.getRoot();
+        File segmentStoreDir = folder.newFolder();
+
+        // create persistence
+        SegmentNodeStorePersistence persistence = new TarPersistence(rootDirectory) {
+            @Override
+            public SegmentArchiveManager createArchiveManager(
+                    boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
+                    FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor
+            ) {
+                return new SegmentTarManager(
+                        segmentStoreDir, fsMonitor, ioMonitor, false, false
+                ) {
+                    @Override
+                    public @NotNull SegmentArchiveWriter create(String archiveName) {
+                        return new SegmentTarWriter(new File(segmentStoreDir, archiveName), fsMonitor, ioMonitor) {
+                            @Override
+                            public int getMaxEntryCount() {
+                                return WRITER_ENTRY_LIMIT;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+        tarFiles = TarFiles.builder()
+                .withDirectory(rootDirectory)
+                .withTarRecovery((id, data, recovery) -> {})
+                .withIOMonitor(ioMonitor)
+                .withFileStoreMonitor(fsMonitor)
+                .withMaxFileSize(MAX_FILE_SIZE)
+                .withRemoteStoreMonitor(remoteStoreMonitor)
+                .withPersistence(persistence)
+                .build();
+
+        // write more entries than fit into a single tar file
+        for (int i = 0; i < TOTAL_ENTRIES; i++) {
+            writeSegment(randomUUID());
+        }
+
+        assertEquals(TOTAL_ENTRIES / WRITER_ENTRY_LIMIT, tarFiles.readerCount());
     }
 }

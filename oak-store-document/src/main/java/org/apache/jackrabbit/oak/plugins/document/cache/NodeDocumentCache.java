@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLeafPrevio
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
@@ -335,7 +335,7 @@ public class NodeDocumentCache implements Closeable {
     }
 
     public Iterable<CacheStats> getCacheStats() {
-        return Lists.newArrayList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
+        return Arrays.asList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 
     @Override

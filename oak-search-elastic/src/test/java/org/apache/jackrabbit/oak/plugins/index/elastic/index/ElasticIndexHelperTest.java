@@ -25,7 +25,6 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
-import co.elastic.clients.json.JsonData;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -34,8 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.is;
@@ -119,9 +116,6 @@ public class ElasticIndexHelperTest {
         assertThat(wdgfDef.preserveOriginal(), is(expectedIndexOriginalTerm));
         assertThat(wdgfDef.splitOnCaseChange(), is(expectedSplitOnCaseChange));
         assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
-
-        Map<String, JsonData> otherSettings = req.settings().otherSettings();
-        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).to(Boolean.class), is(true));
     }
 
     @Test

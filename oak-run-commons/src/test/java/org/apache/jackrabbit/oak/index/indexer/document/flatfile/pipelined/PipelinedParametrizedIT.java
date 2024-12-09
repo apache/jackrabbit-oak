@@ -66,9 +66,6 @@ import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoDownloaderRegexUtils.LONG_PATH_ID_PATTERN;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.createNodeStore;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
@@ -194,8 +191,8 @@ public class PipelinedParametrizedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, Boolean.toString(regexPathFiltering));
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, Boolean.toString(parallelDump));
 
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
-        List<PathFilter> pathFilters = List.of(contentDamPathFilter);
+        Predicate<String> pathPredicate = s -> PipelineITUtil.contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        List<PathFilter> pathFilters = List.of(PipelineITUtil.contentDamPathFilter);
 
         testSuccessfulDownload(pathPredicate, pathFilters);
     }
@@ -223,11 +220,11 @@ public class PipelinedParametrizedIT {
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths)
             throws CommitFailedException, IOException {
-        try (MongoTestBackend rwStore = createNodeStore(false, connectionFactory, builderProvider)) {
+        try (MongoTestBackend rwStore = PipelineITUtil.createNodeStore(false, connectionFactory, builderProvider)) {
             PipelineITUtil.createContent(rwStore.documentNodeStore);
         }
 
-        try (MongoTestBackend roStore = createNodeStore(true, connectionFactory, builderProvider)) {
+        try (MongoTestBackend roStore = PipelineITUtil.createNodeStore(true, connectionFactory, builderProvider)) {
             PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
             File file = pipelinedStrategy.createSortedStoreFile();
             SortedMap<String, Counter> counters = statsProvider.getRegistry().getCounters();
@@ -243,8 +240,8 @@ public class PipelinedParametrizedIT {
                 // one more time for the catch-up at the end of the download
                 assertTrue("Docs downloaded: " + actualDocumentsDownloaded + " must be between " + nDocumentsMatchingFilter + " and " + nDocumentsMatchingFilter * 3,
                         nDocumentsMatchingFilter <= actualDocumentsDownloaded && actualDocumentsDownloaded <= nDocumentsMatchingFilter * 3);
-                assertTrue("Entries downloaded: " + actualDocumentsDownloaded + " must be between " + expected.size() + " and " + expected.size() * 2,
-                        expected.size() <= actualEntriesAccepted && actualEntriesAccepted <= expected.size() * 2L);
+                assertTrue("Entries downloaded: " + actualEntriesAccepted + " must be between " + expected.size() + " and " + expected.size() * 3,
+                        expected.size() <= actualEntriesAccepted && actualEntriesAccepted <= expected.size() * 3L);
             } else {
                 assertEquals(nDocumentsMatchingFilter, actualDocumentsDownloaded);
                 assertEquals(expected.size(), actualEntriesAccepted);
@@ -264,7 +261,7 @@ public class PipelinedParametrizedIT {
                         .collect(Collectors.toList());
             }
             assertEquals("Expected:\n" + Strings.join(expected, "\n") + "\nActual: " + Strings.join(result, "\n"), expected, result);
-            assertMetrics(statsProvider);
+            PipelineITUtil.assertMetrics(statsProvider);
         }
     }
 

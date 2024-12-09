@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 
@@ -126,7 +124,7 @@ public class GcJournalTest {
         GCJournal gcJournal = new GCJournal(getPersistence().getGCJournalFile());
         gcJournal.persist(75, 300, newGCGeneration(3, 0, false), 125, "bar");
 
-        ArrayList<GCJournalEntry> entries = newArrayList(gcJournal.readAll());
+        List<GCJournalEntry> entries = new ArrayList<>(gcJournal.readAll());
         assertEquals(2, entries.size());
 
         GCJournalEntry entry = entries.get(0);

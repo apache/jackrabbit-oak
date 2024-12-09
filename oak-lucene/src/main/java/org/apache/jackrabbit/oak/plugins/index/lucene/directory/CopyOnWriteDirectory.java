@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -37,10 +38,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
@@ -51,8 +52,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class CopyOnWriteDirectory extends FilterDirectory {
@@ -71,9 +71,9 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final Directory remote;
     private final Directory local;
     private final Executor executor;
-    private final ConcurrentMap<String, COWFileReference> fileMap = newConcurrentMap();
-    private final Set<String> deletedFilesLocal = Sets.newConcurrentHashSet();
-    private final Set<String> skippedFiles = Sets.newConcurrentHashSet();
+    private final ConcurrentMap<String, COWFileReference> fileMap = new ConcurrentHashMap<>();
+    private final Set<String> deletedFilesLocal = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> skippedFiles = CollectionUtils.newConcurrentHashSet();
 
     private final BlockingQueue<Callable<Void>> queue = new LinkedBlockingQueue<Callable<Void>>();
     private final AtomicReference<Throwable> errorInCopy = new AtomicReference<Throwable>();

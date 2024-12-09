@@ -27,8 +27,10 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +40,6 @@ import java.util.UUID;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -74,9 +74,9 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     public TimeLapsedDataStore(Clock clock) {
         this.startTime = clock.getTime();
         this.clock = clock;
-        store = Maps.newHashMap();
-        metadata = Maps.newHashMap();
-        uploadTokens = Maps.newHashMap();
+        store = new HashMap<>();
+        metadata = new HashMap<>();
+        uploadTokens = new HashMap<>();
     }
 
     protected Clock getClock() {
@@ -154,7 +154,7 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     }
 
     @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
-        List<DataRecord> recs = Lists.newArrayList();
+        List<DataRecord> recs = new ArrayList<>();
         Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<String, DataRecord> entry = iter.next();
@@ -174,7 +174,7 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     }
 
     @Override public void deleteAllMetadataRecords(String prefix) {
-        List<String> recs = Lists.newArrayList();
+        List<String> recs = new ArrayList<>();
         Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<String, DataRecord> entry = iter.next();

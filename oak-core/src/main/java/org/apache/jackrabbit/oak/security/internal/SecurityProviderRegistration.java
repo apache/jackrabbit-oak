@@ -76,6 +76,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
@@ -86,7 +87,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
@@ -599,7 +599,7 @@ public class SecurityProviderRegistration {
             protected List<RestrictionProvider> getServices() {
                 Collection<RestrictionProvider> values = restrictionProviders.values();
                 synchronized (restrictionProviders) {
-                    return newArrayList(values);
+                    return new ArrayList<>(values);
                 }
             }
 
@@ -613,7 +613,7 @@ public class SecurityProviderRegistration {
             protected List<AuthorizableActionProvider> getServices() {
                 Collection<AuthorizableActionProvider> values = authorizableActionProviders.values();
                 synchronized (authorizableActionProviders) {
-                    return newArrayList(values);
+                    return new ArrayList<>(values);
                 }
             }
 
@@ -627,7 +627,7 @@ public class SecurityProviderRegistration {
             protected List<AuthorizableNodeName> getServices() {
                 Collection<AuthorizableNodeName> values = authorizableNodeNames.values();
                 synchronized (authorizableNodeNames) {
-                    return newArrayList(values);
+                    return new ArrayList<>(values);
                 }
             }
 
@@ -641,7 +641,7 @@ public class SecurityProviderRegistration {
             protected List<UserAuthenticationFactory> getServices() {
                 Collection<UserAuthenticationFactory> values = userAuthenticationFactories.values();
                 synchronized (userAuthenticationFactories) {
-                    return newArrayList(values);
+                    return new ArrayList<>(values);
                 }
             }
 
@@ -651,7 +651,7 @@ public class SecurityProviderRegistration {
     private AggregationFilter createAggregationFilter() {
         List<AggregationFilter> filters;
         synchronized (aggregationFilters) {
-            filters = newArrayList(aggregationFilters.values());
+            filters = new ArrayList<>(aggregationFilters.values());
         }
         switch (filters.size()) {
             case 0: return AggregationFilter.DEFAULT;

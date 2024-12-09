@@ -38,6 +38,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
@@ -105,8 +106,16 @@ public class BranchCommitGCTest {
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED).setFullGCEnabled(true)
                 .setAsyncDelay(0).getNodeStore();
         gc = store.getVersionGarbageCollector();
+        VersionGarbageCollectorIT.staticStore = store;
         originalFullGcMode = VersionGarbageCollector.getFullGcMode();
         writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
+        // OAK-11254 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
     }
 
     @After
@@ -116,6 +125,7 @@ public class BranchCommitGCTest {
         if (store != null) {
             store.dispose();
         }
+        VersionGarbageCollectorIT.staticStore = null;
         Revision.resetClockToDefault();
     }
 
@@ -162,6 +172,7 @@ public class BranchCommitGCTest {
     @Test
     public void unmergedAddThenMergedAddAndRemoveChildren() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS);
         RevisionVector br = unmergedBranchCommit(b -> {
             b.child("a");
             b.child("b");
@@ -571,6 +582,7 @@ public class BranchCommitGCTest {
     public void unmergedRemoveChild() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
+        assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC); // OAK-11252
         mergedBranchCommit(b -> {
             b.child("foo");
             b.child("bar");
@@ -748,7 +760,15 @@ public class BranchCommitGCTest {
         if (clusterId > 0) {
             builder.setClusterId(clusterId);
         }
-        return builder.getNodeStore();
+        DocumentNodeStore nodeStore = builder.getNodeStore();
+        // OAK-11254 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
+        return nodeStore;
     }
 
     private RevisionVector mergedBranchCommit(Consumer<NodeBuilder> buildFunction) throws Exception {

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -36,6 +35,8 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -155,7 +156,7 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
 
     private final class TestActionProvider implements AuthorizableActionProvider {
 
-        private final List<AuthorizableAction> actions = Lists.newArrayList();
+        private final List<AuthorizableAction> actions = new ArrayList<>();
 
         private void addAction(AuthorizableAction action) {
             actions.add(action);

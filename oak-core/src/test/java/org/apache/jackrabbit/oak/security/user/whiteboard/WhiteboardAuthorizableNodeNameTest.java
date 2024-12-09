@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -24,6 +23,8 @@ import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+
+import java.util.Map;
 
 public class WhiteboardAuthorizableNodeNameTest {
 
@@ -53,7 +54,7 @@ public class WhiteboardAuthorizableNodeNameTest {
         authorizableNodeName.start(whiteboard);
 
         AuthorizableNodeName registered = authorizableId -> "generated";
-        whiteboard.register(AuthorizableNodeName.class, registered, ImmutableMap.of());
+        whiteboard.register(AuthorizableNodeName.class, registered, Map.of());
         assertEquals(registered.generateNodeName(TEST_ID), authorizableNodeName.generateNodeName(TEST_ID));
     }
 }

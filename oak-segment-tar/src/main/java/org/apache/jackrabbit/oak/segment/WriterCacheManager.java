@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -262,7 +262,7 @@ public abstract class WriterCacheManager {
         }
 
         private static class Generations<T> implements Iterable<T> {
-            private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
+            private final ConcurrentMap<Integer, Supplier<T>> generations = new ConcurrentHashMap<>();
             private final Supplier<T> cacheFactory;
 
             Generations(@NotNull Supplier<T> cacheFactory) {

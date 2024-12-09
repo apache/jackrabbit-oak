@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -109,7 +108,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrivilegeRemappedNamespace() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, Map.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
         Privilege p = create(root, mapper).getPrivilege("prefix:read");
 
         assertNotNull(p);
@@ -120,7 +119,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testGetPrivilegeInvalidRemappedNamespace() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("prefix", "unknownUri")));
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, Map.of("prefix", "unknownUri")));
         create(root, mapper).getPrivilege("prefix:read");
     }
 
@@ -183,7 +182,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testRegisterPrivilegeReservedRemappedNamespace() throws Exception {
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, Map.of("prefix", NamespaceRegistry.NAMESPACE_JCR)));
         PrivilegeManager pmgr = create(root, mapper);
         pmgr.registerPrivilege("prefix:customPrivilege", true, new String[] {"prefix:read", "prefix:write"});    }
 
@@ -197,7 +196,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
         };
         nsRegistry.registerNamespace("ns", "http://jackrabbit.apache.org/oak/ns");
 
-        Map<String, String> localMapping = ImmutableMap.of(
+        Map<String, String> localMapping = Map.of(
                 "prefix", NamespaceRegistry.NAMESPACE_JCR,
                 "prefix2", "http://jackrabbit.apache.org/oak/ns");
 

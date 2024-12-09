@@ -50,6 +50,8 @@ public final class PerfLogger {
     /** The logger to which the log statements are emitted **/
     private final Logger delegate;
 
+    private long infoLogMillis = Long.MAX_VALUE;
+
     /** Create a new PerfLogger that shall use the given Logger object for logging **/
     public PerfLogger(Logger delegate) {
         if (delegate == null) {
@@ -128,7 +130,7 @@ public final class PerfLogger {
         if (start < 0) {
             return;
         }
-        end(start, logAtDebugIfSlowerThanMs, Long.MAX_VALUE, logMessagePrefix,
+        end(start, logAtDebugIfSlowerThanMs, infoLogMillis, logMessagePrefix,
                 new Object[] { arg1 });
     }
 
@@ -142,7 +144,7 @@ public final class PerfLogger {
         if (start < 0) {
             return;
         }
-        end(start, logAtDebugIfSlowerThanMs, Long.MAX_VALUE, logMessagePrefix,
+        end(start, logAtDebugIfSlowerThanMs, infoLogMillis, logMessagePrefix,
                 new Object[] { arg1, arg2 });
     }
 
@@ -152,7 +154,7 @@ public final class PerfLogger {
      */
     public void end(long start, long logAtDebugIfSlowerThanMs,
                     String logMessagePrefix, Object... arguments) {
-        end(start, logAtDebugIfSlowerThanMs, Long.MAX_VALUE, logMessagePrefix, arguments);
+        end(start, logAtDebugIfSlowerThanMs, infoLogMillis, logMessagePrefix, arguments);
     }
 
     /**
@@ -270,4 +272,7 @@ public final class PerfLogger {
         return delegate.isTraceEnabled();
     }
 
+    public void setInfoLogMillis(long infoLogMillis) {
+        this.infoLogMillis = infoLogMillis;
+    }
 }

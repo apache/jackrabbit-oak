@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Aggregation of a list of editor providers into a single provider.
@@ -68,7 +68,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
     public Editor getIndexEditor(
             @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
-        List<Editor> indexes = Lists.newArrayList();
+        List<Editor> indexes = new ArrayList<>();
         for (IndexEditorProvider provider : providers) {
             Editor e = provider.getIndexEditor(type, builder, root, callback);
             if (e != null) {

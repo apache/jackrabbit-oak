@@ -31,6 +31,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemErr;
+import static org.apache.jackrabbit.oak.plugins.document.CommandTestUtils.captureSystemOut;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
@@ -177,7 +179,7 @@ public class RevisionsCommandTest {
     }
 
     @Test
-    public void collect() throws Exception {
+    public void collect() {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("collect"));
@@ -196,6 +198,36 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("IncludePaths are : [/]"));
         assertTrue(output.contains("ExcludePaths are : []"));
         assertTrue(output.contains("FullGcMode is : 0"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.0"));
+        assertTrue(output.contains("FullGcBatchSize is : 1000"));
+        assertTrue(output.contains("FullGcProgressSize is : 10000"));
+    }
+
+    @Test
+    public void fullGCWithDelayFactor() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcDelayFactor", "2.5", "--entireRepo"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.5"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void fullGCWithBatchSize() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcBatchSize", "200", "--entireRepo"));
+        assertTrue(output.contains("FullGcBatchSize is : 200"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void fullGCWithProgressSize() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcProgressSize", "20000", "--entireRepo"));
+        assertTrue(output.contains("FullGcProgressSize is : 20000"));
+        assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
@@ -373,34 +405,6 @@ public class RevisionsCommandTest {
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setFullGCEnabled(fullGCEnabled)
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
-    }
-
-    private String captureSystemOut(Runnable r) {
-        PrintStream old = System.out;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-            System.setOut(ps);
-            r.run();
-            System.out.flush();
-            return baos.toString();
-        } finally {
-            System.setOut(old);
-        }
-    }
-
-    private String captureSystemErr(Runnable r) {
-        PrintStream old = System.err;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-            System.setErr(ps);
-            r.run();
-            System.err.flush();
-            return baos.toString();
-        } finally {
-            System.setErr(old);
-        }
     }
 
     private static class RevisionsCmd implements Runnable {

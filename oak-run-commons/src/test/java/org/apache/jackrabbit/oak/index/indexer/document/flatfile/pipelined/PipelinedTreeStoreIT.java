@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -67,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -351,6 +353,71 @@ public class PipelinedTreeStoreIT {
                 pathPredicate,
                 List.of(contentDamPathFilter),
                 excludedPathsRegexTestExpected);
+    }
+
+    @Test
+    public void getOnlyModified() throws Exception {
+        long minModified = 0;
+        try (MongoTestBackend rwStore = createNodeStore(false)) {
+            DocumentNodeStore rwNodeStore = rwStore.documentNodeStore;
+            @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+            @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+            contentDamBuilder.child("old.png");
+            contentDamBuilder.child("change.png").setProperty("test", 0);
+            rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            Clock clock = rwNodeStore.getClock();
+            long oldMod = NodeDocument.getModifiedInSecs(clock.getTime());
+            // wait until the modified time changes
+            do {
+                clock.waitUntil(clock.getTime() + 1000);
+                minModified = NodeDocument.getModifiedInSecs(clock.getTime());
+            } while (oldMod == minModified);
+            rootBuilder = rwNodeStore.getRoot().builder();
+            contentDamBuilder = rootBuilder.child("content").child("dam");
+            contentDamBuilder.child("change.png").setProperty("test", 1);
+            contentDamBuilder.child("new.png");
+            rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        }
+        // download only the recent changes
+        try (MongoTestBackend roStore = createNodeStore(true)) {
+            Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+            List<PathFilter> mongoRegexPathFilter = List.of(contentDamPathFilter);
+            PipelinedTreeStoreStrategy pipelinedStrategy = createStrategy(
+                    roStore, pathPredicate, mongoRegexPathFilter, minModified);
+            File file = pipelinedStrategy.createSortedStoreFile();
+            assertTrue(file.exists());
+            List<String> result = readAllEntries(file);
+            List<String> expected = List.of(
+                    "/|{}",
+                    "/content|{}",
+                    "/content/dam|{}",
+                    "/content/dam/change.png|{\"test\":1}",
+                    "/content/dam/new.png|{}"
+            );
+            assertEquals(expected.toString(), result.toString());
+            assertMetrics(statsProvider);
+        }
+        // download everything
+        try (MongoTestBackend roStore = createNodeStore(true)) {
+            Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+            List<PathFilter> mongoRegexPathFilter = List.of(contentDamPathFilter);
+            PipelinedTreeStoreStrategy pipelinedStrategy = createStrategy(
+                    roStore, pathPredicate, mongoRegexPathFilter, 0);
+            File file = pipelinedStrategy.createSortedStoreFile();
+            assertTrue(file.exists());
+            List<String> result = readAllEntries(file);
+            List<String> expected = List.of(
+                    "/|{}",
+                    "/content|{}",
+                    "/content/dam|{}",
+                    "/content/dam/change.png|{\"test\":1}",
+                    "/content/dam/new.png|{}",
+                    "/content/dam/old.png|{}"
+            );
+            assertEquals(expected, result);
+            assertMetrics(statsProvider);
+        }
     }
 
     private void buildNodeStoreForExcludedRegexTest(DocumentNodeStore rwNodeStore) {
@@ -660,6 +727,12 @@ public class PipelinedTreeStoreIT {
     }
 
     private PipelinedTreeStoreStrategy createStrategy(MongoTestBackend backend, Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter) {
+        return createStrategy(backend, pathPredicate, mongoRegexPathFilter, 0);
+    }
+
+    private PipelinedTreeStoreStrategy createStrategy(MongoTestBackend backend,
+            Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter,
+            long minModified) {
         Set<String> preferredPathElements = Set.of();
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         indexingReporter.setIndexNames(List.of("testIndex"));
@@ -675,6 +748,7 @@ public class PipelinedTreeStoreIT {
                 pathPredicate,
                 mongoRegexPathFilter,
                 null,
+                minModified,
                 statsProvider,
                 indexingReporter);
     }

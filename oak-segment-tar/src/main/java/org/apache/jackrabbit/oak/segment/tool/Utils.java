@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -76,13 +76,13 @@ public final class Utils {
             try (JournalReader journalReader = new JournalReader(journal)) {
                 Iterator<String> revisionIterator = Iterators.transform(journalReader,
                         entry -> entry.getRevision());
-                return newArrayList(revisionIterator);
+                return CollectionUtils.toList(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return newArrayList();
+        return new ArrayList<>();
     }
 
     private static File isValidFileStoreOrFail(File store) {

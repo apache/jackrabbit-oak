@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -68,7 +67,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Group member2 = createGroup();
         gr.addMembers(member.getID(), member2.getID());
 
-        Map<String, String> m = Maps.newHashMap();
+        Map<String, String> m = new HashMap<>();
         m.put(getContentID(member.getID()), member.getID());
         m.put(getContentID(member2.getID()), member2.getID());
 

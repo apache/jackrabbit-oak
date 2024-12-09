@@ -23,7 +23,6 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -76,7 +75,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
         RestrictionDefinition nts  = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
         RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
-        Map<String, ? extends RestrictionDefinition> supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
+        Map<String, ? extends RestrictionDefinition> supported = Map.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
         restrictionProvider = new TestProvider(supported);
     }
 

@@ -162,4 +162,13 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
         return this.getLastRevision() != null
                 && this.getLastRevision().equals(other.getLastRevision());
     }
+
+    /**
+     * Configures the performance logger with the specified info log interval.
+     *
+     * @param infoLogMillis the interval in milliseconds for logging performance information.
+     */
+    static void configurePerfLogger(long infoLogMillis) {
+        perfLogger.setInfoLogMillis(infoLogMillis);
+    }
 }

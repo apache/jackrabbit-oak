@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.wikipedia;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.lang.Math.min;
 
 import java.io.BufferedInputStream;
@@ -38,6 +37,7 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.Benchmark;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -111,7 +111,7 @@ public class WikipediaImport extends Benchmark {
         try {
             int before = importWikipedia(session);
             int after = new Traversal().traverse(session);
-            checkState(before == after, "Import vs. traverse mismatch");
+            Validate.checkState(before == after, "Import vs. traverse mismatch");
         } finally {
             session.logout();
         }

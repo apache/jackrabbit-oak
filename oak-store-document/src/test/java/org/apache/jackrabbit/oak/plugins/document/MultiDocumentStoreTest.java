@@ -28,6 +28,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -40,7 +41,6 @@ import org.junit.Test;
 import org.slf4j.event.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
@@ -112,7 +112,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
     public void concurrentBatchUpdate() throws Exception {
         final CountDownLatch ready = new CountDownLatch(2);
         final CountDownLatch go = new CountDownLatch(1);
-        final List<String> ids = Lists.newArrayList();
+        final List<String> ids = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             ids.add(Utils.getIdFromPath("/node-" + i));
         }
@@ -122,12 +122,12 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         ds1.remove(Collection.NODES, ids);
 
         final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
-        final Map<String, NodeDocument> result1 = Maps.newHashMap();
+        final Map<String, NodeDocument> result1 = new HashMap<>();
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    List<UpdateOp> ops = Lists.newArrayList();
+                    List<UpdateOp> ops = new ArrayList<>();
                     for (String id : ids) {
                         UpdateOp op = new UpdateOp(id, true);
                         op.set("_t1", "value");
@@ -146,12 +146,12 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                 }
             }
         }, "t1");
-        final Map<String, NodeDocument> result2 = Maps.newHashMap();
+        final Map<String, NodeDocument> result2 = new HashMap<>();
         Thread t2 = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    List<UpdateOp> ops = Lists.newArrayList();
+                    List<UpdateOp> ops = new ArrayList<>();
                     for (String id : ids) {
                         UpdateOp op = new UpdateOp(id, true);
                         op.set("_t2", "value");
@@ -212,7 +212,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         // modify doc via ds2 with batch createOrUpdate
         op = new UpdateOp(id, false);
         op.set("_ds2", 1);
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         ops.add(op);
         for (int i = 0; i < 10; i++) {
             // add more ops to make sure a batch

@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -52,9 +53,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
@@ -316,7 +316,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         String historyPath = getIdentifierManager().getPath(historyIdentifier);
         String historyRelPath = PathUtils.relativize(VERSION_STORE_PATH, historyPath);
         NodeBuilder history = resolve(versionStorageNode, historyRelPath);
-        checkState(history.exists(), "Version history does not exist: " + historyPath);
+        Validate.checkState(history.exists(), "Version history does not exist: " + historyPath);
         NodeBuilder version = selector.select(history);
         if (version == null) {
             throw new CommitFailedException(CommitFailedException.VERSION,
@@ -434,7 +434,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             return;
         }
 
-        checkState(versionable.hasProperty(JCR_PREDECESSORS));
+        Validate.checkState(versionable.hasProperty(JCR_PREDECESSORS));
         PropertyState state = versionable.getProperty(JCR_PREDECESSORS);
         List<String> predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
         NodeBuilder version = vHistory.child(calculateVersion(vHistory, versionable));
@@ -579,7 +579,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             return newVersionName;
         } else {
             // best is root version
-            checkState(history.hasChildNode(JCR_ROOTVERSION));
+            Validate.checkState(history.hasChildNode(JCR_ROOTVERSION));
             NodeBuilder v = history.getChildNode(JCR_ROOTVERSION);
             return String.valueOf(v.getProperty(JCR_SUCCESSORS).count() + 1) + ".0";
         }

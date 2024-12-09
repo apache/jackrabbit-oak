@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
@@ -30,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +51,7 @@ import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -181,7 +182,7 @@ public class SegmentDataStoreBlobGCIT {
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = 5;
         int numBlobs = count;
-        List<Integer> processed = Lists.newArrayList();
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(numBlobs);
@@ -239,7 +240,7 @@ public class SegmentDataStoreBlobGCIT {
 
     private HashSet<String> addNodeSpecialChars() throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = nodeStore.getRoot().builder();
         for (int i = 0; i < specialCharSets.size(); i++) {
@@ -247,7 +248,7 @@ public class SegmentDataStoreBlobGCIT {
             NodeBuilder n = a.child("cspecial");
             n.child(specialCharSets.get(i)).setProperty("x", b);
             Iterator<String> idIter = blobStore.resolveChunks(b.getBlobId());
-            set.addAll(Lists.newArrayList(idIter));
+            set.addAll(CollectionUtils.toList(idIter));
         }
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;
@@ -342,7 +343,7 @@ public class SegmentDataStoreBlobGCIT {
         
         // Simulate faulty state by deleting some blobs directly
         Random rand = new Random(87);
-        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        List<String> existing = new ArrayList<>(state.blobsPresent);
         
         long count = blobStore.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
         

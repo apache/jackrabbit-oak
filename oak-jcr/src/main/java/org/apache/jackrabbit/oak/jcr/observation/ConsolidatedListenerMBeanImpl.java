@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.MalformedObjectNameException;
@@ -40,8 +41,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 
 import org.osgi.service.component.annotations.Activate;
@@ -102,10 +101,10 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 }, service = {})
 public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean {
     private final AtomicInteger observerCount = new AtomicInteger();
-    private final Map<ObjectName, EventListenerMBean> eventListeners = Maps.newConcurrentMap();
-    private final Map<ObjectName, BackgroundObserverMBean> bgObservers = Maps.newConcurrentMap();
-    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = Maps.newConcurrentMap();
-    private final Map<ObjectName, FilterConfigMBean> filterConfigs = Maps.newConcurrentMap();
+    private final Map<ObjectName, EventListenerMBean> eventListeners = new ConcurrentHashMap<>();
+    private final Map<ObjectName, BackgroundObserverMBean> bgObservers = new ConcurrentHashMap<>();
+    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = new ConcurrentHashMap<>();
+    private final Map<ObjectName, FilterConfigMBean> filterConfigs = new ConcurrentHashMap<>();
 
     private Registration mbeanReg;
 
@@ -151,7 +150,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             TabularType tt = new TabularType(LeaderBoardData.class.getName(),
                     "Leaderboard", LeaderBoardData.TYPE, new String[]{"index"});
             tds = new TabularDataSupport(tt);
-            List<LeaderBoardData> leaderBoard = Lists.newArrayList();
+            List<LeaderBoardData> leaderBoard = new ArrayList<>();
             for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
                 String listenerId = getListenerId(e.getKey());
                 EventListenerMBean mbean = e.getValue();
@@ -185,7 +184,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     }
 
     private Collection<BackgroundObserverMBean> collectNonJcrObservers() {
-        List<BackgroundObserverMBean> observers = Lists.newArrayList();
+        List<BackgroundObserverMBean> observers = new ArrayList<>();
 
         for (Map.Entry<ObjectName, BackgroundObserverMBean> o : bgObservers.entrySet()){
             String listenerId = getListenerId(o.getKey());

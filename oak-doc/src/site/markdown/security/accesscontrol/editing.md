@@ -310,7 +310,7 @@ Alternatively, use `AccessControlUtils`:
             PrincipalAccessControlList acl = (PrincipalAccessControlList) policy;
             // add entries specifying the path where they take effect
             acl.addEntry("/content", AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ));
-            Map<String, Value[]> mvRestrictions = ImmutableMap.of("rep:subtrees", new Value[] {vf.createValue("subtree1"), vf.createValue("subtree2"});
+            Map<String, Value[]> mvRestrictions = Map.of("rep:subtrees", new Value[] {vf.createValue("subtree1"), vf.createValue("subtree2"});
             acl.addEntry("/var", AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), Collections.emptyMap(), mvRestrictions);
             
             // NOTE: the path to bind the policy is retrieved from the policy and is not the path where the added entry takes effect!

@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
@@ -59,7 +57,7 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     @Test
     public void testExcludeTest() {
-        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
+        Map<String, Object> m = Map.of("principalNames", principalNames);
         activate(m);
 
         Set<Principal> all = new HashSet<>();
@@ -74,16 +72,16 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     @Test
     public void testExcludeAnother() {
-        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
+        Map<String, Object> m = Map.of("principalNames", principalNames);
         activate(m);
         assertFalse(exclude.isExcluded(Set.of(new PrincipalImpl("another"))));
     }
 
     @Test
     public void testModifyExclude() {
-        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
+        Map<String, Object> m = Map.of("principalNames", principalNames);
         activate(m);
-        ((CugExcludeImpl) exclude).modified(ImmutableMap.of("principalNames", new String[]{"other"}));
+        ((CugExcludeImpl) exclude).modified(Map.of("principalNames", new String[]{"other"}));
 
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);

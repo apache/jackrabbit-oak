@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 
@@ -105,6 +106,12 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "Diff Cache",
             description = "Percentage of cache to be allocated towards Diff cache")
     int diffCachePercentage() default DEFAULT_DIFF_CACHE_PERCENTAGE;
+
+    @AttributeDefinition(
+            name = "PrevNoProp Cache",
+            description = "Percentage of cache to be allocated towards PrevNoProp cache."
+                    + " This cache is used to keep non existence of properties in previous documents and can be small.")
+    int prevNoPropCachePercentage() default DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 
     @AttributeDefinition(
             name = "LIRS Cache Segment Count",
@@ -321,6 +328,13 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     long recoveryDelayMillis() default DEFAULT_RECOVERY_DELAY_MILLIS;
 
     @AttributeDefinition(
+            name = "Perflogger Info Millis",
+            description = "Minimum duration (in milliseconds) for certain operations that perflogger info will log. " +
+                    " Default: " + DEFAULT_PERFLOGGER_INFO_MILLIS +
+                    " (milliseconds).")
+    long perfLoggerInfoMillis() default DEFAULT_PERFLOGGER_INFO_MILLIS;
+
+    @AttributeDefinition(
             name = "ClusterId reuse delay after recovery",
             description = "Minimal delay (in milliseconds) before a clusterId " +
                     "can be reused after a recovery, 0 or negative for no delay. Default: " + DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS +
@@ -353,4 +367,24 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled " +
                     "is set to true, the fullGCMode will be ignored.")
     int fullGCMode() default DEFAULT_FULL_GC_MODE;
+
+    @AttributeDefinition(
+            name = "Delay factor for a Full GC run",
+            description = "A Full GC run has a gap of this delay factor to reduce continuous load on system." +
+                    "It allows the FullGC thread to stop by (fullGC batch run time * delayFactor) period after each batch." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR)
+    double fullGCDelayFactor() default DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+
+    @AttributeDefinition(
+            name = "Batch Size to fetch data for each FullGC cycle",
+            description = "Integer value indicating the number of documents to fetch from database in a single query to check for Full GC." +
+                    "It should be a factor of fullGCProgressSize for better performance " +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE)
+    int fullGCBatchSize() default DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+
+    @AttributeDefinition(
+            name = "Progress Size for FullGC cycle",
+            description = "Integer value indicating the number of documents to check for garbage in each Full GC cycle." +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE)
+    int fullGCProgressSize() default DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 }

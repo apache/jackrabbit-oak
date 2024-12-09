@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
 import java.util.Map;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -50,7 +50,7 @@ public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
     }
 
     static void assertResultMessages(@NotNull String[] resultMessages, String uid, @NotNull String expectedOperation) {
-        assertResultMessages(resultMessages, ImmutableMap.of(uid, expectedOperation));
+        assertResultMessages(resultMessages, Map.of(uid, expectedOperation));
     }
 
     static void assertResultMessages(@NotNull String[] resultMessages, @NotNull Map<String, String> expected) {

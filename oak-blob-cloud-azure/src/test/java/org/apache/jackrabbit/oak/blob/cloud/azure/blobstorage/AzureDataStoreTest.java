@@ -28,8 +28,6 @@ import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.StorageException;
 
 import org.apache.commons.io.IOUtils;
@@ -60,7 +58,9 @@ import java.security.DigestOutputStream;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -261,7 +261,7 @@ public class AzureDataStoreTest {
         // 16500 - over 8K and 16K but under 64K (another reasonably expected stream buffer size)
         // 66000 - over 64K but under 128K (probably the largest reasonably expected stream buffer size)
         // 132000 - over 128K
-        for (int size : Lists.newArrayList(0, 10, 1000, 4100, 16500, 66000, 132000)) {
+        for (int size : List.of(0, 10, 1000, 4100, 16500, 66000, 132000)) {
             File testFile = folder.newFile();
             copyInputStreamToFile(randomStream(size, size), testFile);
             DataIdentifier identifier = new DataIdentifier(getIdForInputStream(new FileInputStream(testFile)));
@@ -386,8 +386,8 @@ public class AzureDataStoreTest {
 
     @Test
     public void testBackendGetAllIdentifiers() throws DataStoreException, IOException, NoSuchAlgorithmException {
-        for (int expectedRecCount : Lists.newArrayList(1, 2, 5)) {
-            final List<DataIdentifier> ids = Lists.newArrayList();
+        for (int expectedRecCount : List.of(1, 2, 5)) {
+            final List<DataIdentifier> ids = new ArrayList<>();
             for (int i=0; i<expectedRecCount; i++) {
                 File testfile = folder.newFile();
                 copyInputStreamToFile(randomStream(i, 10), testfile);
@@ -443,8 +443,8 @@ public class AzureDataStoreTest {
 
     @Test
     public void testBackendGetAllRecordsReturnsAll() throws DataStoreException, IOException {
-        for (int recCount : Lists.newArrayList(0, 1, 2, 5)) {
-            Map<DataIdentifier, String> addedRecords = Maps.newHashMap();
+        for (int recCount : List.of(0, 1, 2, 5)) {
+            Map<DataIdentifier, String> addedRecords = new HashMap<>();
             if (0 < recCount) {
                 for (int i = 0; i < recCount; i++) {
                     String data = String.format("testData%d", i);
@@ -454,7 +454,7 @@ public class AzureDataStoreTest {
             }
 
             Iterator<DataRecord> iter = backend.getAllRecords();
-            List<DataIdentifier> identifiers = Lists.newArrayList();
+            List<DataIdentifier> identifiers = new ArrayList<>();
             int actualCount = 0;
             while (iter.hasNext()) {
                 DataRecord record = iter.next();
@@ -478,10 +478,10 @@ public class AzureDataStoreTest {
 
     @Test
     public void testBackendAddMetadataRecordsFromInputStream() throws DataStoreException, IOException, NoSuchAlgorithmException {
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
+        for (boolean fromInputStream : List.of(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
-            for (int count : Lists.newArrayList(1, 3)) {
-                Map<String, String> records = Maps.newHashMap();
+            for (int count : List.of(1, 3)) {
+                Map<String, String> records = new HashMap<>();
                 for (int i = 0; i < count; i++) {
                     String recordName = String.format("%sname.%d", prefix, i);
                     String data = String.format("testData%d", i);
@@ -551,8 +551,8 @@ public class AzureDataStoreTest {
     @Test
     public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws DataStoreException, IOException {
         final String data = "testData";
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
-            for (String name : Lists.newArrayList(null, "")) {
+        for (boolean fromInputStream : List.of(false, true)) {
+            for (String name : Arrays.asList(null, "")) {
                 try {
                     if (fromInputStream) {
                         backend.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), name);
@@ -575,7 +575,7 @@ public class AzureDataStoreTest {
     public void testBackendGetMetadataRecordInvalidName() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "testRecord");
         assertNull(backend.getMetadataRecord("invalid"));
-        for (String name : Lists.newArrayList("", null)) {
+        for (String name : Arrays.asList("", null)) {
             try {
                 backend.getMetadataRecord(name);
                 fail("Expect to throw");
@@ -630,7 +630,7 @@ public class AzureDataStoreTest {
     @Test
     public void testBackendDeleteMetadataRecord() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("invalid", "", null)) {
+        for (String name : Arrays.asList("invalid", "", null)) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     backend.deleteMetadataRecord(name);
@@ -648,7 +648,7 @@ public class AzureDataStoreTest {
     @Test
     public void testBackendMetadataRecordExists() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("invalid", "", null)) {
+        for (String name : Arrays.asList("invalid", "", null)) {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     backend.metadataRecordExists(name);
@@ -671,7 +671,7 @@ public class AzureDataStoreTest {
         String prefixOne = "prefix1.prefix3";
         String prefixNone = "prefix4";
 
-        Map<String, Integer> prefixCounts = Maps.newHashMap();
+        Map<String, Integer> prefixCounts = new HashMap<>();
         prefixCounts.put(prefixAll, 4);
         prefixCounts.put(prefixSome, 2);
         prefixCounts.put(prefixOne, 1);

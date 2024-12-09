@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -352,7 +351,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
     @Test
     public void testActivate() {
         DefaultSyncHandler handler = new DefaultSyncHandler();
-        Map<String,Object> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
+        Map<String,Object> props = Map.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
         context.registerInjectActivateService(handler, props);
 
         assertEquals("testName", handler.getName());

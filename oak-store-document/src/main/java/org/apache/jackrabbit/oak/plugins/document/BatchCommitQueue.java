@@ -23,9 +23,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import static java.util.Objects.requireNonNull;
+
+import java.util.HashMap;
 
 /**
  * Queues updates on a commit root document and batches them into a single
@@ -38,12 +38,12 @@ final class BatchCommitQueue {
     /**
      * The pending batch commits.
      */
-    private final Map<String, BatchCommit> pending = Maps.newHashMap();
+    private final Map<String, BatchCommit> pending = new HashMap<>();
 
     /**
      * The batch commits in progress.
      */
-    private final Map<String, BatchCommit> inProgress = Maps.newHashMap();
+    private final Map<String, BatchCommit> inProgress = new HashMap<>();
 
     private final DocumentStore store;
 

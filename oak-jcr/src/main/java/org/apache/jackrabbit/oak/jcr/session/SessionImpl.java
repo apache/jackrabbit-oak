@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -27,6 +26,7 @@ import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -278,7 +278,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String[] getAttributeNames() {
-        Set<String> names = newTreeSet(sessionContext.getAttributes().keySet());
+        Set<String> names = new TreeSet<>(sessionContext.getAttributes().keySet());
         Collections.addAll(names, sd.getAuthInfo().getAttributeNames());
         names.add(RepositoryImpl.BOUND_PRINCIPALS);
         return names.toArray(new String[names.size()]);
