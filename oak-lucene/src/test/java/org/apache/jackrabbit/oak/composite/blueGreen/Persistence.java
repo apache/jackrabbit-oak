@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.Java23Compatability;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -286,7 +287,7 @@ public class Persistence {
                                          SecurityProvider securityProvider) throws RepositoryException {
         ContentSession cs = null;
         try {
-            cs = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+            cs = Java23Compatability.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                 @Override
                 public ContentSession run() throws Exception {
                     return repo.login(null, null);
