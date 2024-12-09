@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import com.beust.jcommander.Strings;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
