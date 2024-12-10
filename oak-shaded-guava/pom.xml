@@ -57,6 +57,16 @@
                   <shadedPattern>${pref}</shadedPattern>
                 </relocation>
               </relocations>
+              <filters>
+                  <filter>
+                      <artifact>*:*</artifact>
+                      <excludes>
+                          <exclude>com/google/common/eventbus/**</exclude>
+                          <exclude>com/google/common/html/**</exclude>
+                          <exclude>com/google/common/xml/**</exclude>
+                      </excludes>
+                  </filter>
+              </filters>
               <createDependencyReducedPom>true</createDependencyReducedPom>
               <createSourcesJar>true</createSourcesJar>
             </configuration>
@@ -87,16 +97,13 @@
               ${pref}.common.cache;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent",
               ${pref}.common.collect;version="${exported.guava.version}";uses:="${pref}.common.base",
               ${pref}.common.escape;version="${exported.guava.version}";uses:="${pref}.common.base",
-              ${pref}.common.eventbus;version="${exported.guava.version}",
               ${pref}.common.graph;version="${exported.guava.version}";uses:="${pref}.common.collect",
               ${pref}.common.hash;version="${exported.guava.version}";uses:="${pref}.common.base",
-              ${pref}.common.html;version="${exported.guava.version}";uses:="${pref}.common.escape",
               ${pref}.common.io;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.graph,${pref}.common.hash",
               ${pref}.common.math;version="${exported.guava.version}",${pref}.common.net;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.escape",
               ${pref}.common.primitives;version="${exported.guava.version}";uses:="${pref}.common.base",
               ${pref}.common.reflect;version="${exported.guava.version}";uses:="${pref}.common.collect,${pref}.common.io",
               ${pref}.common.util.concurrent;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal",
-              ${pref}.common.xml;version="${exported.guava.version}";uses:="${pref}.common.escape"
             </Export-Package>
             <Import-Package>
               javax.annotation;resolution:=optional;version="[3.0,4)",
