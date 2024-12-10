@@ -70,7 +70,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
 
     public enum PoolType {
         GLOBAL,
-        THREAD_SPECIFIC;
+        THREAD_SPECIFIC
     }
 
     public static class SegmentBufferWriterPoolFactory {
@@ -133,9 +133,10 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
 
         @NotNull
         @Override
-        public RecordId execute(@NotNull GCGeneration gcGeneration,
-                                @NotNull WriteOperation writeOperation)
-                throws IOException {
+        public RecordId execute(
+                @NotNull GCGeneration gcGeneration,
+                @NotNull WriteOperation writeOperation
+        ) throws IOException {
             lock.readLock().lock();
             SegmentBufferWriter writer = getWriter(currentThread(), gcGeneration);
             try {

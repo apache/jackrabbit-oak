@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Objects;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -157,7 +155,9 @@ public final class GCGeneration {
 
     @Override
     public int hashCode() {
-        return Objects.hash(generation, fullGeneration, isCompacted);
+        // same as Objects.hash(generation, fullGeneration, isCompacted)
+        // avoids the overhead since this is performance-critical for SegmentBufferWriter
+        return ((31 + generation) * 31 + fullGeneration) * 31 + Boolean.hashCode(isCompacted);
     }
 
     @Override
