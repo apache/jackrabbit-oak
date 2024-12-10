@@ -153,10 +153,13 @@ public final class GCGeneration {
                 && isCompacted == that.isCompacted;
     }
 
+    /**
+     * Equivalent to Objects.hash(generation, fullGeneration, isCompacted)
+     * Avoiding the overhead of the generic implementation has a noticeable impact on the
+     * performance of {@link org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool} with many threads
+     */
     @Override
     public int hashCode() {
-        // same as Objects.hash(generation, fullGeneration, isCompacted)
-        // avoids the overhead since this is performance-critical for SegmentBufferWriter
         return ((31 + generation) * 31 + fullGeneration) * 31 + Boolean.hashCode(isCompacted);
     }
 
