@@ -127,6 +127,7 @@ public class IndexImporter {
 
     public void importIndex() throws IOException, CommitFailedException {
         try {
+            indexingReporter.setIndexNames(List.copyOf(indexes.keySet()));
             if (indexes.isEmpty()) {
                 LOG.warn("No indexes to import (possibly index definitions outside of a oak:index node?)");
             }
