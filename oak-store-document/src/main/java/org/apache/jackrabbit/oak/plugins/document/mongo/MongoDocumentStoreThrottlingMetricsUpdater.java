@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -95,8 +94,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
         }, 10, 30, SECONDS);
     }
 
-    // helper methods
-    @VisibleForTesting
+    // helper methods, visible for testing
     static double updateOplogWindow(final double maxSize, final double usedSize, final @NotNull Document first,
                                    final @NotNull Document last) {
         final BsonTimestamp startTime = first.get(TS_TIME, BsonTimestamp.class);
