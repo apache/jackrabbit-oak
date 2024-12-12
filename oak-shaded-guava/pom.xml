@@ -61,6 +61,7 @@
                   <filter>
                       <artifact>*:*</artifact>
                       <excludes>
+                          <exclude>com/google/common/annotations/**</exclude>
                           <exclude>com/google/common/eventbus/**</exclude>
                           <exclude>com/google/common/html/**</exclude>
                           <exclude>com/google/common/net/**</exclude>
@@ -94,7 +95,6 @@
             <!-- Export-Package and Import-Package must be declared explicitly since the maven-bundle-plugin executes before maven-shade-plugin, so the guava classes aren't present at this time.
                  Note that these should match the specifications from the MANIFEST.mf file of the guava jar this jar will be based on. -->
             <Export-Package>
-              ${pref}.common.annotations;version="${exported.guava.version}",
               ${pref}.common.base;version="${exported.guava.version}",
               ${pref}.common.cache;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent",
               ${pref}.common.collect;version="${exported.guava.version}";uses:="${pref}.common.base",
