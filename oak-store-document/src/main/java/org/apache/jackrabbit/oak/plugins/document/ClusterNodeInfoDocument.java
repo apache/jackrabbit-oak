@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.Recover
 import static org.apache.jackrabbit.oak.plugins.document.Revision.fromString;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.getTimestampDifference;
 
-import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -187,8 +186,8 @@ public class ClusterNodeInfoDocument extends Document {
      *
      * @return {@link Predicate} to filter revisions older than lastWrittenRootRev
      */
+    // VisibleForTesting
     @NotNull
-    @VisibleForTesting
     Predicate<Revision> isOlderThanLastWrittenRootRevPredicate() {
         return r -> nonNull(getLastWrittenRootRev()) && getTimestampDifference(r, fromString(getLastWrittenRootRev())) < 0;
     }
