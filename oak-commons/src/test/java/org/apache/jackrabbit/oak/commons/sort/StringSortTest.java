@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Collections2;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.junit.Test;
 
@@ -121,12 +121,12 @@ public class StringSortTest {
         List<String> rootPaths = Arrays.asList("a", "b", "c", "d", "e", "f", "g");
         List<String> paths = new ArrayList<String>();
 
-
-        if (permutation){
-            List<String> newRoots = new ArrayList<String>();
-            for (List<String> permuts : Collections2.orderedPermutations(rootPaths)){
-                newRoots.add(String.join("", permuts));
-            }
+        if (permutation) {
+            List<String> newRoots = new ArrayList<>();
+            CollectionUtils.permutations(rootPaths).
+                    stream().
+                    sorted((a, b) -> Arrays.compare(a.toArray(new String[0]), b.toArray(new String[0]))).
+                    forEach(permuts -> newRoots.add(String.join("", permuts)));
             rootPaths = newRoots;
         }
 
