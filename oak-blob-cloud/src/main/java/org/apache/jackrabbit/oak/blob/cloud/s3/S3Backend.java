@@ -634,13 +634,21 @@ public class S3Backend extends AbstractSharedBackend {
                 new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
             ObjectListing metaList = s3service.listObjects(listObjectsRequest);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             for (S3ObjectSummary s3ObjSumm : metaList.getObjectSummaries()) {
                 deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+                keysToDelete.add(s3ObjSumm.getKey());
             }
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                delObjsReq.setKeys(deleteList);
-                s3service.deleteObjects(delObjsReq);
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
+                    delObjsReq.setKeys(deleteList);
+                    s3service.deleteObjects(delObjsReq);
+                } else {
+                    // GCP does not support bulk delete operations, hence we need to delete each object individually
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                }
             }
         } finally {
             if (contextClassLoader != null) {
