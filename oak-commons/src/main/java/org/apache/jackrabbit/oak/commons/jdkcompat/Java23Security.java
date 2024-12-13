@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.oak.commons;
+package org.apache.jackrabbit.oak.commons.jdkcompat;
 
 import javax.security.auth.Subject;
 import java.lang.reflect.InvocationTargetException;
@@ -10,7 +10,13 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.concurrent.Callable;
 
-public class Java23Compatibility {
+/**
+ * This class contains methods replacing the deprecated
+ * {@link Subject#getSubject(AccessControlContext)} 
+ * and associated methods, which changed their behavior
+ * with Java 23 (@see https://inside.java/2024/07/08/quality-heads-up).
+ */
+public class Java23Security {
 
     static Method current, callAs;
 

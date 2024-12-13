@@ -24,7 +24,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.Java23Compatibility;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -112,7 +112,7 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
 
     private ContentSession getSystemSession() throws Exception {
         if (systemSession == null) {
-            systemSession = Java23Compatibility.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
+            systemSession = Java23Security.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
         }
         return systemSession;
     }

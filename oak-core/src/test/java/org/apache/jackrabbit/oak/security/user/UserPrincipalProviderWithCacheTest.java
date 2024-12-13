@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.Java23Compatibility;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
@@ -109,7 +109,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
     private ContentSession getSystemSession() throws Exception {
         if (systemSession == null) {
-            systemSession = Java23Compatibility.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
+            systemSession = Java23Security.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
         }
         return systemSession;
     }

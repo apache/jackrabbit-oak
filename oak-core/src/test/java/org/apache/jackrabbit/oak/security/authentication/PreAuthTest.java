@@ -30,7 +30,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.commons.Java23Compatibility;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.jetbrains.annotations.Nullable;
@@ -67,7 +67,7 @@ public class PreAuthTest extends AbstractSecurityTest {
     @Test
     public void testValidSubject() throws Exception {
         final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
-        ContentSession cs = Java23Compatibility.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
+        ContentSession cs = Java23Security.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
                 try {
@@ -94,7 +94,7 @@ public class PreAuthTest extends AbstractSecurityTest {
     public void testValidSubjectWithCredentials() throws Exception {
         Set<SimpleCredentials> publicCreds = Collections.singleton(new SimpleCredentials("testUserId", new char[0]));
         final Subject subject = new Subject(false, principals, publicCreds, Collections.<Object>emptySet());
-        ContentSession cs = Java23Compatibility.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
+        ContentSession cs = Java23Security.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
                 try {
@@ -121,7 +121,7 @@ public class PreAuthTest extends AbstractSecurityTest {
     public void testValidReadSubjectWithCredentials() throws Exception {
         Set<SimpleCredentials> publicCreds = Collections.singleton(new SimpleCredentials("testUserId", new char[0]));
         final Subject subject = new Subject(true, principals, publicCreds, Collections.<Object>emptySet());
-        ContentSession cs = Java23Compatibility.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
+        ContentSession cs = Java23Security.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
                 try {
@@ -149,7 +149,7 @@ public class PreAuthTest extends AbstractSecurityTest {
         AuthInfo info = new AuthInfoImpl("testUserId", Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet());
         Set<AuthInfo> publicCreds = Collections.singleton(info);
         final Subject subject = new Subject(false, Collections.singleton(new TestPrincipal()), publicCreds, Collections.<Object>emptySet());
-        ContentSession cs = Java23Compatibility.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
+        ContentSession cs = Java23Security.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
                 try {
@@ -172,7 +172,7 @@ public class PreAuthTest extends AbstractSecurityTest {
     @Test
     public void testSubjectAndCredentials() throws Exception {
         final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
-        ContentSession cs = Java23Compatibility.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
+        ContentSession cs = Java23Security.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
                 ContentSession cs;
@@ -205,7 +205,7 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testSystemSubject() throws Exception {
-        ContentSession cs = Java23Compatibility.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedAction<ContentSession>() {
+        ContentSession cs = Java23Security.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedAction<ContentSession>() {
             @Override
             public @Nullable ContentSession run() {
                 try {

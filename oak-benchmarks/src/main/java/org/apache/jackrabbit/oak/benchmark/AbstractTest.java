@@ -37,7 +37,7 @@ import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
-import org.apache.jackrabbit.oak.commons.Java23Compatibility;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -589,7 +589,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     protected Session loginSubject(@NotNull Subject subject) {
         try {
 
-            return Java23Compatibility.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+            return Java23Security.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
                 @Override
                 public Session run() throws Exception {
                     return getRepository().login(null, null);
