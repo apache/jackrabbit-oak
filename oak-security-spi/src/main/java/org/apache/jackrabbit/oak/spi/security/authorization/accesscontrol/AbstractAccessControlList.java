@@ -103,7 +103,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     public String[] getRestrictionNames() {
         return getRestrictionProvider().getSupportedRestrictions(getOakPath()).
             stream().map(definition -> namePathMapper.getJcrName(definition.getName())).
-            toArray(size -> new String[size]);
+            toArray(String::new);
     }
 
     @Override
