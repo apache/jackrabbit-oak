@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
@@ -343,7 +344,10 @@ public class S3Backend extends AbstractSharedBackend {
                     objectMetaData.getLastModified().getTime());
                 CopyObjectRequest copReq = new CopyObjectRequest(bucket, key,
                     bucket, key);
-                copReq.setNewObjectMetadata(objectMetaData);
+                LOG.warn("Object MetaData before copy: {}", objectMetaData.getRawMetadata());
+                if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
+                    copReq.setNewObjectMetadata(objectMetaData);
+                }
                 Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
                 try {
                     copy.waitForCopyResult();
@@ -490,6 +494,20 @@ public class S3Backend extends AbstractSharedBackend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
+        setRemoteStorageMode();
+    }
+
+    private void setRemoteStorageMode() {
+        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
+        if (s3EndPoint.contains("googleapis")) {
+            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
+                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
+            }
+            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
+            return;
+        }
+        // default mode is S3
+        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
     }
 
     @Override
@@ -614,13 +632,21 @@ public class S3Backend extends AbstractSharedBackend {
                 new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
             ObjectListing metaList = s3service.listObjects(listObjectsRequest);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             for (S3ObjectSummary s3ObjSumm : metaList.getObjectSummaries()) {
                 deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+                keysToDelete.add(s3ObjSumm.getKey());
             }
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                delObjsReq.setKeys(deleteList);
-                s3service.deleteObjects(delObjsReq);
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
+                    delObjsReq.setKeys(deleteList);
+                    s3service.deleteObjects(delObjsReq);
+                } else {
+                    // GCP does not support bulk delete operations, hence we need to delete each object individually
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                }
             }
         } finally {
             if (contextClassLoader != null) {
@@ -1349,5 +1375,13 @@ public class S3Backend extends AbstractSharedBackend {
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
         }
+    }
+
+    /**
+     * Enum to indicate remote storage mode
+     */
+    enum RemoteStorageMode {
+        S3,
+        GCP
     }
 }

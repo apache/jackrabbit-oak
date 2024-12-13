@@ -47,8 +47,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend.RemoteStorageMode;
 
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
@@ -155,13 +158,20 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 ObjectListing prevObjectListing = s3service.listObjects(bucket);
                 while (prevObjectListing != null) {
                     List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+                    List<String> keysToDelete = new ArrayList<>();
                     for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
                         deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+                        keysToDelete.add(s3ObjSumm.getKey());
                     }
-                    if (deleteList.size() > 0) {
-                        DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                        delObjsReq.setKeys(deleteList);
-                        s3service.deleteObjects(delObjsReq);
+                    if (!deleteList.isEmpty()) {
+                        RemoteStorageMode mode = getMode(props);
+                        if (mode == RemoteStorageMode.S3) {
+                            DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
+                            delObjsReq.setKeys(deleteList);
+                            s3service.deleteObjects(delObjsReq);
+                        } else {
+                            keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                        }
                     }
                     if (!prevObjectListing.isTruncated())
                         break;
@@ -175,6 +185,12 @@ public class S3DataStoreUtils extends DataStoreUtils {
         }
         tmx.shutdownNow();
         s3service.shutdown();
+    }
+
+    @NotNull
+    private static RemoteStorageMode getMode(@NotNull Properties props) {
+        return props.getProperty(S3Constants.S3_END_POINT, "").contains("googleapis") ?
+                RemoteStorageMode.GCP : RemoteStorageMode.S3;
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
