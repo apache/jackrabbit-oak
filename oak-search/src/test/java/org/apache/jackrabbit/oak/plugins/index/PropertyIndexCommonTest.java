@@ -30,6 +30,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import javax.jcr.PropertyType;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -224,7 +225,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void propertyExistenceQueryWithNullCheck() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE, StandardCharsets.UTF_8), "test nodeType");
 
         Tree idx = indexOptions.setIndex(root, "test1",
                 indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
@@ -253,7 +254,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void propertyNonExistenceQuery() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE, StandardCharsets.UTF_8), "test nodeType");
 
         Tree idx = indexOptions.setIndex(root, "test1",
                 indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
