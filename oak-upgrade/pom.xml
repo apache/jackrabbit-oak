@@ -74,6 +74,10 @@
       </plugin>
     </plugins>
   </build>
+  <properties>
+    <djl.version>0.6.0</djl.version>
+    <ai.djl.default_engine>PyTorch</ai.djl.default_engine>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -242,6 +246,31 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- DJL Core -->
+    <dependency>
+      <groupId>ai.djl</groupId>
+      <artifactId>api</artifactId>
+      <version>0.22.0</version>
+    </dependency>
+    <!-- DJL TensorFlow engine -->
+    <dependency>
+      <groupId>ai.djl.tensorflow</groupId>
+      <artifactId>tensorflow-engine</artifactId>
+      <version>0.22.0</version>
+    </dependency>
+    <!-- DJL TensorFlow model zoo -->
+    <dependency>
+      <groupId>ai.djl.tensorflow</groupId>
+      <artifactId>tensorflow-model-zoo</artifactId>
+      <version>0.22.0</version>
+    </dependency>
+    <!-- Image processing library -->
+    <dependency>
+      <groupId>ai.djl</groupId>
+      <artifactId>basicdataset</artifactId>
+      <version>0.22.0</version>
+    </dependency>
+
 
     <!-- test dependency of classic Jackrabbit -->
     <dependency>
@@ -268,5 +297,7 @@
       <version>1.1.1</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
+
 </project>

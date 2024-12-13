@@ -51,7 +51,7 @@ public class OptionParserFactory {
     public static final String SRC_S3 = "src-s3datastore";
 
     public static final String SRC_S3_CONFIG = "src-s3config";
-    
+
     public static final String SRC_AZURE = "src-azuredatastore";
 
     public static final String SRC_AZURE_CONFIG = "src-azureconfig";
@@ -61,7 +61,7 @@ public class OptionParserFactory {
     public static final String DST_FDS = "datastore";
 
     public static final String DST_FBS = "fileblobstore";
-    
+
     public static final String DST_AZURE = "azuredatastore";
 
     public static final String DST_AZURE_CONFIG = "azureconfig";
@@ -93,6 +93,7 @@ public class OptionParserFactory {
     public static final String FORCE_CHECKPOINTS = "force-checkpoints";
 
     public static final String ADD_SECONDARY_METADATA = "add-secondary-metadata";
+    public static final String CHECK_UUID_CONFLICT = "check-uuid-conflicts";
 
     public static OptionParser create() {
         OptionParser op = new OptionParser();
@@ -154,10 +155,10 @@ public class OptionParserFactory {
 
     private static void addVersioningOptions(OptionParser op) {
         op.accepts(COPY_VERSIONS,
-                "Copy the version storage. Parameters: { true | false | yyyy-mm-dd }. Defaults to true.")
+                        "Copy the version storage. Parameters: { true | false | yyyy-mm-dd }. Defaults to true.")
                 .withRequiredArg().ofType(String.class);
         op.accepts(COPY_ORPHANED_VERSIONS,
-                "Allows to skip copying orphaned versions. Parameters: { true | false | yyyy-mm-dd }. Defaults to true.")
+                        "Allows to skip copying orphaned versions. Parameters: { true | false | yyyy-mm-dd }. Defaults to true.")
                 .withRequiredArg().ofType(String.class);
     }
 
@@ -174,5 +175,6 @@ public class OptionParserFactory {
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
         op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
         op.accepts(ADD_SECONDARY_METADATA, "Adds the metadata required by secondary store");
+        op.accepts(CHECK_UUID_CONFLICT, "Checks conflicts for UUID at source and target repositories");
     }
 }
