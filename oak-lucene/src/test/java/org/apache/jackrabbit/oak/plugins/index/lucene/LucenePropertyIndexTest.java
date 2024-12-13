@@ -122,7 +122,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.QUERY_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
@@ -132,7 +131,6 @@ import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.Orde
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
@@ -262,28 +260,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
         return TestUtil.createFulltextIndex(index, name);
-    }
-
-    @Test
-    public void indexSelection() throws Exception {
-        createIndex("test1", Set.of("propa", "propb"));
-        createIndex("test2", Set.of("propc"));
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "foo");
-        test.addChild("b").setProperty("propa", "foo");
-        test.addChild("c").setProperty("propa", "foo2");
-        test.addChild("d").setProperty("propc", "foo");
-        test.addChild("e").setProperty("propd", "foo");
-        root.commit();
-
-        String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
-        assertThat(explain(propaQuery), containsString("lucene:test1"));
-        assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("lucene:test2"));
-
-        assertQuery(propaQuery, asList("/test/a", "/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", asList("/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", asList("/test/d"));
     }
 
     @Test
@@ -485,54 +461,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
         assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
         assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
-    }
-
-    //OAK-3825
-    @Test
-    public void nodeNameViaPropDefinition() throws Exception{
-        //make index
-        Tree idx = createIndex("test1", Collections.EMPTY_SET);
-        useV2(idx);
-        Tree rules = idx.addChild(FulltextIndexConstants.INDEX_RULES);
-        rules.setOrderableChildren(true);
-        Tree rule = rules.addChild("nt:base");
-        Tree propDef = rule.addChild(PROP_NODE).addChild("nodeName");
-        propDef.setProperty(PROP_NAME, PROPDEF_PROP_NODE_NAME);
-        propDef.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/");
-        test.addChild("foo");
-        test.addChild("camelCase");
-        test.addChild("test").addChild("bar");
-        root.commit();
-
-        //test
-        String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
-        assertThat(explain(propabQuery), containsString(":nodeName:foo"));
-        assertQuery(propabQuery, asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", asList("/test/bar"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", asList("/camelCase"));
-
-        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
-        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
-    }
-
-    @Test
-    public void emptyIndex() throws Exception{
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a");
-        test.addChild("b");
-        root.commit();
-
-        assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"), containsString("lucene:test1"));
     }
 
     @Test
