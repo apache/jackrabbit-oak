@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.Java23Compatability;
+import org.apache.jackrabbit.oak.commons.Java23Compatibility;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -37,7 +37,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
 import javax.security.auth.login.CredentialExpiredException;
 import javax.security.auth.login.LoginException;
 import java.security.PrivilegedActionException;
@@ -74,7 +73,7 @@ public class PasswordExpiryAdminTest extends AbstractSecurityTest {
     @Override
     protected ContentSession createAdminSession(@NotNull ContentRepository repository) {
         try {
-            return Java23Compatability.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
+            return Java23Compatibility.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
         } catch (PrivilegedActionException e) {
             throw new RuntimeException(e);
         }

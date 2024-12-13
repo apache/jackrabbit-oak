@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.NoSuchWorkspaceException;
-import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -48,7 +47,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.commons.Java23Compatability;
+import org.apache.jackrabbit.oak.commons.Java23Compatibility;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -143,7 +142,7 @@ public class ChangeCollectorProviderTest {
                 .with(getSecurityProvider());
         contentRepository = oak.createContentRepository();
 
-        session = Java23Compatability.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+        session = Java23Compatibility.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
             @Override
             public ContentSession run() throws LoginException, NoSuchWorkspaceException {
                 return contentRepository.login(null, null);

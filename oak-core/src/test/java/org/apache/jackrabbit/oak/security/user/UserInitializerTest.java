@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.Java23Compatability;
+import org.apache.jackrabbit.oak.commons.Java23Compatibility;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -49,7 +49,6 @@ import org.junit.Test;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -174,7 +173,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        try (ContentSession cs = Java23Compatability.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
+        try (ContentSession cs = Java23Compatibility.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -211,7 +210,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        try (ContentSession cs = Java23Compatability.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
+        try (ContentSession cs = Java23Compatibility.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);

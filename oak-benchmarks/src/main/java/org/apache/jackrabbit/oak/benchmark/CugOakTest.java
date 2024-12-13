@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.Java23Compatability;
+import org.apache.jackrabbit.oak.commons.Java23Compatibility;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -90,7 +90,7 @@ public class CugOakTest extends CugTest {
         if (singleSession) {
             readSession = cs;
         } else {
-            readSession = Java23Compatability.doAs(subject, new PrivilegedAction<ContentSession>() {
+            readSession = Java23Compatibility.doAs(subject, new PrivilegedAction<ContentSession>() {
                 @Override
                 public ContentSession run() {
                     try {

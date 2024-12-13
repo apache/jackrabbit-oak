@@ -10,7 +10,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.concurrent.Callable;
 
-public class Java23Compatability {
+public class Java23Compatibility {
 
     static Method current, callAs;
 

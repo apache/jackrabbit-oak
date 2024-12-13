@@ -24,10 +24,9 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.oak.commons.Java23Compatability;
+import org.apache.jackrabbit.oak.commons.Java23Compatibility;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -89,7 +88,7 @@ public class ExternalIdentityImporterTest {
 
     Session createSession(Repository repo, boolean isSystem) throws Exception {
         if (isSystem) {
-            return Java23Compatability.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<Session>) () -> repo.login(null, null));
+            return Java23Compatibility.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<Session>) () -> repo.login(null, null));
         } else {
             return repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
         }
