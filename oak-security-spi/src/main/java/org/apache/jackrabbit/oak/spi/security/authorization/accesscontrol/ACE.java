@@ -111,7 +111,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     @NotNull
     @Override
     public String[] getRestrictionNames() {
-        return restrictions.stream().map(this::getJcrName).toArray(String::new);
+        return restrictions.stream().map(this::getJcrName).toArray(String[]::new);
     }
 
     @Nullable
