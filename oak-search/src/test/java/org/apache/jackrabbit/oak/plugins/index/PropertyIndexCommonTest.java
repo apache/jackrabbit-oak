@@ -34,6 +34,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -479,6 +480,77 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void indexingBasedOnMixin() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithMixinType(test, "a", "mix:title").setProperty("jcr:title", "a");
+        createNodeWithMixinType(test, "b", "mix:title").setProperty("jcr:title", "c");
+        test.addChild("c").setProperty("jcr:title", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:title] = 'a'";
+        assertEventually(() -> {
+            assertThat(explain(propabQuery), containsString("/oak:index/test1"));
+            assertQuery(propabQuery, List.of("/test/a"));
+        });
+    }
+
+    @Test
+    public void indexingBasedOnMixinWithInheritance() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:mimeType", false, "jcr:mimeType")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithType(test, "a", "nt:resource").setProperty("jcr:mimeType", "a");
+        createNodeWithType(test, "b", "nt:resource").setProperty("jcr:mimeType", "c");
+        test.addChild("c").setProperty("jcr:mimeType", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
+        assertEventually(() -> {
+            assertThat(explain(propabQuery), containsString("/oak:index/test1"));
+            assertQuery(propabQuery, List.of("/test/a"));
+        });
+    }
+
+    @Test
+    public void indexingBasedOnMixinAndRelativeProps() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title", "jcr:content/type")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithMixinType(test, "a", "mix:title");
+        a.setProperty("jcr:title", "a");
+        a.addChild("jcr:content").setProperty("type", "foo-a");
+
+        Tree c = createNodeWithMixinType(test, "c", "mix:title");
+        c.setProperty("jcr:title", "c");
+        c.addChild("jcr:content").setProperty("type", "foo-c");
+
+        test.addChild("c").setProperty("jcr:title", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:content/type] = 'foo-a'";
+        assertEventually(() -> {
+            assertThat(explain(propabQuery), containsString("/oak:index/test1"));
+            assertQuery(propabQuery, List.of("/test/a"));
+        });
+    }
 
     protected String explain(String query) {
         String explain = "explain " + query;
@@ -504,5 +576,11 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
+        t = t.addChild(nodeName);
+        t.setProperty(JcrConstants.JCR_MIXINTYPES, List.of(typeName), Type.NAMES);
+        return t;
     }
 }

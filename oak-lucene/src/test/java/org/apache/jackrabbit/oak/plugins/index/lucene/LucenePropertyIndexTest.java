@@ -1951,46 +1951,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void indexingBasedOnMixin() throws Exception {
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithMixinType(test, "a", "mix:title").setProperty("jcr:title", "a");
-        createNodeWithMixinType(test, "b", "mix:title").setProperty("jcr:title", "c");
-        test.addChild("c").setProperty("jcr:title", "a");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:title] = 'a'";
-        assertThat(explain(propabQuery), containsString("/oak:index/test1"));
-        assertQuery(propabQuery, asList("/test/a"));
-    }
-
-    @Test
-    public void indexingBasedOnMixinWithInheritence() throws Exception {
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, "mix:mimeType");
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:mimeType");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithType(test, "a", "nt:resource").setProperty("jcr:mimeType", "a");
-        createNodeWithType(test, "b", "nt:resource").setProperty("jcr:mimeType", "c");
-        test.addChild("c").setProperty("jcr:mimeType", "a");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
-        assertThat(explain(propabQuery), containsString("/oak:index/test1"));
-        assertQuery(propabQuery, asList("/test/a"));
-    }
-
-    @Test
     public void indexingPropertyWithAnalyzeButQueryWithWildcard() throws Exception {
         Tree index = root.getTree("/");
         Tree idx = index.addChild(INDEX_DEFINITIONS_NAME).addChild("test2");
@@ -2059,37 +2019,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         query = "SELECT * from [nt:base] WHERE CONTAINS([text], '" + searchTerm2 + "*')";
         assertQuery(query, SQL2, asList("/test/a"));
-    }
-
-
-    @Test
-    public void indexingBasedOnMixinAndRelativeProps() throws Exception {
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
-        Tree prop1 = props.addChild(TestUtil.unique("prop"));
-        prop1.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop1.setProperty(PROP_PROPERTY_INDEX, true);
-
-        Tree prop2 = props.addChild(TestUtil.unique("prop"));
-        prop2.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/type");
-        prop2.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        Tree a = createNodeWithMixinType(test, "a", "mix:title");
-        a.setProperty("jcr:title", "a");
-        a.addChild("jcr:content").setProperty("type", "foo-a");
-
-        Tree c = createNodeWithMixinType(test, "c", "mix:title");
-        c.setProperty("jcr:title", "c");
-        c.addChild("jcr:content").setProperty("type", "foo-c");
-
-        test.addChild("c").setProperty("jcr:title", "a");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:content/type] = 'foo-a'";
-        assertThat(explain(propabQuery), containsString("/oak:index/test1"));
-        assertQuery(propabQuery, asList("/test/a"));
     }
 
     @Test
