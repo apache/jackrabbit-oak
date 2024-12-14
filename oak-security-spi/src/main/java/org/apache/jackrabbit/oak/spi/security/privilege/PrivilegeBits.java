@@ -20,7 +20,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
+import java.util.stream.Collectors;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -513,7 +514,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
     @NotNull
     public PropertyState asPropertyState(@NotNull String name) {
-        return PropertyStates.createProperty(name, Longs.asList(d.longValues()), Type.LONGS);
+        return PropertyStates.createProperty(name,
+                Arrays.stream(d.longValues()).boxed().collect(Collectors.toList()), Type.LONGS);
     }
 
     /**
