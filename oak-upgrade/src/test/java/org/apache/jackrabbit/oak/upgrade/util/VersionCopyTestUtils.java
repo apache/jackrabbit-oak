@@ -27,7 +27,6 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
@@ -37,7 +36,7 @@ import static org.junit.Assert.assertFalse;
 
 public class VersionCopyTestUtils {
 
-    public static List<String> LABELS = ImmutableList.of("1.0", "1.1", "1.2");
+    public static List<String> LABELS = List.of("1.0", "1.1", "1.2");
 
     public static Node getOrAddNode(Node parent, String relPath) throws RepositoryException {
         Node currentParent = parent;
