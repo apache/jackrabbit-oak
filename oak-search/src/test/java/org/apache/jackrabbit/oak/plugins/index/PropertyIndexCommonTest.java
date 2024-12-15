@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Result;
@@ -328,23 +327,23 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
-                ImmutableList.of("/test/a", "/test/c")));
+                List.of("/test/a", "/test/c")));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
-                ImmutableList.of("/test/a", "/test/b"));
+                List.of("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
-                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+                List.of("/test/a", "/test/b", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '_ump%'",
-                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+                List.of("/test/a", "/test/b", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'a_ice%'",
-                ImmutableList.of("/test/d"));
+                List.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'a_i_e%'",
-                ImmutableList.of("/test/d"));
+                List.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '_____'",
-                ImmutableList.of("/test/c", "/test/d"));
+                List.of("/test/c", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'h%y'",
-                ImmutableList.of("/test/a", "/test/c"));
+                List.of("/test/a", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'humpy'",
-                ImmutableList.of("/test/c"));
+                List.of("/test/c"));
     }
 
     @Test
@@ -368,37 +367,37 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
         assertEventually(() ->
                 assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
-                        ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h", "/test/i"))
+                        List.of("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h", "/test/i"))
         );
 
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo%'",
-                ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g", "/test/h", "/test/i"));
+                List.of("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g", "/test/h", "/test/i"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\%'",
-                ImmutableList.of("/test/a"));
+                List.of("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%'",
-                ImmutableList.of("/test/a"));
+                List.of("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%%'",
-                ImmutableList.of("/test/a", "/test/c", "/test/g"));
+                List.of("/test/a", "/test/c", "/test/g"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '\\%b%'",
-                ImmutableList.of("/test/b"));
+                List.of("/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo_'",
-                ImmutableList.of("/test/a", "/test/d"));
+                List.of("/test/a", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '_oo_'",
-                ImmutableList.of("/test/a", "/test/d"));
+                List.of("/test/a", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\_'",
-                ImmutableList.of("/test/d"));
+                List.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_'",
-                ImmutableList.of("/test/d"));
+                List.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_%'",
-                ImmutableList.of("/test/d", "/test/f"));
+                List.of("/test/d", "/test/f"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%\\_%'",
-                ImmutableList.of("/test/g"));
+                List.of("/test/g"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\\\bar'",
-                ImmutableList.of("/test/h"));
+                List.of("/test/h"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\%'",
-                ImmutableList.of("/test/h", "/test/i"));
+                List.of("/test/h", "/test/i"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\\\%%'",
-                ImmutableList.of("/test/i"));
+                List.of("/test/i"));
     }
 
     @Test
