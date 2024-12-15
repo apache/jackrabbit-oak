@@ -36,7 +36,7 @@ public class TestS3DsCacheOff extends TestS3Ds {
     @Override
     @Before
     public void setUp() throws Exception {
-        super.setUp();
         props.setProperty("cacheSize", "0");
+        super.setUp();
     }
 }
