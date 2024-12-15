@@ -36,8 +36,6 @@ import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import com.mongodb.BasicDBObject;
@@ -320,8 +318,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
         GarbageCollectableBlobStore store = (GarbageCollectableBlobStore)
                                                 mk.getNodeStore().getBlobStore();
-        long count = store.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
-    
+        long count = store.countDeleteChunks(List.of(existing.get(rand.nextInt(existing.size()))), 0);
+
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);
         long candidates = gcObj.checkConsistency();

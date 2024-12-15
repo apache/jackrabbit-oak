@@ -20,14 +20,13 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.junit.After;
 
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
@@ -61,7 +60,7 @@ public abstract class BaseUpdaterTest {
      static final String NODES_REMOVE_THROTTLING_TIMER = "NODES_REMOVE_THROTTLING_TIMER";
      final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
      final MetricStatisticsProvider provider = new MetricStatisticsProvider(getPlatformMBeanServer(), executor);
-     final ImmutableList<String> ids = of("a", "b");
+     final List<String> ids = List.of("a", "b");
 
      Meter getMeter(String name) {
         return provider.getRegistry().getMeters().get(name);

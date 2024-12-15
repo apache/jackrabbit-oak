@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import java.util.Collections;
-
+import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -47,7 +47,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
@@ -185,7 +184,7 @@ public class BundledDocumentDifferTest {
     @Test
     public void jsopDiff() throws Exception{
         JsopWriter w = new JsopBuilder();
-        differ.diffChildren(of("a", "b"), of("b", "c"), w);
+        differ.diffChildren(List.of("a", "b"), List.of("b", "c"), w);
 
         //removed a
         //changed b
@@ -246,7 +245,7 @@ public class BundledDocumentDifferTest {
     }
 
     private SecondaryStoreCache configureSecondary(){
-        SecondaryStoreBuilder builder = createBuilder(new PathFilter(of("/"), Collections.<String>emptyList()));
+        SecondaryStoreBuilder builder = createBuilder(new PathFilter(List.of("/"), Collections.emptyList()));
         builder.metaPropNames(DocumentNodeStore.META_PROP_NAMES);
         SecondaryStoreCache cache = builder.buildCache();
         SecondaryStoreObserver observer = builder.buildObserver(cache);
