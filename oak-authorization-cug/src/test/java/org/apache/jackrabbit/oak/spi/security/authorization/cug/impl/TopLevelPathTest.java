@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -39,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TopLevelPathTest extends AbstractCugTest {
 
-    private static final List<String> PATHS = ImmutableList.of(ROOT_PATH, SUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
+    private static final List<String> PATHS = List.of(ROOT_PATH, SUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
 
     @Test
     public void testHasAnyNoCug() {
