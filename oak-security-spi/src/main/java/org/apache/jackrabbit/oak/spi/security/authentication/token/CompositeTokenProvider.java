@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import javax.jcr.Credentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,7 +33,7 @@ public final class CompositeTokenProvider implements TokenProvider {
     private final List<TokenProvider> providers;
 
     private CompositeTokenProvider(@NotNull List<? extends TokenProvider> providers) {
-        this.providers = ImmutableList.copyOf(providers);
+        this.providers = List.copyOf(providers);
     }
 
     @NotNull
