@@ -26,7 +26,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -94,7 +94,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
     private static Subject getSubject() {
         Subject subject = null;
         try {
-            subject = Java23Security.getSubject();
+            subject = Java23Subject.getSubject();
         } catch (SecurityException e) {
             log.debug("Can't check for pre-authenticated subject. Reason: {}", e.getMessage());
         }

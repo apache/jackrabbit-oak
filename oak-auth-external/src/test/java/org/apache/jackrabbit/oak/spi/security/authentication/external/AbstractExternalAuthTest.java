@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -213,7 +213,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @NotNull
     protected Root getSystemRoot() throws Exception {
         if (systemRoot == null) {
-            systemSession = Java23Security.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null));
+            systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null));
             systemRoot = systemSession.getLatestRoot();
         }
         return systemRoot;

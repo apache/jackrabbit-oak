@@ -32,7 +32,7 @@ import java.util.concurrent.Callable;
  * and associated methods, which changed their behavior
  * with Java 23 (@see https://inside.java/2024/07/08/quality-heads-up).
  */
-public class Java23Security {
+public class Java23Subject {
 
     static Method current, callAs;
 

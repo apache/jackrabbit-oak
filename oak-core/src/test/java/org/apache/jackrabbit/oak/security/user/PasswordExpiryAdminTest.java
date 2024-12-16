@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -73,7 +73,7 @@ public class PasswordExpiryAdminTest extends AbstractSecurityTest {
     @Override
     protected ContentSession createAdminSession(@NotNull ContentRepository repository) {
         try {
-            return Java23Security.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
+            return Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
         } catch (PrivilegedActionException e) {
             throw new RuntimeException(e);
         }

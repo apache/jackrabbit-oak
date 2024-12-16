@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -89,7 +89,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
 
     private Tree getCache(@NotNull Authorizable authorizable) throws Exception {
         // Creating CachedMembershipReader as this is the only class allowed to write in rep:cache
-        try (ContentSession cs = Java23Security.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null))) {
+        try (ContentSession cs = Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null))) {
             Root r = cs.getLatestRoot();
             Tree n = r.getTree(authorizable.getPath());
             CachedMembershipReader reader = new CachedPrincipalMembershipReader(

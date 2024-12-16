@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Security;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -476,7 +476,7 @@ public abstract class AbstractLoginModule implements LoginModule {
 
                 final ContentRepository repository = rcb.getContentRepository();
                 if (repository != null) {
-                    systemSession = Java23Security.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                    systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                         @Override
                         public ContentSession run() throws LoginException, NoSuchWorkspaceException {
                             return repository.login(null, rcb.getWorkspaceName());
