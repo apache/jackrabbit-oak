@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -47,7 +46,7 @@ public class CompositeProviderGetTreePermissionTest extends AbstractSecurityTest
 
     private CompositePermissionProvider createProvider(@NotNull CompositeAuthorizationConfiguration.CompositionType compositionType,
                                                        @NotNull AggregatedPermissionProvider... providers) {
-        return CompositePermissionProvider.create(root, ImmutableList.copyOf(providers), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
+        return CompositePermissionProvider.create(root, List.copyOf(providers), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
     }
 
     @Test

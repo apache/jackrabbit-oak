@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -310,7 +308,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         Tree parent = when(mockTree("/some/tree", true).addChild("name")).thenReturn(t).getMock();
 
         when(ntDef.getProperty(JCR_HASORDERABLECHILDNODES)).thenReturn(PropertyStates.createProperty(JCR_HASORDERABLECHILDNODES, true, Type.BOOLEAN));
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
 
@@ -328,10 +326,10 @@ public class TreeUtilTest extends AbstractTreeTest {
         Tree defWithChild = mock(Tree.class);
         when(defWithChild.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
         when(defWithChild.getChild("name")).thenReturn(defWithChild);
-        when(defWithChild.getChildren()).thenReturn(ImmutableList.of(defWithChild));
+        when(defWithChild.getChildren()).thenReturn(List.of(defWithChild));
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithChild);
         
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
         when(ntDef.getProperty(JCR_IS_ABSTRACT)).thenReturn(PropertyStates.createProperty(JCR_IS_ABSTRACT, true, Type.BOOLEAN));
         
@@ -418,7 +416,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testAddMixinSuPrimary() throws Exception {
         when(ntDef.getProperty(JCR_ISMIXIN)).thenReturn(PropertyStates.createProperty(JCR_ISMIXIN, true, Type.BOOLEAN));
-        when(ntDef.getProperty(REP_PRIMARY_SUBTYPES)).thenReturn(PropertyStates.createProperty(REP_PRIMARY_SUBTYPES, ImmutableList.of(NT_OAK_UNSTRUCTURED), Type.NAMES));
+        when(ntDef.getProperty(REP_PRIMARY_SUBTYPES)).thenReturn(PropertyStates.createProperty(REP_PRIMARY_SUBTYPES, List.of(NT_OAK_UNSTRUCTURED), Type.NAMES));
         when(typeRoot.getChild("containsSubPrimary")).thenReturn(ntDef);
 
         TreeUtil.addMixin(child, "containsSubPrimary", typeRoot, "userId");
@@ -430,7 +428,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testAddMixinSubMixin() throws Exception {
         when(ntDef.getProperty(JCR_ISMIXIN)).thenReturn(PropertyStates.createProperty(JCR_ISMIXIN, true, Type.BOOLEAN));
-        when(ntDef.getProperty(REP_MIXIN_SUBTYPES)).thenReturn(PropertyStates.createProperty(REP_MIXIN_SUBTYPES, ImmutableList.of(MIX_VERSIONABLE), Type.NAMES));
+        when(ntDef.getProperty(REP_MIXIN_SUBTYPES)).thenReturn(PropertyStates.createProperty(REP_MIXIN_SUBTYPES, List.of(MIX_VERSIONABLE), Type.NAMES));
         when(typeRoot.getChild("containsSubMixin")).thenReturn(ntDef);
 
         TreeUtil.addMixin(child, "containsSubMixin", typeRoot, "userId");
@@ -441,7 +439,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testAddMixin() throws Exception {
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
 
         when(ntDef.getProperty(JCR_ISMIXIN)).thenReturn(PropertyStates.createProperty(JCR_ISMIXIN, true, Type.BOOLEAN));
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
@@ -457,8 +455,8 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testAutoCreateItemsNoAutoCreateDefs() throws Exception {
         Tree noAutoCreate = when(mockTree("/definitions/definition/notAutoCreate", true).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, false)).getMock();
-        Tree defWithChildren = when(mockTree("/definitions/definition", true).getChildren()).thenReturn(ImmutableList.of(noAutoCreate)).getMock();
-        Tree definitions = when(mockTree("/definitions", true).getChildren()).thenReturn(ImmutableList.of(defWithChildren)).getMock();
+        Tree defWithChildren = when(mockTree("/definitions/definition", true).getChildren()).thenReturn(List.of(noAutoCreate)).getMock();
+        Tree definitions = when(mockTree("/definitions", true).getChildren()).thenReturn(List.of(defWithChildren)).getMock();
 
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(definitions);
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(definitions);
@@ -471,13 +469,13 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testAutoCreateItemsExcludedProperties() throws Exception {
-        List<Tree> list = ImmutableList.of(
+        List<Tree> list = List.of(
                 mockTree("/some/path/"+ REP_PRIMARY_TYPE, true),
                 mockTree("/some/path/" + REP_MIXIN_TYPES, true));
         Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(list).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithExcludedProperties);
 
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
 
         TreeUtil.autoCreateItems(child, ntDef, typeRoot, "userId");
@@ -490,11 +488,11 @@ public class TreeUtilTest extends AbstractTreeTest {
     public void testAutoCreateItemsExistingUuid() throws Exception {
         Tree definition = when(mock(Tree.class).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, true)).getMock();
         Tree definitions = mockTree("/some/path/"+ REP_UUID, true);
-        when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
-        Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+        when(definitions.getChildren()).thenReturn(List.of(definition));
+        Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(List.of(definitions)).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithExcludedProperties);
 
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
 
         when(child.hasProperty(JCR_UUID)).thenReturn(true);
@@ -509,11 +507,11 @@ public class TreeUtilTest extends AbstractTreeTest {
     public void testAutoCreateItemsMissingUuid() throws Exception {
         Tree definition = when(mock(Tree.class).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, true)).getMock();
         Tree definitions = mockTree("/some/path/"+ REP_UUID, true);
-        when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
-        Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+        when(definitions.getChildren()).thenReturn(List.of(definition));
+        Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(List.of(definitions)).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithExcludedProperties);
 
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
 
         when(child.hasProperty(JCR_UUID)).thenReturn(false);
@@ -528,11 +526,11 @@ public class TreeUtilTest extends AbstractTreeTest {
     public void testAutoCreateItemsMissingDefaultValue() throws Exception {
         Tree definition = when(mock(Tree.class).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, true)).getMock();
         Tree definitions = mockTree("/some/path/unknownProperty", true);
-        when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
-        Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+        when(definitions.getChildren()).thenReturn(List.of(definition));
+        Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(List.of(definitions)).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithExcludedProperties);
 
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
 
         when(child.hasProperty("unknownProperty")).thenReturn(false);
@@ -543,12 +541,12 @@ public class TreeUtilTest extends AbstractTreeTest {
     public void testAutoCreateItemsExistingChild() throws Exception {
         Tree definition = when(mock(Tree.class).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, true)).getMock();
         Tree definitions = mockTree("/some/path/autoChild", true);
-        when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
+        when(definitions.getChildren()).thenReturn(List.of(definition));
 
-        Tree defWithAutoChild = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+        Tree defWithAutoChild = when(mock(Tree.class).getChildren()).thenReturn(List.of(definitions)).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithAutoChild);
 
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
 
         when(child.hasChild("autoChild")).thenReturn(true);
@@ -565,12 +563,12 @@ public class TreeUtilTest extends AbstractTreeTest {
         when(definition.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
 
         Tree definitions = mockTree("/some/path/autoChild", true);
-        when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
+        when(definitions.getChildren()).thenReturn(List.of(definition));
 
-        Tree defWithAutoChild = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+        Tree defWithAutoChild = when(mock(Tree.class).getChildren()).thenReturn(List.of(definitions)).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithAutoChild);
 
-        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
 
         Tree newChild = mock(Tree.class);
@@ -606,7 +604,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testAutoCreatePropertyFromDefaultValues() {
-        PropertyState defaultSingleValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, ImmutableList.of(34L), Type.LONGS);
+        PropertyState defaultSingleValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, List.of(34L), Type.LONGS);
         when(propDef.getProperty(JCR_DEFAULTVALUES)).thenReturn(defaultSingleValue);
         when(propDef.getProperty(JCR_MULTIPLE)).thenReturn(PropertyStates.createProperty(JCR_MULTIPLE, false));
 
@@ -619,7 +617,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testAutoCreatePropertyFromEmptyDefaultValues() {
-        PropertyState defaultSingleValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, ImmutableList.of(), Type.DATES);
+        PropertyState defaultSingleValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, List.of(), Type.DATES);
         when(propDef.getProperty(JCR_DEFAULTVALUES)).thenReturn(defaultSingleValue);
         when(propDef.getProperty(JCR_MULTIPLE)).thenReturn(PropertyStates.createProperty(JCR_MULTIPLE, false));
 
@@ -629,7 +627,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testAutoCreatePropertyFromMvDefaultValues() {
-        PropertyState defaultMvValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, ImmutableList.of(true, false, true), Type.BOOLEANS);
+        PropertyState defaultMvValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, List.of(true, false, true), Type.BOOLEANS);
         when(propDef.getProperty(JCR_DEFAULTVALUES)).thenReturn(defaultMvValue);
         when(propDef.getProperty(JCR_MULTIPLE)).thenReturn(PropertyStates.createProperty(JCR_MULTIPLE, true));
 
@@ -643,7 +641,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testGetDefaultChildTypeFromNamed() {
         Tree def = mock(Tree.class);
-        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(List.of(def)).getMock();
         PropertyState ps = PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_RESOURCE, Type.NAME);
         when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
         PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, false, Type.BOOLEAN);
@@ -652,7 +650,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         Tree named = when(mock(Tree.class).getChild("newChild")).thenReturn(definitions).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(named);
 
-        Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+        Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(List.of(def)).getMock();
         when(ntDef.getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS)).thenReturn(emptyDefinitions);
 
         assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild"));
@@ -662,7 +660,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testGetDefaultChildTypeFromNamedWithSns() {
         Tree def = mock(Tree.class);
-        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(List.of(def)).getMock();
         PropertyState ps = PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_RESOURCE, Type.NAME);
         when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
         PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, true, Type.BOOLEAN);
@@ -677,7 +675,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testGetDefaultChildTypeFromResidual() {
-        Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         Tree named = when(mock(Tree.class).getChild("newChild")).thenReturn(emptyDefinitions).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(named);
 
@@ -686,7 +684,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
         PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, false, Type.BOOLEAN);
         when(def.getProperty(JCR_SAMENAMESIBLINGS)).thenReturn(sns);
-        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(List.of(def)).getMock();
         when(ntDef.getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS)).thenReturn(definitions);
 
         assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild"));
@@ -695,7 +693,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testGetDefaultChildTypeFromResidualSns() {
-        Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(List.of()).getMock();
         Tree named = when(mock(Tree.class).getChild("newChild")).thenReturn(emptyDefinitions).getMock();
         when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(named);
 
@@ -704,7 +702,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
         PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, true, Type.BOOLEAN);
         when(def.getProperty(JCR_SAMENAMESIBLINGS)).thenReturn(sns);
-        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(List.of(def)).getMock();
         when(ntDef.getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS)).thenReturn(definitions);
 
         assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild"));
@@ -718,25 +716,25 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testGetEffectiveTypeNoMixins() {
-        assertEquals(ImmutableList.of(ntDef), TreeUtil.getEffectiveType(z, typeRoot));
+        assertEquals(List.of(ntDef), TreeUtil.getEffectiveType(z, typeRoot));
     }
 
     @Test
     public void testGetEffectiveType() {
-        assertEquals(ImmutableList.of(ntDef, ntDef, ntDef), TreeUtil.getEffectiveType(child, typeRoot));
+        assertEquals(List.of(ntDef, ntDef, ntDef), TreeUtil.getEffectiveType(child, typeRoot));
     }
 
     @Test
     public void testGetEffectiveTypeNonExistingPrimaryDef() {
-        assertEquals(ImmutableList.of(), TreeUtil.getEffectiveType(mockTree("/anotherTree", rootTree, false, "rep:NonExistingType"), typeRoot));
+        assertEquals(List.of(), TreeUtil.getEffectiveType(mockTree("/anotherTree", rootTree, false, "rep:NonExistingType"), typeRoot));
     }
 
     @Test
     public void testGetEffectiveTypeNonExistingMixinDef() {
         Tree tree = mockTree("/anotherTree", rootTree, false);
-        when(tree.getProperty(JCR_MIXINTYPES)).thenReturn(PropertyStates.createProperty(JCR_MIXINTYPES, ImmutableList.of("rep:NonExistingType"), Type.NAMES));
+        when(tree.getProperty(JCR_MIXINTYPES)).thenReturn(PropertyStates.createProperty(JCR_MIXINTYPES, List.of("rep:NonExistingType"), Type.NAMES));
 
-        assertEquals(ImmutableList.of(), TreeUtil.getEffectiveType(tree, typeRoot));
+        assertEquals(List.of(), TreeUtil.getEffectiveType(tree, typeRoot));
     }
 
     @Test
@@ -748,7 +746,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testFindDefaultPrimaryType() {
         Tree def = mock(Tree.class);
-        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+        Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(List.of(def)).getMock();
         assertNull(TreeUtil.findDefaultPrimaryType(definitions, false));
         assertNull(TreeUtil.findDefaultPrimaryType(definitions, true));
 
@@ -782,7 +780,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testIsNodeTypeContainedInSupertypes() {
-        PropertyState supertypes = PropertyStates.createProperty(REP_SUPERTYPES, ImmutableList.of(NT_BASE), Type.NAMES);
+        PropertyState supertypes = PropertyStates.createProperty(REP_SUPERTYPES, List.of(NT_BASE), Type.NAMES);
         when(ntDef.getProperty(REP_SUPERTYPES)).thenReturn(supertypes);
 
         assertTrue(TreeUtil.isNodeType(child, NT_BASE, typeRoot));
@@ -797,7 +795,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testIsNodeTypeMixinContainedInSupertypes() {
-        PropertyState supertypes = PropertyStates.createProperty(REP_SUPERTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
+        PropertyState supertypes = PropertyStates.createProperty(REP_SUPERTYPES, List.of(MIX_REFERENCEABLE), Type.NAMES);
         when(ntDef.getProperty(REP_SUPERTYPES)).thenReturn(supertypes);
 
         PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, List.of(JcrConstants.MIX_VERSIONABLE), Type.NAMES);

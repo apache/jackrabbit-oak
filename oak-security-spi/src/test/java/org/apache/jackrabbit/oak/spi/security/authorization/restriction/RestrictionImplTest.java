@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -112,7 +111,7 @@ public class RestrictionImplTest {
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
         // - different multi-value status
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), isMandatory));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, List.of(value), Type.NAMES), isMandatory));
         // - different name
         rs.add(new RestrictionImpl(createProperty("otherName", value, type), isMandatory));
         // - different value
@@ -151,7 +150,7 @@ public class RestrictionImplTest {
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
         // - different multi-value status
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), isMandatory));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, List.of(value), Type.NAMES), isMandatory));
         // - different name
         rs.add(new RestrictionImpl(createProperty("otherName", value, type), isMandatory));
         // - different value
