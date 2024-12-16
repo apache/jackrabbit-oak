@@ -3094,7 +3094,7 @@ public class VersionGarbageCollectorIT {
 
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
-        //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+        //assertTrue(List.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
     }
 
     /**
