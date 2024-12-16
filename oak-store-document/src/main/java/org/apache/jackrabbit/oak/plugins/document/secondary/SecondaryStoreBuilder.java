@@ -57,7 +57,7 @@ public class SecondaryStoreBuilder {
     }
 
     public SecondaryStoreBuilder metaPropNames(List<String> metaPropNames) {
-        this.metaPropNames = List.copyOf(new ArrayList<>(metaPropNames));
+        this.metaPropNames = List.copyOf(metaPropNames);
         return this;
     }
 
