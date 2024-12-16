@@ -15,7 +15,6 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -29,7 +28,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -100,7 +98,7 @@ public class DepthFirstTrace implements Trace {
 
     private static void updateContext(
             @NotNull Consumer<List<String>> context, int depth, int count, @NotNull String path) {
-        context.accept(ImmutableList.of(valueOf(depth), valueOf(count), path));
+        context.accept(List.of(valueOf(depth), valueOf(count), path));
     }
 
 }
