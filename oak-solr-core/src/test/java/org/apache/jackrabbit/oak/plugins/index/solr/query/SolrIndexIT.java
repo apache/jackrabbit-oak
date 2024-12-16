@@ -20,8 +20,8 @@ import javax.jcr.query.Query;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -322,7 +322,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         Tree one = t.addChild("one");
         one.setProperty("t", "美女衬衫");
         root.commit();
-        assertQuery("//*[jcr:contains(., '美女')]", "xpath", ImmutableList.of(one.getPath()));
+        assertQuery("//*[jcr:contains(., '美女')]", "xpath", List.of(one.getPath()));
     }
 
     @Test
@@ -364,13 +364,13 @@ public class SolrIndexIT extends AbstractQueryTest {
         stmt.append("/jcr:root//*[jcr:contains(., '").append(h);
         stmt.append("')]");
         assertQuery(stmt.toString(), "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+                List.of("/test/a", "/test/b"));
 
         // query 'world'
         stmt = new StringBuffer();
         stmt.append("/jcr:root//*[jcr:contains(., '").append(w);
         stmt.append("')]");
-        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+        assertQuery(stmt.toString(), "xpath", List.of("/test/a"));
 
     }
 
@@ -384,9 +384,9 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         assertQuery("/jcr:root//*[jcr:contains(., 'hello-wor*')]", "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+                List.of("/test/a", "/test/b"));
         assertQuery("/jcr:root//*[jcr:contains(., '*hello-wor*')]", "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+                List.of("/test/a", "/test/b"));
 
     }
 
@@ -398,7 +398,7 @@ public class SolrIndexIT extends AbstractQueryTest {
 
         assertQuery(
                 "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
-                "xpath", ImmutableList.of("/test/a"));
+                "xpath", List.of("/test/a"));
 
     }
 
@@ -411,19 +411,19 @@ public class SolrIndexIT extends AbstractQueryTest {
 
         assertQuery(
             "/jcr:root//*[jcr:contains(., 'lazy AND brown')]",
-            "xpath", ImmutableList.of("/test/a"));
+            "xpath", List.of("/test/a"));
 
         assertQuery(
             "/jcr:root//*[jcr:contains(., 'lazy OR eat')]",
-            "xpath", ImmutableList.of("/test/a", "/test/b"));
+            "xpath", List.of("/test/a", "/test/b"));
 
         assertQuery(
             "/jcr:root//*[jcr:contains(., 'lazy AND bones')]",
-            "xpath", ImmutableList.of("/test/b"));
+            "xpath", List.of("/test/b"));
 
         assertQuery(
             "/jcr:root//*[jcr:contains(., 'lazy OR dog')]",
-            "xpath", ImmutableList.of("/test/a", "/test/b"));
+            "xpath", List.of("/test/a", "/test/b"));
     }
 
     @Test
@@ -433,7 +433,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         test.addChild("a").setProperty("name", "/parent/child/node");
         root.commit();
 
-        assertQuery("//*[jcr:contains(., '/parent/child')]", "xpath", ImmutableList.of("/test/a"));
+        assertQuery("//*[jcr:contains(., '/parent/child')]", "xpath", List.of("/test/a"));
 
     }
 
@@ -445,7 +445,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         a.setProperty("name", "/segment1/segment2/segment3");
         root.commit();
 
-        assertQuery("//*[jcr:contains(., '/segment1/segment2')]", "xpath", ImmutableList.of("/test/a"));
+        assertQuery("//*[jcr:contains(., '/segment1/segment2')]", "xpath", List.of("/test/a"));
 
     }
 
@@ -470,7 +470,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         assertQuery("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]", "xpath",
-                ImmutableList.of(one.getPath(), two.getPath()));
+                List.of(one.getPath(), two.getPath()));
     }
 
     @Test
