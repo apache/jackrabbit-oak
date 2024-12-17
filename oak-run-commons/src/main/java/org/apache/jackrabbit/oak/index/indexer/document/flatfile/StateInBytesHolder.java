@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -31,7 +32,7 @@ class StateInBytesHolder implements NodeStateHolder {
     private final byte[] content;
 
     public StateInBytesHolder(String path, String line) {
-        this.pathElements = CollectionUtils.toList(elements(path));
+        this.pathElements = Collections.unmodifiableList(CollectionUtils.toList(elements(path)));
         this.content = line.getBytes(StandardCharsets.UTF_8);
     }
 

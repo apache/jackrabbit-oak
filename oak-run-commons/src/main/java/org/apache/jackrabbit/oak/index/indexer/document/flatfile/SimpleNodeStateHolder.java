@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -31,7 +32,7 @@ public class SimpleNodeStateHolder implements NodeStateHolder{
     private final List<String> pathElements;
 
     public SimpleNodeStateHolder(String line) {
-        this.pathElements = CollectionUtils.toList(elements(getPath(line)));
+        this.pathElements = Collections.unmodifiableList(CollectionUtils.toList(elements(getPath(line))));
         this.line = line;
     }
 

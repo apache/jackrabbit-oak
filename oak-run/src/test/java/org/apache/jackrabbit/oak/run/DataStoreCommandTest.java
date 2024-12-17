@@ -42,7 +42,6 @@ import java.util.stream.StreamSupport;
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -258,7 +257,7 @@ public class DataStoreCommandTest {
         }
 
         for (String id : data.missingDataStore) {
-            long count = blobStore.countDeleteChunks(ImmutableList.of(id), 0);
+            long count = blobStore.countDeleteChunks(List.of(id), 0);
             assertEquals(1, count);
         }
 
@@ -1341,11 +1340,11 @@ public class DataStoreCommandTest {
 
     static class FixtureHelper {
         static List<StoreFixture> getStoreFixtures() {
-            return ImmutableList.of(StoreFixture.MONGO, StoreFixture.SEGMENT, StoreFixture.SEGMENT_AZURE);
+            return List.of(StoreFixture.MONGO, StoreFixture.SEGMENT, StoreFixture.SEGMENT_AZURE);
         }
 
         static List<DataStoreFixture> getDataStoreFixtures() {
-            return ImmutableList.of(DataStoreFixture.S3, DataStoreFixture.AZURE, DataStoreFixture.FDS);
+            return List.of(DataStoreFixture.S3, DataStoreFixture.AZURE, DataStoreFixture.FDS);
         }
 
         static List<Object[]> get() {
