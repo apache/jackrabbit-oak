@@ -27,6 +27,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -100,7 +101,7 @@ public class PropInfo {
                     @NotNull MultipleStatus multipleStatus) {
         this.name = name;
         this.type = type;
-        this.values = ImmutableList.copyOf(values);
+        this.values = CollectionUtils.toImmutableList(values);
         this.multipleStatus = multipleStatus;
     }
 

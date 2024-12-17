@@ -178,7 +178,7 @@ public class IndexAugmentorFactory {
 
         CompositeIndexFieldProvider(String nodeType, List<IndexFieldProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = CollectionUtils.toImmutableList(providers);
         }
 
         @NotNull
@@ -212,7 +212,7 @@ public class IndexAugmentorFactory {
 
         CompositeFulltextQueryTermsProvider(String nodeType, List<FulltextQueryTermsProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = CollectionUtils.toImmutableList(providers);
         }
 
         @Override

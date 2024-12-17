@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class ChildOrderDiffTest {
 
     @NotNull
     private static PropertyState createPropertyState(@NotNull String... names) {
-        return PropertyStates.createProperty("any", ImmutableList.copyOf(names), Type.NAMES);
+        return PropertyStates.createProperty("any", CollectionUtils.toImmutableList(names), Type.NAMES);
     }
 
     @Test

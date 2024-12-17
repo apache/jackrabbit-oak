@@ -187,7 +187,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertNotNull(aggregate);
             assertFalse(aggregate.isAbstract());
             assertTrue(aggregate.isAggregate());
-            List<Privilege> agg = ImmutableList.copyOf(aggregate.getDeclaredAggregatePrivileges());
+            List<Privilege> agg = CollectionUtils.toImmutableList(aggregate.getDeclaredAggregatePrivileges());
             assertEquals(2, agg.size());
             assertTrue(agg.contains(privilege));
             assertTrue(agg.contains(manager.getPrivilege(JCR_READ)));
@@ -196,7 +196,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertNotNull(aggregate2);
             assertTrue(aggregate2.isAbstract());
             assertTrue(aggregate2.isAggregate());
-            List<Privilege> agg2 = ImmutableList.copyOf(aggregate2.getDeclaredAggregatePrivileges());
+            List<Privilege> agg2 = CollectionUtils.toImmutableList(aggregate2.getDeclaredAggregatePrivileges());
             assertEquals(2, agg2.size());
             assertTrue(agg2.contains(aggregate));
             assertTrue(agg2.contains(privilege2));

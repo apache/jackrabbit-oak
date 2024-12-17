@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -163,7 +164,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     private static Tree createACE(@NotNull Tree acl, @NotNull String aceName, @NotNull String ntName, @NotNull String principalName, @NotNull String... privilegeNames) throws AccessDeniedException {
         Tree ace = TreeUtil.addChild(acl, aceName, ntName);
         ace.setProperty(REP_PRINCIPAL_NAME, principalName);
-        ace.setProperty(REP_PRIVILEGES, ImmutableList.copyOf(privilegeNames), Type.NAMES);
+        ace.setProperty(REP_PRIVILEGES, CollectionUtils.toImmutableList(privilegeNames), Type.NAMES);
         return ace;
     }
 

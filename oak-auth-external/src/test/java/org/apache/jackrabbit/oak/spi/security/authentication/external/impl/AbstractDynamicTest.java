@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -116,7 +116,7 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
     @NotNull
     static List<String> getIds(@NotNull Iterator<? extends Authorizable> authorizables) {
-        return ImmutableList.copyOf(Iterators.transform(authorizables, authorizable -> {
+        return CollectionUtils.toImmutableList(Iterators.transform(authorizables, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {
@@ -127,6 +127,6 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
     @NotNull
     static List<String> getPrincipalNames(@NotNull Iterator<Principal> groupPrincipals) {
-        return ImmutableList.copyOf(Iterators.transform(groupPrincipals, Principal::getName));
+        return CollectionUtils.toImmutableList(Iterators.transform(groupPrincipals, Principal::getName));
     }
 }

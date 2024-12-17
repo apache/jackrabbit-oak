@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
@@ -32,7 +32,7 @@ public class SimpleNodeStateHolder implements NodeStateHolder{
     private final List<String> pathElements;
 
     public SimpleNodeStateHolder(String line) {
-        this.pathElements = copyOf(elements(getPath(line)));
+        this.pathElements = CollectionUtils.toImmutableList(elements(getPath(line)));
         this.line = line;
     }
 

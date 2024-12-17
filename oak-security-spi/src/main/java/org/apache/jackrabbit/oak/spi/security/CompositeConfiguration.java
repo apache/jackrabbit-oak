@@ -144,7 +144,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         if (configurations.isEmpty() && defaultConfig != null) {
             return ImmutableList.of(defaultConfig);
         } else {
-            return ImmutableList.copyOf(configurations);
+            return CollectionUtils.toImmutableList(configurations);
         }
     }
 
@@ -221,20 +221,20 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     public List<? extends CommitHook> getCommitHooks(@NotNull final String workspaceName) {
         Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(),
                 securityConfiguration -> securityConfiguration.getCommitHooks(workspaceName)));
-        return ImmutableList.copyOf(t);
+        return CollectionUtils.toImmutableList(t);
     }
 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull final String workspaceName, @NotNull final Set<Principal> principals, @NotNull final MoveTracker moveTracker) {
         Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker)));
-        return ImmutableList.copyOf(t);
+        return CollectionUtils.toImmutableList(t);
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
+        return CollectionUtils.toImmutableList(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
     }
 
     @NotNull
@@ -242,7 +242,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(),
                 securityConfiguration -> securityConfiguration.getProtectedItemImporters()));
-        return ImmutableList.copyOf(t);
+        return CollectionUtils.toImmutableList(t);
     }
 
     @NotNull

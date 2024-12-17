@@ -29,8 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -173,7 +173,7 @@ public class NRTIndex implements Closeable {
         decrementReaderUseCount(readers);
 
         dirReader = latestReader;
-        readers = ImmutableList.copyOf(newReaders);
+        readers = CollectionUtils.toImmutableList(newReaders);
         return readers;
     }
 

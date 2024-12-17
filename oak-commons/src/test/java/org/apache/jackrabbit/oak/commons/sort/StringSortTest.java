@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -106,7 +105,7 @@ public class StringSortTest {
         Collections.sort(paths, comparator);
         collector.sort();
 
-        List<String> sortedPaths = ImmutableList.copyOf(collector.getIds());
+        List<String> sortedPaths = org.apache.jackrabbit.oak.commons.collections.CollectionUtils.toImmutableList(collector.getIds());
         assertEquals(paths.size(), sortedPaths.size());
         assertEquals(paths, sortedPaths);
     }

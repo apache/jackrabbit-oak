@@ -22,13 +22,12 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
  * Aggregation of a list of editor providers into a single provider.
@@ -50,7 +49,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
             return providers.iterator().next();
         } else {
             return new CompositeIndexEditorProvider(
-                    ImmutableList.copyOf(providers));
+                    CollectionUtils.toImmutableList(providers));
         }
     }
 

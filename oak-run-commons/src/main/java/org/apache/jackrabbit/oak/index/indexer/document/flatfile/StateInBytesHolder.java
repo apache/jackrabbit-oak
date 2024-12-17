@@ -23,8 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 class StateInBytesHolder implements NodeStateHolder {
@@ -32,7 +32,7 @@ class StateInBytesHolder implements NodeStateHolder {
     private final byte[] content;
 
     public StateInBytesHolder(String path, String line) {
-        this.pathElements = copyOf(elements(path));
+        this.pathElements = CollectionUtils.toImmutableList(elements(path));
         this.content = line.getBytes(StandardCharsets.UTF_8);
     }
 

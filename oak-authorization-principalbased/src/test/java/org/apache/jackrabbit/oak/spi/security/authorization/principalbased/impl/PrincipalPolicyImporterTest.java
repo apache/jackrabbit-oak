@@ -22,6 +22,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -151,7 +152,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         List<PropInfo> propInfos = new ArrayList();
         for (Map.Entry<String,Value[]> r : restrictions.entrySet()) {
             String jcrName = r.getKey();
-            List<Value> vs = ImmutableList.copyOf(r.getValue());
+            List<Value> vs = CollectionUtils.toImmutableList(r.getValue());
             PropInfo propInfo = mockPropInfo(jcrName);
             if (!vs.isEmpty()) {
                 TextValue first = when(mock(TextValue.class).getString()).thenReturn(vs.get(0).getString()).getMock();

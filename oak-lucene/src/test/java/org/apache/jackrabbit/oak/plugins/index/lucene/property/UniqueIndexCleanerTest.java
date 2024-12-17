@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_CREATED;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -42,7 +42,7 @@ public class UniqueIndexCleanerTest {
 
         UniqueIndexCleaner cleaner = new UniqueIndexCleaner(MILLISECONDS, 1);
         cleaner.clean(builder, 10);
-        assertThat(copyOf(builder.getChildNodeNames()), containsInAnyOrder("a", "b"));
+        assertThat(CollectionUtils.toImmutableList(builder.getChildNodeNames()), containsInAnyOrder("a", "b"));
     }
 
     @Test
@@ -53,7 +53,7 @@ public class UniqueIndexCleanerTest {
         refresh();
         UniqueIndexCleaner cleaner = new UniqueIndexCleaner(MILLISECONDS, 100);
         cleaner.clean(builder, 200);
-        assertThat(copyOf(builder.getChildNodeNames()), containsInAnyOrder("b"));
+        assertThat(CollectionUtils.toImmutableList(builder.getChildNodeNames()), containsInAnyOrder("b"));
     }
 
     private void refresh(){

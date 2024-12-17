@@ -25,6 +25,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -95,7 +96,7 @@ public class DocumentBundlor {
 
     private DocumentBundlor(List<Include> includes) {
         checkArgument(!includes.isEmpty(), "Include list cannot be empty");
-        this.includes = ImmutableList.copyOf(includes);
+        this.includes = CollectionUtils.toImmutableList(includes);
     }
 
     public boolean isBundled(String relativePath) {

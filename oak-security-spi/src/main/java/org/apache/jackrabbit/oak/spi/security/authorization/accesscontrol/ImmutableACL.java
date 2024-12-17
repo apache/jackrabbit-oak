@@ -26,8 +26,8 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
@@ -57,7 +57,7 @@ public class ImmutableACL extends AbstractAccessControlList {
                         @NotNull RestrictionProvider restrictionProvider,
                         @NotNull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
-        this.entries = ImmutableList.copyOf(entries);
+        this.entries = CollectionUtils.toImmutableList(entries);
         this.restrictionProvider = restrictionProvider;
     }
 

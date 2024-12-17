@@ -42,7 +42,6 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -131,7 +130,7 @@ public final class IndexUtils {
                                              @NotNull String[] propertyNames,
                                              @NotNull String... declaringNodeTypeNames) throws RepositoryException {
 
-        return createIndexDefinition(indexNode, indexDefName, unique, ImmutableList.copyOf(propertyNames), ImmutableList.copyOf(declaringNodeTypeNames), PropertyIndexEditorProvider.TYPE, null);
+        return createIndexDefinition(indexNode, indexDefName, unique, CollectionUtils.toImmutableList(propertyNames), CollectionUtils.toImmutableList(declaringNodeTypeNames), PropertyIndexEditorProvider.TYPE, null);
     }
 
     /**

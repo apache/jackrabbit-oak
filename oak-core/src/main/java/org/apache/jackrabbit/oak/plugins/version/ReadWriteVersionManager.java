@@ -436,7 +436,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
         Validate.checkState(versionable.hasProperty(JCR_PREDECESSORS));
         PropertyState state = versionable.getProperty(JCR_PREDECESSORS);
-        List<String> predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
+        List<String> predecessors = CollectionUtils.toImmutableList(state.getValue(Type.REFERENCES));
         NodeBuilder version = vHistory.child(calculateVersion(vHistory, versionable));
 
         String versionUUID = UUIDUtils.generateUUID();

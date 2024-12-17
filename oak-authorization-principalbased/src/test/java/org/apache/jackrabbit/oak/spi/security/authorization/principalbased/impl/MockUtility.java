@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
@@ -98,7 +98,7 @@ final class MockUtility {
     }
 
     static PropertyState createMixinTypesProperty(@NotNull String... mixinTypes) {
-        return PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.copyOf(mixinTypes), Type.NAMES);
+        return PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, CollectionUtils.toImmutableList(mixinTypes), Type.NAMES);
     }
 
     static FilterProvider mockFilterProvider(boolean canHandle) {

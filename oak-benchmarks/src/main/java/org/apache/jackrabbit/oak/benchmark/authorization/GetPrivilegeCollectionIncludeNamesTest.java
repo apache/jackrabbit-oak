@@ -44,7 +44,7 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
         ACCESSCONTORL_MANAGER_HAS_PRIVILEGES
     } 
     
-    private static final List<String> ALL_PRIVILEGE_NAMES = ImmutableList.copyOf(PrivilegeBits.BUILT_IN.keySet());
+    private static final List<String> ALL_PRIVILEGE_NAMES = CollectionUtils.toImmutableList(PrivilegeBits.BUILT_IN.keySet());
     
     private final EvaluationType evalType;
     

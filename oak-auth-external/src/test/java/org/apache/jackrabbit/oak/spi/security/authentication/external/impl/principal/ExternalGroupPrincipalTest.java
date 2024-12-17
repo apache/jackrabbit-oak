@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -80,7 +81,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
     public void testIsMemberExternalGroup() throws Exception {
         GroupPrincipal principal = getGroupPrincipal();
 
-        Iterable<String> exGroupPrincNames = Iterables.transform(ImmutableList.copyOf(idp.listGroups()), ExternalIdentity::getPrincipalName);
+        Iterable<String> exGroupPrincNames = Iterables.transform(CollectionUtils.toImmutableList(idp.listGroups()), ExternalIdentity::getPrincipalName);
         for (String principalName : exGroupPrincNames) {
             assertFalse(principal.isMember(new PrincipalImpl(principalName)));
         }

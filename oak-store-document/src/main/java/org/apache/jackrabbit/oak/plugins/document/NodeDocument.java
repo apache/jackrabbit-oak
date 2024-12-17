@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -1820,7 +1819,7 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
+            changes = Iterables.concat(transform(CollectionUtils.toImmutableList(ranges), rangeToChanges::apply));
         }
         return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }

@@ -3070,11 +3070,11 @@ public class VersionGarbageCollectorIT {
         store1.runBackgroundOperations();
 
         List<NodeDocument> previousDocTestFoo =
-                ImmutableList.copyOf(getDoc("/test/" + subNodeName).getAllPreviousDocs());
+                CollectionUtils.toImmutableList(getDoc("/test/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocTestFoo2 =
-                ImmutableList.copyOf(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
+                CollectionUtils.toImmutableList(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocRoot =
-                ImmutableList.copyOf(getDoc("/").getAllPreviousDocs());
+                CollectionUtils.toImmutableList(getDoc("/").getAllPreviousDocs());
 
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
@@ -3096,7 +3096,7 @@ public class VersionGarbageCollectorIT {
 
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
-        //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+        //assertTrue(CollectionUtils.toImmutableList(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
     }
 
     /**
@@ -3813,7 +3813,7 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = CollectionUtils.toImmutableList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
@@ -3824,7 +3824,7 @@ public class VersionGarbageCollectorIT {
 
         doc = getDoc("/foo");
         assertNotNull(doc);
-        prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        prevDocs = CollectionUtils.toImmutableList(doc.getAllPreviousDocs());
         assertEquals(0, prevDocs.size());
 
         assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
@@ -3851,7 +3851,7 @@ public class VersionGarbageCollectorIT {
 
         // now /foo must have previous docs
         NodeDocument doc = getDoc("/foo");
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = CollectionUtils.toImmutableList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
@@ -3877,7 +3877,7 @@ public class VersionGarbageCollectorIT {
 
         doc = getDoc("/foo");
         assertNotNull(doc);
-        prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        prevDocs = CollectionUtils.toImmutableList(doc.getAllPreviousDocs());
         assertEquals(0, prevDocs.size());
         // check value
         assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));

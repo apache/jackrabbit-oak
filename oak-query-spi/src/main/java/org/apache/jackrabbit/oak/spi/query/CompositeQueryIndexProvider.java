@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -56,7 +57,7 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
             return providers.iterator().next();
         } else {
             return new CompositeQueryIndexProvider(
-                    ImmutableList.copyOf(providers));
+                    CollectionUtils.toImmutableList(providers));
         }
     }
 

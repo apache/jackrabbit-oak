@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.secondary;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -57,7 +57,7 @@ public class SecondaryStoreBuilder {
     }
 
     public SecondaryStoreBuilder metaPropNames(List<String> metaPropNames) {
-        this.metaPropNames = ImmutableList.copyOf(metaPropNames);
+        this.metaPropNames = CollectionUtils.toImmutableList(metaPropNames);
         return this;
     }
 

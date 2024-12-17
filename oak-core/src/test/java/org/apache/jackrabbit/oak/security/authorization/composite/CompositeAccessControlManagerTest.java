@@ -101,7 +101,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     @NotNull
     private CompositeAccessControlManager createComposite(@NotNull AggregationFilter aggregationFilter, @NotNull AccessControlManager... acMgrs) {
-        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableList.copyOf(acMgrs), aggregationFilter);
+        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), CollectionUtils.toImmutableList(acMgrs), aggregationFilter);
     }
 
     @Test

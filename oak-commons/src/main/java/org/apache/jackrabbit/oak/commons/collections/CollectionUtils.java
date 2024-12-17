@@ -68,6 +68,42 @@ public class CollectionUtils {
     }
 
     /**
+     * Convert an iterable to an immutable list. The returning list is immutable and neither support any modification and nor null values.
+     * @param iterable the iterable to convert
+     * @return the list
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<T> toImmutableList(@NotNull final Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        return toStream(iterable).filter(Objects::nonNull).collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
+     * Convert an iterator to an immutable list. The returning list is immutable and neither support any modification and nor null values.
+     * @param iterator the iterable to convert
+     * @return the list
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<T> toImmutableList(@NotNull final Iterator<? extends T> iterator) {
+        Objects.requireNonNull(iterator);
+        return toStream(iterator).filter(Objects::nonNull).collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
+     * Convert an vararg list of items to an immutable list. The returning list is immutable and neither support any modification and nor null values.
+     * @param elements the iterable to convert
+     * @return the list
+     * @param <T> the type of the elements
+     */
+    @NotNull
+    public static <T> List<T> toImmutableList(@NotNull final T... elements) {
+        Objects.requireNonNull(elements);
+        return Stream.of(elements).filter(Objects::nonNull).collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
      * Convert an iterable to a {@link java.util.LinkedList}. The returning LinkedList is mutable and supports all optional operations.
      * @param iterable the iterator to convert
      * @return the LinkedList

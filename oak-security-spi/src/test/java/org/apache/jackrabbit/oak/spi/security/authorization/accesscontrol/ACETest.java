@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -105,7 +106,7 @@ public class ACETest extends AbstractAccessControlTest {
     }
 
     private Restriction createRestriction(String name, Value[] values) throws Exception {
-        return new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.copyOf(values)), false);
+        return new RestrictionImpl(PropertyStates.createProperty(name, CollectionUtils.toImmutableList(values)), false);
     }
 
     @Test

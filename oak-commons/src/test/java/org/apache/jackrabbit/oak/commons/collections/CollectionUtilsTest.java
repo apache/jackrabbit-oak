@@ -49,6 +49,44 @@ public class CollectionUtilsTest {
 
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void iterableToImmutableList() {
+        // create a set of non-null values
+        final List<String> s = data.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        final Iterable<String> iterable = new SimpleIterable<>(s);
+
+        final List<String> immutableList = CollectionUtils.toImmutableList(iterable);
+        Assert.assertEquals(s, immutableList);
+        // should throw exception
+        immutableList.add("four");
+        fail("Shouldn't reach here");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void iteratorToImmutableList() {
+        // create a set of non-null values
+        final List<String> s = data.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        final Iterable<String> iterable = new SimpleIterable<>(s);
+
+        final List<String> immutableList = CollectionUtils.toImmutableList(iterable.iterator());
+        Assert.assertEquals(s, immutableList);
+        // should throw exception
+        immutableList.add("four");
+        fail("Shouldn't reach here");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void varargsToImmutableList() {
+        // create a set of non-null values
+        final List<String> s = data.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
+        final List<String> immutableList = CollectionUtils.toImmutableList("one", "two", null, "three");
+        Assert.assertEquals(s, immutableList);
+        // should throw exception
+        immutableList.add("four");
+        fail("Shouldn't reach here");
+    }
+
     @Test
     public void iterableToLinkedList() {
         // create an iterable

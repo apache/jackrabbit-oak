@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
@@ -32,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
@@ -42,6 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
@@ -306,7 +308,7 @@ public class PropertyDefinition {
         if (FulltextIndexConstants.REGEX_ALL_PROPS.equals(path)) {
             return EMPTY_ANCESTORS;
         } else {
-            return toArray(copyOf(elements(PathUtils.getParentPath(path))), String.class);
+            return toArray(CollectionUtils.toImmutableList(elements(PathUtils.getParentPath(path))), String.class);
         }
     }
 

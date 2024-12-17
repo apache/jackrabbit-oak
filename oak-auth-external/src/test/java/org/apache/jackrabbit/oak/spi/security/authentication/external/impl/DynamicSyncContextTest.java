@@ -119,7 +119,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
     private void assertDynamicMembership(@NotNull Authorizable a, @NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
         Value[] vs = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-        Set<String> pNames = ImmutableList.copyOf(vs).stream().map(value -> {
+        Set<String> pNames = CollectionUtils.toImmutableList(vs).stream().map(value -> {
             try {
                 return value.getString();
             } catch (RepositoryException e) {

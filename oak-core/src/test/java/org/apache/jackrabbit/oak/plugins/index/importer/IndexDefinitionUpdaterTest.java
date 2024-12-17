@@ -27,12 +27,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -144,7 +144,7 @@ public class IndexDefinitionUpdaterTest {
         NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
 
         PropertyState childOrder = builder.getChildNode("oak:index").getProperty(":childOrder");
-        List<String> names = ImmutableList.copyOf(childOrder.getValue(Type.NAMES));
+        List<String> names = CollectionUtils.toImmutableList(childOrder.getValue(Type.NAMES));
 
         assertEquals(asList("fooIndex", "barIndex"), names);
 
