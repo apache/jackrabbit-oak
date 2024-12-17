@@ -181,4 +181,22 @@ public interface OakSolrConfiguration {
          */
         AUTO
     }
+
+    /**
+     * Enum to designate the type of the Solr server.
+     */
+    enum ServerType {
+        /**
+         * no server
+         */
+        none,
+        /**
+         * embedded server
+         */
+        embedded,
+        /**
+         * remote server
+         */
+        remote
+    }
 }
