@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.osgi;
 
 import java.io.IOException;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.felix.utils.properties.InterpolationHelper;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -113,7 +112,7 @@ class ConfigInstaller {
     }
 
     private void performSubstitution(Hashtable<String, Object> current) {
-        Map<String, String> simpleConfig = Maps.newHashMap();
+        Map<String, String> simpleConfig = new HashMap<>();
 
         for (Map.Entry<String, Object> e : current.entrySet()) {
             if (e.getValue() instanceof String) {

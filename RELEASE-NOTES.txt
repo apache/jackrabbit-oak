@@ -61,6 +61,7 @@ Bug
     [OAK-11157] - indexing-job/parallel download: if one of the download tasks fails, the download is interrupted but considered as successful
     [OAK-11161] - Fix cases where checkArgument is used with the incorrect template syntax
     [OAK-11169] - MongoVersionGCSupport (oak-document-store) uses incorrect syntax for sort mongodb function
+    [OAK-11184] - Resolving a node with an unmerged or not-yet-visible revision as the only revision results in previous document scan (which can be expensive on root)
     [OAK-11186] - Failure in RDBConnectionHandlerTest
     [OAK-11204] - Incorrect order with more than 2^16 segments in remote archive
     [OAK-11218] - FullGC Exclude list parsing should ignore an Array of empty String
@@ -94,10 +95,12 @@ Improvement
     [OAK-11234] - Use virtual clock to generate test content on Mongo document store in Pipelined strategy IT tests
     [OAK-11235] - Tree store path iterator filter: nextIncludedPath bugfix
     [OAK-11238] - indexing-job - de-duplicate entries in sorted batches when saving them to disk
+    [OAK-11261] - Flaky test preventing Oak release: BranchCommitGCTest.unmergedAddThenMergedAddAndRemoveChildren
 
 Test
 
     [OAK-11250] - flaky RDBConnectionHandlerTest
+    [OAK-11253] - flakyness in DocumentNodeStoreIT with new prevNoProp tests introduced
     [OAK-11254] - backgroundPurge interferes with fullgc tests
 
 Task

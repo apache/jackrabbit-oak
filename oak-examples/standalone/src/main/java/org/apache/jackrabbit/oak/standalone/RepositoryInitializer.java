@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,8 +33,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.servlet.ServletContext;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
@@ -111,7 +110,7 @@ public class RepositoryInitializer {
     }
 
     private Repository createRepository(List<String> repoConfigs, File repoHomeDir) throws RepositoryException {
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,Object> config = new HashMap<>();
         config.put(OakOSGiRepositoryFactory.REPOSITORY_HOME, repoHomeDir.getAbsolutePath());
         config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, commaSepFilePaths(repoConfigs));
         config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, false);
@@ -140,7 +139,7 @@ public class RepositoryInitializer {
     }
 
     private Object commaSepFilePaths(List<String> repoConfigs) {
-        return Joiner.on(",").join(repoConfigs);
+        return String.join(",", repoConfigs);
     }
 
     private List<String> copyConfigs(File repoHomeDir, List<String> configFileNames)

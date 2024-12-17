@@ -23,10 +23,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -55,10 +53,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
-
 public class PermissionsTest {
 
-    private static final Map<Long, Set<Long>> TEST = ImmutableMap.<Long, Set<Long>>of(
+    private static final Map<Long, Set<Long>> TEST = Map.of(
             Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
             Set.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
             Permissions.LOCK_MANAGEMENT|Permissions.MODIFY_CHILD_NODE_COLLECTION,
@@ -115,7 +112,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetNamesMultiple() {
-        Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> test = Map.of(
                 Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
                 Set.of(Permissions.ADD_NODE, Permissions.ADD_PROPERTY),
                 Permissions.LOCK_MANAGEMENT|Permissions.MODIFY_CHILD_NODE_COLLECTION,
@@ -137,7 +134,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetNamesAggregates() {
-        Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> test = Map.of(
                 Permissions.READ|Permissions.READ_ACCESS_CONTROL,
                 Set.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
                 Permissions.REMOVE|Permissions.SET_PROPERTY,
@@ -190,7 +187,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetStringAggregates() {
-        Map<Long, Set<Long>> test = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> test = Map.of(
                 Permissions.READ|Permissions.READ_ACCESS_CONTROL,
                 Set.of(Permissions.READ, Permissions.READ_NODE, Permissions.READ_PROPERTY, Permissions.READ_ACCESS_CONTROL),
                 Permissions.REMOVE|Permissions.SET_PROPERTY,
@@ -229,7 +226,7 @@ public class PermissionsTest {
 
     @Test
     public void testAggregates() {
-        Map<Long, Set<Long>> aggregation = ImmutableMap.<Long, Set<Long>>of(
+        Map<Long, Set<Long>> aggregation = Map.of(
                 Permissions.READ, Set.of(Permissions.READ_NODE, Permissions.READ_PROPERTY),
                 Permissions.SET_PROPERTY, Set.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
                 Permissions.WRITE, Set.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)
@@ -341,7 +338,7 @@ public class PermissionsTest {
     @Test
     public void testGetPermissionsFromActions() {
         TreeLocation tl = TreeLocation.create(existingTree);
-        Map<String, Long> map = ImmutableMap.of(
+        Map<String, Long> map = Map.of(
                 Session.ACTION_READ, Permissions.READ_NODE,
                 Session.ACTION_READ + "," + Session.ACTION_REMOVE, Permissions.READ_NODE|Permissions.REMOVE_NODE
         );
@@ -521,7 +518,7 @@ public class PermissionsTest {
             for (long p : value) {
                 names.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            String s = Joiner.on(',').join(names);
+            String s = String.join(",", names);
 
             assertEquals(key.longValue(), Permissions.getPermissions(s));
         });
@@ -535,7 +532,7 @@ public class PermissionsTest {
 
     @Test
     public void testGetPermissionsForReservedPaths() {
-        Map<String, Long> mapping = ImmutableMap.of(
+        Map<String, Long> mapping = Map.of(
                 NamespaceConstants.NAMESPACES_PATH, Permissions.NAMESPACE_MANAGEMENT,
                 NodeTypeConstants.NODE_TYPES_PATH, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,
                 PrivilegeConstants.PRIVILEGES_PATH, Permissions.PRIVILEGE_MANAGEMENT

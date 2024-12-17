@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -67,7 +66,7 @@ public final class OakInitializer {
     }
 
     private static CommitInfo createCommitInfo(){
-        Map<String, Object> infoMap = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> infoMap = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(SESSION_ID, null, infoMap);
     }
 }

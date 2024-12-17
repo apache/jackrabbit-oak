@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -41,7 +40,7 @@ public class IndexMBeanRegistration implements Registration {
 
     public void registerAsyncIndexer(AsyncIndexUpdate task, long delayInSeconds) {
         task.setIndexMBeanRegistration(this);
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
+        Map<String, Object> config = Map.of(
                 AsyncIndexUpdate.PROP_ASYNC_NAME, task.getName(),
                 "scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName()
         );

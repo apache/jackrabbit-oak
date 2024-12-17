@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,6 @@ import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -103,7 +102,7 @@ public class WorkspaceDelegate {
     //---------------------------< internal >-----------------------------------
 
     private static final class WorkspaceCopy {
-        private final Map<String, String> translated = Maps.newHashMap();
+        private final Map<String, String> translated = new HashMap<>();
 
         private final Tree source;
         private final Tree destParent;
@@ -127,7 +126,7 @@ public class WorkspaceDelegate {
                     String sourceBaseVersionId = source.getProperty(JcrConstants.JCR_BASEVERSION).getValue(Type.STRING);
                     copyInfo.put(VersionConstants.JCR_COPIED_FROM, sourceBaseVersionId);
                 }
-                root.commit(ImmutableMap.copyOf(copyInfo));
+                root.commit(Collections.unmodifiableMap(copyInfo));
             } catch (CommitFailedException e) {
                 throw e.asRepositoryException();
             }

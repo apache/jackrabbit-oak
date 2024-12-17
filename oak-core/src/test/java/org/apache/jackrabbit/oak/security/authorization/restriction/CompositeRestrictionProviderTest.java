@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -39,6 +38,8 @@ import org.junit.Test;
 import javax.jcr.PropertyType;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
+
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -52,17 +53,17 @@ import static org.junit.Assert.fail;
  */
 public class CompositeRestrictionProviderTest extends AbstractSecurityTest implements AccessControlConstants {
 
-    private RestrictionProvider rp1 = new TestProvider(ImmutableMap.<String, RestrictionDefinition>of(
+    private RestrictionProvider rp1 = new TestProvider(Map.of(
             REP_GLOB, new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false),
             REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false),
             REP_PREFIXES, new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false)
     ));
-    private RestrictionProvider rp2 = new TestProvider(ImmutableMap.of(
+    private RestrictionProvider rp2 = new TestProvider(Map.of(
             "boolean", new RestrictionDefinitionImpl("boolean", Type.BOOLEAN, true),
             "longs", new RestrictionDefinitionImpl("longs", Type.LONGS, false)
     ));
 
-    private RestrictionProvider rp3 = new TestProvider(ImmutableMap.of(
+    private RestrictionProvider rp3 = new TestProvider(Map.of(
             "string", new RestrictionDefinitionImpl("string", Type.STRING, false)),
             true
     );

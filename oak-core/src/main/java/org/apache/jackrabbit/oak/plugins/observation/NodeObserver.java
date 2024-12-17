@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static java.util.Collections.addAll;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -219,7 +219,7 @@ public abstract class NodeObserver implements Observer {
         }
 
         private Map<String, String> collectProperties(NodeState node) {
-            Map<String, String> properties = Maps.newHashMap();
+            Map<String, String> properties = new HashMap<>();
             for (String name : propertyNames) {
                 PropertyState p = node.getProperty(name);
                 if (p != null && !p.isArray()) {

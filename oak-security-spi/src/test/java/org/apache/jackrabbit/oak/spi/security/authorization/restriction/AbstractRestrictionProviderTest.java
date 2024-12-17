@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -84,7 +83,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         when(undef.getName()).thenReturn("undefined");
         when(undef.getRequiredType()).thenReturn((Type) Type.UNDEFINED);
 
-        supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand, undef.getName(), undef);
+        supported = Map.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand, undef.getName(), undef);
         restrictionProvider = new AbstractRestrictionProvider(supported) {
             @NotNull
             @Override

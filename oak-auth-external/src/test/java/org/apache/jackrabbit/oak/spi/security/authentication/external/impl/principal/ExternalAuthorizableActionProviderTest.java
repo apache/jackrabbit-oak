@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -330,13 +329,13 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
     
     private static Map<String, Object> createSyncConfig(@NotNull String automembershipId, boolean isUserAutoMembership) {
         String autoMembershipName = (isUserAutoMembership) ? DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP : DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP;
-        return ImmutableMap.of(
+        return Map.of(
                 DefaultSyncConfigImpl.PARAM_NAME, "sh",
                 autoMembershipName, new String[] {automembershipId});
     }
 
     private static Map<String, Object> createMappingConfig(@NotNull String idpName) {
-        return ImmutableMap.of(
+        return Map.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idpName,
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, "sh");
     }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -160,7 +159,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                 @NotNull
                 @Override
                 public Map<String, ?> getProperties() {
-                    return ImmutableMap.of();
+                    return Map.of();
                 }
             };
         } else {
@@ -226,7 +225,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                 @NotNull
                 @Override
                 public Map<String, ?> getProperties() {
-                    return ImmutableMap.of();
+                    return Map.of();
                 }
             };
         } else {

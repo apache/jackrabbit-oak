@@ -28,10 +28,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
@@ -247,7 +249,7 @@ public class S3Backend extends AbstractSharedBackend {
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.error("Error ", e);
-            Map<String, Object> filteredMap = Maps.newHashMap();
+            Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
                 filteredMap = Maps.filterKeys(Utils.asMap(properties),
                         input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
@@ -342,7 +344,10 @@ public class S3Backend extends AbstractSharedBackend {
                     objectMetaData.getLastModified().getTime());
                 CopyObjectRequest copReq = new CopyObjectRequest(bucket, key,
                     bucket, key);
-                copReq.setNewObjectMetadata(objectMetaData);
+                LOG.warn("Object MetaData before copy: {}", objectMetaData.getRawMetadata());
+                if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
+                    copReq.setNewObjectMetadata(objectMetaData);
+                }
                 Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
                 try {
                     copy.waitForCopyResult();
@@ -489,6 +494,20 @@ public class S3Backend extends AbstractSharedBackend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
+        setRemoteStorageMode();
+    }
+
+    private void setRemoteStorageMode() {
+        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
+        if (s3EndPoint.contains("googleapis")) {
+            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
+                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
+            }
+            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
+            return;
+        }
+        // default mode is S3
+        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
     }
 
     @Override
@@ -613,13 +632,21 @@ public class S3Backend extends AbstractSharedBackend {
                 new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
             ObjectListing metaList = s3service.listObjects(listObjectsRequest);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             for (S3ObjectSummary s3ObjSumm : metaList.getObjectSummaries()) {
                 deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+                keysToDelete.add(s3ObjSumm.getKey());
             }
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                delObjsReq.setKeys(deleteList);
-                s3service.deleteObjects(delObjsReq);
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
+                    delObjsReq.setKeys(deleteList);
+                    s3service.deleteObjects(delObjsReq);
+                } else {
+                    // GCP does not support bulk delete operations, hence we need to delete each object individually
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                }
             }
         } finally {
             if (contextClassLoader != null) {
@@ -784,7 +811,7 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
 
-            Map<String, String> requestParams = Maps.newHashMap();
+            Map<String, String> requestParams = new HashMap<>();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",
                             httpDownloadURIExpirySeconds)
@@ -881,7 +908,7 @@ public class S3Backend extends AbstractSharedBackend {
                     numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URIS);
                 }
 
-                Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+                Map<String, String> presignedURIRequestParams = new HashMap<>();
                 for (long blockId = 1; blockId <= numParts; ++blockId) {
                     presignedURIRequestParams.put("partNumber", String.valueOf(blockId));
                     presignedURIRequestParams.put("uploadId", uploadId);
@@ -999,7 +1026,7 @@ public class S3Backend extends AbstractSharedBackend {
     private URI createPresignedURI(DataIdentifier identifier,
                                    HttpMethod method,
                                    int expirySeconds) {
-        return createPresignedURI(identifier, method, expirySeconds, Maps.newHashMap());
+        return createPresignedURI(identifier, method, expirySeconds, new HashMap<>());
     }
 
     private URI createPresignedURI(DataIdentifier identifier,
@@ -1217,6 +1244,7 @@ public class S3Backend extends AbstractSharedBackend {
                 getClass().getClassLoader());
             ObjectListing prevObjectListing = s3service.listObjects(bucket);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             int nThreads = Integer.parseInt(properties.getProperty("maxConnections"));
             ExecutorService executor = Executors.newFixedThreadPool(nThreads,
                 new NamedThreadFactory("s3-object-rename-worker"));
@@ -1230,6 +1258,7 @@ public class S3Backend extends AbstractSharedBackend {
                     if( s3ObjSumm.getKey().startsWith(KEY_PREFIX)) {
                         deleteList.add(new DeleteObjectsRequest.KeyVersion(
                             s3ObjSumm.getKey()));
+                        keysToDelete.add(s3ObjSumm.getKey());
                     }
                 }
                 if (!prevObjectListing.isTruncated()) break;
@@ -1251,25 +1280,30 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.info("Renamed [{}] keys, time taken [{}]sec", count,
                 ((System.currentTimeMillis() - startTime) / 1000));
             // Delete older keys.
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
-                    bucket);
-                int batchSize = 500, startIndex = 0, size = deleteList.size();
-                int endIndex = batchSize < size ? batchSize : size;
-                while (endIndex <= size) {
-                    delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
-                        startIndex, endIndex)));
-                    DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
-                    LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
-                        dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
-                    if (endIndex == size) {
-                        break;
-                    } else {
-                        startIndex = endIndex;
-                        endIndex = (startIndex + batchSize) < size
-                                ? (startIndex + batchSize)
-                                : size;
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
+                            bucket);
+                    int batchSize = 500, startIndex = 0, size = deleteList.size();
+                    int endIndex = Math.min(batchSize, size);
+                    while (endIndex <= size) {
+                        delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
+                                startIndex, endIndex)));
+                        DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
+                        LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
+                                dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
+                        if (endIndex == size) {
+                            break;
+                        } else {
+                            startIndex = endIndex;
+                            endIndex = Math.min((startIndex + batchSize), size);
+                        }
                     }
+                } else {
+                    long keysDeleteStartTime = System.currentTimeMillis();
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                    LOG.debug("Delete operation for rename keys from gcp took: {} seconds", ((System.currentTimeMillis() - keysDeleteStartTime) / 1000));
                 }
             }
         } finally {
@@ -1348,5 +1382,13 @@ public class S3Backend extends AbstractSharedBackend {
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
         }
+    }
+
+    /**
+     * Enum to indicate remote storage mode
+     */
+    enum RemoteStorageMode {
+        S3,
+        GCP
     }
 }

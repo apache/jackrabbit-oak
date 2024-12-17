@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -243,8 +241,8 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
     @Test
     public void testIsGrantedOnRestrictionTree() throws Exception {
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager(root));
-        Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue(REP_RESTRICTIONS + "*"));
-        policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr, ImmutableMap.of());
+        Map<String, Value> restr = Map.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue(REP_RESTRICTIONS + "*"));
+        policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr, Map.of());
         root.commit();
         permissionProvider.refresh();
 

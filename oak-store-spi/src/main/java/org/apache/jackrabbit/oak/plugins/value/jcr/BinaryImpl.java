@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -138,6 +137,8 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
 
     @Override
     public String toString() {
-        return toStringHelper(this).addValue(value).toString();
+        return new StringJoiner(", ", BinaryImpl.class.getSimpleName() + "[", "]")
+                .add("value=" + value)
+                .toString();
     }
 }

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -1057,7 +1056,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
         Authorizable a = syncCtx.createUser(externalUser);
 
-        syncCtx.syncProperties(externalUser, a, ImmutableMap.of());
+        syncCtx.syncProperties(externalUser, a, Map.of());
 
         for (String propName : externalUser.getProperties().keySet()) {
             assertFalse(a.hasProperty(propName));
@@ -1076,7 +1075,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
             a.setProperty(propName, anyValue);
         }
 
-        syncCtx.syncProperties(externalUser, a, ImmutableMap.of());
+        syncCtx.syncProperties(externalUser, a, Map.of());
         for (String propName : extProps.keySet()) {
             assertTrue(a.hasProperty(propName));
             assertEquals(anyValue, a.getProperty(propName)[0]);

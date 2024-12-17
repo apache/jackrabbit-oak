@@ -17,9 +17,10 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Hashtable;
+import java.util.Map;
+
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
@@ -49,7 +50,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
 
         tokenConfiguration.setSecurityProvider(getSecurityProvider());
 
-        context.registerInjectActivateService(tokenConfiguration, ImmutableMap.of(
+        context.registerInjectActivateService(tokenConfiguration, Map.of(
                 TokenProvider.PARAM_TOKEN_EXPIRATION, 25,
                 TokenProvider.PARAM_TOKEN_LENGTH, 4));
 

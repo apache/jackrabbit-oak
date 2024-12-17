@@ -25,6 +25,7 @@ import javax.jcr.Session;
 import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -112,7 +113,7 @@ public class L9_NullLoginTest extends AbstractJCRTest {
         Subject subject = null;
         String expectedId = null;
 
-        testSession = Subject.doAs(subject, new PrivilegedExceptionAction<Session>() {
+        testSession = Java23Subject.doAs(subject, new PrivilegedExceptionAction<Session>() {
             @Override
             public Session run() throws RepositoryException {
                 return repository.login(null, null);

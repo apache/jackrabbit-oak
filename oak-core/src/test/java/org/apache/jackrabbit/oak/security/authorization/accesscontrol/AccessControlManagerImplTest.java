@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -209,7 +207,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (String v : values) {
             list.add(valueFactory.createValue(v, PropertyType.NAME));
         }
-        return ImmutableMap.of(name, list.toArray(new Value[0]));
+        return Map.of(name, list.toArray(new Value[0]));
     }
 
     @NotNull
@@ -868,7 +866,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void testGetPoliciesLimitsPrincipalLookup() throws Exception {
         ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
         policy.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ));
-        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("")));
+        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, Map.of(REP_GLOB, getValueFactory(root).createValue("")));
         policy.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE));
         acMgr.setPolicy(policy.getPath(), policy);
 
@@ -1839,14 +1837,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ACL acl = (ACL) policies[0];
 
         Value nodePathValue = getValueFactory().createValue(testPath, PropertyType.PATH);
-        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(REP_NODE_PATH, nodePathValue)));
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Map.of(REP_NODE_PATH, nodePathValue)));
 
         // entry with * glob has already been created in the setup
-        Map<String, Value> restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
+        Map<String, Value> restrictions = Map.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
         assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, restrictions));
 
         // entry with different glob -> should be added
-        restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
+        restrictions = Map.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
         assertTrue(acl.addEntry(testPrincipal, testPrivileges, false, restrictions));
 
         acMgr.setPolicy(acl.getPath(), acl);

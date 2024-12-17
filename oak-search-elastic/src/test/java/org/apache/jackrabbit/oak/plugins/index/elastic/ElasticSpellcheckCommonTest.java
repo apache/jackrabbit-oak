@@ -36,8 +36,7 @@ import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     @After
     public void cleanup() {

@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -39,7 +40,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -152,7 +152,7 @@ public class DataStoreCheckTest {
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
         blobsAdded = new HashSet<>();
-        blobsAddedWithNodes = Maps.newHashMap();
+        blobsAddedWithNodes = new HashMap<>();
 
         for (int i = 0; i < numBlobs; i++) {
             SegmentBlob b = (SegmentBlob) store.createBlob(randomStream(i, 18342));
@@ -437,8 +437,8 @@ public class DataStoreCheckTest {
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
         return CollectionUtils.toSet(Iterators.transform(ids.iterator(),
-                input -> Joiner.on(",").join(
-                        DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                input -> String.join(",",
+                        DataStoreCheckCommand.encodeId(input, "--" + dsOption),
                         blobsAddedWithNodes.get(input))));
     }
 }

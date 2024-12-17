@@ -21,7 +21,6 @@ import java.util.Optional;
 import javax.management.MalformedObjectNameException;
 import javax.security.auth.spi.LoginModule;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
@@ -214,7 +213,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
             String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
 
             SyncMBeanImpl bean = new SyncMBeanImpl(contentRepository, securityProvider, syncManager, sncName, idpManager, idpName);
-            Map<String, String> properties = ImmutableMap.of("handler", sncName, "idp", idpName);
+            Map<String, String> properties = Map.of("handler", sncName, "idp", idpName);
             mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, 
                     JmxUtil.createObjectNameMap("UserManagement", "External Identity Synchronization Management", properties));
             log.debug("Registration of SynchronizationMBean completed");

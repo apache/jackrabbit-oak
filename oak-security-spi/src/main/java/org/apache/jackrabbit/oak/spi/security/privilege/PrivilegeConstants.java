@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.privilege;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -243,7 +242,7 @@ public interface PrivilegeConstants {
      * The internal names and aggregation definition of all built-in privileges
      * that are aggregates (except for jcr:all).
      */
-    Map<String, String[]> AGGREGATE_PRIVILEGES = ImmutableMap.of(
+    Map<String, String[]> AGGREGATE_PRIVILEGES = Map.of(
             JCR_READ, new String[]{REP_READ_NODES, REP_READ_PROPERTIES},
             JCR_MODIFY_PROPERTIES, new String[]{REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES},
             JCR_WRITE, new String[]{JCR_MODIFY_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE},

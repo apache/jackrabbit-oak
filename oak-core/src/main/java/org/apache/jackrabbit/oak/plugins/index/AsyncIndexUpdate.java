@@ -100,7 +100,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
     /**
@@ -570,7 +569,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         String afterTime = now();
         String oldThreadName = Thread.currentThread().getName();
         boolean threadNameChanged = false;
-        String afterCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
+        String afterCheckpoint = store.checkpoint(lifetime, Map.of(
                 "creator", AsyncIndexUpdate.class.getSimpleName(),
                 "created", afterTime,
                 "thread", oldThreadName,
@@ -807,7 +806,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             markFailingIndexesAsCorrupt(builder);
 
             CommitInfo info = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                    ImmutableMap.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
+                    Map.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
             indexUpdate =
                     new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler)
                             .withMissingProviderStrategy(missingStrategy);
@@ -960,7 +959,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 

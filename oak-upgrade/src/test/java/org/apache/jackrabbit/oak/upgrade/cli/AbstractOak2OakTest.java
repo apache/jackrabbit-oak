@@ -66,8 +66,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 public abstract class AbstractOak2OakTest {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractOak2OakTest.class);
@@ -105,7 +103,7 @@ public abstract class AbstractOak2OakTest {
         }
 
         String[] args = getArgs();
-        log.info("oak2oak {}", Joiner.on(' ').join(args));
+        log.info("oak2oak {}", String.join(" ", args));
         OakUpgrade.main(args);
         createSession();
     }

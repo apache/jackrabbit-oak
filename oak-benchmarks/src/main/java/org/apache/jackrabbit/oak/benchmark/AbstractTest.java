@@ -33,10 +33,10 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -277,15 +277,13 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
             String commentPattern = commaSeparated ? "#%s" : "    #%s";
             formatPattern = (String[])ArrayUtils.add(formatPattern, commentPattern);
         }
-        Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
-        return joiner.join(formatPattern);
+        return String.join(commaSeparated ? "," : "  ", formatPattern);
     }
 
     private String statsNamesJoined(boolean commaSeparated) {
-        Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
-        String names = joiner.join(statsNames());
+        String names = String.join(commaSeparated ? "," : "  ", statsNames());
         if (!commaSeparated) {
-            names =  " " + names;
+            names = " " + names;
         }
         return names;
     }
@@ -588,7 +586,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     protected Session loginSubject(@NotNull Subject subject) {
         try {
 
-            return Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+            return Java23Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
                 @Override
                 public Session run() throws Exception {
                     return getRepository().login(null, null);

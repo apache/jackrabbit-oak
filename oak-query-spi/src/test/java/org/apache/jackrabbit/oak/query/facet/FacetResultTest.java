@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query.facet;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.query.facet.FacetResult.Facet;
 import org.apache.jackrabbit.oak.query.facet.FacetResult.FacetResultRow;
@@ -26,6 +25,8 @@ import javax.jcr.Value;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -148,7 +149,7 @@ public class FacetResultTest {
         FacetResultRow[] facetResultRows = new FacetResultRow[numRows];
 
         for (int i = 0; i < numRows; i++) {
-            Map<String, String> columns = Maps.newHashMap();
+            Map<String, String> columns = new HashMap<>();
 
             for (FacetColumn col : facetColumns) {
                 columns.put(col.colName, col.facets[i]);

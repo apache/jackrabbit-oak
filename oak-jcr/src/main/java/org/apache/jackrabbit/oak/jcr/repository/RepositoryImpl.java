@@ -40,8 +40,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
@@ -505,7 +503,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         } else if (!relaxedLocking) {
             return singletonMap(REFRESH_INTERVAL, (Object) refreshInterval);
         } else {
-            return ImmutableMap.of(
+            return Map.of(
                     REFRESH_INTERVAL, (Object) refreshInterval,
                     RELAXED_LOCKING,  (Object) Boolean.valueOf(relaxedLocking));
         }

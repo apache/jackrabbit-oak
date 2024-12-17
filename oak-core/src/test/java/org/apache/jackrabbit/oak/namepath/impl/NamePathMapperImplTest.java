@@ -28,7 +28,6 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
@@ -37,14 +36,14 @@ import org.junit.Test;
 
 public class NamePathMapperImplTest {
 
-    private static final Map<String, String> GLOBAL = ImmutableMap.of(
+    private static final Map<String, String> GLOBAL = Map.of(
             "oak-jcr", "http://www.jcp.org/jcr/1.0",
             "oak-nt", "http://www.jcp.org/jcr/nt/1.0",
             "oak-foo", "http://www.example.com/foo",
             "oak-quu", "http://www.example.com/quu",
             "oak",     "http://jackrabbit.apache.org/oak/ns/1.0");
 
-    private static final Map<String, String> LOCAL = ImmutableMap.of(
+    private static final Map<String, String> LOCAL = Map.of(
             "jcr-jcr", "http://www.jcp.org/jcr/1.0",
             "jcr-nt", "http://www.jcp.org/jcr/nt/1.0",
             "foo", "http://www.example.com/foo",

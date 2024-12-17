@@ -28,7 +28,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -180,7 +179,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
         // - /content/aa/bb : allow testGroup, deny everyone
         // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
         // - /content2      : allow everyone,  deny testGroup (isolated)
-        Map<String, Principal> m = ImmutableMap.of(
+        Map<String, Principal> m = Map.of(
                 "/content/a", testGroupPrincipal,
                 "/content/aa/bb", testGroupPrincipal,
                 "/content/a/b/c", EveryonePrincipal.getInstance(),

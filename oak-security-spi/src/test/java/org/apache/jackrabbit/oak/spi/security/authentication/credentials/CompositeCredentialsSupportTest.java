@@ -22,9 +22,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -72,7 +69,7 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributes);
         assertTrue(attributes.isEmpty());
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
@@ -100,13 +97,13 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributesD);
         assertTrue(attributesD.isEmpty());
 
-        Map<String, ?> expectedS = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expectedS = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         assertTrue(credentialsSupport.setAttributes(sc, expectedS));
 
-        Map<String, ?> expectedT = ImmutableMap.of("test", "Test1CredentialsSupport");
+        Map<String, ?> expectedT = Map.of("test", "Test1CredentialsSupport");
         assertTrue(credentialsSupport.setAttributes(tc, expectedT));
 
-        assertFalse(credentialsSupport.setAttributes(dummy, ImmutableMap.of("none", "none")));
+        assertFalse(credentialsSupport.setAttributes(dummy, Map.of("none", "none")));
 
         attributesS = credentialsSupport.getAttributes(sc);
         for (Map.Entry<String, ?> entry : expectedS.entrySet()) {
@@ -170,7 +167,7 @@ public class CompositeCredentialsSupportTest {
             if (credentials instanceof TestCredentials) {
                 return attributes;
             } else {
-                return ImmutableMap.of();
+                return Map.of();
             }
         }
 

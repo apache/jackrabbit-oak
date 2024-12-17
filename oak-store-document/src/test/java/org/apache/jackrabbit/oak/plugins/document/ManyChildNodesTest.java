@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.junit.Assert.assertTrue;
 
@@ -83,7 +82,7 @@ public class ManyChildNodesTest {
 
     private final class TestStore extends MemoryDocumentStore {
 
-        Map<String, Integer> queries = Maps.newHashMap();
+        Map<String, Integer> queries = new HashMap<>();
 
         @NotNull
         @Override

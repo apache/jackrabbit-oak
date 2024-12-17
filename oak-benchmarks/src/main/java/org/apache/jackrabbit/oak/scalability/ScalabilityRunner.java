@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
@@ -137,7 +137,7 @@ public class ScalabilityRunner {
             }
         }
         
-        Map<String, List<String>> argmap = Maps.newHashMap();
+        Map<String, List<String>> argmap = new HashMap<>();
         // Split the args to get suites and benchmarks (i.e. suite:benchmark1,benchmark2)
         for(String arg : argset) {
             List<String> tokens = Splitter.on(":").limit(2).splitToList(arg);

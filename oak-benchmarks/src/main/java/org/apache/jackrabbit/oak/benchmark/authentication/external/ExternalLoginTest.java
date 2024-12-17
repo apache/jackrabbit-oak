@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
@@ -36,6 +35,7 @@ import javax.security.auth.login.Configuration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
@@ -149,21 +149,21 @@ public class ExternalLoginTest extends AbstractExternalTest {
                         new AppConfigurationEntry(
                                 GuestLoginModule.class.getName(),
                                 OPTIONAL,
-                                ImmutableMap.of()),
+                                Map.of()),
                         new AppConfigurationEntry(
                                 TokenLoginModule.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of()),
+                                Map.of()),
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of(
+                                Map.of(
                                         ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
                                         ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
                         new AppConfigurationEntry(
                                 LoginModuleImpl.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of())
+                                Map.of())
                 };
             }
         };

@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import java.util.Hashtable;
-import java.util.Properties;
+import java.util.Map;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
@@ -94,7 +91,7 @@ public class MountInfoProviderServiceTest {
 
         MockOsgi.injectServices(service, context.bundleContext());
         service.activate(context.bundleContext(), withExpectedMounts("foo", "bar", "baz"));
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
+        MockOsgi.activate(service, context.bundleContext(), Map.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
 
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertEquals(3, provider.getNonDefaultMounts().size());
@@ -130,7 +127,7 @@ public class MountInfoProviderServiceTest {
 
         MockOsgi.injectServices(service, context.bundleContext());
         service.activate(context.bundleContext(), withExpectedMounts("foo", "bar", "baz"));
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
+        MockOsgi.activate(service, context.bundleContext(), Map.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
 
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertNull("Not all expected mounts have been provided", provider);

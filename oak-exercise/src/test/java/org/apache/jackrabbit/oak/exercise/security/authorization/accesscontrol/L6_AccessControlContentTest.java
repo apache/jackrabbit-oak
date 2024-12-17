@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.accesscontrol;
 
 import java.security.Principal;
+import java.util.Map;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -27,7 +29,6 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -184,8 +185,8 @@ public class L6_AccessControlContentTest extends AbstractJCRTest {
     public void testRestrictionContent() throws RepositoryException {
         ValueFactory vf = superuser.getValueFactory();
         acl.addEntry(testPrincipal, testPrivileges, false,
-                ImmutableMap.of(AccessControlConstants.REP_GLOB, vf.createValue("")),
-                ImmutableMap.of(AccessControlConstants.REP_PREFIXES, new Value[] {vf.createValue("jcr"), vf.createValue("mix")}));
+                Map.of(AccessControlConstants.REP_GLOB, vf.createValue("")),
+                Map.of(AccessControlConstants.REP_PREFIXES, new Value[] {vf.createValue("jcr"), vf.createValue("mix")}));
         acMgr.setPolicy(testRoot, acl);
 
         String policyPath = null; // EXERCISE

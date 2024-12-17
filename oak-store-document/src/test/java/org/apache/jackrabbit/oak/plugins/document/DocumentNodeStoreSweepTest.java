@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -238,7 +238,7 @@ public class DocumentNodeStoreSweepTest {
     public void lowerSweepLimit() throws Exception {
         ns.dispose();
         // restart with a document store that tracks queries
-        final Map<String, Long> queries = Maps.newHashMap();
+        final Map<String, Long> queries = new HashMap<>();
         store = new FailingDocumentStore(new MemoryDocumentStore() {
             @NotNull
             @Override

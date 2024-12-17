@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
@@ -39,7 +38,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -202,14 +200,13 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
 
     @NotNull
     private Map<String, Object> toMap(@NotNull Commit commit) {
-        return ImmutableMap.<String, Object>builder()
-            .put("writerName", commit.getThreadName())
-            .put("writerDetails", toString(commit.getStackTrace()))
-            .put("GCGeneration", toString(commit.getGCGeneration()))
-            .put("queued", commit.getQueued())
-            .put("dequeued", commit.getDequeued())
-            .put("applied", commit.getApplied())
-            .build();
+        return Map.of(
+            "writerName", commit.getThreadName(),
+            "writerDetails", toString(commit.getStackTrace()),
+            "GCGeneration", toString(commit.getGCGeneration()),
+            "queued", commit.getQueued(),
+            "dequeued", commit.getDequeued(),
+            "applied", commit.getApplied());
     }
 
     @NotNull

@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 
 /**
@@ -352,7 +352,7 @@ public class UnionQueryImpl implements Query {
                     // Merge the 2 maps from the left and right queries to get the selector counts
                     Map<String, Long> leftSelectorScan = left.getSelectorScanCount();
                     Map<String, Long> rightSelectorScan = right.getSelectorScanCount();
-                    Map<String, Long> unionScan = Maps.newHashMap(leftSelectorScan);
+                    Map<String, Long> unionScan = new HashMap<>(leftSelectorScan);
                     for (String key : rightSelectorScan.keySet()) {
                         if (unionScan.containsKey(key)) {
                             unionScan.put(key, rightSelectorScan.get(key) + unionScan.get(key));

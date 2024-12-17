@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -81,7 +81,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected Session testSession;
     protected AccessControlManager testAcMgr;
 
-    private Map<String, ACL> toRestore = Maps.newHashMap();
+    private Map<String, ACL> toRestore = new HashMap<>();
 
     @Override
     @Before

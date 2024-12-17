@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.cache.impl;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.osgi.service.component.annotations.Component;
@@ -54,7 +54,7 @@ public class CacheStatsMetrics {
     private static final List<String> TYPES = ImmutableList.of(
             REQUEST, HIT, MISS, EVICTION, ELEMENT, LOAD_TIME);
 
-    private Map<String, CacheStatsMBean> cacheStatsMBeans = Maps.newHashMap();
+    private Map<String, CacheStatsMBean> cacheStatsMBeans = new HashMap<>();
     private MetricRegistry registry = new MetricRegistry();
 
     @Reference(

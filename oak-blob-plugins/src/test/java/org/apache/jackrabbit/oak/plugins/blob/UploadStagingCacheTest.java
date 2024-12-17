@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ch.qos.logback.classic.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -710,7 +710,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         String id = ID_PREFIX + 1;
         copyToFile(randomStream(1, 4 * 1024), getFile(id, root));
         String name = id.substring(0, 2) + "/" + id.substring(2, 4) + "/" + id;
-        Map<String, Long> pendingUploads = Maps.newHashMap();
+        Map<String, Long> pendingUploads = new HashMap<>();
         pendingUploads.put(name, System.currentTimeMillis());
         serializeMap(pendingUploads, pendingUploadFile);
     }

@@ -41,7 +41,6 @@ import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -329,10 +328,9 @@ public class MongoDocumentStore implements DocumentStore {
             status = new MongoStatus(connection, db.getName());
         }
         status.checkVersion();
-        metadata = ImmutableMap.<String,String>builder()
-                .put("type", "mongo")
-                .put("version", status.getVersion())
-                .build();
+        metadata = Map.of(
+                "type", "mongo",
+                "version", status.getVersion());
 
         this.nodeNameLimit = MongoUtils.getNodeNameLimit(status);
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
@@ -1853,7 +1851,7 @@ public class MongoDocumentStore implements DocumentStore {
         fields.put(Document.MOD_COUNT, 1);
         fields.put(NodeDocument.MODIFIED_IN_SECS, 1);
 
-        Map<String, ModificationStamp> modCounts = Maps.newHashMap();
+        Map<String, ModificationStamp> modCounts = new HashMap<>();
 
         nodes.withReadPreference(ReadPreference.primary())
                 .find(Filters.in(Document.ID, keys)).projection(fields)
@@ -2057,14 +2055,14 @@ public class MongoDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        Map<String, String> builder = new HashMap<>();
         List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
         all.forEach(c -> toMapBuilder(builder,
                 connection.getDatabase().runCommand(
                     new BasicDBObject("collStats", c.getNamespace().getCollectionName()),
                         BasicDBObject.class),
                 c.getNamespace().getCollectionName()));
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     long getMaxDeltaForModTimeIdxSecs() {
@@ -2326,7 +2324,7 @@ public class MongoDocumentStore implements DocumentStore {
         return handleException(ex, collection, Collections.singleton(id));
     }
 
-    private static void toMapBuilder(ImmutableMap.Builder<String, String> builder,
+    private static void toMapBuilder(Map<String, String> builder,
                                      BasicDBObject stats,
                                      String prefix) {
         stats.forEach((k, v) -> {

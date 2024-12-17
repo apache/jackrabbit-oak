@@ -19,11 +19,13 @@
 package org.apache.jackrabbit.oak.index;
 
 import com.codahale.metrics.MetricRegistry;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -38,15 +40,27 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_INDEX_DATA_SIZE;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_DURATION_SECONDS;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_NODES_INDEXED;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_NODES_TRAVERSED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
-public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback{
+public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback {
 
     protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
+    private final IndexerSupport indexerSupport;
+    private final IndexingReporter indexingReporter;
+    private final StatisticsProvider statisticsProvider;
     private NodeStore copyOnWriteStore;
-    private IndexerSupport indexerSupport;
+    private long nodesTraversed = 0;
+    private long nodesIndexed = 0;
 
     /**
      * Index lane name which is used for indexing
@@ -64,18 +78,38 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     public OutOfBandIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = requireNonNull(indexHelper);
         this.indexerSupport = requireNonNull(indexerSupport);
+        this.indexingReporter = indexHelper.getIndexReporter();
+        this.statisticsProvider = indexHelper.getStatisticsProvider();
     }
 
     public void reindex() throws CommitFailedException, IOException {
-        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+        indexingReporter.setIndexNames(indexNames);
+        INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        Stopwatch indexJobWatch = Stopwatch.createStarted();
+        try {
+            NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
 
-        copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        NodeState baseState = copyOnWriteStore.getRoot();
-        //TODO Check for indexPaths being empty
+            copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+            NodeState baseState = copyOnWriteStore.getRoot();
 
-        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-        preformIndexUpdate(baseState);
-        indexerSupport.postIndexWork(copyOnWriteStore);
+            indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
+            preformIndexUpdate(baseState);
+            indexerSupport.postIndexWork(copyOnWriteStore);
+
+            long indexingDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
+            long totalSize = indexerSupport.computeSizeOfGeneratedIndexData();
+            INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_DURATION_SECONDS, indexingDurationSeconds);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_NODES_TRAVERSED, nodesTraversed);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_NODES_INDEXED, nodesIndexed);
+            MetricsUtils.addMetricByteSize(statisticsProvider, indexingReporter, METRIC_INDEXING_INDEX_DATA_SIZE, totalSize);
+            indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
+        } catch (Throwable t) {
+            INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:FAIL] Metrics: {}, Error: {}",
+                    MetricsFormatter.createMetricsWithDurationOnly(indexJobWatch), t.toString());
+            throw t;
+        }
     }
 
     protected File getLocalIndexDir() throws IOException {
@@ -90,13 +124,13 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     //~---------------------------------------------------< callbacks >
 
     @Override
-    public void indexUpdate() throws CommitFailedException {
-
+    public void indexUpdate() {
+        nodesIndexed++;
     }
 
     @Override
-    public void traversedNode(NodeTraversalCallback.PathSource pathSource) throws CommitFailedException {
-
+    public void traversedNode(NodeTraversalCallback.PathSource pathSource) {
+        nodesTraversed++;
     }
 
     protected void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {

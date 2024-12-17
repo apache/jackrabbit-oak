@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -39,7 +37,6 @@ public class NodeStateEntryWriter {
     public static final char DELIMITER_CHAR = '|';
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
-    private final Joiner pathJoiner = Joiner.on('/');
     private final boolean includeChildOrder;
 
     //TODO Possible optimizations
@@ -67,7 +64,7 @@ public class NodeStateEntryWriter {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
         StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
         sb.append('/');
-        pathJoiner.appendTo(sb, pathElements);
+        sb.append(String.join("/", pathElements));
         sb.append(DELIMITER_CHAR).append(nodeStateAsJson);
         return sb.toString();
     }

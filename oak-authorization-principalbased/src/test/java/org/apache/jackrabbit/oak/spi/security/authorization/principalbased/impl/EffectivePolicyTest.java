@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -81,12 +80,12 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
         // - jcrEffectivePath : read
         // - root : lifecycleMgt
         policy = (PrincipalPolicyImpl) acMgr.getApplicablePolicies(validPrincipal2)[0];
-        Map<String, Value> restrictions = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*/glob"));
-        policy.addEntry(jcrEffectivePath, privilegesFromNames(JCR_READ), restrictions, ImmutableMap.of());
+        Map<String, Value> restrictions = Map.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*/glob"));
+        policy.addEntry(jcrEffectivePath, privilegesFromNames(JCR_READ), restrictions, Map.of());
 
         String ntJcrName = getNamePathMapper().getJcrName(JcrConstants.NT_RESOURCE);
-        Map<String, Value[]> mvRestrictions = ImmutableMap.of(getNamePathMapper().getJcrName(REP_NT_NAMES), new Value[] {getValueFactory(root).createValue(ntJcrName, PropertyType.NAME)});
-        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), ImmutableMap.of(), mvRestrictions);
+        Map<String, Value[]> mvRestrictions = Map.of(getNamePathMapper().getJcrName(REP_NT_NAMES), new Value[] {getValueFactory(root).createValue(ntJcrName, PropertyType.NAME)});
+        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), Map.of(), mvRestrictions);
 
         acMgr.setPolicy(policy.getPath(), policy);
 

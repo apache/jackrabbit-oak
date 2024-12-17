@@ -72,7 +72,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 public class PipelinedMongoConnectionFailureIT {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoConnectionFailureIT.class);
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.9.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.11.0");
     // We cannot use the MongoDockerRule/MongoConnectionFactory because they don't allow customizing the docker network
     // used to launch the Mongo container.
     private static final int MONGODB_DEFAULT_PORT = 27017;

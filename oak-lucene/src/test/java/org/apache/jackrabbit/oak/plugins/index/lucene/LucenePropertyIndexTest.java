@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,7 +44,6 @@ import java.util.concurrent.Executors;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
@@ -105,7 +105,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
@@ -121,7 +120,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.QUERY_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
@@ -131,7 +129,6 @@ import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.Orde
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
@@ -264,28 +261,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void indexSelection() throws Exception {
-        createIndex("test1", Set.of("propa", "propb"));
-        createIndex("test2", Set.of("propc"));
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "foo");
-        test.addChild("b").setProperty("propa", "foo");
-        test.addChild("c").setProperty("propa", "foo2");
-        test.addChild("d").setProperty("propc", "foo");
-        test.addChild("e").setProperty("propd", "foo");
-        root.commit();
-
-        String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
-        assertThat(explain(propaQuery), containsString("lucene:test1"));
-        assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("lucene:test2"));
-
-        assertQuery(propaQuery, asList("/test/a", "/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", asList("/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", asList("/test/d"));
-    }
-
-    @Test
     public void indexSelectionVsNodeType() throws Exception {
         Tree luceneIndex = createIndex("test1", Set.of("propa"));
         // decrease cost of lucene property index
@@ -365,11 +340,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
         assertThat(explain(propabQuery), containsString("lucene:test2"));
-        assertQuery(propabQuery, asList("/test/a", "/test/b"));
+        assertQuery(propabQuery, List.of("/test/a", "/test/b"));
 
         String propcdQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
         assertThat(explain(propcdQuery), containsString("lucene:test1"));
-        assertQuery(propcdQuery, asList("/test/a", "/test/b", "/test/c", "/test/d"));
+        assertQuery(propcdQuery, List.of("/test/a", "/test/b", "/test/c", "/test/d"));
     }
 
     @Test
@@ -398,11 +373,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String propabQuery = "select [jcr:path] from [nt:unstructured] where [propb] = 'baz' and " +
             "[propa] = 'foo'";
         assertThat(explain(propabQuery), containsString("lucene:test2"));
-        assertQuery(propabQuery, asList("/test/a", "/test/b"));
+        assertQuery(propabQuery, List.of("/test/a", "/test/b"));
 
         String propNoIdxQuery = "select [jcr:path] from [nt:base] where [propb] = 'baz'";
         assertThat(explain(propNoIdxQuery), containsString("no-index"));
-        assertQuery(propNoIdxQuery, ImmutableList.of());
+        assertQuery(propNoIdxQuery, List.of());
     }
 
     @Test
@@ -425,7 +400,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select [jcr:path] from [nt:file]";
         assertThat(explain(propabQuery), containsString("lucene:test2"));
-        assertQuery(propabQuery, asList("/test/a", "/test/b", "/test"));
+        assertQuery(propabQuery, List.of("/test/a", "/test/b", "/test"));
     }
 
     @Test
@@ -451,7 +426,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select [jcr:path] from [nt:file]";
         assertThat(explain(propabQuery), containsString("lucene:test2"));
-        assertQuery(propabQuery, asList("/test/a", "/test/b", "/test"));
+        assertQuery(propabQuery, List.of("/test/a", "/test/b", "/test"));
     }
 
     private static Tree setNodeType(Tree t, String typeName){
@@ -476,62 +451,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
         assertThat(explain(propabQuery), containsString(":nodeName:foo"));
-        assertQuery(propabQuery, asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", asList("/test/bar"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", asList("/camelCase"));
+        assertQuery(propabQuery, List.of("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", List.of("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", List.of("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", List.of("/camelCase"));
 
-        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
-        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
-    }
-
-    //OAK-3825
-    @Test
-    public void nodeNameViaPropDefinition() throws Exception{
-        //make index
-        Tree idx = createIndex("test1", Collections.EMPTY_SET);
-        useV2(idx);
-        Tree rules = idx.addChild(FulltextIndexConstants.INDEX_RULES);
-        rules.setOrderableChildren(true);
-        Tree rule = rules.addChild("nt:base");
-        Tree propDef = rule.addChild(PROP_NODE).addChild("nodeName");
-        propDef.setProperty(PROP_NAME, PROPDEF_PROP_NODE_NAME);
-        propDef.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/");
-        test.addChild("foo");
-        test.addChild("camelCase");
-        test.addChild("test").addChild("bar");
-        root.commit();
-
-        //test
-        String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
-        assertThat(explain(propabQuery), containsString(":nodeName:foo"));
-        assertQuery(propabQuery, asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", asList("/test/bar"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", asList("/camelCase"));
-
-        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
-        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
-        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
-    }
-
-    @Test
-    public void emptyIndex() throws Exception{
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a");
-        test.addChild("b");
-        root.commit();
-
-        assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"), containsString("lucene:test1"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", List.of("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", List.of("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", List.of("/camelCase"));
     }
 
     @Test
@@ -618,8 +545,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain("SELECT * FROM [nt:unstructured] as [content] WHERE [content].[references] LIKE '/a/b/d%'"),
                 containsString("luceneQuery: references:/a/b/d*"));
 
-        assertQuery("SELECT [jcr:path] FROM [nt:base] as [content] WHERE [content].[references] LIKE '/a/b/c%'", SQL2, asList());
-        assertQuery("SELECT [jcr:path] FROM [nt:base] WHERE references LIKE '/a/b/d%'", asList("/test/b"));
+        assertQuery("SELECT [jcr:path] FROM [nt:base] as [content] WHERE [content].[references] LIKE '/a/b/c%'", SQL2, List.of());
+        assertQuery("SELECT [jcr:path] FROM [nt:base] WHERE references LIKE '/a/b/d%'", List.of("/test/b"));
     }
 
     @Test
@@ -677,15 +604,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] >= 20"), containsString("lucene:test1"));
 
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <= 20", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] < 20", asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20 or [propa] = 10 ", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] > 10 and [propa] < 30", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] in (10,20)", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", List.of("/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", List.of("/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] <= 20", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] < 20", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20 or [propa] = 10 ", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] > 10 and [propa] < 30", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] in (10,20)", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa is not null", List.of("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
@@ -703,7 +630,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10"), containsString("lucene:test1"));
 
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/a", "/test/a/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", List.of("/test/a", "/test/a/b"));
     }
 
     //OAK-4517
@@ -722,7 +649,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
         assertThat(explain(query), containsString("lucene:test1"));
-        assertQuery(query, asList("/test/a", "/test/a/b"));
+        assertQuery(query, List.of("/test/a", "/test/a/b"));
     }
 
     //OAK-4517
@@ -743,12 +670,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/a')";
         String explanation = explain(query);
         assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/test/a/b", "/test/a/b/c"));
+        assertQuery(query, List.of("/test/a/b", "/test/a/b/c"));
 
         query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/a/b')";
         explanation = explain(query);
         assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/test/a/b/c"));
+        assertQuery(query, List.of("/test/a/b/c"));
 
         query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
         explanation = explain(query);
@@ -778,7 +705,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
 
         assertThat(explain(query), containsString("lucene:test1"));
-        assertQuery(query, asList("/test/c"));
+        assertQuery(query, List.of("/test/c"));
 
         //Make some change and then check
         subTreeRoot = root.getTree("/").getChild("test");
@@ -786,7 +713,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         subTreeRoot.addChild("f").setProperty("propa", 10);
         root.commit();
 
-        assertQuery(query, asList("/test/c", "/test/f"));
+        assertQuery(query, List.of("/test/c", "/test/f"));
     }
 
     @Test
@@ -805,16 +732,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] >= 20"), containsString("lucene:test1"));
 
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <= 20", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] < 20", asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20 or [propa] = 10 ", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] > 10 and [propa] < 30", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] in (10,20)", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
-
+        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", List.of("/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20", List.of("/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] <= 20", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] < 20", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20 or [propa] = 10 ", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] > 10 and [propa] < 30", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] in (10,20)", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa is not null", List.of("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
@@ -832,12 +758,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("d").setProperty("propb", "foo");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20.3", asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20.4", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <= 20.5", asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] < 20.4", asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] > 10.5 and [propa] < 30", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] >= 20.3", List.of("/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] = 20.4", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] <= 20.5", List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] < 20.4", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] > 10.5 and [propa] < 30", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa is not null", List.of("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
@@ -855,15 +781,15 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("e").setProperty("propb", "g");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] where propa = 'a'", asList("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa = 'a'", List.of("/test/a"));
         //Check that string props are not tokenized
-        assertQuery("select [jcr:path] from [nt:base] where propa = 'b is b'", asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa in ('a', 'c')", asList("/test/a", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propb] >= 'f'", asList("/test/d", "/test/e"));
-        assertQuery("select [jcr:path] from [nt:base] where [propb] <= 'f'", asList("/test/c", "/test/d"));
-        assertQuery("select [jcr:path] from [nt:base] where [propb] > 'e'", asList("/test/d", "/test/e"));
-        assertQuery("select [jcr:path] from [nt:base] where [propb] < 'g'", asList("/test/c", "/test/d"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa = 'b is b'", List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa in ('a', 'c')", List.of("/test/a", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propb] >= 'f'", List.of("/test/d", "/test/e"));
+        assertQuery("select [jcr:path] from [nt:base] where [propb] <= 'f'", List.of("/test/c", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where [propb] > 'e'", List.of("/test/d", "/test/e"));
+        assertQuery("select [jcr:path] from [nt:base] where [propb] < 'g'", List.of("/test/c", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa is not null", List.of("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
@@ -881,11 +807,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("d").setProperty("propb", "foo");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/2014"), asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/2014"), asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/2014"), asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] > "+ dt("15/02/2014") + " and [propa] < " + dt("13/04/2014"), asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/2014"), List.of("/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/2014"), List.of("/test/b", "/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/2014"), List.of("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [propa] > "+ dt("15/02/2014") + " and [propa] < " + dt("13/04/2014"), List.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa is not null", List.of("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
@@ -902,7 +828,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where native('foo', 'propa:(humpty OR dumpty)')",
-                asList("/test/a", "/test/b"));
+                List.of("/test/a", "/test/b"));
     }
 
     @Test
@@ -915,7 +841,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("a").addChild("b").setProperty("propa", "a");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] as s where [b/propa] = 'a'", asList("/test2/a"));
+        assertQuery("select [jcr:path] from [nt:base] as s where [b/propa] = 'a'", List.of("/test2/a"));
 
     }
 
@@ -931,7 +857,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("a").setProperty("propa", "a");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test2/a"));
+        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", List.of("/test/test2/a"));
     }
 
     @Test
@@ -947,7 +873,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test/test2') and propa = 'a'",
-                asList("/test/test2/test3/a"));
+                List.of("/test/test2/test3/a"));
     }
 
     @Test
@@ -962,7 +888,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         //asert that (1) result gets returned correctly, (2) parent isn't there, and (3) child is returned
-        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test1"));
+        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", List.of("/test/test1"));
     }
 
     @Test
@@ -987,28 +913,28 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         queryIndexProvider.setShouldCount(true);
 
         // Top level index
-        assertQuery("/jcr:root/test/a/c/d[@propa='a']", XPATH, asList("/test/a/c/d"));
+        assertQuery("/jcr:root/test/a/c/d[@propa='a']", XPATH, List.of("/test/a/c/d"));
         assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
         queryIndexProvider.reset();
 
-        assertQuery("/jcr:root/test/a/c/*[@propa='a']", XPATH, asList("/test/a/c/d"));
+        assertQuery("/jcr:root/test/a/c/*[@propa='a']", XPATH, List.of("/test/a/c/d"));
         assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
         queryIndexProvider.reset();
 
-        assertQuery("/jcr:root/test/a//*[@propa='a']", XPATH, asList("/test/a/c/d"));
+        assertQuery("/jcr:root/test/a//*[@propa='a']", XPATH, List.of("/test/a/c/d"));
         assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
         queryIndexProvider.reset();
 
         // Sub-root index
-        assertQuery("/jcr:root/subRoot/test/a/c/d[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+        assertQuery("/jcr:root/subRoot/test/a/c/d[@propa='a']", XPATH, List.of("/subRoot/test/a/c/d"));
         assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
         queryIndexProvider.reset();
 
-        assertQuery("/jcr:root/subRoot/test/a/c/*[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+        assertQuery("/jcr:root/subRoot/test/a/c/*[@propa='a']", XPATH, List.of("/subRoot/test/a/c/d"));
         assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
         queryIndexProvider.reset();
 
-        assertQuery("/jcr:root/subRoot/test/a//*[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+        assertQuery("/jcr:root/subRoot/test/a//*[@propa='a']", XPATH, List.of("/subRoot/test/a/c/d"));
         assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
         queryIndexProvider.reset();
     }
@@ -1037,7 +963,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithLong_NotIndexed() throws Exception {
-        Tree idx = createIndex("test1", Collections.<String>emptySet());
+        Tree idx = createIndex("test1", Set.of());
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
@@ -1055,7 +981,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void sortQueriesWithLong_NotIndexed_relativeProps() throws Exception {
-        Tree idx = createIndex("test1", Collections.<String>emptySet());
+        Tree idx = createIndex("test1", Set.of());
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo/bar"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("foo").addChild("bar");
         propIdx.setProperty(PROP_TYPE, PropertyType.TYPENAME_LONG);
@@ -1338,7 +1264,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String queryString = "//* [jcr:contains(., 'foo' )]";
         // verify results ordering
         // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
-        assertOrderedQuery(queryString, asList("/test/c", "/test/a", "/test/b"), XPATH, true);
+        assertOrderedQuery(queryString, List.of("/test/c", "/test/a", "/test/b"), XPATH, true);
     }
 
     @Test
@@ -1389,7 +1315,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain, containsString("full:jcr:content/jcr:description:batman^2.0"));
         assertThat(explain, containsString(":fulltext:batman"));
 
-        assertOrderedQuery(queryString, asList("/test/a", "/test/b", "/test/c"), XPATH, true);
+        assertOrderedQuery(queryString, List.of("/test/a", "/test/b", "/test/c"), XPATH, true);
     }
 
     @Test
@@ -1467,7 +1393,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(
                 "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
                         + "is here\"')",
-                asList("/test/a", "/test/b"));
+                List.of("/test/a", "/test/b"));
     }
 
     // OAK-2434
@@ -1499,7 +1425,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String sql = "SELECT * FROM [nt:base] WHERE [jcr:path] LIKE \'" + r.getPath() + "/%\'"
             + " AND CONTAINS(*, \'text \'\'fox jumps\'\' -other\')";
-        assertQuery(sql, asList("/test/node1"));
+        assertQuery(sql, List.of("/test/node1"));
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
@@ -1537,7 +1463,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String queryString = "//element(*, oak:Unstructured)[jcr:contains(., 'foo' )]";
         // verify results ordering
         // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
-        assertOrderedQuery(queryString, asList("/test/b", "/test/c", "/test/a"), XPATH, true);
+        assertOrderedQuery(queryString, List.of("/test/b", "/test/c", "/test/a"), XPATH, true);
     }
 
     @Test
@@ -1550,8 +1476,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         createFileNode(test, "xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><msg>sky is blue</msg>", "application/xml");
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", asList("/test/xml/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", List.of("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", List.of("/test/xml/jcr:content"));
 
         //Now disable extraction for application/xml and see that query
         //does not return any result for that
@@ -1576,8 +1502,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", Collections.<String>emptyList());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", List.of("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", List.of());
     }
 
     @Test
@@ -1615,7 +1541,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //As its not a reindex case actual blob content would be accessed
         assertTrue(testBlob.isStreamAccessed());
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", List.of("/test/text/jcr:content"));
         assertEquals(0, textProvider.accessCount);
 
         testBlob.resetState();
@@ -1627,7 +1553,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         //Now the content should be provided by the PreExtractedTextProvider
         //and instead of fox its lion!
         assertFalse(testBlob.isStreamAccessed());
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'lion ')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'lion ')", List.of("/test/text/jcr:content"));
         assertEquals(1, textProvider.accessCount);
     }
 
@@ -1693,14 +1619,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.setProperty("text", "red brown fox was jumping");
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of("/test"));
 
         idx = root.getTree("/oak:index/test");
         idx.setProperty(LuceneIndexConstants.MAX_FIELD_LENGTH, 2);
         idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of());
     }
 
     @Test
@@ -1712,16 +1638,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         createFileNode(test, "text", "red brown fox was jumping", "text/plain");
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", List.of("/test/text/jcr:content"));
 
         idx = root.getTree("/oak:index/test");
         idx.addChild(TIKA).setProperty(LuceneIndexConstants.TIKA_MAX_EXTRACT_LENGTH, 15);
         idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", List.of("/test/text/jcr:content"));
     }
 
     @Test
@@ -1733,12 +1659,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String path = createFileNode(test, "text", "red brown fox was jumping", "text/plain").getPath();
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of("/test/text/jcr:content"));
 
         //Remove the mimeType property. Then binary would not be indexed and result would be empty
         root.getTree(path).removeProperty(JcrConstants.JCR_MIMETYPE);
         root.commit();
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of());
     }
 
     @Test
@@ -1750,11 +1676,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String path = createFileNode(test, "text", "red brown fox was jumping", "text/plain").getPath();
         root.commit();
 
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of("/test/text/jcr:content"));
 
         root.getTree(path).setProperty(JcrConstants.JCR_MIMETYPE, "foo/bar");
         root.commit();
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", List.of());
     }
 
     @Test
@@ -1785,7 +1711,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String queryString = "/jcr:root//element(*, nt:base)[jcr:contains(jcr:content, 'foo' )]";
 
-        assertQuery(queryString, "xpath", asList("/test/b"));
+        assertQuery(queryString, "xpath", List.of("/test/b"));
     }
 
     @Test
@@ -1867,11 +1793,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(
             "/jcr:root//element(*, nt:base)[(@propa = 'a4' or @propb = 'b3')] order by @propd",
             XPATH,
-            asList("/test/b3", "/test/a4"));
+                List.of("/test/b3", "/test/a4"));
         assertQuery(
             "/jcr:root//element(*, nt:base)[(@propa = 'a3' or @propb = 'b0' or @propc = 'c2')] order by @propd",
             XPATH,
-            asList("/test/b0", "/test/c2", "/test/a3"));
+                List.of("/test/b0", "/test/c2", "/test/a3"));
     }
 
     @Test
@@ -1903,9 +1829,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // hello and image would be index by aggregation but
         // jpg should be exclude as there is a property defn to exclude it
-        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", asList("/test/a"));
-        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", asList("/test/a"));
-        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", Collections.<String>emptyList());
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", List.of());
 
         //Check that property index is being used
         assertThat(explain("select [jcr:path] from [oak:TestNode] where [original/jcr:content/type] = 'foo'"),
@@ -1940,53 +1866,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // hello and image would be index by aggregation but
         // jpg should also be included as it has not been excluded
-        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", asList("/test/a"));
-        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", asList("/test/a"));
-        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", asList("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", List.of("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", List.of("/test/a"));
 
         //Check that property index is being used
         assertThat(explain("select [jcr:path] from [oak:TestNode] where [original/jcr:content/type] = 'foo'"),
                 containsString("original/jcr:content/type:foo"));
-    }
-
-    @Test
-    public void indexingBasedOnMixin() throws Exception {
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithMixinType(test, "a", "mix:title").setProperty("jcr:title", "a");
-        createNodeWithMixinType(test, "b", "mix:title").setProperty("jcr:title", "c");
-        test.addChild("c").setProperty("jcr:title", "a");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:title] = 'a'";
-        assertThat(explain(propabQuery), containsString("/oak:index/test1"));
-        assertQuery(propabQuery, asList("/test/a"));
-    }
-
-    @Test
-    public void indexingBasedOnMixinWithInheritence() throws Exception {
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, "mix:mimeType");
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:mimeType");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithType(test, "a", "nt:resource").setProperty("jcr:mimeType", "a");
-        createNodeWithType(test, "b", "nt:resource").setProperty("jcr:mimeType", "c");
-        test.addChild("c").setProperty("jcr:mimeType", "a");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
-        assertThat(explain(propabQuery), containsString("/oak:index/test1"));
-        assertQuery(propabQuery, asList("/test/a"));
     }
 
     @Test
@@ -2017,14 +1903,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         query = "/jcr:root/test//*[jcr:contains(@jcr:mimeType, '1234')]";
         assertThat(explainXpath(query), containsString("/oak:index/test2"));
-        assertQuery(query, "xpath", asList("/test/a"));
+        assertQuery(query, "xpath", List.of("/test/a"));
 
         query = "/jcr:root/test//*[jcr:contains(., '1234')]";
         assertThat(explainXpath(query), containsString("no-index"));
 
         query = "/jcr:root/test//*[@jcr:mimeType = '1234']";
         assertThat(explainXpath(query), containsString("/oak:index/test2"));
-        assertQuery(query, "xpath", asList("/test/a"));
+        assertQuery(query, "xpath", List.of("/test/a"));
     }
 
     @Ignore("OAK-4042")
@@ -2054,41 +1940,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String query;
 
         query = "SELECT * from [nt:base] WHERE CONTAINS([text], '" + searchTerm1 + "*')";
-        assertQuery(query, SQL2, asList("/test/a"));
+        assertQuery(query, SQL2, List.of("/test/a"));
 
         query = "SELECT * from [nt:base] WHERE CONTAINS([text], '" + searchTerm2 + "*')";
-        assertQuery(query, SQL2, asList("/test/a"));
-    }
-
-
-    @Test
-    public void indexingBasedOnMixinAndRelativeProps() throws Exception {
-        Tree idx = createIndex("test1", Set.of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
-        Tree prop1 = props.addChild(TestUtil.unique("prop"));
-        prop1.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
-        prop1.setProperty(PROP_PROPERTY_INDEX, true);
-
-        Tree prop2 = props.addChild(TestUtil.unique("prop"));
-        prop2.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/type");
-        prop2.setProperty(PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        Tree a = createNodeWithMixinType(test, "a", "mix:title");
-        a.setProperty("jcr:title", "a");
-        a.addChild("jcr:content").setProperty("type", "foo-a");
-
-        Tree c = createNodeWithMixinType(test, "c", "mix:title");
-        c.setProperty("jcr:title", "c");
-        c.addChild("jcr:content").setProperty("type", "foo-c");
-
-        test.addChild("c").setProperty("jcr:title", "a");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:content/type] = 'foo-a'";
-        assertThat(explain(propabQuery), containsString("/oak:index/test1"));
-        assertQuery(propabQuery, asList("/test/a"));
+        assertQuery(query, SQL2, List.of("/test/a"));
     }
 
     @Test
@@ -2169,17 +2024,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select * from [nt:base] where CONTAINS(tag, " +
                 "'stockphotography:business/business_abstract')";
-        assertPlanAndQuery(propabQuery, "/oak:index/test1", asList("/test"));
+        assertPlanAndQuery(propabQuery, "/oak:index/test1", List.of("/test"));
 
         String query2 = "select * from [nt:base] where CONTAINS(tag, 'foo!')";
-        assertPlanAndQuery(query2, "/oak:index/test1", asList("/test2"));
+        assertPlanAndQuery(query2, "/oak:index/test1", List.of("/test2"));
 
         String query3 = "select * from [nt:base] where CONTAINS(tag, 'a=b')";
-        assertPlanAndQuery(query3, "/oak:index/test1", asList("/test3"));
+        assertPlanAndQuery(query3, "/oak:index/test1", List.of("/test3"));
 
         String query4 = "select * from [nt:base] where CONTAINS(tag, 'c=d=e')";
-        assertPlanAndQuery(query4, "/oak:index/test1", asList("/test4"));
-
+        assertPlanAndQuery(query4, "/oak:index/test1", List.of("/test4"));
     }
 
     @Test
@@ -2196,7 +2050,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propabQuery = "select * from [nt:base] where CONTAINS([jcr:content/metadata/comment], 'december')";
-        assertPlanAndQuery(propabQuery, "/oak:index/test1", asList("/test"));
+        assertPlanAndQuery(propabQuery, "/oak:index/test1", List.of("/test"));
     }
 
     @Test
@@ -2275,7 +2129,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String query = "select * from [nt:base] where [tag] = 'foo'";
-        assertPlanAndQuery(query, "/oak:index/test1", Collections.<String>emptyList());
+        assertPlanAndQuery(query, "/oak:index/test1", List.of());
     }
 
     @Test
@@ -2344,8 +2198,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertPlanAndQuery("select * from [oak:TestSuperType]", "/oak:index/test1", asList("/a", "/b"));
-        assertPlanAndQuery("select * from [oak:TestMixA]", "/oak:index/test1", asList("/b", "/c"));
+        assertPlanAndQuery("select * from [oak:TestSuperType]", "/oak:index/test1", List.of("/a", "/b"));
+        assertPlanAndQuery("select * from [oak:TestMixA]", "/oak:index/test1", List.of("/b", "/c"));
     }
 
     @Test
@@ -2388,8 +2242,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertPlanAndQuery("select * from [oak:TestSuperType]", "/oak:index/test1", asList("/a", "/b"));
-        assertPlanAndQuery("select * from [oak:TestMixA]", "/oak:index/test1", asList("/b", "/c"));
+        assertPlanAndQuery("select * from [oak:TestSuperType]", "/oak:index/test1", List.of("/a", "/b"));
+        assertPlanAndQuery("select * from [oak:TestMixA]", "/oak:index/test1", List.of("/b", "/c"));
     }
 
 
@@ -2406,7 +2260,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String query = "select * from [nt:base] where [foo] = 'bar'";
-        assertPlanAndQuery(query, "/oak:index/test1", asList("/a"));
+        assertPlanAndQuery(query, "/oak:index/test1", List.of("/a"));
 
         Tree barProp = root.getTree("/oak:index/test1/indexRules/nt:base/properties").addChild("bar");
         barProp.setProperty("name", "bar");
@@ -2419,7 +2273,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.getTree("/oak:index/test1").setProperty(REINDEX_PROPERTY_NAME, true);
         root.commit();
 
-        assertPlanAndQuery(query, "/oak:index/test1", asList("/b"));
+        assertPlanAndQuery(query, "/oak:index/test1", List.of("/b"));
     }
 
     @Test
@@ -2435,7 +2289,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String query = "select * from [nt:base] where [foo] = 'bar'";
-        assertPlanAndQuery(query, "/oak:index/test1", asList("/a"));
+        assertPlanAndQuery(query, "/oak:index/test1", List.of("/a"));
 
         Tree barProp = root.getTree("/oak:index/test1/indexRules/nt:base/properties").addChild("bar");
         barProp.setProperty("name", "bar");
@@ -2454,11 +2308,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertFalse(root.getTree("/oak:index/test1").hasProperty(PROP_REFRESH_DEFN));
 
         //However as reindex was not done query would result in empty set
-        assertPlanAndQuery(query, "/oak:index/test1", Collections.<String>emptyList());
+        assertPlanAndQuery(query, "/oak:index/test1", List.of());
     }
 
     @Test
-    public void updateOldIndexDefinition() throws Exception{
+    public void updateOldIndexDefinition() throws Exception {
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo").propertyIndex();
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
@@ -2487,7 +2341,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void disableIndexDefnStorage() throws Exception{
+    public void disableIndexDefnStorage() throws Exception {
         IndexDefinition.setDisableStoredIndexDefinition(true);
 
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
@@ -2505,7 +2359,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void storedIndexDefinitionDiff() throws Exception{
+    public void storedIndexDefinitionDiff() throws Exception {
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo").propertyIndex();
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
@@ -2532,7 +2386,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void relativeProperties() throws Exception{
+    public void relativeProperties() throws Exception {
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo").propertyIndex();
 
@@ -2549,10 +2403,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertPlanAndQuery("select * from [nt:base] where [jcr:content/foo] = 'bar'",
-                "/oak:index/test1", asList("/a", "/b"));
+                "/oak:index/test1", List.of("/a", "/b"));
 
         assertPlanAndQuery("select * from [nt:base] where [jcr:content/metadata/sub/foo] = 'bar'",
-                "/oak:index/test1", asList("/d"));
+                "/oak:index/test1", List.of("/d"));
     }
 
     @Test
@@ -3101,49 +2955,49 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // XPaths
         assertPlanAndQueryXPath("//*[j:c/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/a", "/b", "/d/e", "/"));
+                "/oak:index/fooIndex", List.of("/a", "/b", "/d/e", "/"));
 
         assertPlanAndQueryXPath("//*[e/j:c/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/d"));
+                "/oak:index/fooIndex", List.of("/d"));
 
         assertPlanAndQueryXPath("//*[*/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/a", "/b", "/d/e", "/"));
+                "/oak:index/fooIndex", List.of("/a", "/b", "/d/e", "/"));
 
         assertPlanAndQueryXPath("//*[*/@foo = 'bar']",
                 "/oak:index/fooIndex",
-                asList("/a/j:c", "/b/j:c", "/c", "/d/e/j:c", "/j:c", "/"));
+                List.of("/a/j:c", "/b/j:c", "/c", "/d/e/j:c", "/j:c", "/"));
 
         assertPlanAndQueryXPath("//*[j:c/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/a", "/b", "/d/e", "/"));
+                "/oak:index/fooIndex", List.of("/a", "/b", "/d/e", "/"));
 
         assertPlanAndQueryXPath("//*[*/foo1/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/a"));
+                "/oak:index/fooIndex", List.of("/a"));
 
         assertPlanAndQueryXPath("//*[*/*/foo3/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/d"));
+                "/oak:index/fooIndex", List.of("/d"));
 
         // SQL2s
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [j:c/*/foo] = 'bar'",
-                "/oak:index/fooIndex", asList("/a", "/b", "/d/e", "/"));
+                "/oak:index/fooIndex", List.of("/a", "/b", "/d/e", "/"));
 
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [e/j:c/*/foo] = 'bar'",
-                "/oak:index/fooIndex", asList("/d"));
+                "/oak:index/fooIndex", List.of("/d"));
 
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/*/foo] = 'bar'",
-                "/oak:index/fooIndex", asList("/a", "/b", "/d/e", "/"));
+                "/oak:index/fooIndex", List.of("/a", "/b", "/d/e", "/"));
 
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/foo] = 'bar'",
                 "/oak:index/fooIndex",
-                asList("/a/j:c", "/b/j:c", "/c", "/d/e/j:c", "/j:c", "/"));
+                List.of("/a/j:c", "/b/j:c", "/c", "/d/e/j:c", "/j:c", "/"));
 
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [j:c/*/foo] = 'bar'",
-                "/oak:index/fooIndex", asList("/a", "/b", "/d/e", "/"));
+                "/oak:index/fooIndex", List.of("/a", "/b", "/d/e", "/"));
 
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/foo1/foo] = 'bar'",
-                "/oak:index/fooIndex", asList("/a"));
+                "/oak:index/fooIndex", List.of("/a"));
 
         assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/*/foo3/foo] = 'bar'",
-                "/oak:index/fooIndex", asList("/d"));
+                "/oak:index/fooIndex", List.of("/d"));
     }
 
     @Test
@@ -3168,35 +3022,35 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // no path restriction
         assertPlanAndQueryXPath("//*[j:c/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a", "/test/c/d"));
+                "/oak:index/fooIndex", List.of("/test/a", "/test/c/d"));
         assertPlanAndQueryXPath("//*[*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a", "/test", "/test/c/d"));
+                "/oak:index/fooIndex", List.of("/test/a", "/test", "/test/c/d"));
         assertPlanAndQueryXPath("//*[d/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/c"));
+                "/oak:index/fooIndex", List.of("/test/c"));
 
         // any descendant
         assertPlanAndQueryXPath("/jcr:root/test//*[j:c/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a", "/test/c/d"));
+                "/oak:index/fooIndex", List.of("/test/a", "/test/c/d"));
         assertPlanAndQueryXPath("/jcr:root/test//*[*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a", "/test/c/d"));
+                "/oak:index/fooIndex", List.of("/test/a", "/test/c/d"));
         assertPlanAndQueryXPath("/jcr:root/test//*[d/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/c"));
+                "/oak:index/fooIndex", List.of("/test/c"));
 
         // direct children
         assertPlanAndQueryXPath("/jcr:root/test/*[j:c/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a"));
+                "/oak:index/fooIndex", List.of("/test/a"));
         assertPlanAndQueryXPath("/jcr:root/test/*[*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a"));
+                "/oak:index/fooIndex", List.of("/test/a"));
         assertPlanAndQueryXPath("/jcr:root/test/*[d/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/c"));
+                "/oak:index/fooIndex", List.of("/test/c"));
 
         // exact path
         assertPlanAndQueryXPath("/jcr:root/test/a[j:c/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a"));
+                "/oak:index/fooIndex", List.of("/test/a"));
         assertPlanAndQueryXPath("/jcr:root/test/a[*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/a"));
+                "/oak:index/fooIndex", List.of("/test/a"));
         assertPlanAndQueryXPath("/jcr:root/test/c[d/*/@foo = 'bar']",
-                "/oak:index/fooIndex", asList("/test/c"));
+                "/oak:index/fooIndex", List.of("/test/c"));
     }
 
     private void assertPlanAndQueryXPath(String query, String planExpectation, List<String> paths) throws ParseException {
@@ -3213,7 +3067,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
         t = t.addChild(nodeName);
-        t.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(typeName), Type.NAMES);
+        t.setProperty(JcrConstants.JCR_MIXINTYPES, List.of(typeName), Type.NAMES);
         return t;
     }
 
@@ -3476,7 +3330,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private static class MapBasedProvider implements PreExtractedTextProvider {
-        final Map<String, ExtractedText> idMap = Maps.newHashMap();
+        final Map<String, ExtractedText> idMap = new HashMap<>();
         int accessCount = 0;
 
         @Override

@@ -16,21 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.stats;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
 
 public final class DefaultStatisticsProvider implements StatisticsProvider {
     private final RepositoryStatisticsImpl repoStats;
-    private final Map<String, SimpleStats> statsMeters = Maps.newHashMap();
+    private final Map<String, SimpleStats> statsMeters = new HashMap<>();
 
     public DefaultStatisticsProvider(ScheduledExecutorService executor){
         this.repoStats = new RepositoryStatisticsImpl(executor);

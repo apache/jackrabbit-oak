@@ -211,13 +211,13 @@ public class IncrementalStoreTest {
         Predicate<String> pathPredicate = s -> true;
         Set<String> basePreferredPathElements = Set.of();
 
-        Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.EMPTY_LIST)), initialCheckpoint, "initial", getNodeStateAtCheckpoint1(customRegexFilter, customExcludedPathsFilter));
+        Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.emptyList())), initialCheckpoint, "initial", getNodeStateAtCheckpoint1(customRegexFilter, customExcludedPathsFilter));
 
         createIncrementalContent(rwBackend.documentNodeStore);
         String finalCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
         Backend roBackend1 = createNodeStore(true);
 
-        Path finalFfsPath = createFFS(roBackend1, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.EMPTY_LIST)), finalCheckpoint, "final", getNodeStateAtCheckpoint2(customRegexFilter, customExcludedPathsFilter));
+        Path finalFfsPath = createFFS(roBackend1, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.emptyList())), finalCheckpoint, "final", getNodeStateAtCheckpoint2(customRegexFilter, customExcludedPathsFilter));
 
         Backend roBackend2 = createNodeStore(true);
         IndexStore indexStore = getDocumentIndexer(roBackend2, finalCheckpoint).buildStore(initialCheckpoint, finalCheckpoint);
@@ -237,7 +237,7 @@ public class IncrementalStoreTest {
 
         compareFinalFFSAndMergedFFS(finalFfsPath, mergedFile, mergedStore);
 
-        Set<String> preferredPathElements = new ListOrderedSet();
+        Set<String> preferredPathElements = new ListOrderedSet<>();
         preferredPathElements.add("04");
         preferredPathElements.add("30");
         preferredPathElements.add("29");
@@ -247,7 +247,7 @@ public class IncrementalStoreTest {
         Predicate<String> filterPredicate = t -> t.startsWith("/content/dam");
 
         File finalFFSForIndexingFromMergedFFS = createFFSFromBaseFFSUsingPreferredPathElementsAndFilterPredicate(mergedFile, preferredPathElements, filterPredicateMergedFFS);
-        Path finalFFSForIndexingFromMongo = createFFS(roBackend2, filterPredicate, preferredPathElements, Collections.EMPTY_LIST, finalCheckpoint, "final",
+        Path finalFFSForIndexingFromMongo = createFFS(roBackend2, filterPredicate, preferredPathElements, Collections.emptyList(), finalCheckpoint, "final",
                 getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging(customRegexFilter));
 
         assertEquals(IndexStoreUtils.createReader(finalFFSForIndexingFromMongo.toFile(), algorithm).lines().collect(Collectors.toList()),
@@ -309,7 +309,7 @@ public class IncrementalStoreTest {
         Path initialFilePath = Files.move(baseFFSAtCheckpoint1.toPath(),
                 new File(baseFFSAtCheckpoint1.getParent(), algorithm.addSuffix(identifier + ".json")).toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
-        Path initialMetadataFilePath = Files.move(metadataAtCheckpoint1.toPath(),
+        Files.move(metadataAtCheckpoint1.toPath(),
                 new File(baseFFSAtCheckpoint1.getParent(), algorithm.addSuffix(identifier + ".json.metadata")).toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
         Files.move(new File(baseFFSAtCheckpoint1.getParent() + "/sort-work-dir").toPath(),
@@ -416,7 +416,7 @@ public class IncrementalStoreTest {
         contentBuilder.child("2023").child("01").setProperty("p1", "v202301");
 
         @NotNull NodeBuilder contentDamBuilder = contentBuilder.child("dam");
-        contentDamBuilder.child("1000").child("12").setProperty("p1", "v100012");
+        contentDamBuilder.child("1000").child("12");
         contentDamBuilder.child("2022").child("02").setProperty("p1", "v202202");
         contentDamBuilder.child("2022").child("02").child("1").setProperty("p1", "v2022021");
         contentDamBuilder.child("2022").child("02").child("27").setProperty("p1", "v20220227");
@@ -440,9 +440,7 @@ public class IncrementalStoreTest {
         @NotNull NodeBuilder varBuilder = rootBuilder.child("var");
         varBuilder.child("foo").setProperty("p0", "v202202");
         varBuilder.child("foo").child("01").setProperty("p1", "v202202");
-        varBuilder.child("foo").child("01").setProperty("p2", "v202202");
         varBuilder.child("bar").child("01").setProperty("p1", "v202202");
-        varBuilder.child("bar").child("01").setProperty("p2", "v202202");
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -470,7 +468,6 @@ public class IncrementalStoreTest {
         varBuilder.child("foo").child("01").setProperty("p1", "v202202-new");
         varBuilder.child("foo").child("02");
         varBuilder.child("bar").child("01").setProperty("p1", "v202202-new");
-        varBuilder.child("bar").child("01").setProperty("p3", "v202202");
         varBuilder.child("bar").child("02");
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
@@ -478,7 +475,8 @@ public class IncrementalStoreTest {
 
     @NotNull
     private static List<String> getNodeStateAtCheckpoint1(boolean customRegexFilter, boolean customExcludedPathsFilter) {
-        List<String> expectedPathsAtCheckpoint1 = new ArrayList<>(List.of("/|{}",
+        List<String> expectedPathsAtCheckpoint1 = new ArrayList<>(List.of(
+                "/|{}",
                 "/content|{}",
                 "/content/2022|{}",
                 "/content/2022/02|{\"p1\":\"v202202\"}",
@@ -488,7 +486,7 @@ public class IncrementalStoreTest {
                 "/content/2023/01|{\"p1\":\"v202301\"}",
                 "/content/dam|{}",
                 "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+                "/content/dam/1000/12|{}",
                 "/content/dam/2022|{}",
                 "/content/dam/2022/02|{\"p1\":\"v202202\"}",
                 "/content/dam/2022/02/1|{\"p1\":\"v2022021\"}",
@@ -531,9 +529,9 @@ public class IncrementalStoreTest {
                 "/oak:index/fooIndex|{}",
                 "/var|{}",
                 "/var/bar|{}",
-                "/var/bar/01|{\"p1\":\"v202202\",\"p2\":\"v202202\"}",
+                "/var/bar/01|{\"p1\":\"v202202\"}",
                 "/var/foo|{\"p0\":\"v202202\"}",
-                "/var/foo/01|{\"p1\":\"v202202\",\"p2\":\"v202202\"}"));
+                "/var/foo/01|{\"p1\":\"v202202\"}"));
 
         if (customRegexFilter) {
             expectedPathsAtCheckpoint1.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
@@ -551,7 +549,7 @@ public class IncrementalStoreTest {
                     "/oak:index/barIndex|{}",
                     "/oak:index/fooIndex|{}",
                     //"/var/foo|{}",
-                    "/var/foo/01|{\"p1\":\"v202202\",\"p2\":\"v202202\"}"));
+                    "/var/foo/01|{\"p1\":\"v202202\"}"));
         }
 
         return expectedPathsAtCheckpoint1;
@@ -569,7 +567,7 @@ public class IncrementalStoreTest {
                 "/content/2023/01|{\"p1\":\"v202301\"}",
                 "/content/dam|{}",
                 "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\",\"p2\":\"v100012\"}",
+                "/content/dam/1000/12|{\"p2\":\"v100012\"}",
                 "/content/dam/2022|{}",
                 "/content/dam/2022/02|{\"p1\":\"v202202-new\"}",
                 "/content/dam/2022/02/1|{\"p1\":\"v2022021\"}",
@@ -615,14 +613,15 @@ public class IncrementalStoreTest {
                 "/oak:index/fooIndex-2|{}",
                 "/var|{}",
                 "/var/bar|{}",
-                "/var/bar/01|{\"p1\":\"v202202-new\",\"p2\":\"v202202\",\"p3\":\"v202202\"}",
+                "/var/bar/01|{\"p1\":\"v202202-new\"}",
                 "/var/bar/02|{}",
                 "/var/foo|{\"p0\":\"v202202-new\"}",
-                "/var/foo/01|{\"p1\":\"v202202-new\",\"p2\":\"v202202\"}",
+                "/var/foo/01|{\"p1\":\"v202202-new\"}",
                 "/var/foo/02|{}"));
 
         if (customRegexFilter) {
-            expectedPathsAtCheckpoint2.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+            expectedPathsAtCheckpoint2.removeAll(List.of(
+                    "/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
                     "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{\"foo\":\"bar\"}",
                     "/content/dam/2025/jcr:content/metadata/fooBar|{\"foo\":\"bar\"}",
                     "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
@@ -639,7 +638,7 @@ public class IncrementalStoreTest {
                     "/oak:index/barIndex-2|{}",
                     "/oak:index/fooIndex|{}",
                     "/oak:index/fooIndex-2|{}",
-                    "/var/foo/01|{\"p1\":\"v202202-new\",\"p2\":\"v202202\"}",
+                    "/var/foo/01|{\"p1\":\"v202202-new\"}",
                     "/var/foo/02|{}"));
         }
 
@@ -648,9 +647,10 @@ public class IncrementalStoreTest {
     }
 
     private static List<String> getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging(boolean customRegexFilter) {
-        List<String> expectedPaths = new ArrayList<>(List.of("/content/dam|{}",
+        List<String> expectedPaths = new ArrayList<>(List.of(
+                "/content/dam|{}",
                 "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\",\"p2\":\"v100012\"}",
+                "/content/dam/1000/12|{\"p2\":\"v100012\"}",
                 "/content/dam/2022|{}",
                 "/content/dam/2022/04|{}",
                 "/content/dam/2022/04/30|{\"p1\":\"v20220430\"}",

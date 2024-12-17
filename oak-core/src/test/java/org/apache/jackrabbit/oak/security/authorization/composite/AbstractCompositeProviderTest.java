@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -48,6 +47,8 @@ import org.junit.Test;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -116,60 +117,59 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
         root.commit();
 
-        defPermissions = ImmutableMap.<String, Long>builder().
-                put(TEST_PATH, Permissions.READ).
-                put(TEST_CHILD_PATH,
+        defPermissions = Map.of(
+                TEST_PATH, Permissions.READ,
+                TEST_CHILD_PATH,
                         Permissions.READ |
-                        Permissions.READ_ACCESS_CONTROL).
-                put(TEST_A_PATH,
+                        Permissions.READ_ACCESS_CONTROL,
+                TEST_A_PATH,
                         Permissions.READ |
                         Permissions.SET_PROPERTY |
                         Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                put(TEST_A_B2_PATH,
+                        Permissions.VERSION_MANAGEMENT,
+                TEST_A_B2_PATH,
                         Permissions.READ |
                         Permissions.WRITE |
                         Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                put(TEST_A_B_PATH,
+                        Permissions.VERSION_MANAGEMENT,
+                TEST_A_B_PATH,
                         Permissions.READ |
                         Permissions.ADD_NODE |
                         Permissions.ADD_PROPERTY |
                         Permissions.MODIFY_PROPERTY |
                         Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                put(TEST_A_B_C_PATH,
+                        Permissions.VERSION_MANAGEMENT,
+                TEST_A_B_C_PATH,
                         Permissions.READ_PROPERTY |
                         Permissions.ADD_NODE |
                         Permissions.ADD_PROPERTY |
                         Permissions.MODIFY_PROPERTY |
                         Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                        Permissions.VERSION_MANAGEMENT).
-                build();
-        defPrivileges = ImmutableMap.<String, Set<String>>builder().
-                put(ROOT_PATH, Set.of()).
-                put(TEST_PATH_2, Set.of()).
-                put(TEST_PATH, Set.of(JCR_READ)).
-                put(TEST_CHILD_PATH, Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL)).
-                put(TEST_A_PATH, Set.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B2_PATH, Set.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B_PATH, Set.of(JCR_READ, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
-                put(TEST_A_B_C_PATH, Set.of(REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT)).
-                build();
+                        Permissions.VERSION_MANAGEMENT);
 
-        defActionsGranted = ImmutableMap.<String, String[]>builder().
-                put(TEST_PATH, new String[] {Session.ACTION_READ}).
-                put(TEST_CHILD_PATH, new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_READ_ACCESS_CONTROL}).
-                put(TEST_A_PATH, new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_PATH + "/jcr:primaryType", new String[] {Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_PATH + "/propName", new String[] {JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_REMOVE_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_PATH + "/nodeName", new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B2_PATH, new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_REMOVE_NODE, Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_PATH, new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_PATH + "/nonExisting", new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_C_PATH + "/jcr:primaryType",  new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_VERSIONING}).
-                put(TEST_A_B_C_PATH,  new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
-                build();
+        defPrivileges = Map.of(
+                ROOT_PATH, Set.of(),
+                TEST_PATH_2, Set.of(),
+                TEST_PATH, Set.of(JCR_READ),
+                TEST_CHILD_PATH, Set.of(JCR_READ, JCR_READ_ACCESS_CONTROL),
+                TEST_A_PATH, Set.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT),
+                TEST_A_B2_PATH, Set.of(JCR_READ, JCR_WRITE, JCR_VERSION_MANAGEMENT),
+                TEST_A_B_PATH, Set.of(JCR_READ, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT),
+                TEST_A_B_C_PATH, Set.of(REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, JCR_VERSION_MANAGEMENT));
+
+        Map<String, String[]> builder = new HashMap<>();
+        builder.put(TEST_PATH, new String[] {Session.ACTION_READ});
+        builder.put(TEST_CHILD_PATH, new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_READ_ACCESS_CONTROL});
+        builder.put(TEST_A_PATH, new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_PATH + "/jcr:primaryType", new String[] {Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_PATH + "/propName", new String[] {JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_REMOVE_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_PATH + "/nodeName", new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_B2_PATH, new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_REMOVE_NODE, Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_B_PATH, new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_B_PATH + "/nonExisting", new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_MODIFY_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_B_C_PATH + "/jcr:primaryType",  new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_VERSIONING});
+        builder.put(TEST_A_B_C_PATH,  new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_VERSIONING});
+        defActionsGranted = Collections.unmodifiableMap(builder);
 
         readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
     }

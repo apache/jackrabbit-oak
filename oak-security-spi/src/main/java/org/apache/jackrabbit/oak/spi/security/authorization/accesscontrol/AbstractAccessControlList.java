@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.security.Principal;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +26,6 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -103,9 +101,9 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @NotNull
     @Override
     public String[] getRestrictionNames() {
-        Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(getOakPath());
-        return Collections2.transform(supported, definition -> namePathMapper.getJcrName(definition.getName())).toArray(new String[supported.size()]);
-
+        return getRestrictionProvider().getSupportedRestrictions(getOakPath()).
+            stream().map(definition -> namePathMapper.getJcrName(definition.getName())).
+            toArray(String[]::new);
     }
 
     @Override

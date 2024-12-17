@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -127,7 +127,7 @@ public class CloudBlobStore extends CachingBlobStore {
         org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
 
         if (!blobStore.blobExists(cloudContainer, id)) {
-            Map<String, String> metadata = Maps.newHashMap();
+            Map<String, String> metadata = new HashMap<>();
             metadata.put("level", String.valueOf(level));
 
             Blob blob = blobStore.blobBuilder(id)

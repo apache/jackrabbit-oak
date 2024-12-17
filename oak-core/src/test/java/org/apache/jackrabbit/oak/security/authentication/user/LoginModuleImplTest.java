@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.user;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -158,7 +158,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     private LoginModuleImpl createLoginModule(@NotNull Subject subject, @Nullable CallbackHandler cbh, @NotNull Map<String, ?> sharedState) {
         LoginModuleImpl lm = new LoginModuleImpl();
-        lm.initialize(subject, cbh, sharedState, Maps.newHashMap());
+        lm.initialize(subject, cbh, sharedState, new HashMap<>());
         return lm;
     }
 
@@ -321,7 +321,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         createTestUser();
 
         Credentials credentials = new SimpleCredentials(USER_ID, "wrongPw".toCharArray());
-        HashMap<String, Object> shared = Maps.newHashMap();
+        HashMap<String, Object> shared = new HashMap<>();
         shared.put(SHARED_KEY_CREDENTIALS, credentials);
         LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(getContentRepository(), getSecurityProvider()), shared);
         try {
@@ -349,7 +349,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         };
 
         Subject subject = new Subject(false, Set.of(), Set.of(unsupportedCredentials), Set.of());
-        LoginModuleImpl lm = createLoginModule(subject, cbh, Maps.newHashMap());
+        LoginModuleImpl lm = createLoginModule(subject, cbh, new HashMap<>());
         assertFalse(lm.login());
 
         verifyNoInteractions(monitor);
@@ -367,7 +367,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Principal foreignPrincipal = new PrincipalImpl("foreign");
 
         UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
-        Map<String, Object> sharedState = Maps.newHashMap();
+        Map<String, Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
         Subject subject = new Subject(false, Set.of(foreignPrincipal), Set.of(), Set.of());
@@ -403,7 +403,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Authentication authentication = when(mock(Authentication.class).authenticate(any(Credentials.class))).thenReturn(true).getMock();
         UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
 
-        Map<String, Object> sharedState = Maps.newHashMap();
+        Map<String, Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
         Subject subject = new Subject();
@@ -427,7 +427,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Authentication authentication = when(mock(Authentication.class).authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED)).thenThrow(le).getMock();
         UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
 
-        Map<String, Object> sharedState = Maps.newHashMap();
+        Map<String, Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
         LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(uaf), sharedState);
@@ -441,7 +441,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testLoginWithReadOnlySubject() throws Exception {
-        Map<String, Object> sharedState = Maps.newHashMap();
+        Map<String, Object> sharedState = new HashMap<>();
         sharedState.put(SHARED_KEY_CREDENTIALS, getAdminCredentials());
 
         Principal unknownPrincipal = new PrincipalImpl("unknown");
@@ -467,7 +467,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Test
     public void testNullUserAuthentication() throws Exception {
         CallbackHandler cbh = createCallbackHandler(mock(UserAuthenticationFactory.class));
-        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -482,7 +482,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
         CallbackHandler cbh = createCallbackHandler(getContentRepository(), sp);
 
-        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -495,7 +495,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testMissingSecurityProviderGuestLogin() throws Exception {
         CallbackHandler cbh = createCallbackHandler(getContentRepository(), null);
 
-        LoginModuleImpl loginModule = createLoginModule(new Subject(false, Set.of(), Set.of(new GuestCredentials()), Set.of()), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(false, Set.of(), Set.of(new GuestCredentials()), Set.of()), cbh, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -508,7 +508,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testMissingSecurityProvider() throws Exception {
         CallbackHandler cbh = createCallbackHandler(getContentRepository(), null);
 
-        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -521,7 +521,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testMissingRoot() throws Exception {
         CallbackHandler cbh = createCallbackHandler(null, getSecurityProvider());
 
-        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -532,7 +532,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testMissingCallbackHandler() throws Exception {
-        LoginModuleImpl loginModule = createLoginModule(new Subject(), null, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), null, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -555,7 +555,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
                 }
             }
         };
-        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, new HashMap<>());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
@@ -590,7 +590,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
         Subject subject = new Subject(false, new HashSet<>(), Set.of(creds), new HashSet<>());
 
-        LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(subject, cbh, new HashMap<>());
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
 
@@ -630,7 +630,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         CallbackHandler cbh = createCallbackHandler(factory);
         Subject subject = new Subject(false, new HashSet<>(), Set.of(), new HashSet<>());
 
-        LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(subject, cbh, new HashMap<>());
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
 
@@ -651,7 +651,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Principal principal = new PrincipalImpl("subjetPrincipal");
         Subject subject = new Subject(true, Set.of(principal), Set.of(), Set.of());
 
-        Map<String, Object> shared = Maps.newHashMap();
+        Map<String, Object> shared = new HashMap<>();
         shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));
 
         LoginModuleImpl loginModule = createLoginModule(subject, createCallbackHandler(new UserAuthenticationFactoryImpl()), shared);
@@ -675,7 +675,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testLoginLogoutPreexistingReadonlySubject() throws Exception {
         createTestUser();
         Subject subject = new Subject(true, Collections.singleton(() -> "JMXPrincipal: foo"), Collections.EMPTY_SET, Collections.EMPTY_SET);
-        Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
+        Java23Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
             LogCustomizer logCustomizer = LogCustomizer
                     .forLogger("org.apache.jackrabbit.oak.core.ContentSessionImpl")
                     .enable(Level.ERROR)

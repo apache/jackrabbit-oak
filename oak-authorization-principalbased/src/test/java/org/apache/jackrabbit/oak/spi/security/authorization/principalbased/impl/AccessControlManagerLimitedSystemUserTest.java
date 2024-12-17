@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +63,7 @@ public class AccessControlManagerLimitedSystemUserTest extends AccessControlMana
         Set<Principal> principals = Set.of(testPrincipal);
         AuthInfo authInfo = new AuthInfoImpl(UID, Collections.emptyMap(), principals);
         Subject subject = new Subject(true, principals, Set.of(authInfo), Set.of());
-        return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<Root>) () -> getContentRepository().login(null, null).getLatestRoot(), null);
+        return Java23Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<Root>) () -> getContentRepository().login(null, null).getLatestRoot(), null);
     }
 
     void grant(@NotNull Principal principal, @Nullable String path, @NotNull String... privNames) throws Exception {

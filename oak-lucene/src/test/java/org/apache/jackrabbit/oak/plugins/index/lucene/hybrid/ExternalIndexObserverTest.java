@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -46,6 +45,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
 
 public class ExternalIndexObserverTest {
 
@@ -190,7 +191,7 @@ public class ExternalIndexObserverTest {
 
     private CommitInfo newCommitInfo() {
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext), true);
+                Map.of(CommitContext.NAME, commitContext), true);
     }
 
     private static LuceneIndexDefinition createNRTIndex(String ruleName) {

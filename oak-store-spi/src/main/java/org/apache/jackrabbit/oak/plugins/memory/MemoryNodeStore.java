@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -324,7 +323,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
         private Checkpoint(NodeState root, Map<String, String> properties) {
             this.root = root;
-            this.properties = Maps.newHashMap(properties);
+            this.properties = new HashMap<>(properties);
         }
 
         public NodeState getRoot() {

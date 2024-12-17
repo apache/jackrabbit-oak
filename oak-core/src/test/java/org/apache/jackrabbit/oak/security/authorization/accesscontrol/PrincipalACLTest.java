@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -35,6 +34,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NODE_PATH;
@@ -106,7 +106,7 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
         ValueFactory vf = getValueFactory(root);
         ACL acl = getPrincipalAcl(getAccessControlManager(root), testPrincipal);
         acl.addEntry(testPrincipal, privileges, true,
-                ImmutableMap.of(REP_GLOB, vf.createValue("/subtree/*"), REP_NODE_PATH, vf.createValue(TEST_PATH)));
+                Map.of(REP_GLOB, vf.createValue("/subtree/*"), REP_NODE_PATH, vf.createValue(TEST_PATH)));
         assertNotEquals(principalAcl, acl);
     }
 

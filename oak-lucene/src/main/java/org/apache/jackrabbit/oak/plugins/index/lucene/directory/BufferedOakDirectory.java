@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -93,7 +93,7 @@ public final class BufferedOakDirectory extends Directory {
 
     private final OakDirectory base;
 
-    private final Set<String> bufferedForDelete = Sets.newConcurrentHashSet();
+    private final Set<String> bufferedForDelete = CollectionUtils.newConcurrentHashSet();
 
     private NodeBuilder bufferedBuilder = EMPTY_NODE.builder();
 

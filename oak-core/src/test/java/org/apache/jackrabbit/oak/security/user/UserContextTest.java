@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -222,7 +221,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testPropertyDefinesLocation() {
-        Map<String, Collection<String>> m = ImmutableMap.of(
+        Map<String, Collection<String>> m = Map.of(
                 NT_REP_GROUP, GROUP_PROPERTY_NAMES,
                 NT_REP_USER, USER_PROPERTY_NAMES,
                 NT_REP_PASSWORD, PWD_PROPERTY_NAMES,

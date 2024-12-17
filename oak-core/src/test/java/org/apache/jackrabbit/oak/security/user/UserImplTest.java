@@ -16,15 +16,27 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static javax.jcr.Property.JCR_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -33,19 +45,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static javax.jcr.Property.JCR_PRIMARY_TYPE;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 public class UserImplTest extends AbstractSecurityTest {
 
     private User user;
+    private boolean allowDisableAnonymous = true;
 
     @Override
     @Before
@@ -71,9 +74,19 @@ public class UserImplTest extends AbstractSecurityTest {
         return admin;
     }
 
+    @NotNull
+    private User getAnonymousUser() throws Exception {
+        User anonymous = getUserManager(root).getAuthorizable(UserConstants.DEFAULT_ANONYMOUS_ID, User.class);
+        assertNotNull(anonymous);
+        return anonymous;
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testCreateFromInvalidTree() throws Exception {
-        Tree t = when(mock(Tree.class).getProperty(JCR_PRIMARY_TYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARY_TYPE, NT_REP_GROUP, Type.NAME)).getMock();
+        Tree t = when(mock(Tree.class).getProperty(JCR_PRIMARY_TYPE)).thenReturn(PropertyStates.createProperty(
+                JCR_PRIMARY_TYPE,
+                NT_REP_GROUP,
+                Type.NAME)).getMock();
         User u = new UserImpl("uid", t, (UserManagerImpl) getUserManager(root));
     }
 
@@ -165,6 +178,36 @@ public class UserImplTest extends AbstractSecurityTest {
         assertFalse(user.isDisabled());
     }
 
+    @Test
+    public void testDisableAnonymous() throws Exception {
+        User anonymous = getAnonymousUser();
+        assertFalse(anonymous.isDisabled());
+
+        anonymous.disable("Test anonymous disable");
+
+        assertNotNull(anonymous.getDisabledReason());
+        assertEquals("Test anonymous disable", anonymous.getDisabledReason());
+        assertTrue(anonymous.isDisabled());
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testDisableAnonymousNotAllowed() throws Exception {
+        // Dirty hack to prevent anonymous user from being disabled
+        // and initialize the repo again
+        allowDisableAnonymous = false;
+        securityProvider = null;
+
+        cleanUserManager();
+        before();
+
+        User anonymous = getAnonymousUser();
+        assertFalse(anonymous.isDisabled());
+
+        anonymous.disable("Test anonymous disable");
+
+        fail("Shouldn't have reached this point");
+    }
+
     @Test(expected = RepositoryException.class)
     public void testDisableAdministrator() throws Exception {
         getAdminUser().disable("reason");
@@ -182,10 +225,21 @@ public class UserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetCredentialsUserWithoutPassword() throws Exception {
-        User u = getUserManager(root).createUser("u"+ UUIDUtils.generateUUID(), null);
+        User u = getUserManager(root).createUser("u" + UUIDUtils.generateUUID(), null);
 
         Credentials creds = u.getCredentials();
         assertTrue(creds instanceof UserIdCredentials);
         assertEquals(u.getID(), ((UserIdCredentials) creds).getUserId());
+    }
+
+    @Override
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        if (allowDisableAnonymous) {
+            return super.getSecurityConfigParameters();
+        } else {
+            ConfigurationParameters userConfig = ConfigurationParameters.of(
+                    UserConstants.PARAM_ALLOW_DISABLE_ANONYMOUS, false);
+            return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
+        }
     }
 }

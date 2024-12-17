@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -44,11 +45,15 @@ import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.document.util.UtilsTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
@@ -81,7 +86,21 @@ import static org.mockito.Mockito.when;
 /**
  * Tests for {@link NodeDocument}.
  */
+@RunWith(Parameterized.class)
 public class NodeDocumentTest {
+
+    @Parameterized.Parameters(name="{index}: prevNoPropEnabled : {0}")
+    public static java.util.Collection<Boolean> params() {
+        return Arrays.asList(true,  false);
+    }
+
+    boolean prevNoPropEnabled;
+
+    long expectedDocCacheSize;
+
+    public NodeDocumentTest(boolean prevNoPropEnabled) {
+        this.prevNoPropEnabled = prevNoPropEnabled;
+    }
 
     @Test
     public void splitCollisions() throws Exception {
@@ -967,7 +986,7 @@ public class NodeDocumentTest {
 
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
-            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i), null).iterator().next().getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents: " + prevDocCalls,
                     prevDocCalls.size() <= 3);
@@ -975,6 +994,48 @@ public class NodeDocumentTest {
 
         ns1.dispose();
         ns2.dispose();
+    }
+
+    // OAK-11184 : tests correct handling of branch commit as the only
+    // revision left on the main doc (and it has split docs)
+    @Test
+    public void simpleClusterWithBranchCommit() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 2, 0);
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+        String checkpointA = ns2.checkpoint(Long.MAX_VALUE);
+
+        // let's create an initial state for ns2 to grab a checkpoint with
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.setProperty("p", "initial");
+        merge(ns1, builder);
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+        String checkpointB = ns2.checkpoint(Long.MAX_VALUE);
+        // let's create many revisions, more than NUM_REVS_THRESHOLD
+        for( int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++ ) {
+            builder = ns1.getRoot().builder();
+            builder.setProperty("p", i);
+            merge(ns1, builder);
+        }
+        // then the last one, let that be a branch commit
+        builder = ns1.getRoot().builder();
+        builder.setProperty("p", "last");
+        TestUtils.persistToBranch(builder);
+        merge(ns1, builder);
+        // now trigger the split and lastRev update
+        ns1.runBackgroundOperations();
+        // let ns2 also see everything
+        ns2.runBackgroundOperations();
+        assertEquals("last", ns2.getRoot().getProperty("p").getValue(Type.STRING));
+        ns2.getNodeCache().invalidateAll();
+        assertEquals("last", ns2.getRoot().getProperty("p").getValue(Type.STRING));
+        ns2.getNodeCache().invalidateAll();
+        assertFalse(ns2.retrieve(checkpointA).hasProperty("p"));
+        ns2.getNodeCache().invalidateAll();
+        assertEquals("initial", ns2.retrieve(checkpointB).getProperty("p").getValue(Type.STRING));
     }
 
     @Test
@@ -1034,7 +1095,7 @@ public class NodeDocumentTest {
 
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
-            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i), null).iterator().next().getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents ("
                             + prevDocCalls.size() + "): " + prevDocCalls,
@@ -1116,7 +1177,7 @@ public class NodeDocumentTest {
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
             Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
-            Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r));
+            Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r), null);
             assertEquals(idx, numChanges - Iterables.size(revs));
         }
         ns.dispose();
@@ -1137,8 +1198,8 @@ public class NodeDocumentTest {
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
             RevisionVector r = headRevisions.get(idx);
-            Iterable<Map.Entry<Revision, String>> revs1 = doc.getVisibleChanges("p", r);
-            Iterable<Map.Entry<Revision, String>> revs2 = doc.getVisibleChanges("p", r);
+            Iterable<Map.Entry<Revision, String>> revs1 = doc.getVisibleChanges("p", r, null);
+            Iterable<Map.Entry<Revision, String>> revs2 = doc.getVisibleChanges("p", r, null);
             assertEquals(Iterables.size(revs1), Iterables.size(revs2));
             assertEquals(idx, numChanges - Iterables.size(revs1));
         }
@@ -1179,7 +1240,7 @@ public class NodeDocumentTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev)) {
+        for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev, null)) {
             assertFalse(readRev.isRevisionNewer(change.getKey()));
         }
     }
@@ -1268,6 +1329,7 @@ public class NodeDocumentTest {
             throws Exception {
         DocumentNodeStore ns = new DocumentMK.Builder()
                 .setDocumentStore(store).setCommitValueCacheSize(commitValueCacheSize)
+                .setPrevNoPropCacheFeature(UtilsTest.createFeature(prevNoPropEnabled))
                 .setAsyncDelay(0).setClusterId(clusterId).getNodeStore();
         for (int i = 0; i < numChanges; i++) {
             NodeBuilder builder = ns.getRoot().builder();

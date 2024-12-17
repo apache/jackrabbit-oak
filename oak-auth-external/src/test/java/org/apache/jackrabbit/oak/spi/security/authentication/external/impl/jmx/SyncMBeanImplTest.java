@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -165,10 +164,10 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         String[] userIds = new String[] {ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
 
         String[] result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, Map.of(ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
 
         result = syncMBean.syncUsers(userIds, true);
-        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, Map.of(ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
@@ -177,10 +176,10 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         String[] userIds = new String[]{ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
         String[] result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, Map.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
 
         result = syncMBean.syncUsers(userIds, true);
-        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, Map.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
@@ -191,14 +190,14 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         syncConfig.user().setExpirationTime(Long.MAX_VALUE);
 
         String[]result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, Map.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
     public void testSyncGroups() throws Exception {
         sync(idp, "a", true);
 
-        Map<String, String> expected = ImmutableMap.of("a", "upd");
+        Map<String, String> expected = Map.of("a", "upd");
         syncConfig.group().setExpirationTime(Long.MAX_VALUE);
 
         // force group sync is true by default => exp time is ignored
@@ -503,7 +502,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         // syncAll with purge = false
         String[] result = syncMBean.syncAllUsers(false);
-        assertResultMessages(result, ImmutableMap.of("thirdUser", "mis", "g", "mis"));
+        assertResultMessages(result, Map.of("thirdUser", "mis", "g", "mis"));
 
         UserManager userManager = getUserManager();
         assertNotNull(userManager.getAuthorizable("thirdUser"));
@@ -518,7 +517,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         // syncAll with purge = true
         String[] result = syncMBean.syncAllUsers(true);
-        assertResultMessages(result, ImmutableMap.of("thirdUser", "del", "g", "del"));
+        assertResultMessages(result, Map.of("thirdUser", "del", "g", "del"));
 
         UserManager userManager = getUserManager();
         assertNull(userManager.getAuthorizable("thirdUser"));
@@ -537,7 +536,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         // verify effect of syncAllUsers : foreign user/group must be ignored by the sync.
         String[] result = syncMBean.syncAllUsers(false);
-        Map<String, String> expectedResults = ImmutableMap.of(ID_TEST_USER, "upd", "a", "upd");
+        Map<String, String> expectedResults = Map.of(ID_TEST_USER, "upd", "a", "upd");
         assertResultMessages(result, expectedResults);
 
         ExternalIdentity[] expectedIds = new ExternalIdentity[] {
@@ -689,7 +688,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
         String[] result = syncMBean.purgeOrphanedUsers();
-        assertResultMessages(result, ImmutableMap.of("thirdUser", "del", "g", "del"));
+        assertResultMessages(result, Map.of("thirdUser", "del", "g", "del"));
 
         UserManager userManager = getUserManager();
         assertNull(userManager.getAuthorizable("thirdUser"));
@@ -737,7 +736,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
         String[] result = createThrowingSyncMBean(true).purgeOrphanedUsers();
-        assertResultMessages(result, ImmutableMap.of("thirdUser", "ERR", "g", "ERR"));
+        assertResultMessages(result, Map.of("thirdUser", "ERR", "g", "ERR"));
 
         UserManager userManager = getUserManager();
         assertNotNull(userManager.getAuthorizable("thirdUser"));

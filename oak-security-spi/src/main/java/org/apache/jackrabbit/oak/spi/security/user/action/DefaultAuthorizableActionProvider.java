@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
@@ -76,7 +76,7 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
 
     private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
 
-    private static final Map<String, Class<? extends AuthorizableAction>> SUPPORTED_ACTIONS = ImmutableMap.<String, Class<? extends AuthorizableAction>>of(
+    private static final Map<String, Class<? extends AuthorizableAction>> SUPPORTED_ACTIONS = Map.of(
             AccessControlAction.class.getName(), AccessControlAction.class,
             PasswordValidationAction.class.getName(), PasswordValidationAction.class,
             PasswordChangeAction.class.getName(), PasswordChangeAction.class,

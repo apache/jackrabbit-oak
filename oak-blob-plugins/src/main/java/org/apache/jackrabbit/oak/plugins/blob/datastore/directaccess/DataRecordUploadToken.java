@@ -27,8 +27,6 @@ import java.util.Optional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.jetbrains.annotations.NotNull;
@@ -133,12 +131,12 @@ public class DataRecordUploadToken {
     public String getEncodedToken(@NotNull byte[] secret) {
         String now = Instant.now().toString();
         String toBeEncoded = uploadId.isPresent() ?
-                Joiner.on("#").join(blobId, now, uploadId.get()) :
-                Joiner.on("#").join(blobId, now);
+                String.join("#", blobId, now, uploadId.get()) :
+                String.join("#", blobId, now);
         String toBeSigned = encodeBase64(toBeEncoded);
 
         String sig = getSignedString(toBeSigned, secret);
-        return sig != null ? Joiner.on("#").join(toBeSigned, sig) : toBeSigned;
+        return sig != null ? toBeSigned + "#" + sig : toBeSigned;
     }
 
     /** Returns the base64 encoded HMAC signature */

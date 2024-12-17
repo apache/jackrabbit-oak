@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -177,7 +176,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncUsers(TEST_IDS, false);
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "nsa",
                 TestIdentityProvider.ID_SECOND_USER, "nsa",
                 TestIdentityProvider.ID_WILDCARD_USER, "nsa"));
@@ -196,7 +195,7 @@ public class DelegateeTest extends AbstractJmxTest {
                 ID_TEST_USER,
                 TestIdentityProvider.ID_SECOND_USER,
                 TestIdentityProvider.ID_WILDCARD_USER}, false);
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "for",
                 TestIdentityProvider.ID_WILDCARD_USER, "nsa"));
@@ -208,7 +207,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncAllUsers(false);
-        assertResultMessages(result, ImmutableMap.of());
+        assertResultMessages(result, Map.of());
         assertFalse(r.hasPendingChanges());
     }
 
@@ -221,14 +220,14 @@ public class DelegateeTest extends AbstractJmxTest {
 
         Root r = preventRootCommit(delegatee);
 
-        ImmutableMap<String, String> expected = ImmutableMap.<String, String>builder()
-                .put(ID_TEST_USER, "ERR")
-                .put("a", "ERR")
-                .put("b", "ERR")
-                .put("c", "ERR")
-                .put(TestIdentityProvider.ID_SECOND_USER, "ERR")
-                .put("secondGroup", "ERR")
-                .put("third", "mis").build();
+        Map<String, String> expected = Map.of(
+                ID_TEST_USER, "ERR",
+                "a", "ERR",
+                "b", "ERR",
+                "c", "ERR",
+                TestIdentityProvider.ID_SECOND_USER, "ERR",
+                "secondGroup", "ERR",
+                "third", "mis");
 
         String[] result = delegatee.syncAllUsers(false);
         assertResultMessages(result, expected);
@@ -245,14 +244,14 @@ public class DelegateeTest extends AbstractJmxTest {
 
         Root r = preventRootCommit(delegatee);
 
-        ImmutableMap<String, String> expected = ImmutableMap.<String, String>builder()
-                .put(ID_TEST_USER, "ERR")
-                .put("a", "ERR")
-                .put("b", "ERR")
-                .put("c", "ERR")
-                .put(TestIdentityProvider.ID_SECOND_USER, "ERR")
-                .put("secondGroup", "ERR")
-                .put("third", "ERR").build();
+        Map<String, String> expected = Map.of(
+                ID_TEST_USER, "ERR",
+                "a", "ERR",
+                "b", "ERR",
+                "c", "ERR",
+                TestIdentityProvider.ID_SECOND_USER, "ERR",
+                "secondGroup", "ERR",
+                "third", "ERR");
 
         String[] result = delegatee.syncAllUsers(true);
         assertResultMessages(result, expected);
@@ -296,7 +295,7 @@ public class DelegateeTest extends AbstractJmxTest {
                 externalIds.add(new ExternalIdentityRef(id, idp.getName()).getString());
         }
         String[] result = delegatee.syncExternalUsers(externalIds.toArray(new String[0]));
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "ERR",
                 TestIdentityProvider.ID_WILDCARD_USER, "ERR"));
@@ -322,7 +321,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncAllExternalUsers();
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "ERR",
                 TestIdentityProvider.ID_WILDCARD_USER, "ERR"));
@@ -377,7 +376,7 @@ public class DelegateeTest extends AbstractJmxTest {
         Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.purgeOrphanedUsers();
-        assertResultMessages(result, ImmutableMap.of(
+        assertResultMessages(result, Map.of(
                 "third", "ERR",
                 "forth", "ERR"));
         assertFalse(r.hasPendingChanges());
@@ -459,7 +458,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
         @Override
         public void commit() throws CommitFailedException {
-            commit(ImmutableMap.of());
+            commit(Map.of());
         }
 
         @Override

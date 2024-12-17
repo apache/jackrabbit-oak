@@ -24,9 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
@@ -223,7 +222,7 @@ public class ExternalChangesTest {
     }
 
     private CommitInfo newCommitInfo(CommitContext commitContext){
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        Map<String, Object> info = Map.of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
@@ -301,7 +300,7 @@ public class ExternalChangesTest {
 
         @Override
         public String buildAsString() {
-            return Joiner.on(",").join(allProps.values);
+            return String.join(",", allProps.values);
         }
 
         @Override

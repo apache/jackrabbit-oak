@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
@@ -31,6 +28,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -52,12 +50,14 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_INDEX_DATA_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 
 public class IndexCommand implements Command {
@@ -264,6 +264,10 @@ public class IndexCommand implements Command {
             }
         }
 
+        long totalSize = indexerSupport.computeSizeOfGeneratedIndexData();
+        MetricsUtils.addMetricByteSize(extendedIndexHelper.getStatisticsProvider(), extendedIndexHelper.getIndexReporter(),
+                METRIC_INDEXING_INDEX_DATA_SIZE, totalSize);
+
         indexerSupport.writeMetaInfo(checkpoint);
         File destDir = indexerSupport.copyIndexFilesToOutput();
         log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
@@ -311,7 +315,7 @@ public class IndexCommand implements Command {
         }
 
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
-            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100), ImmutableMap.of(
+            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100), Map.of(
                     "creator", IndexCommand.class.getSimpleName(),
                     "created", now()));
         }
@@ -407,7 +411,7 @@ public class IndexCommand implements Command {
     }
 
     private static void logCliArgs(String[] args) {
-        log.info("Command line arguments used for indexing [{}]", Joiner.on(' ').join(args));
+        log.info("Command line arguments used for indexing [{}]", String.join(" ", args));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);

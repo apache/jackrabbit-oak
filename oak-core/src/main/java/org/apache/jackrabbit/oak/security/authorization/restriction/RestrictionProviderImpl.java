@@ -19,12 +19,13 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -63,15 +64,20 @@ import org.slf4j.LoggerFactory;
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);
-    
-    private static final Map<String, RestrictionDefinition> DEFINITIONS = ImmutableMap.<String, RestrictionDefinition>builder()
-            .put(REP_GLOB, new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false))
-            .put(REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false))
-            .put(REP_PREFIXES, new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false))
-            .put(REP_ITEM_NAMES, new RestrictionDefinitionImpl(REP_ITEM_NAMES, Type.NAMES, false))
-            .put(REP_CURRENT, new RestrictionDefinitionImpl(REP_CURRENT, Type.STRINGS, false))
-            .put(REP_GLOBS, new RestrictionDefinitionImpl(REP_GLOBS, Type.STRINGS, false))
-            .put(REP_SUBTREES, new RestrictionDefinitionImpl(REP_SUBTREES, Type.STRINGS, false)).build();
+
+    private static final Map<String, RestrictionDefinition> DEFINITIONS;
+
+    static {
+        Map<String, RestrictionDefinition> tmp = new LinkedHashMap<>();
+        tmp.put(REP_GLOB, new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false));
+        tmp.put(REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false));
+        tmp.put(REP_PREFIXES, new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false));
+        tmp.put(REP_ITEM_NAMES, new RestrictionDefinitionImpl(REP_ITEM_NAMES, Type.NAMES, false));
+        tmp.put(REP_CURRENT, new RestrictionDefinitionImpl(REP_CURRENT, Type.STRINGS, false));
+        tmp.put(REP_GLOBS, new RestrictionDefinitionImpl(REP_GLOBS, Type.STRINGS, false));
+        tmp.put(REP_SUBTREES, new RestrictionDefinitionImpl(REP_SUBTREES, Type.STRINGS, false));
+        DEFINITIONS = Collections.unmodifiableMap(tmp);
+    }
 
     public RestrictionProviderImpl() {
         super(DEFINITIONS);

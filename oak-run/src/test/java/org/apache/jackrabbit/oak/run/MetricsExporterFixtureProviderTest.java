@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import io.prometheus.client.exporter.PushGateway;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -61,7 +61,7 @@ public class MetricsExporterFixtureProviderTest {
     @Test
     public void testMetricArgs() throws Exception {
         String option = "pushgateway;localhost:9091;key1=value1,key2=value2";
-        Map<String, String> expectedMap = Maps.newHashMap();
+        Map<String, String> expectedMap = new HashMap<>();
         expectedMap.put("key1", "value1");
         expectedMap.put("key2", "value2");
 
@@ -98,7 +98,7 @@ public class MetricsExporterFixtureProviderTest {
 
         assertEquals("pushgateway", metricsArgs.getExporterType().name());
         assertEquals("localhost:9091", metricsArgs.getPushUri());
-        assertEquals(Maps.newHashMap(), metricsArgs.getPushMap());
+        assertEquals(new HashMap<>(), metricsArgs.getPushMap());
     }
 
     @Test
@@ -115,7 +115,7 @@ public class MetricsExporterFixtureProviderTest {
         expectedEx.expect(java.lang.IllegalArgumentException.class);
 
         String option = "pushgateway:key1=value1,key2=value2";
-        Map<String, String> expectedMap = Maps.newHashMap();
+        Map<String, String> expectedMap = new HashMap<>();
         expectedMap.put("key1", "value1");
         expectedMap.put("key2", "value2");
 

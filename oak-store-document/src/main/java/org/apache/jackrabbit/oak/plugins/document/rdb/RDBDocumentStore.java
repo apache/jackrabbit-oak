@@ -89,10 +89,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
@@ -878,15 +876,15 @@ public class RDBDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        Map<String, String> builder = new HashMap<>();
         tableMeta.forEach((k, v) -> toMapBuilder(builder, k, v));
         if (LOG.isDebugEnabled()) {
             LOG.debug("statistics obtained: " + builder.toString());
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
-    private <T extends Document> void toMapBuilder(ImmutableMap.Builder<String, String> builder, Collection<T> collection, RDBTableMetaData meta) {
+    private <T extends Document> void toMapBuilder(Map<String, String> builder, Collection<T> collection, RDBTableMetaData meta) {
         String prefix = collection.toString();
         builder.put(prefix + ".ns", meta.getCatalog() + "." + meta.getName());
         builder.put(prefix + ".schemaInfo", meta.getSchemaInfo());
@@ -1029,13 +1027,12 @@ public class RDBDocumentStore implements DocumentStore {
 
         this.dbInfo = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
         this.db = new RDBDocumentStoreJDBC(this.dbInfo, this.ser, QUERYHITSLIMIT, QUERYTIMELIMIT);
-        this.metadata = ImmutableMap.<String,String>builder()
-                .put("type", "rdb")
-                .put("db", md.getDatabaseProductName())
-                .put("version", md.getDatabaseProductVersion())
-                .put("driver", md.getDriverName())
-                .put("driverVersion", md.getDriverVersion())
-                .build();
+        this.metadata = Map.of(
+                "type", "rdb",
+                "db", md.getDatabaseProductName(),
+                "version", md.getDatabaseProductVersion(),
+                "driver", md.getDriverName(),
+                "driverVersion", md.getDriverVersion());
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
             LOG.error(versionDiags);
@@ -1808,7 +1805,7 @@ public class RDBDocumentStore implements DocumentStore {
                 if (populateCache) {
                     nodesCache.putNonConflictingDocs(tracker, castAsNodeDocumentList(result));
                 } else {
-                    Map<String, ModificationStamp> invMap = Maps.newHashMap();
+                    Map<String, ModificationStamp> invMap = new HashMap<>();
                     for (Document doc : result) {
                         invMap.put(doc.getId(), new ModificationStamp(modcountOf(doc), modifiedOf(doc)));
                     }
@@ -2003,7 +2000,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> int delete(Collection<T> collection, Map<String, Long> toRemove) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
-        Map<String, Long> subMap = Maps.newHashMap();
+        Map<String, Long> subMap = new HashMap<>();
         Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, Long> entry = it.next();

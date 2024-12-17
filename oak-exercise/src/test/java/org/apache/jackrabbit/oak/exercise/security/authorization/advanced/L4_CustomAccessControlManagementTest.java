@@ -32,8 +32,6 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -309,7 +307,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Test
     public void testGetEffectivePolicies() throws Exception {
         // EXERCISE: set expected number of effective policies for all paths in the map.
-        Map<String,Integer> m = ImmutableMap.of("/", -1, "/test", -1, "/test/a/b", -1, "/outside", -1);
+        Map<String,Integer> m = Map.of("/", -1, "/test", -1, "/test/a/b", -1, "/outside", -1);
 
         for (String path : m.keySet()) {
             AccessControlPolicy[] policies = getAcManager(root).getEffectivePolicies(path);
@@ -327,7 +325,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Test
     public void testGetApplicablePolicies() throws Exception {
         // EXERCISE: set expected number of applicable policies for all paths in the map.
-        Map<String,Integer> m = ImmutableMap.of("/test/a", -1, "/test/a/b", -1, "/outside", -1);
+        Map<String,Integer> m = Map.of("/test/a", -1, "/test/a/b", -1, "/outside", -1);
 
         for (String path : m.keySet()) {
             AccessControlPolicyIterator it = getAcManager(root).getApplicablePolicies(path);
@@ -353,7 +351,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         root.commit();
 
         PrincipalManager pm = getPrincipalManager(root);
-        Map<Principal,Long> m = ImmutableMap.of(
+        Map<Principal,Long> m = Map.of(
                 getTestUser().getPrincipal(), Permissions.NO_PERMISSION,
                 pm.getEveryone(), Permissions.NO_PERMISSION,
                 pm.getPrincipal("principalR"), Permissions.READ,

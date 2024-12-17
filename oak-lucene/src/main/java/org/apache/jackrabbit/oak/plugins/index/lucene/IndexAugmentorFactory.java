@@ -18,15 +18,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
@@ -132,7 +131,7 @@ public class IndexAugmentorFactory {
             }
         }
 
-        Map<String, CompositeIndexFieldProvider> providerMap = Maps.newHashMap();
+        Map<String, CompositeIndexFieldProvider> providerMap = new HashMap<>();
         for (String nodeType : providerMultimap.keySet()) {
             List<IndexFieldProvider> providers = providerMultimap.get(nodeType);
             CompositeIndexFieldProvider compositeIndexFieldProvider =
@@ -140,7 +139,7 @@ public class IndexAugmentorFactory {
             providerMap.put(nodeType, compositeIndexFieldProvider);
         }
 
-        indexFieldProviderMap = ImmutableMap.copyOf(providerMap);
+        indexFieldProviderMap = Collections.unmodifiableMap(providerMap);
     }
 
     private void refreshFulltextQueryTermsProviders() {
@@ -153,7 +152,7 @@ public class IndexAugmentorFactory {
             }
         }
 
-        Map<String, CompositeFulltextQueryTermsProvider> providerMap = Maps.newHashMap();
+        Map<String, CompositeFulltextQueryTermsProvider> providerMap = new HashMap<>();
         for (String nodeType : providerMultimap.keySet()) {
             List<FulltextQueryTermsProvider> providers = providerMultimap.get(nodeType);
             CompositeFulltextQueryTermsProvider compositeFulltextQueryTermsProvider =
@@ -161,7 +160,7 @@ public class IndexAugmentorFactory {
             providerMap.put(nodeType, compositeFulltextQueryTermsProvider);
         }
 
-        fulltextQueryTermsProviderMap = ImmutableMap.copyOf(providerMap);
+        fulltextQueryTermsProviderMap = Collections.unmodifiableMap(providerMap);
     }
 
     private void resetState() {

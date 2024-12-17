@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
@@ -56,8 +54,7 @@ public class TestUtils {
                 .map(p -> copyOf(elements(p)))
                 .sorted(comparator)
                 .collect(toList());
-        Joiner j = Joiner.on('/');
-        return copy.stream().map(e -> "/" + j.join(e)).collect(toList());
+        return copy.stream().map(e -> "/" + String.join("/", e)).collect(toList());
     }
 
     static CountingIterable<NodeStateEntry> createList(Set<String> preferred, List<String> paths) {

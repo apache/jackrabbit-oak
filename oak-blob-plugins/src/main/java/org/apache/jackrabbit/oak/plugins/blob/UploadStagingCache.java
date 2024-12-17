@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -61,7 +62,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils
@@ -774,18 +774,18 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
 
     @Override
     public String cacheInfoAsString() {
-        return toStringHelper("StagingCacheStats")
-            .add("requestCount", getRequestCount())
-            .add("hitCount", getHitCount())
-            .add("hitRate", format("%1.2f", getHitRate()))
-            .add("missCount", getMissCount())
-            .add("missRate", format("%1.2f", getMissRate()))
-            .add("loadCount", getLoadCount())
-            .add("loadSuccessCount", getLoadSuccessCount())
-            .add("elementCount", getElementCount())
-            .add("currentMemSize", estimateCurrentMemoryWeight())
-            .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
-            .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
+        return new StringJoiner(", ", "StagingCacheStats + [", "]")
+            .add("requestCount=" + getRequestCount())
+            .add("hitCount=" + getHitCount())
+            .add("hitRate=" + format("%1.2f", getHitRate()))
+            .add("missCount=" + getMissCount())
+            .add("missRate=" + format("%1.2f", getMissRate()))
+            .add("loadCount=" + getLoadCount())
+            .add("loadSuccessCount=" + getLoadSuccessCount())
+            .add("elementCount=" + getElementCount())
+            .add("currentMemSize=" + estimateCurrentMemoryWeight())
+            .add("totalWeight=" + humanReadableByteCount(estimateCurrentWeight()))
+            .add("maxWeight=" + humanReadableByteCount(getMaxTotalWeight()))
             .toString();
     }
 

@@ -53,7 +53,7 @@ import static org.junit.Assume.assumeTrue;
 
 public class LeaseUpdateSocketTimeoutIT {
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.9.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.11.0");
 
     private static final int MONGODB_DEFAULT_PORT = 27017;
 

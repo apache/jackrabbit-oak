@@ -204,6 +204,13 @@ public abstract class AbstractSecurityTest {
         }
     }
 
+    /*
+     * Useful when needing to re-create the user manager instance while updating configuration
+     */
+    protected void cleanUserManager() {
+        userManager = null;
+    }
+
     protected PrincipalManager getPrincipalManager(Root root) {
         return getConfig(PrincipalConfiguration.class).getPrincipalManager(root, getNamePathMapper());
     }

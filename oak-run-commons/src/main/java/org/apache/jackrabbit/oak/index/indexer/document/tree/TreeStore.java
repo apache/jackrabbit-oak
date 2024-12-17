@@ -98,7 +98,7 @@ public class TreeStore implements ParallelIndexStore {
         long cacheSizeNodeMB = cacheSizeFactor * CACHE_SIZE_NODE_MB;
         long cacheSizeTreeStoreMB = cacheSizeFactor * CACHE_SIZE_TREE_STORE_MB;
         this.cacheSizeTreeStoreMB = cacheSizeTreeStoreMB;
-        nodeStateCache = new SieveCache<>(cacheSizeFactor * cacheSizeNodeMB * MB);
+        nodeStateCache = new SieveCache<>(cacheSizeNodeMB * MB);
         String storeConfig;
         if (FilePacker.isPackFile(fileOrDirectory)) {
             readOnly = true;

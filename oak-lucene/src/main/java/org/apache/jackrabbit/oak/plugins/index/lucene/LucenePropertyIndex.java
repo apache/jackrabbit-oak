@@ -36,13 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -626,8 +624,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                               Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc, FieldInfos fieldInfos)
             throws IOException {
         Set<String> excerptFieldNames = new HashSet<>();
-        Map<String, String> fieldNameToColumnNameMap = Maps.newHashMap();
-        Map<String, String> columnNameToExcerpts = Maps.newHashMap();
+        Map<String, String> fieldNameToColumnNameMap = new HashMap<>();
+        Map<String, String> columnNameToExcerpts = new HashMap<>();
         Set<String> nodeExcerptColumns = new HashSet<>();
 
         excerptFields.forEach(columnName -> {
@@ -720,7 +718,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         if (requireNodeLevelExcerpt) {
-            String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
+            String nodeExcerpt = String.join("...", columnNameToExcerpts.values());
 
             nodeExcerptColumns.forEach(nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }

@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -45,7 +46,6 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -104,7 +104,7 @@ public class TestS3DataStore {
     @Test
     public void testAccessParamLeakOnError() throws Exception {
         expectedEx.expect(RepositoryException.class);
-        expectedEx.expectMessage("Could not initialize S3 from {s3Region=us-standard, intValueKey=25}");
+        expectedEx.expectMessage("Could not initialize S3 from {mode=S3, s3Region=us-standard, intValueKey=25}");
 
         props.put(S3Constants.ACCESS_KEY, "abcd");
         props.put(S3Constants.SECRET_KEY, "123456");
@@ -177,7 +177,7 @@ public class TestS3DataStore {
         for (boolean fromInputStream : List.of(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
             for (int count : List.of(1, 3)) {
-                Map<String, String> records = Maps.newHashMap();
+                Map<String, String> records = new HashMap<>();
                 for (int i = 0; i < count; i++) {
                     String recordName = String.format("%sname.%d", prefix, i);
                     String data = String.format("testData%d", i);
@@ -371,7 +371,7 @@ public class TestS3DataStore {
         String prefixOne = "prefix1.prefix3";
         String prefixNone = "prefix4";
 
-        Map<String, Integer> prefixCounts = Maps.newHashMap();
+        Map<String, Integer> prefixCounts = new HashMap<>();
         prefixCounts.put(prefixAll, 4);
         prefixCounts.put(prefixSome, 2);
         prefixCounts.put(prefixOne, 1);

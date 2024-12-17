@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -96,7 +95,7 @@ public class IndexDefinitionUpdaterTest {
     @Test (expected = IllegalArgumentException.class)
     public void invalidJson() throws Exception{
         Map<String, Object> map = new HashMap<>();
-        map.put("a", ImmutableMap.of("a2", "b2"));
+        map.put("a", Map.of("a2", "b2"));
         String json = JSONObject.toJSONString(map);
         applyJson(json);
     }

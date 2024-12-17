@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -191,7 +191,7 @@ public class LocalIndexWriterFactoryTest {
 
     private CommitInfo newCommitInfo(){
         info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+                Map.of(CommitContext.NAME, new SimpleCommitContext()));
         return info;
     }
 

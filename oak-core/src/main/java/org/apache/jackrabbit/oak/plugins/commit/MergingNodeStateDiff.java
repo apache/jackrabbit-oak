@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
@@ -227,7 +226,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base);
     }
 
-    private final Map<ConflictType, PropertyConflictHandler> propertyConflictHandlers = ImmutableMap.of(
+    private final Map<ConflictType, PropertyConflictHandler> propertyConflictHandlers = Map.of(
         ADD_EXISTING_PROPERTY, new PropertyConflictHandler() {
             @Override
             public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
@@ -285,7 +284,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         }
     );
 
-    private final Map<ConflictType, NodeConflictHandler> nodeConflictHandlers = ImmutableMap.of(
+    private final Map<ConflictType, NodeConflictHandler> nodeConflictHandlers = Map.of(
         ADD_EXISTING_NODE, new NodeConflictHandler() {
             @Override
             public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {

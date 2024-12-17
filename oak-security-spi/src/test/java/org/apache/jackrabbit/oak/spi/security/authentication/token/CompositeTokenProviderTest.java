@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -66,7 +66,7 @@ public class CompositeTokenProviderTest {
         assertFalse(tp.doCreateToken(creds));
 
         assertNull(tp.createToken(null, null));
-        assertNull(tp.createToken(USERID, ImmutableMap.<String, String>of()));
+        assertNull(tp.createToken(USERID, Map.of()));
 
         assertNull(tp.createToken(null));
         assertNull(tp.createToken(creds));
@@ -114,22 +114,22 @@ public class CompositeTokenProviderTest {
 
     @Test
     public void testCreateTokenFromId() {
-        assertSame(info, composite.createToken(USERID, ImmutableMap.of()));
+        assertSame(info, composite.createToken(USERID, Map.of()));
     }
 
     @Test
     public void testCreateTokenFromUnknownId() {
-        assertNull(composite.createToken("unknown", ImmutableMap.of()));
+        assertNull(composite.createToken("unknown", Map.of()));
     }
 
     @Test
     public void testCreateTokenFromIdFirstWins() {
         TokenInfo ti = mock(TokenInfo.class);
-        TokenProvider tp1 = when(mock(TokenProvider.class).createToken(USERID, ImmutableMap.of())).thenReturn(ti).getMock();
+        TokenProvider tp1 = when(mock(TokenProvider.class).createToken(USERID, Map.of())).thenReturn(ti).getMock();
         TokenProvider tp2 = new TestTokenProvider();
 
         TokenProvider ctp = CompositeTokenProvider.newInstance(tp1, tp2);
-        assertSame(ti, ctp.createToken(USERID, ImmutableMap.of()));
+        assertSame(ti, ctp.createToken(USERID, Map.of()));
     }
 
     @Test

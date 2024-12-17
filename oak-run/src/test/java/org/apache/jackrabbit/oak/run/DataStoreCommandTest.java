@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -864,7 +863,7 @@ public class DataStoreCommandTest {
         DataStoreBlobStore setupDataStore, File f)
         throws IOException, CommitFailedException, DataStoreException {
         List<String> list = new ArrayList<>();
-        Map<String, String> idMapping = Maps.newHashMap();
+        Map<String, String> idMapping = new HashMap<>();
         NodeBuilder a = memNodeStore.getRoot().builder();
         for (int i = 0; i < 2; i++) {
             Blob b = store.createBlob(randomStream(i+100, 18342));
@@ -927,7 +926,7 @@ public class DataStoreCommandTest {
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, Type dsOption, Map<String, String> idToNodes,
         boolean encodeId) {
-        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> Joiner.on(",").join(encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
+        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> String.join(",", encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
     }
 
     private static Set<String> encodeIds(Set<String> ids, Type dsOption) {
@@ -975,7 +974,7 @@ public class DataStoreCommandTest {
 
         public Data() {
             added = new HashSet<>();
-            idToPath = Maps.newHashMap();
+            idToPath = new HashMap<>();
             deleted = new HashSet<>();
             missingDataStore = new HashSet<>();
             addedSubset = new HashSet<>();

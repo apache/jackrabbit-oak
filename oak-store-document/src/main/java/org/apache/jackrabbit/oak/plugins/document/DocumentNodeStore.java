@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -102,6 +103,7 @@ import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -137,10 +139,8 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -440,6 +440,12 @@ public final class DocumentNodeStore
     private final DiffCache diffCache;
 
     /**
+     * Tiny cache for non existence of any revisions in previous documents
+     * for particular properties.
+     */
+    private final Cache<StringValue, StringValue> prevNoPropCache;
+
+    /**
      * The commit value resolver for this node store.
      */
     private final CommitValueResolver commitValueResolver;
@@ -545,7 +551,7 @@ public final class DocumentNodeStore
      * reverts changes done by commits in the set that are older than the
      * current head revision.
      */
-    private final Set<Revision> inDoubtTrunkCommits = Sets.newConcurrentHashSet();
+    private final Set<Revision> inDoubtTrunkCommits = CollectionUtils.newConcurrentHashSet();
 
     /**
      * Contains journal entry revisions (branch commit style) that were created
@@ -554,7 +560,7 @@ public final class DocumentNodeStore
      * upon each backgroundWrite. It is used to avoid duplicate journal entries
      * that would otherwise be created as a result of merge (normal plus exclusive) retries
      */
-    private final Set<String> pendingRollbackInvalidations = Sets.newConcurrentHashSet();
+    private final Set<String> pendingRollbackInvalidations = CollectionUtils.newConcurrentHashSet();
 
     private final Predicate<Path> nodeCachePredicate;
 
@@ -682,6 +688,9 @@ public final class DocumentNodeStore
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
         diffCache = builder.getDiffCache(this.clusterId);
+
+        // builder checks for feature toggle directly and returns null if disabled
+        prevNoPropCache = builder.buildPrevNoPropCache();
 
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
@@ -860,6 +869,13 @@ public final class DocumentNodeStore
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}, updateLimit: {} ({})",
                 clusterId, updateLimit,
                 getClusterNodeInfoDisplayString());
+        if (prevNoPropCache == null) {
+            LOG.info("prevNoProp cache is disabled");
+        } else {
+            // unfortunate that the guava cache doesn't unveil its max size
+            // hence falling back to using the builder's original value for now.
+            LOG.info("prevNoProp cache is enabled with size: " + builder.getPrevNoPropCacheSize());
+        }
 
         if (!builder.isBundlingDisabled()) {
             bundlingConfigHandler.initialize(this, executor);
@@ -1304,6 +1320,10 @@ public final class DocumentNodeStore
 
     public Predicate<Path> getNodeCachePredicate() {
         return nodeCachePredicate;
+    }
+
+    public Cache<StringValue, StringValue> getPrevNoPropCache() {
+        return prevNoPropCache;
     }
 
     /**
@@ -1940,7 +1960,7 @@ public final class DocumentNodeStore
         revs.addAll(b.getCommits().tailSet(ancestorRev));
         UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath(ROOT), false);
         // reset each branch commit in reverse order
-        Map<Path, UpdateOp> operations = Maps.newHashMap();
+        Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
         for (Revision r : reverse(revs)) {
             operations.clear();
@@ -2554,7 +2574,7 @@ public final class DocumentNodeStore
         CommitContext commitContext = new SimpleCommitContext();
         commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
         journalPropertyHandler.addTo(commitContext);
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        Map<String, Object> info = Map.of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info, true);
     }
 
@@ -4056,5 +4076,14 @@ public final class DocumentNodeStore
         // feature can be enabled with system property or feature toggle
         return prefetchEnabled
                 || (prefetchFeature != null && prefetchFeature.isEnabled());
+    }
+
+    /**
+     * Configures the performance logger with the specified info log interval.
+     *
+     * @param infoLogMillis the interval in milliseconds for logging performance information.
+     */
+    static void configurePerfLogger(long infoLogMillis) {
+        PERFLOG.setInfoLogMillis(infoLogMillis);
     }
 }

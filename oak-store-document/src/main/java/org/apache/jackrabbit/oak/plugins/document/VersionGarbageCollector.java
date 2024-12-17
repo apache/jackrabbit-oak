@@ -42,8 +42,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -667,7 +665,7 @@ public class VersionGarbageCollector {
         final Stopwatch elapsed;
         private final GCMonitor monitor;
         private final List<GCPhase> phases = new ArrayList<>();
-        private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
+        private final Map<GCPhase, Stopwatch> watches = new HashMap<>();
         private final AtomicBoolean canceled;
 
         GCPhases(AtomicBoolean canceled, VersionGCStats stats, GCMonitor monitor) {
@@ -2415,7 +2413,7 @@ public class VersionGarbageCollector {
 
                 if (log.isTraceEnabled()) {
                     StringBuilder sb = new StringBuilder("Performing batch deletion of documents with following ids. \n");
-                    Joiner.on(System.getProperty("line.separator")).appendTo(sb, deletionBatch.keySet());
+                    sb.append(String.join(System.getProperty("line.separator"), deletionBatch.keySet()));
                     log.trace(sb.toString());
                 }
 
@@ -2505,7 +2503,7 @@ public class VersionGarbageCollector {
 
                 if (log.isDebugEnabled()) {
                     StringBuilder sb = new StringBuilder("Performing batch deletion of previous documents with following ids. \n");
-                    Joiner.on(System.getProperty("line.separator")).appendTo(sb, deletionBatch);
+                    sb.append(String.join(System.getProperty("line.separator"), deletionBatch));
                     log.debug(sb.toString());
                 }
 

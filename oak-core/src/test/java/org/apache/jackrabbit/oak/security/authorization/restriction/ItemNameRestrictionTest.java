@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -42,6 +41,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
@@ -61,7 +61,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
                         PrivilegeConstants.JCR_ADD_CHILD_NODES,
                         PrivilegeConstants.JCR_REMOVE_NODE), true,
                 Collections.emptyMap(),
-                ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                         vf.createValue("a", PropertyType.NAME),
                         vf.createValue("b", PropertyType.NAME),
                         vf.createValue("c", PropertyType.NAME)}));
@@ -197,7 +197,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true,
                     Collections.emptyMap(),
-                    ImmutableMap.of (AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                    Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                                             vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME)}));
             acMgr.setPolicy(acl.getPath(), acl);
             root.commit();

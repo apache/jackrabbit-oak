@@ -22,9 +22,9 @@ import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -135,21 +135,21 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
 
     @Override
     public String cacheInfoAsString() {
-        return MoreObjects.toStringHelper("CacheStats")
-                .add("hitCount", getHitCount())
-                .add("hitRate", format("%1.2f", getHitRate()))
-                .add("missCount", getMissCount())
-                .add("missRate", format("%1.2f", getMissRate()))
-                .add("requestCount", getRequestCount())
-                .add("loadCount", getLoadCount())
-                .add("loadSuccessCount", getLoadSuccessCount())
-                .add("loadExceptionCount", getLoadExceptionCount())
-                .add("totalLoadTime", timeInWords(getTotalLoadTime()))
-                .add("averageLoadPenalty", format("%1.2f ns", getAverageLoadPenalty()))
-                .add("evictionCount", getEvictionCount())
-                .add("elementCount", getElementCount())
-                .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
-                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
+        return new StringJoiner(", ", "CacheStats [", "]")
+                .add("hitCount=" + getHitCount())
+                .add("hitRate=" + format("%1.2f", getHitRate()))
+                .add("missCount=" + getMissCount())
+                .add("missRate=" + format("%1.2f", getMissRate()))
+                .add("requestCount=" + getRequestCount())
+                .add("loadCount=" + getLoadCount())
+                .add("loadSuccessCount=" + getLoadSuccessCount())
+                .add("loadExceptionCount=" + getLoadExceptionCount())
+                .add("totalLoadTime=" + timeInWords(getTotalLoadTime()))
+                .add("averageLoadPenalty=" + format("%1.2f ns", getAverageLoadPenalty()))
+                .add("evictionCount=" + getEvictionCount())
+                .add("elementCount=" + getElementCount())
+                .add("totalWeight=" + humanReadableByteCount(estimateCurrentWeight()))
+                .add("maxWeight=" + humanReadableByteCount(getMaxTotalWeight()))
                 .toString();
     }
 

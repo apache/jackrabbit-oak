@@ -85,7 +85,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBuilder.class);
 
     public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
-    public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 35;
+    public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 34;
+    public static final int DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE = 1;
     public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
     public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 15;
     public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 30;
@@ -125,6 +126,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean timing;
     private boolean logging;
     private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
+    private long perfloggerInfoMillis = DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
@@ -134,10 +136,12 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
+    private Feature prevNoPropCacheFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
     private int prevDocCachePercentage = DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+    private int prevNoPropCachePercentage = DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
     private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
     private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
     private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
@@ -451,6 +455,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return docStoreEmbeddedVerificationFeature;
     }
 
+    public T setPrevNoPropCacheFeature(@Nullable Feature prevNoPropCacheFeature) {
+        this.prevNoPropCacheFeature = prevNoPropCacheFeature;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getPrevNoPropCacheFeature() {
+        return prevNoPropCacheFeature;
+    }
+
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;
         return thisBuilder();
@@ -586,17 +600,20 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     public T memoryCacheDistribution(int nodeCachePercentage,
                                      int prevDocCachePercentage,
                                      int childrenCachePercentage,
-                                     int diffCachePercentage) {
+                                     int diffCachePercentage,
+                                     int prevNoPropCachePercentage) {
         checkArgument(nodeCachePercentage >= 0);
         checkArgument(prevDocCachePercentage >= 0);
         checkArgument(childrenCachePercentage>= 0);
         checkArgument(diffCachePercentage >= 0);
+        checkArgument(prevNoPropCachePercentage >= 0);
         checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
-                diffCachePercentage < 100);
+                diffCachePercentage + prevNoPropCachePercentage < 100);
         this.nodeCachePercentage = nodeCachePercentage;
         this.prevDocCachePercentage = prevDocCachePercentage;
         this.childrenCachePercentage = childrenCachePercentage;
         this.diffCachePercentage = diffCachePercentage;
+        this.prevNoPropCachePercentage = prevNoPropCachePercentage;
         return thisBuilder();
     }
 
@@ -608,13 +625,21 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return memoryCacheSize * prevDocCachePercentage / 100;
     }
 
+    public long getPrevNoPropCacheSize() {
+        // feature toggle overrules the prevNoPropCachePercentage config
+        if (!isPrevNoPropCacheEnabled()) {
+            return 0;
+        }
+        return memoryCacheSize * prevNoPropCachePercentage / 100;
+    }
+
     public long getChildrenCacheSize() {
         return memoryCacheSize * childrenCachePercentage / 100;
     }
 
     public long getDocumentCacheSize() {
         return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize() - getChildrenCacheSize()
-                - getDiffCacheSize();
+                - getDiffCacheSize() - getPrevNoPropCacheSize();
     }
 
     public long getDiffCacheSize() {
@@ -843,6 +868,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return recoveryDelayMillis;
     }
 
+    public T setPerfloggerInfoMillis(long perfloggerInfoMillis) {
+        this.perfloggerInfoMillis = perfloggerInfoMillis;
+        return thisBuilder();
+    }
+
+    public long getPerfloggerInfoMillis() {
+        return perfloggerInfoMillis;
+    }
+
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {
         this.gcMonitor = requireNonNull(gcMonitor);
         return thisBuilder();
@@ -896,6 +930,30 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
 
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+    }
+
+    /**
+     * Checks the feature toggle for prevNoProp cache and returns true if that's enabled
+     * @return true if the prevNoProp feature toggle is enabled, false otherwise
+     */
+    private boolean isPrevNoPropCacheEnabled() {
+        final Feature prevNoPropFeature = getPrevNoPropCacheFeature();
+        return prevNoPropFeature != null && prevNoPropFeature.isEnabled();
+    }
+
+    /**
+     * Builds the prevNoProp cache, if the corresponding feature toggle is enabled.
+     * Returns null otherwise
+     * @return null if prevNoProp feature is disabled and size non-null, a newly built cache otherwise
+     */
+    @Nullable
+    public Cache<StringValue, StringValue> buildPrevNoPropCache() {
+        // if feature toggle is off or the config is explicitly set to 0, then no cache
+        if (!isPrevNoPropCacheEnabled() || getPrevNoPropCacheSize() == 0) {
+            return null;
+        }
+        // no persistent cache for now as this is only a tiny cache
+        return buildCache("PREV_NOPROP", getPrevNoPropCacheSize(), new CopyOnWriteArraySet<>());
     }
 
     /**

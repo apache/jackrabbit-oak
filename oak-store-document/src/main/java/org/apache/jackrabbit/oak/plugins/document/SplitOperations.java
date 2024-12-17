@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -155,9 +156,9 @@ class SplitOperations {
         splitOps = new ArrayList<>();
         mostRecentRevs = new HashSet<>();
         splitRevs = new HashSet<>();
-        garbage = Maps.newHashMap();
+        garbage = new HashMap<>();
         changes = new HashSet<>();
-        committedChanges = Maps.newHashMap();
+        committedChanges = new HashMap<>();
         
         collectLocalChanges(committedChanges, changes);
 
@@ -410,7 +411,7 @@ class SplitOperations {
      * @return histogram of the height of the previous documents.
      */
     private Map<Integer, List<Range>> getPreviousDocsHistogram() {
-        Map<Integer, List<Range>> prevHisto = Maps.newHashMap();
+        Map<Integer, List<Range>> prevHisto = new HashMap<>();
         for (Map.Entry<Revision, Range> entry : doc.getPreviousRanges().entrySet()) {
             Revision rev = entry.getKey();
             if (rev.getClusterId() != context.getClusterId()) {

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -39,6 +38,7 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
@@ -196,7 +196,7 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         //           both the supportedPrincipal and unsupportedPrincipal
         JackrabbitAccessControlList acl = null; // EXERCISE
         acl.addEntry(supportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true,
-                ImmutableMap.of(AccessControlConstants.REP_NODE_PATH, getValueFactory(root).createValue(testPath)));
+                Map.of(AccessControlConstants.REP_NODE_PATH, getValueFactory(root).createValue(testPath)));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
