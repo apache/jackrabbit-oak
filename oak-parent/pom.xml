@@ -143,6 +143,7 @@ q
           <extensions>true</extensions>
           <inherited>true</inherited>
           <configuration>
+            <exportScr>true</exportScr>
             <obrRepository>NONE</obrRepository>
             <instructions>
               <Bundle-Category>oak</Bundle-Category>
