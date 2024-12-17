@@ -19,30 +19,46 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
 
 /**
  * An OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}.
  * This allows correct cleanup of any persisted Solr server configurations once they get changed or deleted.
  */
-@Component(metatype = true,
-        immediate = true,
-        label = "Apache Jackrabbit Oak Solr persisted configuration observer"
+@Component(
+        immediate = true
+)
+@Designate(
+        ocd = NodeStateSolrServersObserverService.Configuration.class
 )
 public class NodeStateSolrServersObserverService {
+
+    @ObjectClassDefinition(
+            id ="org.apache.jackrabbit.oak.plugins.index.solr.osgi.NodeStateSolrServersObserverService",
+            name = "Apache Jackrabbit Oak Solr persisted configuration observer"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "enabled",
+                description = "enable persisted configuration observer"
+        )
+        boolean enabled() default false;
+    }
 
     private final NodeStateSolrServersObserver nodeStateSolrServersObserver = new NodeStateSolrServersObserver();
 
@@ -52,13 +68,10 @@ public class NodeStateSolrServersObserverService {
 
     private List<ServiceRegistration> regs = new ArrayList<ServiceRegistration>();
 
-    @Property(boolValue = false, label = "enabled", description = "enable persisted configuration observer")
-    private static final String ENABLED = "enabled";
-
     @Activate
-    protected void activate(ComponentContext componentContext) throws Exception {
+    protected void activate(ComponentContext componentContext, Configuration configuration) throws Exception {
 
-        boolean enabled = PropertiesUtil.toBoolean(componentContext.getProperties().get(ENABLED), false);
+        boolean enabled = configuration.enabled();
 
         if (enabled) {
             BundleContext bundleContext = componentContext.getBundleContext();
