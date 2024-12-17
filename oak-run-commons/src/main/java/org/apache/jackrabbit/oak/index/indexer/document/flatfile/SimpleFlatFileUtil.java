@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.BufferedWriter;
@@ -29,6 +28,7 @@ import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -93,7 +93,7 @@ public class SimpleFlatFileUtil {
             return;
         }
         String jsonText = entryWriter.asSortedJson(e.getNodeState());
-        String line = entryWriter.toString(copyOf(elements(path)), jsonText);
+        String line = entryWriter.toString(CollectionUtils.toList(elements(path)), jsonText);
         writer.append(line);
         writer.append(LINE_SEPARATOR);
         totalLines++;
