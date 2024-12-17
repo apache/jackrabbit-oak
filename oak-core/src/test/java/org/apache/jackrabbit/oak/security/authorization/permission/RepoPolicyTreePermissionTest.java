@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -77,7 +78,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
         accessSession = createTestSession();
 
         Subject notAllowedSubject = new Subject(true, Set.of(EveryonePrincipal.getInstance()), Set.of(), Set.of());
-        noAccessSession = Subject.doAs(notAllowedSubject, (PrivilegedAction<ContentSession>) () -> {
+        noAccessSession = Java23Subject.doAs(notAllowedSubject, (PrivilegedAction<ContentSession>) () -> {
             try {
                 return getContentRepository().login(null, null);
             } catch (Exception e) {
