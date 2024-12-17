@@ -22,7 +22,6 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static javax.jcr.PropertyType.TYPENAME_BINARY;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
@@ -47,8 +46,8 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
     protected void createTestIndexNode() throws Exception {
         Tree index = createTestIndexNode(root.getTree("/"), indexOptions.getIndexType());
         index.setProperty(INCLUDE_PROPERTY_TYPES,
-                of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
-        index.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
+                List.of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
+        index.setProperty(EXCLUDE_PROPERTY_NAMES, List.of(NOT_IN), STRINGS);
         TestUtil.useV2(index);
         root.commit();
     }
@@ -72,12 +71,12 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
                 + " and (@" + JCR_LASTMODIFIED
                 + " > xs:dateTime('2014-04-01T08:58:03.231Z')) ]";
 
-        TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/two")), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", List.of("/content/two")), 3000 * 3);
     }
 
     @Test
     public void ignoreByName() throws Exception {
-        final List<String> expected = of("/content/two");
+        final List<String> expected = List.of("/content/two");
 
         Tree content = root.getTree("/").addChild("content");
         Tree one = content.addChild("one");
@@ -117,7 +116,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         // Should not return /content/two since there, querty value is set for notincluded property which
         // is part of excluded properties in the index definition
 
-        TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", List.of("/content/one")), 3000 * 3);
     }
 
     @Test
@@ -138,7 +137,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         // Assert /content/two is not returned since it matches 2014 from DATE type property field which is not part of
         // includePropertyTypes in the index definition
         String query = "/jcr:root/content//*[jcr:contains(., '2014')]";
-        TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", List.of("/content/one")), 3000 * 3);
     }
 
 }
