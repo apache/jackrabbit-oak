@@ -24,11 +24,9 @@ import java.nio.file.Paths;
 
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
-import org.junit.BeforeClass;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 
-import static org.apache.sling.testing.paxexam.SlingOptions.scr;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingCommonsMetrics;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
@@ -71,7 +69,6 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     public static Option oak() {
         return composite(
-            scr(),
             slingCommonsMetrics(),
             jackrabbit(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-shaded-guava").versionAsInProject(),

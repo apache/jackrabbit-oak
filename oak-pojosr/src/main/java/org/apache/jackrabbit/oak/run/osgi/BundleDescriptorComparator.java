@@ -53,7 +53,6 @@ class BundleDescriptorComparator implements Comparator<BundleDescriptor> {
         defaultLevels.put("org.apache.felix.configadmin", 2);
         defaultLevels.put("org.apache.felix.fileinstall", 2);
 
-        defaultLevels.put("org.apache.felix.scr", 10);
         return Collections.unmodifiableMap(defaultLevels);
     }
 
