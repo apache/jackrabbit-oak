@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
@@ -26,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -177,8 +177,8 @@ public class GlobbingPathFilter implements EventFilter {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
-                .add("path", String.join("/", pattern))
+        return new StringJoiner(", ", GlobbingPathFilter.class.getSimpleName() + "[", "]")
+                .add("path=" + String.join("/", pattern))
                 .toString();
     }
 

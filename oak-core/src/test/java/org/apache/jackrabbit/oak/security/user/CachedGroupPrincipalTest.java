@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -34,7 +35,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Enumeration;
@@ -112,7 +112,7 @@ public class CachedGroupPrincipalTest extends AbstractSecurityTest {
 
     private ContentSession getSystemSession() throws Exception {
         if (systemSession == null) {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
+            systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
         }
         return systemSession;
     }

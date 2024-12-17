@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -674,7 +675,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testLoginLogoutPreexistingReadonlySubject() throws Exception {
         createTestUser();
         Subject subject = new Subject(true, Collections.singleton(() -> "JMXPrincipal: foo"), Collections.EMPTY_SET, Collections.EMPTY_SET);
-        Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
+        Java23Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
             LogCustomizer logCustomizer = LogCustomizer
                     .forLogger("org.apache.jackrabbit.oak.core.ContentSessionImpl")
                     .enable(Level.ERROR)

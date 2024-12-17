@@ -62,7 +62,6 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.jetbrains.annotations.Nullable;
@@ -191,8 +190,8 @@ public class FileIOUtilsTest {
             entries[i] = r.nextLong();
         }
 
-        Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = Iterators.transform(boxedEntries, input -> Long.toHexString(input));
+        Iterator<String> hexEntries = Arrays.stream(entries).
+                mapToObj(input -> Long.toHexString(input)).iterator();
         File f = assertWrite(hexEntries, false, numEntries);
 
         Comparator<String> prefixComparator = new Comparator<String>() {
