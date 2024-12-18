@@ -142,23 +142,6 @@
           <version>5.1.9</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
-          <dependencies>
-            <dependency>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>org.apache.felix.scr.bnd</artifactId>
-                <version>1.9.6</version>
-                <exclusions>
-                    <!--
-                        This SCR plugin pulls in a bnd version with a different artifactId, thus leading
-                        to two bnd artifacts existing at the same time.
-                      -->
-                    <exclusion>
-                        <groupId>biz.aQute.bnd</groupId>
-                        <artifactId>bnd</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-          </dependencies>
           <configuration>
             <exportScr>true</exportScr>
             <obrRepository>NONE</obrRepository>
@@ -171,8 +154,6 @@
               <!-- Don't default to bundle version for packages without explicit export version.
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
-              <!-- Support parsing of maven-scr-plugin annotations through the felix.scr.bnd plugin -->
-              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}</_plugin>
             </instructions>
           </configuration>
           <executions>
@@ -539,11 +520,6 @@
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.annotation.versioning</artifactId>
         <version>1.1.2</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/versioning/package-summary.html -->
-      </dependency>
-      <dependency>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>org.apache.felix.scr.annotations</artifactId>
-        <version>1.12.0</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>
