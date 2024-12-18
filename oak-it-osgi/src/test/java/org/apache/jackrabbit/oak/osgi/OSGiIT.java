@@ -60,6 +60,13 @@ public class OSGiIT {
     public Option[] configuration() throws IOException, URISyntaxException {
         return CoreOptions.options(
                 junitBundles(),
+                // require at least DS 1.4 supported by SCR 2.1.0+
+                mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.28"),
+                // transitive deps of Felix SCR 2.1.x
+                mavenBundle("org.osgi", "org.osgi.util.promise", "1.1.1"),
+                mavenBundle("org.osgi", "org.osgi.util.function", "1.1.0"),
+                mavenBundle("org.apache.felix", "org.apache.felix.jaas", "1.0.2"),
+                mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
                 // require at least ConfigAdmin 1.6 supported by felix.configadmin 1.9.0+
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.9.20" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
