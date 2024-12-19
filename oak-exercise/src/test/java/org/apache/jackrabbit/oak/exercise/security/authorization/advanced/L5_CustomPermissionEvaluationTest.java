@@ -23,7 +23,6 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -203,8 +202,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
         root.commit();
 
-        trees = ImmutableList.<Tree>builder().add(root.getTree("/")).add(testTree).add(aTree).add(aaTree).add(bTree).add(bbTree).add(cTree).add(ccTree).build();
-
+        trees = List.of(root.getTree("/"), testTree, aTree, aaTree, bTree, bbTree, cTree, ccTree);
     }
 
     private PermissionProvider getPermissionProvider(@NotNull Set<Principal> principals) {
@@ -269,7 +267,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
     @Test
     public void testWriteAccess() throws Exception {
-        List<Set<Principal>> editors = ImmutableList.<Set<Principal>>of(
+        List<Set<Principal>> editors = List.of(
                 ImmutableSet.<Principal>of(new Editor("ida")),
                 ImmutableSet.<Principal>of(EveryonePrincipal.getInstance(), new Editor("amanda")),
                 ImmutableSet.<Principal>of(getTestUser().getPrincipal(),new Editor("susi")),
@@ -309,7 +307,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
     @Test
     public void testReadAccess() throws Exception {
-        List<Set<Principal>> readers = ImmutableList.<Set<Principal>>of(
+        List<Set<Principal>> readers = List.of(
                 ImmutableSet.<Principal>of(new Reader("ida")),
                 ImmutableSet.<Principal>of(EveryonePrincipal.getInstance(), new Reader("fairuz")),
                 ImmutableSet.<Principal>of(getTestUser().getPrincipal(),new Editor("juni")),

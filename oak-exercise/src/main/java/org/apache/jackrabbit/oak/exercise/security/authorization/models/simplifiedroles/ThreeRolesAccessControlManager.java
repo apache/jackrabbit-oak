@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
+import java.util.List;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -27,7 +29,6 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -86,7 +87,7 @@ class ThreeRolesAccessControlManager implements PolicyOwner, AccessControlManage
     @Override
     public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
         // EXERCISE
-        return new AccessControlPolicyIteratorAdapter(ImmutableList.of());
+        return new AccessControlPolicyIteratorAdapter(List.of());
     }
 
     @Override
