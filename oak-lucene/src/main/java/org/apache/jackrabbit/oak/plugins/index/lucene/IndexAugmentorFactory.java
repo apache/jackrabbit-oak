@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.osgi.service.component.annotations.Component;
@@ -185,7 +184,7 @@ public class IndexAugmentorFactory {
 
         CompositeIndexFieldProvider(String nodeType, List<IndexFieldProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = List.copyOf(providers);
         }
 
         @NotNull
@@ -219,7 +218,7 @@ public class IndexAugmentorFactory {
 
         CompositeFulltextQueryTermsProvider(String nodeType, List<FulltextQueryTermsProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = List.copyOf(providers);
         }
 
         @Override

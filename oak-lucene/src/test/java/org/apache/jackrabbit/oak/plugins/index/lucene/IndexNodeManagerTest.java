@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
@@ -140,7 +139,7 @@ public class IndexNodeManagerTest {
     @Test
     public void indexOpenedBeforeFistCycle() throws Exception {
         NodeState nrtIndex = createNRTIndex();
-        NodeState asyncIndex = nrtIndex.builder().setProperty("async", ImmutableList.of("async"), STRINGS).getNodeState();
+        NodeState asyncIndex = nrtIndex.builder().setProperty("async", List.of("async"), STRINGS).getNodeState();
         NodeState nonAsyncIndex;
         {
             NodeBuilder builder = nrtIndex.builder();
@@ -193,7 +192,7 @@ public class IndexNodeManagerTest {
             directory.close();
             nrtIndex = indexBuilder.getNodeState();
         }
-        NodeState asyncIndex = nrtIndex.builder().setProperty("async", ImmutableList.of("async"), STRINGS).getNodeState();
+        NodeState asyncIndex = nrtIndex.builder().setProperty("async", List.of("async"), STRINGS).getNodeState();
         NodeState nonAsyncIndex;
         {
             NodeBuilder builder = nrtIndex.builder();
@@ -218,7 +217,7 @@ public class IndexNodeManagerTest {
     @Test
     public void hasIndexingRun() {
         NodeState nrtIndex = createNRTIndex();
-        NodeState asyncIndex = nrtIndex.builder().setProperty("async", ImmutableList.of("async"), STRINGS).getNodeState();
+        NodeState asyncIndex = nrtIndex.builder().setProperty("async", List.of("async"), STRINGS).getNodeState();
         NodeState nonAsyncIndex;
         {
             NodeBuilder builder = nrtIndex.builder();

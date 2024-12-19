@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static java.util.Objects.requireNonNull;
@@ -103,8 +102,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 public class IndexPlannerTest {
     private NodeState root = INITIAL_CONTENT;
 
@@ -121,7 +118,7 @@ public class IndexPlannerTest {
         defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", createFilter("nt:base"),
-            ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
+            List.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
         assertTrue(pr(planner.getPlan()).isUniquePathsRequired());
     }
@@ -131,7 +128,7 @@ public class IndexPlannerTest {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", createFilter("nt:file"),
-            ImmutableList.of(new OrderEntry("jcr:score", Type.LONG, OrderEntry.Order.ASCENDING)));
+            List.of(new OrderEntry("jcr:score", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNull(planner.getPlan());
     }
 
@@ -1127,7 +1124,7 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
-            ImmutableList.of(new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
+            List.of(new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1151,7 +1148,7 @@ public class IndexPlannerTest {
         filter.setFullTextConstraint(FullTextParser.parse("bar", "mountain"));
 
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
-            ImmutableList.of(new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
+            List.of(new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1297,7 +1294,7 @@ public class IndexPlannerTest {
         LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
         LuceneIndexNode node = createIndexNode(definition);
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"),
-            ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING),
+            List.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING),
                 new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
 
         assertNotNull(planner.getPlan());
@@ -1312,7 +1309,7 @@ public class IndexPlannerTest {
         LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
         LuceneIndexNode node = createIndexNode(definition);
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"),
-            ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING),
+            List.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING),
                 new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
 
         assertNotNull(planner.getPlan());
