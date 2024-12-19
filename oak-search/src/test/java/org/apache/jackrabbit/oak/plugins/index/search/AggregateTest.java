@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.ArrayList;
@@ -42,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
