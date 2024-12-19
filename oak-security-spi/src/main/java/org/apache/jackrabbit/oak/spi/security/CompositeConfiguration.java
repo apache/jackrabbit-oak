@@ -44,6 +44,7 @@ import org.osgi.annotation.versioning.ProviderType;
 import org.osgi.framework.Constants;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -220,20 +221,21 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     public List<? extends CommitHook> getCommitHooks(@NotNull final String workspaceName) {
         Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(),
                 securityConfiguration -> securityConfiguration.getCommitHooks(workspaceName)));
-        return CollectionUtils.toList(t);
+        return Collections.unmodifiableList(CollectionUtils.toList(t));
     }
 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull final String workspaceName, @NotNull final Set<Principal> principals, @NotNull final MoveTracker moveTracker) {
         Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker)));
-        return CollectionUtils.toList(t);
+        return Collections.unmodifiableList(CollectionUtils.toList(t));
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return CollectionUtils.toList(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
+        return CollectionUtils.toList(Iterables.concat(Lists.transform(getConfigurations(),
+                securityConfiguration -> securityConfiguration.getConflictHandlers())));
     }
 
     @NotNull
@@ -241,7 +243,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(),
                 securityConfiguration -> securityConfiguration.getProtectedItemImporters()));
-        return CollectionUtils.toList(t);
+        return Collections.unmodifiableList(CollectionUtils.toList(t));
     }
 
     @NotNull
