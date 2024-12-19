@@ -453,6 +453,18 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -937,18 +949,6 @@
                </executions>
             </plugin>
             <plugin>
-               <groupId>org.apache.rat</groupId>
-               <artifactId>apache-rat-plugin</artifactId>
-               <executions>
-                  <execution>
-                     <phase>verify</phase>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
                <artifactId>maven-checkstyle-plugin</artifactId>
                <configuration>
                   <failOnViolation>false</failOnViolation>
@@ -1024,33 +1024,6 @@
    </profile>
     
     <profile>
-      <id>rat</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <!-- run a test to prevent Jenkins from failing because no test ran -->
-               <test>PathUtilsTest</test>
-               <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-             </configuration>
-           </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
       <id>javadoc</id>
       <build>
         <plugins>
@@ -1065,14 +1038,6 @@
               </execution>
             </executions>
           </plugin>
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <!-- run a test to prevent Jenkins from failing because no test ran -->
-              <test>PathUtilsTest</test>
-              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-            </configuration>
-          </plugin>
         </plugins>
       </build>
     </profile>
@@ -1080,18 +1045,6 @@
       <id>pedantic</id>
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
             <configuration>
