@@ -90,13 +90,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @NotNull
     Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
-            return CollectionUtils.toSet(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
+            return CollectionUtils.toStream(idp.getUser(userId).getDeclaredGroups()).map(externalIdentityRef -> {
                 try {
                     return new PrincipalImpl(idp.getIdentity(externalIdentityRef).getPrincipalName());
                 } catch (ExternalIdentityException e) {
                     throw new RuntimeException(e);
                 }
-            }).collect(Collectors.toUnmodifiableSet());
+            }).collect(Collectors.toSet());
         } else {
             Set<Principal> set = new HashSet<>();
             collectExpectedPrincipals(set, idp.getUser(userId).getDeclaredGroups(), syncConfig.user().getMembershipNestingDepth());
