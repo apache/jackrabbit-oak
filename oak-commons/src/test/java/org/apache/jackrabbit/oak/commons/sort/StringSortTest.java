@@ -28,8 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -106,7 +105,7 @@ public class StringSortTest {
         Collections.sort(paths, comparator);
         collector.sort();
 
-        List<String> sortedPaths = ImmutableList.copyOf(collector.getIds());
+        List<String> sortedPaths = CollectionUtils.toList(collector.getIds());
         assertEquals(paths.size(), sortedPaths.size());
         assertEquals(paths, sortedPaths);
     }
@@ -123,7 +122,7 @@ public class StringSortTest {
 
         if (permutation) {
             List<String> newRoots = new ArrayList<>();
-            CollectionUtils.permutations(rootPaths).
+            org.apache.commons.collections4.CollectionUtils.permutations(rootPaths).
                     stream().
                     sorted((a, b) -> Arrays.compare(a.toArray(new String[0]), b.toArray(new String[0]))).
                     forEach(permuts -> newRoots.add(String.join("", permuts)));
