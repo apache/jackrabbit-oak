@@ -54,7 +54,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -287,8 +286,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 if (references.containsKey(id)) {
-                    ImmutableList<DataRecord> refRecs = references.get(id);
-                    for(DataRecord refRec : refRecs) {
+                    for(DataRecord refRec : references.get(id)) {
                         String uniqueSessionId = refRec.getIdentifier().toString()
                             .substring(SharedStoreRecordType.REFERENCES.getType().length() + 1);
 

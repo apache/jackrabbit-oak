@@ -29,9 +29,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -170,7 +168,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataIdentifier d10 = new DataIdentifier("d-10");
         DataIdentifier d20 = new DataIdentifier("d-20");
         DataIdentifier d30 = new DataIdentifier("d-30");
-        List<DataIdentifier> dis = ImmutableList.of(d10, d20, d30);
+        List<DataIdentifier> dis = List.of(d10, d20, d30);
         List<DataRecord> recs = CollectionUtils.toList(
             Iterables.transform(dis, input -> new TimeDataRecord(input)));
         OakFileDataStore mockedDS = mock(OakFileDataStore.class);
