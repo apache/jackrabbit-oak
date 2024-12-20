@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -593,7 +593,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
                 return in.iterator();
             }
         };
-        List<Principal> out = ImmutableList.copyOf(p.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+        List<Principal> out = CollectionUtils.toList(p.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
         Collections.sort(in, Comparator.comparing(Principal::getName));
         assertEquals(in, out);
     }

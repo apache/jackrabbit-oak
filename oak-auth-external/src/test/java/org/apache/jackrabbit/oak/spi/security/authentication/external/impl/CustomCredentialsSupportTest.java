@@ -27,7 +27,6 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -71,7 +70,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
 
     @Test
     public void testLoginWithUnsupportedCredentials() throws Exception {
-        List<Credentials> creds = ImmutableList.of(
+        List<Credentials> creds = List.of(
                 new SimpleCredentials("testUser", new char[0]),
                 new GuestCredentials());
 

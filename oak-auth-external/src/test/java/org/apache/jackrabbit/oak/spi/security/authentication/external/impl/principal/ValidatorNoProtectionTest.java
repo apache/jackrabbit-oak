@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -41,7 +41,7 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     public void testRepExternalIdMultiple() throws Exception {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
-        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, ImmutableList.of("id", "id2"), Type.STRINGS);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, List.of("id", "id2"), Type.STRINGS);
         systemRoot.commit();
     }
 

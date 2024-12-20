@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -1451,7 +1450,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testCreateValuesEmptyCollection() throws Exception {
-        Value[] vs = syncCtx.createValues(ImmutableList.of());
+        Value[] vs = syncCtx.createValues(List.of());
         assertNotNull(vs);
         assertEquals(0, vs.length);
     }

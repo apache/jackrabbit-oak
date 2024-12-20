@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -44,6 +43,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -284,13 +285,13 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
         List<Context> ctxs;
         
         private AggregatedContext(@NotNull SecurityProvider securityProvider) {
-            ImmutableList.Builder<Context> builder = ImmutableList.builder();
+            List<Context> builder = new ArrayList<>();
             for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
                 if (!UserConfiguration.NAME.equals(sc.getName())) {
                     builder.add(sc.getContext());
                 }
             }
-            ctxs = builder.build();
+            ctxs = Collections.unmodifiableList(builder);
         }
 
         @Override

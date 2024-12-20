@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.junit.Assert.fail;
@@ -41,7 +42,7 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
 
     private void setExternalPrincipalNames() throws Exception  {
         Root systemRoot = getSystemRoot();
-        systemRoot.getTree(externalUserPath).setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+        systemRoot.getTree(externalUserPath).setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalName"), Type.STRINGS);
         systemRoot.commit();
 
         root.refresh();

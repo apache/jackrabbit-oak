@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -301,7 +299,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     @Test
     public void testFindPrincipalsByHint() throws Exception {
-        List<String> hints = ImmutableList.of(
+        List<String> hints = List.of(
                 USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME,
                 GROUP_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME,
                 USER_AUTO_MEMBERSHIP_GROUP_ID,
