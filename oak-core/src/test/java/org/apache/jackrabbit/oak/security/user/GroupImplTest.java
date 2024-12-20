@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -31,6 +30,7 @@ import org.junit.Test;
 import javax.jcr.nodetype.ConstraintViolationException;
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
@@ -165,7 +165,7 @@ public class GroupImplTest extends AbstractUserTest {
     @Test
     public void testImpactOfOak8054AddingMembers() throws Exception {
         Tree groupTree = root.getTree(group.getPath());
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(getTestUser().getID())), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, List.of(new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(getTestUser().getID())), Type.STRINGS);
         root.commit();
 
         group.addMember(uMgr.createUser("userid", null));
@@ -182,7 +182,7 @@ public class GroupImplTest extends AbstractUserTest {
         User user = uMgr.createUser("userid", null);
         UserProvider up = new UserProvider(root, ConfigurationParameters.EMPTY);
         Tree groupTree = root.getTree(group.getPath());
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(up.getContentID(getTestUser().getID()), up.getContentID(user.getID())), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, List.of(up.getContentID(getTestUser().getID()), up.getContentID(user.getID())), Type.STRINGS);
         root.commit();
 
         group.removeMembers(user.getID());

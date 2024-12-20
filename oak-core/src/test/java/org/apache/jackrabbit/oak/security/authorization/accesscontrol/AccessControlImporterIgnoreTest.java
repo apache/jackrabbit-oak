@@ -18,11 +18,12 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 
@@ -37,7 +38,7 @@ public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTe
     public void testStartAceChildInfoUnknownPrincipal() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(unknownPrincipalInfo));
     }
 
     @Test
@@ -46,7 +47,7 @@ public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTe
         importer.start(aclTree);
 
         PropInfo privs = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ));
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo, privs));
+        importer.startChildInfo(aceGrantInfo, List.of(unknownPrincipalInfo, privs));
         importer.endChildInfo();
 
         importer.end(aclTree);

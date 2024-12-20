@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -28,6 +27,8 @@ import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.junit.Test;
+
+import java.util.List;
 
 public class QueryCostOverheadTest {
     @Test
@@ -54,14 +55,14 @@ public class QueryCostOverheadTest {
         c1 = new ComparisonImpl(null, null, null);
         c2 = new FullTextSearchImpl(null, null, null);
         c3 = new FullTextSearchImpl(null, null, null);
-        c = new OrImpl(of(c1, c2, c3));
+        c = new OrImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertTrue(query.containsUnfilteredFullTextCondition());
         
         c2 = new FullTextSearchImpl(null, null, null);
         c3 = new FullTextSearchImpl(null, null, null);
         c4 = new ComparisonImpl(null, null, null);
-        c1 = new OrImpl(of(c2, c3, c4));
+        c1 = new OrImpl(List.of(c2, c3, c4));
         c5 = mock(DescendantNodeImpl.class);
         c = new AndImpl(c1, c5);
         query = createQuery(c);
@@ -74,20 +75,20 @@ public class QueryCostOverheadTest {
         c1 = new FullTextSearchImpl(null, null, null);
         c2 = new FullTextSearchImpl(null, null, null);
         c3 = new FullTextSearchImpl(null, null, null);
-        c = new OrImpl(of(c1, c2, c3));
+        c = new OrImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
         
         c1 = new ComparisonImpl(null, null, null);
         c2 = new FullTextSearchImpl(null, null, null);
         c3 = new FullTextSearchImpl(null, null, null);
-        c = new AndImpl(of(c1, c2, c3));
+        c = new AndImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
 
         c1 = new ComparisonImpl(null, null, null);
         c2 = new ComparisonImpl(null, null, null);
-        c = new AndImpl(of(c1, c2, c3));
+        c = new AndImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
     }

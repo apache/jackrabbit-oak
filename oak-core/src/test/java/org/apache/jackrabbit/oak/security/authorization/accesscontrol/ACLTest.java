@@ -34,7 +34,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -115,7 +114,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     @Test
     public void testGetNamePathMapper() {
         assertSame(getNamePathMapper(), acl.getNamePathMapper());
-        assertSame(NamePathMapper.DEFAULT, createACL(TEST_PATH, ImmutableList.of(), NamePathMapper.DEFAULT).getNamePathMapper());
+        assertSame(NamePathMapper.DEFAULT, createACL(TEST_PATH, List.of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
 
     @Test

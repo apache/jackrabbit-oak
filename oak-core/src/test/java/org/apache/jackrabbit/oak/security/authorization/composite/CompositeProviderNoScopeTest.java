@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -119,7 +118,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     @Override
     @Test
     public void testTreePermissionGetChild() {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
@@ -136,7 +135,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     @Override
     @Test
     public void testTreePermissionGetChildOR() {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
@@ -453,7 +452,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
         TreePermission tp = cppTestUser.getTreePermission(rootTree, TreePermission.EMPTY);
         assertEquals(2, ((TreePermission[]) tpField.get(tp)).length);
 
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
         for (String cName : childNames) {
             ns = ns.getChildNode(cName);
             tp = tp.getChildPermission(cName, ns);

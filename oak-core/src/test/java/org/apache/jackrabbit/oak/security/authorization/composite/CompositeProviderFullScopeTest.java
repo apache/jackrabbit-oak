@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -226,7 +226,7 @@ public class CompositeProviderFullScopeTest extends AbstractCompositeProviderTes
         for (String p : defActionsGranted.keySet()) {
             String[] actions = defActionsGranted.get(p);
 
-            if (ImmutableList.copyOf(actions).contains(Session.ACTION_READ)) {
+            if (Arrays.asList(actions).contains(Session.ACTION_READ)) {
                 TreeLocation tl = TreeLocation.create(readOnlyRoot, p);
                 assertEquals(p, tl.getTree() != null, cppTestUser.isGranted(p, Session.ACTION_READ));
             } else {

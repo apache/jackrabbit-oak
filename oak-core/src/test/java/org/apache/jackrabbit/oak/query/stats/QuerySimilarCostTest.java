@@ -46,8 +46,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 /**
  * Tests for cases where two or more indices return a similar cost estimation for the same query
  */
@@ -101,7 +99,7 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
 
         @Override
         public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-            return ImmutableList.<QueryIndex>of(index);
+            return List.of(index);
         }
     }
 

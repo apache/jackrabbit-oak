@@ -22,7 +22,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -127,7 +126,7 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
         assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow/" + AccessControlConstants.REP_PRINCIPAL_NAME)));
         assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow/" + AccessControlConstants.REP_PRIVILEGES)));
 
-        List<String> existingRegular = ImmutableList.of(
+        List<String> existingRegular = List.of(
                 "/",
                 "/jcr:system"
         );
@@ -136,7 +135,7 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
             assertFalse(path, ctx.definesLocation(TreeLocation.create(root, PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE))));
         }
 
-        List<String> nonExistingItem = ImmutableList.of(
+        List<String> nonExistingItem = List.of(
                 '/' + AccessControlConstants.REP_REPO_POLICY,
                 "/content/" + AccessControlConstants.REP_POLICY,
                 "/content/" + AccessControlConstants.REP_PRIVILEGES,

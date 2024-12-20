@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -36,6 +35,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,7 +57,7 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         pwAction.init(null, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
         ));
-        final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction);
+        final AuthorizableActionProvider actionProvider = securityProvider -> List.of(pwAction);
 
         ConfigurationParameters userConfig = ConfigurationParameters.of(
                 Map.of(

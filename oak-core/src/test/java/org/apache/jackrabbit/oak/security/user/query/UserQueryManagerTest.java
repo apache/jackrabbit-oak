@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.AbstractUserTest;
@@ -495,7 +495,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
         };
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
-        assertEquals(ImmutableList.of(user, g2, g), ImmutableList.copyOf(result));
+        assertEquals(List.of(user, g2, g), CollectionUtils.toList(result));
     }
 
     @Test
@@ -516,7 +516,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
         };
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
-        assertEquals(ImmutableList.of(user, g, g2), ImmutableList.copyOf(result));
+        assertEquals(List.of(user, g, g2), CollectionUtils.toList(result));
     }
 
     @Test

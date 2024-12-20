@@ -47,7 +47,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -80,11 +79,11 @@ public class ReferenceIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictProperty("*", Operator.EQUAL, newReference("u1"), PropertyType.REFERENCE);
 
-        assertFilter(f, new ReferenceIndex(), indexed, of("/a", "/b"));
+        assertFilter(f, new ReferenceIndex(), indexed, List.of("/a", "/b"));
 
         FilterImpl f2 = createFilter(indexed, NT_BASE);
         f2.restrictProperty("*", Operator.EQUAL, newReference("u2"), PropertyType.WEAKREFERENCE);
-        assertFilter(f2, new ReferenceIndex(), indexed, of("/c"));
+        assertFilter(f2, new ReferenceIndex(), indexed, List.of("/c"));
     }
 
     @Test
@@ -117,11 +116,11 @@ public class ReferenceIndexTest {
         f.restrictProperty("*", Operator.EQUAL, newReference("u1"), PropertyType.REFERENCE);
 
         // System.out.println(NodeStateUtils.toString(NodeStateUtils.getNode(indexed, "/oak:index/reference")));
-        assertFilter(f, referenceIndex, indexed, of("/a/x", "/b"));
+        assertFilter(f, referenceIndex, indexed, List.of("/a/x", "/b"));
 
         FilterImpl f2 = createFilter(indexed, NT_BASE);
         f2.restrictProperty("*", Operator.EQUAL, newReference("u1"), PropertyType.WEAKREFERENCE);
-        assertFilter(f2, referenceIndex, indexed, of("/c", "/a/y"));
+        assertFilter(f2, referenceIndex, indexed, List.of("/c", "/a/y"));
     }
 
     @Test

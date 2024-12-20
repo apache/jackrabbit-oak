@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -232,7 +232,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         AggregatedPermissionProvider a2 = new CustomProvider(root, supported2, granted2, grantMap);
 
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
-        List<AggregatedPermissionProvider> composite = ImmutableList.of(a1, a2);
+        List<AggregatedPermissionProvider> composite = List.of(a1, a2);
         return CompositePermissionProvider.create(root, composite, config.getContext(), type, getRootProvider(), getTreeProvider());
     }
 
