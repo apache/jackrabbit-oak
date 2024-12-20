@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -140,16 +140,16 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         @Override
         public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
-            this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
+            this.memberIds.addAll(CollectionUtils.toSet(memberIds));
+            this.failedIds.addAll(CollectionUtils.toSet(failedIds));
             onMembersAddedCalled = true;
         }
 
         @Override
         public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberContentIds.addAll(ImmutableSet.copyOf(memberContentIds));
-            this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
+            this.memberContentIds.addAll(CollectionUtils.toSet(memberContentIds));
+            this.failedIds.addAll(CollectionUtils.toSet(failedIds));
             onMembersAddedContentIdCalled = true;
         }
     }

@@ -25,7 +25,6 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -33,6 +32,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -172,7 +172,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         assertNotNull(property);
 
         Set<String> expected = Set.of(impersonator.getPrincipal().getName(), principal2.getName());
-        assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
+        assertEquals(expected, CollectionUtils.toSet(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(impersonator.getPrincipal());
 
@@ -180,7 +180,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         assertNotNull(property);
 
         expected = Set.of(principal2.getName());
-        assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
+        assertEquals(expected, CollectionUtils.toSet(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(principal2);
         assertNull(tree.getProperty(UserConstants.REP_IMPERSONATORS));

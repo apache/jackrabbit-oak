@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -49,7 +48,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.MIX_REP_PRINCIPAL_BASED_MIXIN;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_PRINCIPAL_POLICY;
@@ -520,7 +518,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
     }
 
     private void assertPrivileges(@NotNull Privilege[] privs, @NotNull String... expectedOakPrivNames) throws Exception {
-        assertEquals(ImmutableSet.copyOf(privilegesFromNames(expectedOakPrivNames)), ImmutableSet.copyOf(privs));
+        assertEquals(Set.of(privilegesFromNames(expectedOakPrivNames)), Set.of(privs));
     }
     
     @Test

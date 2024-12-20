@@ -19,8 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.jetbrains.annotations.NotNull;
@@ -80,6 +83,6 @@ public class CugExcludeImpl extends CugExclude.Default {
     }
 
     private void setPrincipalNames(@NotNull Map<String, Object> properties) {
-        this.principalNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
+        this.principalNames = Stream.of(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0])).filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
     }
 }

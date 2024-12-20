@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -106,8 +105,8 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testGetSupportedPrivileges() throws Exception {
-        Set<Privilege> expected = ImmutableSet.copyOf(getPrivilegeManager(root).getRegisteredPrivileges());
-        Set<Privilege> result = ImmutableSet.copyOf(acMgr.getSupportedPrivileges("/"));
+        Set<Privilege> expected = Set.of(getPrivilegeManager(root).getRegisteredPrivileges());
+        Set<Privilege> result = Set.of(acMgr.getSupportedPrivileges("/"));
         assertEquals(expected, result);
 
         result = CollectionUtils.toSet(acMgr.getSupportedPrivileges(TEST_PATH));
@@ -124,7 +123,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
             }
         }
 
-        Set<AccessControlPolicy> applicable = ImmutableSet.copyOf(acMgr.getApplicablePolicies(TEST_PATH));
+        Set<AccessControlPolicy> applicable = CollectionUtils.toSet(acMgr.getApplicablePolicies(TEST_PATH));
         assertEquals(2, applicable.size());
         assertTrue(applicable.contains(TestPolicy.INSTANCE));
     }
@@ -164,7 +163,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
                 acMgr.setPolicy(TEST_PATH, plc);
                 len++;
 
-                Set<AccessControlPolicy> policySet = ImmutableSet.copyOf(acMgr.getPolicies(TEST_PATH));
+                Set<AccessControlPolicy> policySet = Set.of(acMgr.getPolicies(TEST_PATH));
                 assertEquals(len, policySet.size());
                 assertTrue(policySet.contains(TestPolicy.INSTANCE));
                 assertTrue(policySet.contains(plc));

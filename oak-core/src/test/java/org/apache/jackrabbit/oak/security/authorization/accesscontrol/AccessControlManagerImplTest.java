@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -615,8 +614,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges(null, testPrincipals));
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges("/", testPrincipals));
         assertEquals(
-                ImmutableSet.copyOf(testPrivileges),
-                ImmutableSet.copyOf(acMgr.getPrivileges(testPath, testPrincipals)));
+                Set.of(testPrivileges),
+                Set.of(acMgr.getPrivileges(testPath, testPrincipals)));
     }
 
     //--------------------------------------< getApplicablePolicies(String) >---
@@ -1372,7 +1371,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         root.commit();
 
         assertEquals(Set.of(JcrConstants.MIX_LOCKABLE, MIX_REP_ACCESS_CONTROLLABLE),
-                ImmutableSet.copyOf(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
+                CollectionUtils.toSet(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
     }
 
     //--------------------------< removePolicy(String, AccessControlPolicy) >---

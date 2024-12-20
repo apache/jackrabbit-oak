@@ -17,8 +17,9 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Collections;
+import java.util.Set;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -78,7 +79,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     private Tree createPrivilegeTree(@NotNull String privName, @NotNull String... aggr) {
         Tree privTree = privilegesTree.addChild(privName);
         privTree.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
-        privTree.setProperty(REP_AGGREGATES, ImmutableSet.copyOf(aggr), Type.NAMES);
+        privTree.setProperty(REP_AGGREGATES, Set.of(aggr), Type.NAMES);
         return privTree;
     }
 

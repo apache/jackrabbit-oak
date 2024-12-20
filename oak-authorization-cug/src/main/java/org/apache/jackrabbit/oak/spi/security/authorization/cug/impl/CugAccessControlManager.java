@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -374,7 +373,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 Tree cug = CugUtil.getCug(t);
                 PropertyState pNames = (cug == null) ? null : cug.getProperty(REP_PRINCIPAL_NAMES);
                 if (pNames != null) {
-                    if (!Collections.disjoint(ImmutableSet.copyOf(principalNames), ImmutableSet.copyOf(pNames.getValue(Type.STRINGS)))) {
+                    if (!Collections.disjoint(CollectionUtils.toSet(principalNames), CollectionUtils.toSet(pNames.getValue(Type.STRINGS)))) {
                         candidates.add(path);
                     }
                     Iterables.addAll(eval, nestedCugPaths(cug));

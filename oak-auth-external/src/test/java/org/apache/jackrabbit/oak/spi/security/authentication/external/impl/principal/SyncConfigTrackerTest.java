@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipAware;
@@ -142,8 +141,8 @@ public class SyncConfigTrackerTest {
 
         Map<String,String[]> automembership = tracker.getAutoMembership();
         assertEquals(1, automembership.size());
-        Set<String> expected = ImmutableSet.copyOf(ObjectArrays.concat(uam, gam, String.class));
-        assertEquals(expected, ImmutableSet.copyOf(automembership.get("idp")));
+        Set<String> expected = Set.of(ObjectArrays.concat(uam, gam, String.class));
+        assertEquals(expected, Set.of(automembership.get("idp")));
     }
 
     @Test
@@ -202,8 +201,8 @@ public class SyncConfigTrackerTest {
         
         Map<String,String[]> automembership = tracker.getAutoMembership();
         assertEquals(2, automembership.size());
-        Set<String> expected = ImmutableSet.copyOf(ObjectArrays.concat(uam, gam, String.class));
-        assertEquals(expected, ImmutableSet.copyOf(automembership.get("idp")));
+        Set<String> expected = Set.of(ObjectArrays.concat(uam, gam, String.class));
+        assertEquals(expected, Set.of(automembership.get("idp")));
         assertArrayEquals(uam, automembership.get("idp2"));
     }
 

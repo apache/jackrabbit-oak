@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
@@ -204,7 +203,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         // test-session can read-ac at readable path but cannot access principal-based policy
         try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
-            Set<AccessControlPolicy> effective = ImmutableSet.copyOf(testAcMgr.getEffectivePolicies(path));
+            Set<AccessControlPolicy> effective = Set.of(testAcMgr.getEffectivePolicies(path));
 
             assertEquals(1, effective.size());
             assertTrue(effective.contains(ReadPolicy.INSTANCE));

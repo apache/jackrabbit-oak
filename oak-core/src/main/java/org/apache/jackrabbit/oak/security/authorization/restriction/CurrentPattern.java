@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -68,7 +68,7 @@ class CurrentPattern implements RestrictionPattern {
      * is used for a single node below jcr:system only, while the property name is used in every access control entry.
      * Therefore these two names are omitted from the list.
      */
-    private static final Set<String> NODE_NAMES = ImmutableSet.<String>builder().add(
+    private static final Set<String> NODE_NAMES = Set.of(
             JcrConstants.JCR_CHILDNODEDEFINITION, 
             JcrConstants.JCR_CONTENT, 
             JcrConstants.JCR_FROZENNODE, 
@@ -92,14 +92,14 @@ class CurrentPattern implements RestrictionPattern {
             UserConstants.REP_MEMBERS_LIST,
             IndexConstants.INDEX_DEFINITIONS_NAME,
             "rep:cugPolicy",
-            "rep:principalPolicy").build();
+            "rep:principalPolicy");
     
     private final String treePath;
     private final Set<String> propertyNames;
 
     CurrentPattern(@NotNull String treePath, @NotNull Iterable<String> propertyNames) {
         this.treePath = treePath;
-        this.propertyNames = ImmutableSet.copyOf(propertyNames);
+        this.propertyNames = CollectionUtils.toSet(propertyNames);
     }
 
     @Override

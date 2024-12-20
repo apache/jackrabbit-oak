@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -61,7 +61,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
                                  @NotNull String supportedPath, @NotNull Context ctx,
                                  @NotNull RootProvider rootProvider) {
         this.root = root;
-        this.principalNames = ImmutableSet.copyOf(Iterables.transform(principals, Principal::getName));
+        this.principalNames = CollectionUtils.toSet(Iterables.transform(principals, Principal::getName));
         this.supportedPath = supportedPath;
         this.ctx = ctx;
         this.rootProvider = rootProvider;
@@ -166,7 +166,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        return getPrivileges(tree).containsAll(ImmutableSet.copyOf(privilegeNames));
+        return getPrivileges(tree).containsAll(CollectionUtils.toSet(privilegeNames));
     }
 
     @NotNull

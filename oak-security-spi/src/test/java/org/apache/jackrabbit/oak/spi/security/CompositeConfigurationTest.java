@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -372,7 +371,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         };
         addConfiguration(withParams);
 
-        assertEquals(ImmutableSet.copyOf(params.keySet()), ImmutableSet.copyOf(compositeConfiguration.getParameters().keySet()));
+        assertEquals(Set.copyOf(params.keySet()), Set.copyOf(compositeConfiguration.getParameters().keySet()));
 
         ConfigurationParameters params2 = ConfigurationParameters.of("a", "valueA2", "c", "valueC");
         SecurityConfiguration withParams2 = new SecurityConfiguration.Default() {
@@ -386,7 +385,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
         ConfigurationParameters compositeParams = compositeConfiguration.getParameters();
         assertEquals(3, compositeParams.size());
-        assertEquals(ImmutableSet.copyOf(ConfigurationParameters.of(params, params2).keySet()), ImmutableSet.copyOf(compositeParams.keySet()));
+        assertEquals(Set.copyOf(ConfigurationParameters.of(params, params2).keySet()), Set.copyOf(compositeParams.keySet()));
         assertEquals("valueA2", compositeParams.getConfigValue("a", "def"));
     }
 

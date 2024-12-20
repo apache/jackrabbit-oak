@@ -189,6 +189,24 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void arrayToLinkedSet() {
+        final Set<String> s = CollectionUtils.toLinkedSet(data);
+        Assert.assertEquals(s, CollectionUtils.toLinkedSet(data.toArray()));
+    }
+
+    @Test
+    public void arrayContainingNullToLinkedSet() {
+        final Set<String> expected = Collections.singleton(null);
+        final Set<String> result = CollectionUtils.toLinkedSet((String)null);
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullArrayToLinkedSet() {
+        CollectionUtils.toLinkedSet((String[])null);
+    }
+
+    @Test
     public void iteratorToIIteratable() {
         Iterator<String> iterator = List.of("a", "b", "c").iterator();
         iterator.next();

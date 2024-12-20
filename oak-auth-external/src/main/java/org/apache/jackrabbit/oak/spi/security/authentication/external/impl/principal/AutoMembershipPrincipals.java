@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
@@ -220,7 +219,7 @@ final class AutoMembershipPrincipals {
                 }
             }
             // only cache the principal instance but not the group (tree might become disconnected)
-            principalMap.put(idpName, ImmutableSet.copyOf(map.keySet()));
+            principalMap.put(idpName, Set.copyOf(map.keySet()));
         } else {
             // resolve Group objects from cached principals
             principalMap.get(idpName).forEach(groupPrincipal -> {

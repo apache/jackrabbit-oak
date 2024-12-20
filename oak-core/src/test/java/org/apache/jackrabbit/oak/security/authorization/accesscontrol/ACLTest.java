@@ -35,7 +35,6 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -587,7 +586,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
         Privilege[] expected = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_REMOVE_NODE, JCR_MODIFY_PROPERTIES, JCR_NODE_TYPE_MANAGEMENT);
         assertEquals(expected.length, allows.size());
-        assertEquals(ImmutableSet.copyOf(expected), allows);
+        assertEquals(Set.of(expected), allows);
 
         assertEquals(1, denies.size());
         assertArrayEquals(privilegesFromNames(JCR_REMOVE_CHILD_NODES), denies.toArray(new Privilege[0]));

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
@@ -156,7 +156,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         Iterator<String> names = properties.getNames(".");
 
         Set<String> expected = Set.of("prop", "mvProp");
-        assertEquals(expected, ImmutableSet.copyOf(names));
+        assertEquals(expected, CollectionUtils.toSet(names));
     }
 
     @Test(expected = RepositoryException.class)
@@ -169,7 +169,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         Iterator<String> names = properties.getNames("relPath");
 
         Set<String> expected = Set.of("prop", "mvProp");
-        assertEquals(expected, ImmutableSet.copyOf(names));
+        assertEquals(expected, CollectionUtils.toSet(names));
     }
 
     //--------------------------------------------------------< getProperty >---

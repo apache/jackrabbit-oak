@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -250,7 +249,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     CompositePermissionProvider createPermissionProvider(Principal... principals) {
-        return createPermissionProvider(ImmutableSet.copyOf(principals));
+        return createPermissionProvider(Set.of(principals));
     }
 
     CompositePermissionProvider createPermissionProvider(Set<Principal> principals) {
@@ -261,7 +260,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
-        return createPermissionProviderOR(ImmutableSet.copyOf(principals));
+        return createPermissionProviderOR(Set.of(principals));
     }
 
     CompositePermissionProvider createPermissionProviderOR(Set<Principal> principals) {

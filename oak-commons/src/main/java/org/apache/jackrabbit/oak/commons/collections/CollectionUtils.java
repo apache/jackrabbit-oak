@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,7 +120,7 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     @NotNull
-    public static <T> Set<T> toSet(@NotNull  final Iterable<T> iterable) {
+    public static <T> Set<T> toSet(@NotNull  final Iterable<? extends T> iterable) {
         Objects.requireNonNull(iterable);
         final Set<T> result = new HashSet<>();
         iterable.forEach(result::add);
@@ -185,9 +186,23 @@ public class CollectionUtils {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
         final Set<T> result = new HashSet<>(ensureCapacity(elements.length));
-        for (T element : elements) {
-            result.add(element);
-        }
+        result.addAll(Arrays.asList(elements));
+        return result;
+    }
+
+    /**
+     * Convert a vararg list of items to a set.  The returning set is mutable and supports all optional operations.
+     * @param elements elements to convert
+     * @return the set
+     * @param <T> the type of the elements
+     */
+    @SafeVarargs
+    @NotNull
+    public static <T> Set<T> toLinkedSet(@NotNull final T... elements) {
+        Objects.requireNonNull(elements);
+        // make sure the set does not need to be resized given the initial content
+        final Set<T> result = new LinkedHashSet<>(ensureCapacity(elements.length));
+        result.addAll(Arrays.asList(elements));
         return result;
     }
 

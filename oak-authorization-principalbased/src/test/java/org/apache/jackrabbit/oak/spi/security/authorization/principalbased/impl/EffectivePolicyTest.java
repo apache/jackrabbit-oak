@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
@@ -138,7 +138,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
             // filter expected entries: only entries that take effect at the target path should be taken into consideration
             ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(Set.of(effectivePolicy.getPrincipal()))[0];
-            Set<JackrabbitAccessControlEntry> expected = ImmutableSet.copyOf(Iterables.filter(byPrincipal.getEntries(), entry -> {
+            Set<JackrabbitAccessControlEntry> expected = CollectionUtils.toSet(Iterables.filter(byPrincipal.getEntries(), entry -> {
                 String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
                 return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);
             }));

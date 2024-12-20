@@ -25,7 +25,6 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -41,7 +40,7 @@ public class AuthInfoImplTest {
 
     private static final String USER_ID = "userId";
     private static final Map<String, String> ATTRIBUTES = Map.of("attr", "value");
-    private static final Set<Principal> PRINCIPALS = ImmutableSet.<Principal>of(new PrincipalImpl("principalName"));
+    private static final Set<Principal> PRINCIPALS = Set.of(new PrincipalImpl("principalName"));
 
     private final AuthInfoImpl authInfo = new AuthInfoImpl(USER_ID, ATTRIBUTES, PRINCIPALS);
 
