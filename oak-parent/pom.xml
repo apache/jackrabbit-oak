@@ -39,7 +39,8 @@
     <project.build.outputTimestamp>1731270308</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
-    <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
+    <!-- use late evaluation for "test.opts.coverage" as outlined in https://maven.apache.org/surefire/maven-surefire-plugin/faq.html#late-property-evaluation -->
+    <test.opts>@{test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
     <minimum.line.coverage>0.0</minimum.line.coverage>
@@ -398,7 +399,17 @@
             </configuration>
           </execution>
           <execution>
-            <id>post-unit-test</id>
+            <id>pre-integration-test</id>
+            <goals>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+            <configuration>
+              <skip>${skip.coverage}</skip>
+              <propertyName>test.opts.coverage</propertyName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>report-unit-test-coverage</id>
             <phase>test</phase>
             <goals>
               <goal>report</goal>
@@ -410,7 +421,17 @@
             </configuration>
           </execution>
           <execution>
-            <id>default-check</id>
+            <id>report-integration-test-coverage</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report-integration</goal>
+            </goals>
+            <configuration>
+              <skip>${skip.coverage}</skip>
+            </configuration>
+          </execution>
+          <execution>
+            <id>check-unit-test-coverage</id>
             <goals>
               <goal>check</goal>
             </goals>
