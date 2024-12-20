@@ -109,8 +109,8 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(Collections.unmodifiableSet(CollectionUtils.toSet(Iterators.forEnumeration(dict.keys()))), Set.copyOf(cp.keySet()));
-        assertEquals(Collections.unmodifiableSet(CollectionUtils.toSet(Iterators.forEnumeration(dict.elements()))), Set.copyOf(cp.values()));
+        assertEquals(CollectionUtils.toSet(Iterators.forEnumeration(dict.keys())), Set.copyOf(cp.keySet()));
+        assertEquals(CollectionUtils.toSet(Iterators.forEnumeration(dict.elements())), Set.copyOf(cp.values()));
 
     }
 
@@ -463,10 +463,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToStringArray() {
         String[] stringArray = new String[] {"a", "b"};
-        Set<String> stringSet = Collections.unmodifiableSet(CollectionUtils.toSet(stringArray));
+        Set<String> stringSet = CollectionUtils.toSet(stringArray);
 
         TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
-        Set<TestObject> testObjectSet = Collections.unmodifiableSet(CollectionUtils.toSet(testObjectArray));
+        Set<TestObject> testObjectSet = CollectionUtils.toSet(testObjectArray);
 
         String[] defaultStrings = new String[]{"abc", "def", "ghi"};
 

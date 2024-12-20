@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.Set;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
@@ -86,7 +85,7 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Test
     public void testFindPrincipalsByHintTypeGroup() {
         Set<? extends Principal> expected = Set.of(new PrincipalImpl("a"), new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
-        Set<? extends Principal> res = Collections.unmodifiableSet(CollectionUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP)));
+        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
 
         assertEquals(expected, res);
     }
@@ -98,7 +97,7 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
                 new PrincipalImpl("a"),
                 new PrincipalImpl("aa"),
                 new PrincipalImpl("aaa"));
-        Set<? extends Principal> res = Collections.unmodifiableSet(CollectionUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL)));
+        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
 
         assertEquals(expected, res);
     }
