@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -127,7 +126,7 @@ public final class FilterBuilder {
      */
     @NotNull
     private Iterable<String> getSubTrees() {
-        return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
+        return subTrees.isEmpty() ? List.of("/") : subTrees;
     }
 
     public FilterBuilder aggregator(EventAggregator aggregator) {
