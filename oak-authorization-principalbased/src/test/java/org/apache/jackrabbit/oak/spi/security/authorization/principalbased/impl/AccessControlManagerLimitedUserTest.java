@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -47,7 +46,6 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -561,7 +559,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
             Tree policyTree = testRoot.getTree(getPolicyPath());
             Tree entry = TreeUtil.addChild(policyTree, "entry", NT_REP_PRINCIPAL_ENTRY);
             entry.setProperty(REP_EFFECTIVE_PATH, TEST_OAK_PATH, Type.PATH);
-            entry.setProperty(Constants.REP_PRIVILEGES, ImmutableList.of(JCR_ADD_CHILD_NODES), Type.NAMES);
+            entry.setProperty(Constants.REP_PRIVILEGES, List.of(JCR_ADD_CHILD_NODES), Type.NAMES);
             testRoot.commit();
         } catch (CommitFailedException e) {
             assertEquals(CommitFailedException.ACCESS, e.getType());
@@ -581,7 +579,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
             Tree policyTree = testRoot.getTree(getPolicyPath());
             Tree entry = TreeUtil.addChild(policyTree, "entry", NT_REP_PRINCIPAL_ENTRY);
             entry.setProperty(REP_EFFECTIVE_PATH, TEST_OAK_PATH, Type.PATH);
-            entry.setProperty(Constants.REP_PRIVILEGES, ImmutableList.of(JCR_ADD_CHILD_NODES), Type.NAMES);
+            entry.setProperty(Constants.REP_PRIVILEGES, List.of(JCR_ADD_CHILD_NODES), Type.NAMES);
             testRoot.commit();
         } catch (CommitFailedException e) {
             assertEquals(CommitFailedException.ACCESS, e.getType());
@@ -612,7 +610,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         Tree policyTree = testRoot.getTree(getPolicyPath());
         Tree entry = TreeUtil.addChild(policyTree, "entry", NT_REP_PRINCIPAL_ENTRY);
         entry.setProperty(REP_EFFECTIVE_PATH, TEST_OAK_PATH, Type.PATH);
-        entry.setProperty(Constants.REP_PRIVILEGES, ImmutableList.of(JCR_ADD_CHILD_NODES), Type.NAMES);
+        entry.setProperty(Constants.REP_PRIVILEGES, List.of(JCR_ADD_CHILD_NODES), Type.NAMES);
         testRoot.commit();
     }
 
