@@ -41,7 +41,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -66,7 +65,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
     protected static Class S3 = S3DataStore.class;
 
     public static List<String> getFixtures() {
-        return ImmutableList.of(S3.getName());
+        return List.of(S3.getName());
     }
 
     public static boolean isS3DataStore() {
