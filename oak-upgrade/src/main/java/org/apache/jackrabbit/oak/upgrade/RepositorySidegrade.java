@@ -24,6 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jcr.RepositoryException;
 
@@ -69,7 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
@@ -470,7 +471,7 @@ public class RepositorySidegrade {
         }
         excludes.add("/:async");
 
-        final Set<String> merges = union(Set.copyOf(this.mergePaths), Set.of("/jcr:system"));
+        final Set<String> merges = Stream.concat(this.mergePaths.stream(), Stream.of("/jcr:system")).collect(Collectors.toUnmodifiableSet());
         NodeStateCopier.builder()
             .include(includes)
             .exclude(Set.copyOf(excludes))

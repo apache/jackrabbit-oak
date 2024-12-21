@@ -532,7 +532,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
         oldDocs.putAll(freshDocs);
 
-        try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
+        try (CacheChangesTracker tracker = obtainTracker(collection, CollectionUtils.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
             Set<String> keysToUpdate = new HashSet<String>();
             for (UpdateOp update : updates) {

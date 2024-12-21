@@ -207,6 +207,57 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testUnionWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        final Set<String> expected = Set.of("a", "b", "c", "d", "e", "f");
+        Assert.assertEquals(expected, CollectionUtils.union(set1, set2));
+    }
+
+    @Test
+    public void testUnionWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = new HashSet<>();
+
+        final Set<String> expected = Set.of("a", "b", "c");
+        Assert.assertEquals(expected, CollectionUtils.union(set1, set2));
+    }
+
+    @Test
+    public void testUnionWithBothEmptySets() {
+        final Set<String> set1 = new HashSet<>();
+        final Set<String> set2 = new HashSet<>();
+
+        Assert.assertEquals(new HashSet<>(), CollectionUtils.union(set1, set2));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUnionWithNullFirstSet() {
+        Set<String> set1 = null;
+        Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.union(set1, set2);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUnionWithNullSecondSet() {
+        Set<String> set1 = Set.of("a", "b", "c");
+        Set<String> set2 = null;
+
+        CollectionUtils.union(set1, set2);
+    }
+
+    @Test
+    public void testUnionWithOverlappingSets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> expected = Set.of("a", "b", "c", "d");
+        Assert.assertEquals(expected, CollectionUtils.union(set1, set2));
+    }
+
+    @Test
     public void iteratorToIIteratable() {
         Iterator<String> iterator = List.of("a", "b", "c").iterator();
         iterator.next();
