@@ -31,7 +31,6 @@ import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -584,7 +583,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         AccessControlPolicy[] testgroupEffective = cugAccessControlManager.getEffectivePolicies(Set.of(getTestGroupPrincipal()));
         assertEquals(2, testgroupEffective.length);
 
-        assertTrue(Sets.intersection(Set.of(everyoneEffective), Set.of(testgroupEffective)).isEmpty());
+        assertTrue(CollectionUtils.intersection(Set.of(everyoneEffective), Set.of(testgroupEffective)).isEmpty());
     }
 
     @Test

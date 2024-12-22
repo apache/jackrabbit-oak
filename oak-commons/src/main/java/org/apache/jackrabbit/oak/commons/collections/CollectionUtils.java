@@ -224,6 +224,23 @@ public class CollectionUtils {
     }
 
     /**
+     * Returns a new set containing the intersection of the two specified sets.
+     * The intersection of two sets is a set containing only the elements that are present in both sets.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the intersection of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    @NotNull
+    public static <T> Set<T> intersection(@NotNull final Set<T> s1, @NotNull final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        return s1.stream().filter(s2::contains).collect(Collectors.toSet());
+    }
+
+    /**
      * Convert an iterable to a {@link java.util.ArrayDeque}.
      * The returning array deque is mutable and supports all optional operations.
      *

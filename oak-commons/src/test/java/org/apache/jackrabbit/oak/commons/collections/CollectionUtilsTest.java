@@ -258,6 +258,57 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testIntersectionWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> result = CollectionUtils.intersection(set1, set2);
+
+        final Set<String> expected = Set.of("b", "c");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testIntersectionWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of();
+
+        Assert.assertEquals(Collections.EMPTY_SET, CollectionUtils.intersection(set1, set2));
+    }
+
+    @Test
+    public void testIntersectionWithBothEmptySets() {
+        final Set<String> set1 = new HashSet<>();
+        final Set<String> set2 = new HashSet<>();
+
+        Assert.assertEquals(Collections.EMPTY_SET, CollectionUtils.intersection(set1, set2));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testIntersectionWithNullFirstSet() {
+        final Set<String> set1 = null;
+        final Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.intersection(set1, set2);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testIntersectionWithNullSecondSet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = null;
+
+        CollectionUtils.intersection(set1, set2);
+    }
+
+    @Test
+    public void testIntersectionWithNoCommonElements() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        Assert.assertEquals(Collections.EMPTY_SET, CollectionUtils.intersection(set1, set2));
+    }
+
+    @Test
     public void iteratorToIIteratable() {
         Iterator<String> iterator = List.of("a", "b", "c").iterator();
         iterator.next();

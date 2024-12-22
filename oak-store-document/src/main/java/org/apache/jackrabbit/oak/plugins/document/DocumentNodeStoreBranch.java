@@ -32,9 +32,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -752,7 +751,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             Set<Revision> collisions = new HashSet<>(doc.getLocalMap(COLLISIONS).keySet());
             Set<Revision> commits = new HashSet<>();
             Iterables.transform(b.getCommits(), Revision::asTrunkRevision).forEach(commits::add);
-            Set<Revision> conflicts = Sets.intersection(collisions, commits);
+            Set<Revision> conflicts = CollectionUtils.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,
                         "Conflicting concurrent change on branch commits " + conflicts);
