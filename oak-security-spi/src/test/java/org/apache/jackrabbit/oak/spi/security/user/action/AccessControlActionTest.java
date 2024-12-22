@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -35,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
+
 
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
@@ -84,14 +86,13 @@ public class AccessControlActionTest implements UserConstants {
         AccessControlManager acMgr = mock(AccessControlManager.class);
         when(acMgr.getApplicablePolicies("/none")).thenReturn(AccessControlPolicyIteratorAdapter.EMPTY);
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        when(acMgr.getApplicablePolicies("/nonACL")).thenReturn(new AccessControlPolicyIteratorAdapter(ImmutableList.of(policy)));
+        when(acMgr.getApplicablePolicies("/nonACL")).thenReturn(new AccessControlPolicyIteratorAdapter(List.of(policy)));
         JackrabbitAccessControlList acl = mock(JackrabbitAccessControlList.class);
         if (addEntrySuccess) {
             when(acl.addAccessControlEntry(any(Principal.class), any(Privilege[].class))).thenReturn(true);
         }
-        when(acMgr.getApplicablePolicies("/acl")).thenReturn(new AccessControlPolicyIteratorAdapter(ImmutableList.of(acl)));
+        when(acMgr.getApplicablePolicies("/acl")).thenReturn(new AccessControlPolicyIteratorAdapter(List.of(acl)));
         return acMgr;
-
     }
 
     private AccessControlAction createAction(@NotNull String... privNames) {

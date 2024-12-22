@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -44,6 +44,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -100,13 +101,13 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     @NotNull
     private CompositeAccessControlManager createComposite(@NotNull AggregationFilter aggregationFilter, @NotNull AccessControlManager... acMgrs) {
-        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableList.copyOf(acMgrs), aggregationFilter);
+        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), Arrays.asList(acMgrs), aggregationFilter);
     }
 
     @Test
     public void testGetSupportedPrivileges() throws Exception {
-        Set<Privilege> expected = Set.of(getPrivilegeManager(root).getRegisteredPrivileges());
-        Set<Privilege> result = Set.of(acMgr.getSupportedPrivileges("/"));
+        Set<Privilege> expected = ImmutableSet.copyOf(getPrivilegeManager(root).getRegisteredPrivileges());
+        Set<Privilege> result = ImmutableSet.copyOf(acMgr.getSupportedPrivileges("/"));
         assertEquals(expected, result);
 
         result = CollectionUtils.toSet(acMgr.getSupportedPrivileges(TEST_PATH));
@@ -123,7 +124,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
             }
         }
 
-        Set<AccessControlPolicy> applicable = CollectionUtils.toSet(acMgr.getApplicablePolicies(TEST_PATH));
+        Set<AccessControlPolicy> applicable = ImmutableSet.copyOf(acMgr.getApplicablePolicies(TEST_PATH));
         assertEquals(2, applicable.size());
         assertTrue(applicable.contains(TestPolicy.INSTANCE));
     }
@@ -163,7 +164,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
                 acMgr.setPolicy(TEST_PATH, plc);
                 len++;
 
-                Set<AccessControlPolicy> policySet = Set.of(acMgr.getPolicies(TEST_PATH));
+                Set<AccessControlPolicy> policySet = ImmutableSet.copyOf(acMgr.getPolicies(TEST_PATH));
                 assertEquals(len, policySet.size());
                 assertTrue(policySet.contains(TestPolicy.INSTANCE));
                 assertTrue(policySet.contains(plc));

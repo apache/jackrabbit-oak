@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 
@@ -72,8 +71,8 @@ public class CompositeNodeStoreServiceTest {
 		nodeStoreLibs.merge(libsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
 		// Define read-only mounts
-		registerActivateMountInfoConfig("libs", ImmutableList.of("/libs"));
-		registerActivateMountInfoConfig("apps", ImmutableList.of("/apps"));
+		registerActivateMountInfoConfig("libs", List.of("/libs"));
+		registerActivateMountInfoConfig("apps", List.of("/apps"));
 
         registerMountInfoProviderService("libs", "apps");
         

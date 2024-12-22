@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory.NodeStateResourceLoader;
@@ -109,7 +108,7 @@ public class NodeStateAnalyzerFactoryTest {
         nb.child(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
 
         NodeBuilder filters = nb.child(ANL_FILTERS);
-        filters.setProperty(OAK_CHILD_ORDER, ImmutableList.of("stop", "LowerCase"),NAMES);
+        filters.setProperty(OAK_CHILD_ORDER, List.of("stop", "LowerCase"),NAMES);
         filters.child("LowerCase").setProperty(ANL_NAME, "LowerCase");
         filters.child("LowerCase").setProperty(JCR_PRIMARYTYPE, "nt:unstructured");
         //name is optional. Derived from nodeName
@@ -131,7 +130,7 @@ public class NodeStateAnalyzerFactoryTest {
         nb.child(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
 
         NodeBuilder filters = nb.child(ANL_CHAR_FILTERS);
-        filters.setProperty(OAK_CHILD_ORDER, ImmutableList.of("htmlStrip", "mapping"),NAMES);
+        filters.setProperty(OAK_CHILD_ORDER, List.of("htmlStrip", "mapping"),NAMES);
         filters.child("mapping").setProperty(ANL_NAME, "mapping");
         filters.child("htmlStrip"); //name is optional. Derived from nodeName
 

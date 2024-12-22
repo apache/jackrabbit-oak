@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.query.index;
 
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -64,7 +62,7 @@ public class IndexSelectionTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = '"+uuid+"' ",
-                ImmutableList.of("/"));
+                List.of("/"));
         assertEquals("Test index plan should not be invoked", 
                 0, testIndexProvider.index.invocationCount);
     }
@@ -77,7 +75,7 @@ public class IndexSelectionTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null",
-                ImmutableList.of("/"));
+                List.of("/"));
         assertEquals("Test index plan should be invoked", 
                 1, testIndexProvider.index.invocationCount);
     }
@@ -91,7 +89,7 @@ public class IndexSelectionTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] in('" + uuid + "', '" + uuid2 + "')",
-                ImmutableList.of("/"));
+                List.of("/"));
         assertEquals("Test index plan should be invoked", 
                 1, testIndexProvider.index.invocationCount);
     }
@@ -101,7 +99,7 @@ public class IndexSelectionTest extends AbstractQueryTest {
         @NotNull
         @Override
         public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-            return ImmutableList.<QueryIndex>of(index);
+            return List.of(index);
         }
     }
 

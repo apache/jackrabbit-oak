@@ -44,8 +44,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 public class TraversalAvoidanceTest extends AbstractQueryTest {
     
     Whiteboard wb;
@@ -192,7 +190,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         @NotNull
         @Override
         public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-            return ImmutableList.of(queryIndex);
+            return List.of(queryIndex);
         }
     }
 
@@ -248,7 +246,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
         @Override
         public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
-            return ImmutableList.copyOf(plans);
+            return List.copyOf(plans);
         }
 
         @Override

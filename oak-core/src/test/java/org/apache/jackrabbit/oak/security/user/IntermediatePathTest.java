@@ -22,7 +22,6 @@ import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -139,7 +138,7 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     @Test
     public void testInvalidAbsolutePaths() throws Exception {
         TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        List<String> invalidPaths = ImmutableList.of(
+        List<String> invalidPaths = List.of(
                 "/",
                 PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1),
                 PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 2),
@@ -183,7 +182,7 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     @Test
     public void testRelativePaths() throws Exception {
         TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        List<String> invalidPaths = ImmutableList.of("..", "../..", "../../..", "../../../testNode","a/b/../../../c");
+        List<String> invalidPaths = List.of("..", "../..", "../../..", "../../../testNode","a/b/../../../c");
         for (String relPath : invalidPaths) {
             try {
                 createAuthorizable(false, relPath);

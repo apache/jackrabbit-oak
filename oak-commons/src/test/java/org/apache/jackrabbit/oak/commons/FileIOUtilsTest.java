@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.commons;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
@@ -60,6 +61,7 @@ import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.jetbrains.annotations.Nullable;
@@ -236,7 +238,7 @@ public class FileIOUtilsTest {
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         append(List.of(f2, f3), f1, true);
-        assertEquals(CollectionUtils.union(CollectionUtils.union(added1, added2), added3),
+        assertEquals(union(union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
         assertTrue(!f2.exists());
         assertTrue(!f3.exists());
@@ -256,7 +258,7 @@ public class FileIOUtilsTest {
 
         append(List.of(f2, f3), f1, false);
 
-        assertEquals(CollectionUtils.union(CollectionUtils.union(added1, added2), added3),
+        assertEquals(union(union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
         assertTrue(f2.exists());
         assertTrue(f3.exists());
@@ -292,7 +294,7 @@ public class FileIOUtilsTest {
 
         append(List.of(f2), f1, true);
 
-        assertEquals(CollectionUtils.union(added1, added2),
+        assertEquals(union(added1, added2),
             readStringsAsSet(new FileInputStream(f1), true));
     }
 
@@ -306,7 +308,7 @@ public class FileIOUtilsTest {
 
         append(List.of(f1), f2, true);
 
-        assertEquals(CollectionUtils.union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
+        assertEquals(union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
     }
 
     @Test

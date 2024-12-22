@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
@@ -186,7 +186,7 @@ public class CugConfigurationTest extends AbstractCugTest {
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
 
-        List<Principal> excluded = ImmutableList.of(
+        List<Principal> excluded = List.of(
                 SystemPrincipal.INSTANCE,
                 (AdminPrincipal) () -> "admin",
                 (SystemUserPrincipal) () -> "systemUser");
@@ -219,7 +219,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     }
 
     private static void assertSupportedPaths(@NotNull CugConfiguration configuration, @NotNull String... paths) {
-        Set<String> expected = Set.of(paths);
+        Set<String> expected = ImmutableSet.copyOf(paths);
         assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, Set.of()));
     }
 

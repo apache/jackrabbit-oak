@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.HashMap;
@@ -24,9 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner.CleanupStats;
@@ -332,7 +331,7 @@ public class PropertyIndexCleanerTest {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, getNode(root, indexPath));
         FilterImpl filter = FilterImpl.newTestInstance();
         Iterable<String> paths = lookup.query(filter, propertyName,   PropertyValues.newString(value));
-        return ImmutableList.copyOf(paths);
+        return CollectionUtils.toList(paths);
     }
 
     private static class SimpleAsyncInfoService implements AsyncIndexInfoService {

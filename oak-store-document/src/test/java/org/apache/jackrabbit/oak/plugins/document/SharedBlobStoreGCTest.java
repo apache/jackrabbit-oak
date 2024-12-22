@@ -29,6 +29,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -127,7 +128,7 @@ public class SharedBlobStoreGCTest {
         cluster1.gc.collectGarbage(false);
 
         assertTrue(Sets.symmetricDifference(
-                CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+                Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
                 cluster1.getExistingBlobIds()).isEmpty());
     }
 
@@ -144,7 +145,7 @@ public class SharedBlobStoreGCTest {
         cluster1.gc.collectGarbage(false);
 
         assertTrue(Sets.symmetricDifference(
-                CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+                Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
                 cluster1.getExistingBlobIds()).isEmpty());
     }
 
@@ -210,7 +211,7 @@ public class SharedBlobStoreGCTest {
         cluster2.gc.collectGarbage(false);
 
         assertTrue(Sets.symmetricDifference(
-            CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+            Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
             cluster1.getExistingBlobIds()).isEmpty());
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -43,7 +42,9 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
@@ -105,7 +106,7 @@ public class ACETest extends AbstractAccessControlTest {
     }
 
     private Restriction createRestriction(String name, Value[] values) throws Exception {
-        return new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.copyOf(values)), false);
+        return new RestrictionImpl(PropertyStates.createProperty(name, Arrays.asList(values)), false);
     }
 
     @Test
@@ -216,7 +217,7 @@ public class ACETest extends AbstractAccessControlTest {
     @Test
     public void testRestrictions() {
         Restriction r = new RestrictionImpl(PropertyStates.createProperty("r", "v"), false);
-        Restriction r2 = new RestrictionImpl(PropertyStates.createProperty("r2", ImmutableList.of("v"), Type.STRINGS), false);
+        Restriction r2 = new RestrictionImpl(PropertyStates.createProperty("r2", List.of("v"), Type.STRINGS), false);
         Set<Restriction> restrictions = Set.of(r, r2);
         ACE ace = mockACE(testPrincipal, PrivilegeBits.BUILT_IN.get(JCR_READ), true, restrictions);
         assertFalse(ace.getRestrictions().isEmpty());

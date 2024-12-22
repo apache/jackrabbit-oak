@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -36,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Mockito;
 
+import java.util.Arrays;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -98,7 +98,7 @@ final class MockUtility {
     }
 
     static PropertyState createMixinTypesProperty(@NotNull String... mixinTypes) {
-        return PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.copyOf(mixinTypes), Type.NAMES);
+        return PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, Arrays.asList(mixinTypes), Type.NAMES);
     }
 
     static FilterProvider mockFilterProvider(boolean canHandle) {

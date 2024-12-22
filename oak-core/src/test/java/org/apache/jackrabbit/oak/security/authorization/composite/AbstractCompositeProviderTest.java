@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -46,6 +46,7 @@ import org.junit.Test;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -69,8 +70,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     static final String TEST_PATH_2 = "/test2";
 
-    static final List<String> NODE_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_PATH_2, TEST_CHILD_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B2_PATH);
-    static final List<String> TP_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B_C_PATH + "/nonexisting");
+    static final List<String> NODE_PATHS = List.of(ROOT_PATH, TEST_PATH, TEST_PATH_2, TEST_CHILD_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B2_PATH);
+    static final List<String> TP_PATHS = List.of(ROOT_PATH, TEST_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B_C_PATH + "/nonexisting");
 
     static final PropertyState PROPERTY_STATE = PropertyStates.createProperty("propName", "val");
 
@@ -238,18 +239,17 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName,
                                                               @NotNull AuthorizationConfiguration config,
                                                               @NotNull Set<Principal> principals) {
-        ImmutableList<AggregatedPermissionProvider> l = ImmutableList.of(
+        List<AggregatedPermissionProvider> l = new ArrayList<>(List.of(
                     (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                    getTestPermissionProvider());
+                    getTestPermissionProvider()));
         if (reverseOrder()) {
-            return l.reverse();
-        } else {
-            return l;
+            Collections.reverse(l);
         }
+        return l;
     }
 
     CompositePermissionProvider createPermissionProvider(Principal... principals) {
-        return createPermissionProvider(Set.of(principals));
+        return createPermissionProvider(ImmutableSet.copyOf(principals));
     }
 
     CompositePermissionProvider createPermissionProvider(Set<Principal> principals) {
@@ -260,7 +260,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
-        return createPermissionProviderOR(Set.of(principals));
+        return createPermissionProviderOR(ImmutableSet.copyOf(principals));
     }
 
     CompositePermissionProvider createPermissionProviderOR(Set<Principal> principals) {
@@ -572,7 +572,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     @Test
     public void testTreePermissionGetChild() throws Exception {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
@@ -587,7 +587,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     @Test
     public void testTreePermissionGetChildOR() throws Exception {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);

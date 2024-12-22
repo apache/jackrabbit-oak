@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -85,7 +84,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testAddExternalPrincipalNames() throws Exception {
         Tree userTree = root.getTree(testUserPath);
         try {
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalName"), Type.STRINGS);
             root.commit();
             fail("Creating rep:externalPrincipalNames must be detected.");
         } catch (CommitFailedException e) {
@@ -101,7 +100,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         try {
             Tree userTree = systemRoot.getTree(testUserPath);
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalName"), Type.STRINGS);
             systemRoot.commit();
             fail("Creating rep:externalPrincipalNames without rep:externalId must be detected.");
         } catch (CommitFailedException e) {
@@ -117,7 +116,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
         userTree.setProperty(REP_EXTERNAL_ID, "externalId");
-        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalName"), Type.STRINGS);
         systemRoot.commit();
     }
 
@@ -167,7 +166,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Tree userTree = systemRoot.getTree(externalUserPath);
 
         // changing with system root must succeed
-        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalNames"), Type.STRINGS);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, List.of("principalNames"), Type.STRINGS);
         systemRoot.commit();
     }
 
@@ -233,7 +232,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         try {
             Tree userTree = systemRoot.getTree(testUserPath);
-            userTree.setProperty(REP_EXTERNAL_ID, ImmutableList.of("id", "id2"), Type.STRINGS);
+            userTree.setProperty(REP_EXTERNAL_ID, List.of("id", "id2"), Type.STRINGS);
             systemRoot.commit();
             fail("Creating rep:externalId as multiple STRING property must be detected.");
         } catch (CommitFailedException e) {

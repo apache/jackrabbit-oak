@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
@@ -28,7 +29,6 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -68,7 +68,7 @@ public class MoveRenameTest extends AbstractCugTest {
     }
 
     private void assertCugPrivileges(@NotNull Principal principal, boolean isGranted, String... paths) {
-        CugPermissionProvider pp = createCugPermissionProvider(Set.of(SUPPORTED_PATHS), principal);
+        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.copyOf(SUPPORTED_PATHS), principal);
         for (String path : paths) {
             assertEquals(isGranted, pp.isGranted(path, Session.ACTION_READ));
         }

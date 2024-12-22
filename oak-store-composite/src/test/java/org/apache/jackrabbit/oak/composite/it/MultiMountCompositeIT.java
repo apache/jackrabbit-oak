@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.composite.it;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
 import javax.inject.Inject;
-
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
@@ -65,7 +64,7 @@ public class MultiMountCompositeIT extends CompositeTestSupport {
 
         NodeState root = store.getRoot();
         Set<String> expectedNodes = Set.of("content", "apps", "libs");
-        Set<String> actualNodes = CollectionUtils.toSet(root.getChildNodeNames());
+        Set<String> actualNodes = ImmutableSet.copyOf(root.getChildNodeNames());
         assertTrue("Expected nodes " + expectedNodes + ", but was " + actualNodes, actualNodes.containsAll(expectedNodes));
 
         assertTrue("'apps' mount should be mounted", root.getChildNode("apps").getChildNode("appsMount").exists());

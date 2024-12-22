@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,7 +48,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -74,7 +74,7 @@ public class AtomicCounterIT {
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder lucene = newLuceneIndexDefinition(index, "lucene", Set.of("String"), null, "async");
-        lucene.setProperty("async", of("async", "nrt"), STRINGS);
+        lucene.setProperty("async", List.of("async", "nrt"), STRINGS);
         IndexDefinition.updateDefinition(index.child("lucene"));
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -111,7 +111,7 @@ public class AtomicCounterIT {
         Root root = session.getLatestRoot();
         Tree t = root.getTree("/");
         Tree counter = t.addChild("counter");
-        counter.setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
+        counter.setProperty(JCR_MIXINTYPES, List.of(MIX_ATOMIC_COUNTER), NAMES);
         root.commit();
 
         root = session.getLatestRoot();

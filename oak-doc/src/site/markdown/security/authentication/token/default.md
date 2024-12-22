@@ -261,7 +261,7 @@ in order to enable a custom `CredentialsSupport`.
         @Nonnull
         @Override
         public Set<Class> getCredentialClasses() {
-            return Set.of(MyCredentials.class);
+            return ImmutableSet.<Class>of(MyCredentials.class);
         }
 
         @CheckForNull

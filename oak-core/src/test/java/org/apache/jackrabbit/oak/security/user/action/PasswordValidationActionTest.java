@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Type;
@@ -44,7 +45,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     private final PasswordValidationAction pwAction = new PasswordValidationAction();
     private final AuthorizableAction testAction = mock(AuthorizableAction.class);
-    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction, testAction);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> List.of(pwAction, testAction);
 
     @Before
     public void before() throws Exception {

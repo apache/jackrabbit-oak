@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -49,14 +49,16 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
@@ -112,7 +114,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @Override
     @NotNull
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> pn = Iterables.transform(CollectionUtils.toLinkedSet(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
+        Iterable<String> pn = Iterables.transform(ImmutableSet.copyOf(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
         return super.privilegesFromNames(pn);
     }
 
@@ -183,7 +185,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     PrincipalBasedPermissionProvider createPermissionProvider(@NotNull Root root, @NotNull Principal... principals) {
-        PermissionProvider pp = principalBasedAuthorizationConfiguration.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(principals));
+        PermissionProvider pp = principalBasedAuthorizationConfiguration.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals));
         if (pp instanceof PrincipalBasedPermissionProvider) {
             return (PrincipalBasedPermissionProvider) pp;
         } else {

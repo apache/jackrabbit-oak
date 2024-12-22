@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -33,7 +33,6 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +54,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
-        this.principals = Maps.toMap(CollectionUtils.toLinkedSet(Arrays.asList(principalNames)), input -> new ItemBasedPrincipal() {
+        this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), input -> new ItemBasedPrincipal() {
             @NotNull
             @Override
             public String getPath() {
@@ -174,7 +173,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
         public TestGroup(String name, Principal... members) {
             super(name);
-            Set<? extends Principal> mset = Set.of(members);
+            Set<? extends Principal> mset = ImmutableSet.copyOf(members);
             this.members = Iterators.asEnumeration(mset.iterator());
         }
 

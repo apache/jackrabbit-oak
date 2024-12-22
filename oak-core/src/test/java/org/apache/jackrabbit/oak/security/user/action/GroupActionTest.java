@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -33,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static org.mockito.Mockito.mock;
@@ -45,7 +45,7 @@ public class GroupActionTest extends AbstractSecurityTest {
     private static final String TEST_USER_PREFIX = "testUser";
 
     final GroupAction groupAction = mock(GroupAction.class);
-    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(groupAction);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> List.of(groupAction);
 
     private User testUser01;
     private User testUser02;

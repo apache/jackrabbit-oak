@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -100,7 +99,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
     
     @Test
     public void testFilterDuplicates() throws Exception {
-        List<Authorizable> l = ImmutableList.of(getTestUser());
+        List<Authorizable> l = List.of(getTestUser());
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
         assertEquals(2, Iterators.size(AuthorizableIterator.create(false, l.iterator(), l.iterator())));
         
@@ -119,7 +118,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
     public void testFilterDuplicatesGetIdFails() throws Exception {
         Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
 
-        List<Authorizable> l = ImmutableList.of(getTestUser(), a);
+        List<Authorizable> l = List.of(getTestUser(), a);
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Collections.emptyIterator())));
     }
 

@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -205,7 +204,7 @@ public class HybridPropertyIndexStorageTest {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
         FilterImpl filter = createFilter(root, "nt:base");
         Iterable<String> paths = lookup.query(filter, propertyName, value);
-        return ImmutableList.copyOf(paths);
+        return CollectionUtils.toList(paths);
     }
 
     private PropertyIndexUpdateCallback newCallback(){

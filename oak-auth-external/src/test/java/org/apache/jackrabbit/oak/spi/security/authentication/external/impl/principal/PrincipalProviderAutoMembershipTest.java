@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -39,7 +39,6 @@ import org.junit.runners.Parameterized;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -157,10 +156,10 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     @Override
     @NotNull
     Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
-        Set<Principal> builder = new HashSet<>();
-                builder.addAll(super.getExpectedGroupPrincipals(userId));
-                builder.add(userAutoMembershipGroup.getPrincipal());
-                builder.add(groupAutoMembershipGroup.getPrincipal());
+        ImmutableSet.Builder<Principal> builder = ImmutableSet.<Principal>builder()
+                .addAll(super.getExpectedGroupPrincipals(userId))
+                .add(userAutoMembershipGroup.getPrincipal())
+                .add(groupAutoMembershipGroup.getPrincipal());
         if (nestedAutomembership) {
             builder.add(baseGroup.getPrincipal());
         }
@@ -170,7 +169,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
                 builder.add(baseGroup2.getPrincipal());
             }
         }
-        return Set.copyOf(builder);
+        return builder.build();
     }
 
     @Override
@@ -300,7 +299,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     @Test
     public void testFindPrincipalsByHint() throws Exception {
-        List<String> hints = ImmutableList.of(
+        List<String> hints = List.of(
                 USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME,
                 GROUP_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME,
                 USER_AUTO_MEMBERSHIP_GROUP_ID,
