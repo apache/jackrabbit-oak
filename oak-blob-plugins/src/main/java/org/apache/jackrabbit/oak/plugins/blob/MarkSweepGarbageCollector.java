@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +52,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -261,9 +263,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             // Get all the references available
             List<DataRecord> refFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
-            ImmutableListMultimap<String, DataRecord> references =
-                FluentIterable.from(refFiles).index(
-                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()));
+
+            ListValuedMap<String, DataRecord> references = new ArrayListValuedHashMap<>();
+            for (DataRecord input : refFiles) {
+                references.put(SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()), input);
+            }
+
+//            ImmutableListMultimap<String, DataRecord> references =
+//                FluentIterable.from(refFiles).index(
+//                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()));
 
             // Get all the markers available
             List<DataRecord> markerFiles =
@@ -287,7 +295,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 if (references.containsKey(id)) {
-                    ImmutableList<DataRecord> refRecs = references.get(id);
+                    List<DataRecord> refRecs = references.get(id);
                     for(DataRecord refRec : refRecs) {
                         String uniqueSessionId = refRec.getIdentifier().toString()
                             .substring(SharedStoreRecordType.REFERENCES.getType().length() + 1);
