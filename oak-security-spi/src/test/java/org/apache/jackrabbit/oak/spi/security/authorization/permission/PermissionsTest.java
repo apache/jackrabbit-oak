@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -230,7 +229,7 @@ public class PermissionsTest {
                 Permissions.SET_PROPERTY, Set.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
                 Permissions.WRITE, Set.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)
         );
-        aggregation.forEach((key, value) -> assertEquals(value, ImmutableSet.copyOf(Permissions.aggregates(key))));
+        aggregation.forEach((key, value) -> assertEquals(value, CollectionUtils.toSet(Permissions.aggregates(key))));
     }
 
     @Test

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,23 +72,23 @@ public class SyncHandlerMappingTrackerTest {
         when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP");
 
         tracker.addingService(ref);
-        assertEquals(Set.of("testIDP"), ImmutableSet.copyOf(tracker.getIdpNames("testSH")));
+        assertEquals(Set.of("testIDP"), CollectionUtils.toSet(tracker.getIdpNames("testSH")));
 
         ServiceReference ref2 = mock(ServiceReference.class);
         when(ref2.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH-2");
         when(ref2.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-2");
         tracker.addingService(ref2);
 
-        assertEquals(Set.of("testIDP"), ImmutableSet.copyOf(tracker.getIdpNames("testSH")));
-        assertEquals(Set.of("testIDP-2"), ImmutableSet.copyOf(tracker.getIdpNames("testSH-2")));
+        assertEquals(Set.of("testIDP"), CollectionUtils.toSet(tracker.getIdpNames("testSH")));
+        assertEquals(Set.of("testIDP-2"), CollectionUtils.toSet(tracker.getIdpNames("testSH-2")));
 
         ServiceReference ref3 = mock(ServiceReference.class);
         when(ref3.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH");
         when(ref3.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-3");
         tracker.addingService(ref3);
 
-        assertEquals(Set.of("testIDP", "testIDP-3"), ImmutableSet.copyOf(tracker.getIdpNames("testSH")));
-        assertEquals(Set.of("testIDP-2"), ImmutableSet.copyOf(tracker.getIdpNames("testSH-2")));
+        assertEquals(Set.of("testIDP", "testIDP-3"), CollectionUtils.toSet(tracker.getIdpNames("testSH")));
+        assertEquals(Set.of("testIDP-2"), CollectionUtils.toSet(tracker.getIdpNames("testSH-2")));
     }
 
     @Test
@@ -121,13 +121,13 @@ public class SyncHandlerMappingTrackerTest {
         when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH");
         when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-2");
         tracker.modifiedService(ref, service);
-        assertEquals(Set.of("testIDP-2"), ImmutableSet.copyOf(tracker.getIdpNames("testSH")));
+        assertEquals(Set.of("testIDP-2"), CollectionUtils.toSet(tracker.getIdpNames("testSH")));
 
         when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH-3");
         when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-3");
         tracker.modifiedService(ref, service);
         assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
-        assertEquals(Set.of("testIDP-3"), ImmutableSet.copyOf(tracker.getIdpNames("testSH-3")));
+        assertEquals(Set.of("testIDP-3"), CollectionUtils.toSet(tracker.getIdpNames("testSH-3")));
     }
 
     @Test

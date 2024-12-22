@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -124,7 +123,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
      */
     Set<String> getModifiedTypes(NodeState beforeTypes) {
         Set<String> types = new HashSet<>();
-        for (String name : union(changedTypes, removedTypes)) {
+        for (String name : CollectionUtils.union(changedTypes, removedTypes)) {
             types.add(name);
             NodeState type = beforeTypes.getChildNode(name);
             addAll(types, type.getNames(REP_PRIMARY_SUBTYPES));

@@ -21,7 +21,7 @@
  * Utilities for Java collections and streams.
  */
 @Internal(since = "1.0.0")
-@Version("1.2.0")
+@Version("1.4.0")
 package org.apache.jackrabbit.oak.commons.collections;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;

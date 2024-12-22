@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
@@ -1723,7 +1723,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Set<String> getMultiProperty(NodeState definition, String propName) {
         PropertyState pse = definition.getProperty(propName);
-        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Set.of();
+        return pse != null ? CollectionUtils.toSet(pse.getValue(Type.STRINGS)) : Set.of();
     }
 
     private static Set<String> toLowerCase(Set<String> values) {

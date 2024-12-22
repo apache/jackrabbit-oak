@@ -27,6 +27,7 @@ import javax.management.openmbean.TabularData;
 
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -59,7 +60,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
 
         checkpointMBean.createCheckpoint(100);
         Set<String> afterCheckpointBlobs = createBlobs(cluster.blobStore, 2, 100);
-        Set<String> present = Sets.union(cluster.blobStoreState.blobsPresent, afterCheckpointBlobs);
+        Set<String> present = CollectionUtils.union(cluster.blobStoreState.blobsPresent, afterCheckpointBlobs);
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
         log.info("{} blobs remaining : {}", present.size(), present);

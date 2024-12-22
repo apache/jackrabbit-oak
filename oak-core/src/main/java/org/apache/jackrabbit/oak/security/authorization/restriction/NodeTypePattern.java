@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +41,7 @@ class NodeTypePattern implements RestrictionPattern {
     private final Set<String> nodeTypeNames;
 
     NodeTypePattern(@NotNull Iterable<String> nodeTypeNames) {
-        this.nodeTypeNames = ImmutableSet.copyOf(nodeTypeNames);
+        this.nodeTypeNames = CollectionUtils.toLinkedSet(nodeTypeNames);
     }
 
     @Override

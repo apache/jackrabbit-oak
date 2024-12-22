@@ -33,22 +33,18 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.jcr.RepositoryException;
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
@@ -124,7 +120,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest extends AbstractPrincip
     @NotNull
     Set<Principal> getExternalGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
-            return ImmutableSet.copyOf(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
+            return CollectionUtils.toSet(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
                 try {
                     return new PrincipalImpl(idp.getIdentity(externalIdentityRef).getPrincipalName());
                 } catch (ExternalIdentityException e) {

@@ -30,7 +30,6 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 
 public class TestIdentityProvider implements ExternalIdentityProvider {
@@ -237,7 +236,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
         @NotNull
         public TestIdentity withGroups(@NotNull ExternalIdentityRef... groups) {
-            this.groups.addAll(ImmutableSet.copyOf(groups));
+            this.groups.addAll(Set.of(groups));
             return this;
         }
     }

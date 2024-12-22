@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -136,7 +135,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(Set.of(unknownContentId, knownMemberContentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(unknownContentId, knownMemberContentId), CollectionUtils.toSet(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -151,7 +150,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(Set.of(contentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(contentId), CollectionUtils.toSet(members.getValue(Type.STRINGS)));
     }
 
     @Test

@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -199,7 +199,7 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
         
         private static void updateAutoMembershipMap(@NotNull Map<String, Set<String>> map, @NotNull String syncHandlerName, 
                                                     @NotNull String idpName, @NotNull String[] membership) {
-            Set<String> userMembership = ImmutableSet.copyOf(membership);
+            Set<String> userMembership = CollectionUtils.toSet(membership);
             Set<String> previous = map.put(idpName, userMembership);
             if (previous != null) {
                 String msg = previous.equals(userMembership) ? "Duplicate" : "Colliding";

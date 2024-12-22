@@ -24,7 +24,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -139,7 +138,7 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
 
         for (Privilege aggrPrivilege : aggregated) {
             Set<Privilege> expected = expectedResults.get(aggrPrivilege.getName());
-            assertEquals(expected, ImmutableSet.copyOf(aggrPrivilege.getDeclaredAggregatePrivileges()));
+            assertEquals(expected, Set.of(aggrPrivilege.getDeclaredAggregatePrivileges()));
         }
     }
 

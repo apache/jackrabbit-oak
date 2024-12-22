@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -53,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
@@ -144,7 +144,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
                 assertFalse(result.hasNext());
                 break;
             default:
-                assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
+                assertEquals(Set.of(expected), CollectionUtils.toSet(result));
         }
     }
 

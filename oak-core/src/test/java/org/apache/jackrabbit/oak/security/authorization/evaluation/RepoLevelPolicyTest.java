@@ -22,7 +22,6 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -119,9 +118,9 @@ public class RepoLevelPolicyTest extends AbstractOakCoreTest implements Privileg
     public void testGetPrivileges() throws Exception {
         setupPermission(null, getTestUser().getPrincipal(), true, JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT);
 
-        Set<Privilege> expected = ImmutableSet.copyOf(privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT));
+        Set<Privilege> expected = Set.of(privilegesFromNames(JCR_READ_ACCESS_CONTROL, JCR_NAMESPACE_MANAGEMENT));
 
         AccessControlManager testAcMgr = getAccessControlManager(getTestRoot());
-        assertEquals(expected, ImmutableSet.copyOf(testAcMgr.getPrivileges(null)));
+        assertEquals(expected, Set.of(testAcMgr.getPrivileges(null)));
     }
 }

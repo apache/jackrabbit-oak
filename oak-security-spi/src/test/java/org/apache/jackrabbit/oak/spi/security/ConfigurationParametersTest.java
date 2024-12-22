@@ -27,9 +27,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,8 +91,8 @@ public class ConfigurationParametersTest {
         properties.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(properties);
-        assertEquals(ImmutableSet.copyOf(properties.keySet()), ImmutableSet.copyOf(cp.keySet()));
-        assertEquals(ImmutableSet.copyOf(properties.values()), ImmutableSet.copyOf(cp.values()));
+        assertEquals(Set.copyOf(properties.keySet()), Set.copyOf(cp.keySet()));
+        assertEquals(Set.copyOf(properties.values()), Set.copyOf(cp.values()));
 
     }
 
@@ -110,8 +109,8 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.keys())), ImmutableSet.copyOf(cp.keySet()));
-        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.elements())), ImmutableSet.copyOf(cp.values()));
+        assertEquals(CollectionUtils.toSet(Iterators.forEnumeration(dict.keys())), Set.copyOf(cp.keySet()));
+        assertEquals(CollectionUtils.toSet(Iterators.forEnumeration(dict.elements())), Set.copyOf(cp.values()));
 
     }
 
@@ -322,10 +321,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToSet() {
         String[] stringArray = new String[] {"a", "b"};
-        Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+        Set<String> stringSet = Set.of(stringArray);
 
         TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
-        Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+        Set<TestObject> testObjectSet = Set.of(testObjectArray);
 
         // map of config value (key) and expected result set.
         Map<Object, Set<?>> configValues = new HashMap<>();
@@ -464,10 +463,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToStringArray() {
         String[] stringArray = new String[] {"a", "b"};
-        Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+        Set<String> stringSet = CollectionUtils.toSet(stringArray);
 
         TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
-        Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+        Set<TestObject> testObjectSet = CollectionUtils.toSet(testObjectArray);
 
         String[] defaultStrings = new String[]{"abc", "def", "ghi"};
 

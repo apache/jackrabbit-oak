@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,7 +120,7 @@ public class CollectionUtils {
      * @param <T> the type of the elements
      */
     @NotNull
-    public static <T> Set<T> toSet(@NotNull  final Iterable<T> iterable) {
+    public static <T> Set<T> toSet(@NotNull  final Iterable<? extends T> iterable) {
         Objects.requireNonNull(iterable);
         final Set<T> result = new HashSet<>();
         iterable.forEach(result::add);
@@ -185,10 +186,41 @@ public class CollectionUtils {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
         final Set<T> result = new HashSet<>(ensureCapacity(elements.length));
-        for (T element : elements) {
-            result.add(element);
-        }
+        result.addAll(Arrays.asList(elements));
         return result;
+    }
+
+    /**
+     * Convert a vararg list of items to a set.  The returning set is mutable and supports all optional operations.
+     * @param elements elements to convert
+     * @return the set
+     * @param <T> the type of the elements
+     */
+    @SafeVarargs
+    @NotNull
+    public static <T> Set<T> toLinkedSet(@NotNull final T... elements) {
+        Objects.requireNonNull(elements);
+        // make sure the set does not need to be resized given the initial content
+        final Set<T> result = new LinkedHashSet<>(ensureCapacity(elements.length));
+        result.addAll(Arrays.asList(elements));
+        return result;
+    }
+
+    /**
+     * Returns a new set containing the union of the two specified sets.
+     * The union of two sets is a set containing all the elements of both sets.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the union of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    @NotNull
+    public static <T> Set<T> union(@NotNull final Set<T> s1, @NotNull final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        return Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toSet());
     }
 
     /**

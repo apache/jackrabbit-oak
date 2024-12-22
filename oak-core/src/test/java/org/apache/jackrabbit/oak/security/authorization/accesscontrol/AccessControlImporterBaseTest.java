@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -25,6 +24,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -453,7 +453,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         assertEquals(
                 Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
-                ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
+                CollectionUtils.toSet(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
         assertFalse(aceTree.hasChild(REP_RESTRICTIONS));
     }
 
@@ -502,7 +502,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         assertEquals(
                 Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
-                ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
+                CollectionUtils.toSet(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
 

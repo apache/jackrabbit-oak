@@ -52,7 +52,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -61,6 +60,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.NotAllRepositoryMarkedException;
@@ -214,10 +214,8 @@ public class BlobGCTest {
         Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
         closer.register(secondCluster);
 
-        Sets.SetView<String> totalPresent =
-            Sets.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
-        Sets.SetView<String> totalAdded =
-            Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
+        Set<String> totalPresent = CollectionUtils.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
+        Set<String> totalAdded = CollectionUtils.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
 
         // Execute mark on the default cluster
         executeGarbageCollection(cluster, cluster.getCollector(0), true);
@@ -238,8 +236,7 @@ public class BlobGCTest {
         Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
         closer.register(secondCluster);
 
-        Sets.SetView<String> totalAdded =
-            Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
+        Set<String> totalAdded = CollectionUtils.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
 
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
 
@@ -260,8 +257,7 @@ public class BlobGCTest {
         ((SharedDataStore) secondCluster.blobStore).deleteMetadataRecord(REPOSITORY.getNameFromId(secondCluster.repoId));
         secondCluster.setRepoId(cluster.repoId);
 
-        Sets.SetView<String> totalPresent =
-            Sets.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
+        Set<String> totalPresent = CollectionUtils.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
 
         // Execute mark on the default cluster
         executeGarbageCollection(cluster, cluster.getCollector(0), true);
@@ -279,10 +275,8 @@ public class BlobGCTest {
         Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
         closer.register(secondCluster);
 
-        Sets.SetView<String> totalPresent =
-            Sets.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
-        Sets.SetView<String> totalAdded =
-            Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
+        Set<String> totalPresent = CollectionUtils.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
+        Set<String> totalAdded = CollectionUtils.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
 
         clock.waitUntil(clock.getTime() + 5);
 
@@ -309,10 +303,8 @@ public class BlobGCTest {
         Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
         closer.register(secondCluster);
 
-        Sets.SetView<String> totalPresent =
-            Sets.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
-        Sets.SetView<String> totalAdded =
-            Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
+        Set<String> totalPresent = CollectionUtils.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
+        Set<String> totalAdded = CollectionUtils.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
 
         // Execute mark on the default cluster
         executeGarbageCollection(cluster, cluster.getCollector(5), true);

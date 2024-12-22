@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -43,7 +43,7 @@ public class UserImporterImpersonationBestEffortTest extends UserImporterImperso
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(Set.of("impersonator1", "impersonator2"), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(Set.of("impersonator1", "impersonator2"), CollectionUtils.toSet(impersonators.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -53,6 +53,6 @@ public class UserImporterImpersonationBestEffortTest extends UserImporterImperso
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(Set.of("impersonator1", testUser.getPrincipal().getName()), ImmutableSet.copyOf(impersonators.getValue(Type.STRINGS)));
+        assertEquals(Set.of("impersonator1", testUser.getPrincipal().getName()), CollectionUtils.toSet(impersonators.getValue(Type.STRINGS)));
     }
 }
