@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Arrays.asList;
@@ -69,6 +68,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -115,8 +115,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexTest {
@@ -218,7 +216,7 @@ public class LuceneIndexTest {
         List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
 
-        List<String> paths = copyOf(transform(cursor, IndexRow::getPath));
+        List<String> paths = CollectionUtils.toList(transform(cursor, IndexRow::getPath));
         assertFalse(paths.isEmpty());
         assertEquals(LuceneIndex.LUCENE_QUERY_BATCH_SIZE + 1, paths.size());
     }
@@ -400,7 +398,7 @@ public class LuceneIndexTest {
 
         FilterImpl filter = createFilter(NT_TEST);
         filter.restrictProperty("foo", Operator.EQUAL, null);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/c"));
+        assertFilter(filter, queryIndex, indexed, List.of("/c"));
     }
 
     @Test
@@ -431,7 +429,7 @@ public class LuceneIndexTest {
 
         FilterImpl filter = createFilter(NT_TEST);
         filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a","/b"));
+        assertFilter(filter, queryIndex, indexed, List.of("/a","/b"));
     }
 
 
@@ -467,7 +465,7 @@ public class LuceneIndexTest {
 
         FilterImpl filter = createFilter(NT_TEST);
         filter.restrictProperty("jcr:content/bar", Operator.EQUAL, null);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/b1"));
+        assertFilter(filter, queryIndex, indexed, List.of("/b1"));
 
         builder.child("b1").child("jcr:content").setProperty("bar", "foo");
         after = builder.getNodeState();
@@ -502,19 +500,19 @@ public class LuceneIndexTest {
 
         FilterImpl filter = createTestFilter();
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+        assertFilter(filter, queryIndex, indexed, List.of("/"));
 
         filter = createTestFilter();
         filter.restrictPath("/", Filter.PathRestriction.DIRECT_CHILDREN);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a", "/a1"));
+        assertFilter(filter, queryIndex, indexed, List.of("/a", "/a1"));
 
         filter = createTestFilter();
         filter.restrictPath("/a", Filter.PathRestriction.DIRECT_CHILDREN);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a/b"));
+        assertFilter(filter, queryIndex, indexed, List.of("/a/b"));
 
         filter = createTestFilter();
         filter.restrictPath("/a", Filter.PathRestriction.ALL_CHILDREN);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a/b", "/a/b/c"));
+        assertFilter(filter, queryIndex, indexed, List.of("/a/b", "/a/b/c"));
     }
 
     @Test
@@ -538,15 +536,15 @@ public class LuceneIndexTest {
 
         FilterImpl filter = createFilter(NT_FILE);
         filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("foo"));
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/foo"));
+        assertFilter(filter, queryIndex, indexed, List.of("/foo"));
 
         filter = createFilter(NT_FILE);
         filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("camelCase"));
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/camelCase"));
+        assertFilter(filter, queryIndex, indexed, List.of("/camelCase"));
 
         filter = createFilter(NT_FILE);
         filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("camel%"));
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/camelCase"));
+        assertFilter(filter, queryIndex, indexed, List.of("/camelCase"));
     }
 
     private FilterImpl createTestFilter(){
@@ -573,7 +571,7 @@ public class LuceneIndexTest {
         FilterImpl filter = createFilter("nt:base");
 
         filter.setFullTextConstraint(new FullTextTerm(null, "fox jumping", false, false, null));
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+        assertFilter(filter, queryIndex, indexed, List.of("/"));
 
         //No stop word configured so default analyzer would also check for 'was'
         filter.setFullTextConstraint(new FullTextTerm(null, "fox was jumping", false, false, null));
@@ -594,36 +592,36 @@ public class LuceneIndexTest {
         queryIndex = new LucenePropertyIndex(tracker);
 
         filter.setFullTextConstraint(new FullTextTerm(null, "fox jumping", false, false, null));
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+        assertFilter(filter, queryIndex, indexed, List.of("/"));
 
         //Now this should get passed as the analyzer would ignore 'was'
         filter.setFullTextConstraint(new FullTextTerm(null, "fox was jumping", false, false, null));
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+        assertFilter(filter, queryIndex, indexed, List.of("/"));
     }
 
     @Test
     public void testTokens() {
         Analyzer analyzer = LuceneIndexConstants.ANALYZER;
-        assertEquals(ImmutableList.of("parent", "child"),
+        assertEquals(List.of("parent", "child"),
             LuceneIndex.tokenize("/parent/child", analyzer));
-        assertEquals(ImmutableList.of("p1234", "p5678"),
+        assertEquals(List.of("p1234", "p5678"),
             LuceneIndex.tokenize("/p1234/p5678", analyzer));
-        assertEquals(ImmutableList.of("first", "second"),
+        assertEquals(List.of("first", "second"),
             LuceneIndex.tokenize("first_second", analyzer));
-        assertEquals(ImmutableList.of("first1", "second2"),
+        assertEquals(List.of("first1", "second2"),
             LuceneIndex.tokenize("first1_second2", analyzer));
-        assertEquals(ImmutableList.of("first", "second"),
+        assertEquals(List.of("first", "second"),
             LuceneIndex.tokenize("first. second", analyzer));
-        assertEquals(ImmutableList.of("first", "second"),
+        assertEquals(List.of("first", "second"),
             LuceneIndex.tokenize("first.second", analyzer));
 
-        assertEquals(ImmutableList.of("hello", "world"),
+        assertEquals(List.of("hello", "world"),
             LuceneIndex.tokenize("hello-world", analyzer));
-        assertEquals(ImmutableList.of("hello", "wor*"),
+        assertEquals(List.of("hello", "wor*"),
             LuceneIndex.tokenize("hello-wor*", analyzer));
-        assertEquals(ImmutableList.of("*llo", "world"),
+        assertEquals(List.of("*llo", "world"),
             LuceneIndex.tokenize("*llo-world", analyzer));
-        assertEquals(ImmutableList.of("*llo", "wor*"),
+        assertEquals(List.of("*llo", "wor*"),
             LuceneIndex.tokenize("*llo-wor*", analyzer));
     }
 
@@ -843,7 +841,7 @@ public class LuceneIndexTest {
         newLucenePropertyIndexDefinition(index, "luceneTest", Set.of("foo"), null);
         newLucenePropertyIndexDefinition(index, "luceneTest2", Set.of("foo2"), null);
 
-        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, ImmutableList.of(2L), Type.LONGS);
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, List.of(2L), Type.LONGS);
 
         NodeState before = builder.getNodeState();
         // Add some content that qualifies to be indexed by both of the above indexes (separately)

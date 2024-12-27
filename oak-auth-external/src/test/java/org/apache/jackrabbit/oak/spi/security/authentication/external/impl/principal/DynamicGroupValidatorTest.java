@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -141,7 +140,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
         assertFalse(groupTree.hasProperty(REP_MEMBERS));
         
         String uuid = r.getTree(userManager.getAuthorizable(USER_ID).getPath()).getProperty(JCR_UUID).getValue(Type.STRING);
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(uuid), Type.WEAKREFERENCES);
+        groupTree.setProperty(REP_MEMBERS, List.of(uuid), Type.WEAKREFERENCES);
         try {
             r.commit();
             fail("CommitFailedException 77 expected.");

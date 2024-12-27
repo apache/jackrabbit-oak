@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -110,7 +110,7 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         assertTrue(failed.isEmpty());
 
         Iterable<String> memberIds = getMemberIds(testGroup);
-        Iterables.elementsEqual(ImmutableList.copyOf(NON_EXISTING_IDS), memberIds);
+        Iterables.elementsEqual(Arrays.asList(NON_EXISTING_IDS), memberIds);
 
         Iterator<Authorizable> members = testGroup.getDeclaredMembers();
         assertFalse(members.hasNext());

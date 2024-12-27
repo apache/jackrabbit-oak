@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -93,7 +93,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
         PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
-        assertEquals(ImmutableList.of(impersonator.getPrincipal().getName()), property.getValue(Type.STRINGS));
+        assertEquals(List.of(impersonator.getPrincipal().getName()), property.getValue(Type.STRINGS));
     }
 
     @Test

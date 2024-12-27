@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -79,7 +78,7 @@ public class SupportedPathsTest {
     public void testRootPath() {
         SupportedPaths supportedPaths = new SupportedPaths(Set.of("/"));
 
-        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
+        List<String> paths = List.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
 
         for (String path : paths) {
             assertTrue(path, supportedPaths.includes(path));
@@ -91,7 +90,7 @@ public class SupportedPathsTest {
     public void testEmpty() {
         SupportedPaths supportedPaths = new SupportedPaths(Set.of());
 
-        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
+        List<String> paths = List.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
 
         for (String path : paths) {
             assertFalse(path, supportedPaths.includes(path));

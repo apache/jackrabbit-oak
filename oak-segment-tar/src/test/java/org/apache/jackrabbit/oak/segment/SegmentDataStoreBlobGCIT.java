@@ -43,8 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -345,7 +343,7 @@ public class SegmentDataStoreBlobGCIT {
         Random rand = new Random(87);
         List<String> existing = new ArrayList<>(state.blobsPresent);
         
-        long count = blobStore.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
+        long count = blobStore.countDeleteChunks(List.of(existing.get(rand.nextInt(existing.size()))), 0);
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);

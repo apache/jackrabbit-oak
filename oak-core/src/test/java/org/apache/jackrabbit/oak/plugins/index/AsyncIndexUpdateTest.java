@@ -97,7 +97,6 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import ch.qos.logback.classic.Level;
@@ -1880,7 +1879,7 @@ public class AsyncIndexUpdateTest {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         CollectingValidatorProvider v = new CollectingValidatorProvider();
 
-        async.setValidatorProviders(ImmutableList.<ValidatorProvider>of(v));
+        async.setValidatorProviders(List.of(v));
         async.run();
 
         assertFalse(v.visitedPaths.isEmpty());

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -44,7 +43,7 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/b/c");
+        List<String> accessible = List.of("/", "/a", "/a/b", "/a/b/c");
         for (String path : accessible) {
             assertTrue(testRoot.getTree(path).exists());
         }
@@ -60,12 +59,12 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> notAccessible = ImmutableList.of("/", "/a/b");
+        List<String> notAccessible = List.of("/", "/a/b");
         for (String path : notAccessible) {
             assertFalse(path, testRoot.getTree(path).exists());
         }
 
-        List<String> accessible = ImmutableList.of("/a", "/a/bb", "/a/b/c");
+        List<String> accessible = List.of("/a", "/a/bb", "/a/b/c");
         for (String path : accessible) {
             assertTrue(path, testRoot.getTree(path).exists());
         }
@@ -79,7 +78,7 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/b/c");
+        List<String> accessible = List.of("/", "/a", "/a/b", "/a/b/c");
         for (String path : accessible) {
             Tree tree = testRoot.getTree(path);
             assertNotNull(tree);
@@ -99,14 +98,14 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> notAccessible = ImmutableList.of("/", "/a/b");
+        List<String> notAccessible = List.of("/", "/a/b");
         for (String path : notAccessible) {
             Tree tree = testRoot.getTree(path);
             assertNotNull(path, tree);
             assertFalse(tree.exists());
         }
 
-        List<String> accessible = ImmutableList.of("/a", "/a/bb", "/a/b/c");
+        List<String> accessible = List.of("/a", "/a/bb", "/a/b/c");
         for (String path : accessible) {
             Tree tree = testRoot.getTree(path);
             assertNotNull(path, tree);
@@ -121,7 +120,7 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> notAccessible = ImmutableList.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
+        List<String> notAccessible = List.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
         for (String path : notAccessible) {
             Tree tree = testRoot.getTree(path);
             assertNotNull(path, tree);
@@ -135,14 +134,14 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
+        List<String> accessible = List.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
         for (String path : accessible) {
             String propertyPath = PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE);
             PropertyState property = testRoot.getTree(path).getProperty(JcrConstants.JCR_PRIMARYTYPE);
             assertNotNull(propertyPath, property);
         }
 
-        List<String> propPaths = ImmutableList.of("/a/aProp", "/a/b/bProp", "/a/bb/bbProp", "/a/b/c/cProp");
+        List<String> propPaths = List.of("/a/aProp", "/a/b/bProp", "/a/bb/bbProp", "/a/b/c/cProp");
         for (String path : propPaths) {
             PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
             assertNotNull(path, property);
@@ -155,14 +154,14 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
+        List<String> accessible = List.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
         for (String path : accessible) {
             String propertyPath = PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE);
             PropertyState property = testRoot.getTree(path).getProperty(JcrConstants.JCR_PRIMARYTYPE);
             assertNotNull(propertyPath, property);
         }
 
-        List<String> propPaths = ImmutableList.of("/a/aProp", "/a/b/bProp", "/a/bb/bbProp", "/a/b/c/cProp");
+        List<String> propPaths = List.of("/a/aProp", "/a/b/bProp", "/a/bb/bbProp", "/a/b/c/cProp");
         for (String path : propPaths) {
             PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
             assertNotNull(path, property);
@@ -177,13 +176,13 @@ public class RootTest extends AbstractOakCoreTest {
 
         Root testRoot = getTestRoot();
 
-        List<String> accessible = ImmutableList.of("/a/aProp", "/a/bb/bbProp", "/a/b/c/cProp");
+        List<String> accessible = List.of("/a/aProp", "/a/bb/bbProp", "/a/b/c/cProp");
         for (String path : accessible) {
             PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
             assertNotNull(path, property);
         }
 
-        List<String> notAccessible = ImmutableList.of("/jcr:primaryType", "/a/b/bProp");
+        List<String> notAccessible = List.of("/jcr:primaryType", "/a/b/bProp");
         for (String path : notAccessible) {
             PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
             assertNull(path, property);

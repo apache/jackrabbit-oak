@@ -30,7 +30,6 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
@@ -170,7 +169,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         CugPolicy cugPolicy = (CugPolicy) policies[0];
         assertTrue(cugPolicy.getPrincipals().isEmpty());
 
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of("unknownPrincipalName", EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of("unknownPrincipalName", EveryonePrincipal.NAME), Type.STRINGS);
 
         policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
         cugPolicy = (CugPolicy) policies[0];
@@ -323,7 +322,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testSetInvalidPolicy() throws Exception {
-        List<AccessControlPolicy> invalidPolicies = ImmutableList.of(
+        List<AccessControlPolicy> invalidPolicies = List.of(
                 new AccessControlPolicy() {},
                 (NamedAccessControlPolicy) () -> "name",
                 InvalidCug.INSTANCE
@@ -453,7 +452,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testRemoveInvalidPolicy() throws Exception {
-        List<AccessControlPolicy> invalidPolicies = ImmutableList.of(
+        List<AccessControlPolicy> invalidPolicies = List.of(
                 new AccessControlPolicy() {},
                 (NamedAccessControlPolicy) () -> "name",
                 InvalidCug.INSTANCE

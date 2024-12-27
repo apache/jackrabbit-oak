@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +45,7 @@ public class DepthFirstTraceTest {
         List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(4, "/", trace::add).run(createTree(0));
         assertEquals(1, trace.size());
-        assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
+        assertEquals(List.of("0", "1", "/"), trace.get(0));
     }
 
     @Test
@@ -54,8 +53,8 @@ public class DepthFirstTraceTest {
         List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(4, "/", trace::add).run(createTree(1));
         assertEquals(2, trace.size());
-        assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
-        assertEquals(ImmutableList.of("1", "2", "/node-0"), trace.get(1));
+        assertEquals(List.of("0", "1", "/"), trace.get(0));
+        assertEquals(List.of("1", "2", "/node-0"), trace.get(1));
     }
 
     @Test
@@ -63,9 +62,9 @@ public class DepthFirstTraceTest {
         List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(4, "/", trace::add).run(createTree(2));
         assertEquals(3, trace.size());
-        assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
-        assertEquals(ImmutableList.of("1", "2", "/node-0"), trace.get(1));
-        assertEquals(ImmutableList.of("2", "3", "/node-0/node-1"), trace.get(2));
+        assertEquals(List.of("0", "1", "/"), trace.get(0));
+        assertEquals(List.of("1", "2", "/node-0"), trace.get(1));
+        assertEquals(List.of("2", "3", "/node-0/node-1"), trace.get(2));
     }
 
     @Test
@@ -73,9 +72,9 @@ public class DepthFirstTraceTest {
         List<List<String>> trace = new ArrayList<>();
         new DepthFirstTrace(2, "/", trace::add).run(createTree(3));
         assertEquals(3, trace.size());
-        assertEquals(ImmutableList.of("0", "1", "/"), trace.get(0));
-        assertEquals(ImmutableList.of("1", "2", "/node-0"), trace.get(1));
-        assertEquals(ImmutableList.of("2", "3", "/node-0/node-1"), trace.get(2));
+        assertEquals(List.of("0", "1", "/"), trace.get(0));
+        assertEquals(List.of("1", "2", "/node-0"), trace.get(1));
+        assertEquals(List.of("2", "3", "/node-0/node-1"), trace.get(2));
     }
 
 }

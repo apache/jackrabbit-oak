@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -90,6 +89,6 @@ public class RemappedPrivilegeNamesTest extends AbstractAccessControlTest {
         getAccessControlManager(root).setPolicy(acl.getPath(), acl);
         Tree aceTree = root.getTree(acl.getPath()).getChild(REP_POLICY).getChildren().iterator().next();
         Iterable<String> privNames = TreeUtil.getNames(aceTree, PrivilegeConstants.REP_PRIVILEGES);
-        assertTrue(Iterables.elementsEqual(ImmutableList.of(PrivilegeConstants.JCR_READ), privNames));
+        assertTrue(Iterables.elementsEqual(List.of(PrivilegeConstants.JCR_READ), privNames));
     }
 }

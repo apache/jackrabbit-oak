@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -87,7 +86,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     @Test
     public void testIsMemberMissingAuthorizable() {
-        List<Principal> principals = ImmutableList.of(
+        List<Principal> principals = List.of(
                 new PrincipalImpl("name"),
                 () -> "name"
         );
@@ -108,7 +107,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     @Test
     public void testIsMemberOfEveryoneMissingAuthorizable() {
-        List<Principal> principals = ImmutableList.of(
+        List<Principal> principals = List.of(
                 new PrincipalImpl("name"),
                 () -> "name"
         );
@@ -188,7 +187,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         @NotNull
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
-            return ImmutableList.of(member).iterator();
+            return List.of(member).iterator();
         }
     }
 

@@ -27,7 +27,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -270,7 +269,7 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
         testSession = getTestSession();
         AccessControlManager testAcMgr = testSession.getAccessControlManager();
 
-        List<String> paths = ImmutableList.of(testRoot, NodeTypeConstants.NODE_TYPES_PATH);
+        List<String> paths = List.of(testRoot, NodeTypeConstants.NODE_TYPES_PATH);
         for (String path : paths) {
             // EXERCISE : complete or fix the test case
             AccessControlPolicy[] effectivePolicies = testAcMgr.getEffectivePolicies(path);

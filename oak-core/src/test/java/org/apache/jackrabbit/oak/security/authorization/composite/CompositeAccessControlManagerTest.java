@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -44,6 +43,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -100,7 +100,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     @NotNull
     private CompositeAccessControlManager createComposite(@NotNull AggregationFilter aggregationFilter, @NotNull AccessControlManager... acMgrs) {
-        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableList.copyOf(acMgrs), aggregationFilter);
+        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), Arrays.asList(acMgrs), aggregationFilter);
     }
 
     @Test
