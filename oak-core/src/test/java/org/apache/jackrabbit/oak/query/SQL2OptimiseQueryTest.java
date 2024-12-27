@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static java.util.Objects.requireNonNull;import static javax.jcr.query.Query.JCR_SQL2;
+import static java.util.Objects.requireNonNull;
+
+import static javax.jcr.query.Query.JCR_SQL2;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
