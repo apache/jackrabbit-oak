@@ -43,8 +43,6 @@ import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
@@ -752,7 +750,7 @@ public class DataStoreCommandTest {
         if (!markOnly) {
             // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
             assertFileEquals(dump, "gccand-", verbose ?
-                    encodedIdsAndPath(verboseRootPath ? Sets.intersection(data.addedSubset, data.missingDataStore) :
+                    encodedIdsAndPath(verboseRootPath ? CollectionUtils.intersection(data.addedSubset, data.missingDataStore) :
                             data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
                     (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                             encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, false) :

@@ -1831,7 +1831,7 @@ public class RDBDocumentStore implements DocumentStore {
             final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
 
         final RDBTableMetaData tmd = getTable(collection);
-        Set<String> allowedProps = Sets.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
+        Set<String> allowedProps = CollectionUtils.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
         for (QueryCondition cond : conditions) {
             if (!allowedProps.contains(cond.getPropertyName())) {
                 String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond

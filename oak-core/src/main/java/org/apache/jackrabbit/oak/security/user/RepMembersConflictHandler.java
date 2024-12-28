@@ -161,7 +161,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         Set<String> ourMembers = CollectionUtils.toSet(ours.getValue(Type.STRINGS));
 
         // merge ours and theirs to a de-duplicated set
-        Set<String> combined = new LinkedHashSet<>(Sets.intersection(ourMembers, theirMembers));
+        Set<String> combined = new LinkedHashSet<>(CollectionUtils.intersection(ourMembers, theirMembers));
         for (String m : Sets.difference(ourMembers, theirMembers)) {
             if (!base.contains(m)) {
                 combined.add(m);

@@ -45,12 +45,13 @@ import org.junit.Test;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -238,9 +239,9 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName,
                                                               @NotNull AuthorizationConfiguration config,
                                                               @NotNull Set<Principal> principals) {
-        List<AggregatedPermissionProvider> l = new ArrayList<>(List.of(
+        List<AggregatedPermissionProvider> l = Stream.of(
                     (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                    getTestPermissionProvider()));
+                    getTestPermissionProvider()).collect(Collectors.toList());
         if (reverseOrder()) {
             Collections.reverse(l);
         }
