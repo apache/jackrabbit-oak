@@ -28,7 +28,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -134,7 +133,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     @Test
     public void testGetNamePathMapper() {
         assertSame(getNamePathMapper(), createEmptyACL().getNamePathMapper());
-        assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), ImmutableList.<JackrabbitAccessControlEntry>of(), NamePathMapper.DEFAULT).getNamePathMapper());
+        assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), List.of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
 
     @Test

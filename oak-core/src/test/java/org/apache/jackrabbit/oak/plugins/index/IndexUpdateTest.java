@@ -44,12 +44,12 @@ import static org.junit.Assert.fail;
 
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -554,15 +554,15 @@ public class IndexUpdateTest {
         // create async defs with nrt and sync mixed in
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "asyncIndex", true, false, Set.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run"), Type.STRINGS)
+                .setProperty(ASYNC_PROPERTY_NAME, List.of("async-run"), Type.STRINGS)
                 .setProperty(REINDEX_PROPERTY_NAME, false);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "nrtIndex", true, false, Set.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "nrt"), Type.STRINGS)
+                .setProperty(ASYNC_PROPERTY_NAME, List.of("async-run", "nrt"), Type.STRINGS)
                 .setProperty(REINDEX_PROPERTY_NAME, false);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "asyncSyncIndex", true, false, Set.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "sync"), Type.STRINGS)
+                .setProperty(ASYNC_PROPERTY_NAME, List.of("async-run", "sync"), Type.STRINGS)
                 .setProperty(REINDEX_PROPERTY_NAME, false);
 
         // node states to run hook on

@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 public class ImmutablePrivilegeDefinitionTest {
 
-    private final ImmutablePrivilegeDefinition def = new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("aggrName"));
+    private final ImmutablePrivilegeDefinition def = new ImmutablePrivilegeDefinition("name", true, List.of("aggrName"));
 
     @Test
     public void testGetName() {
@@ -72,17 +72,17 @@ public class ImmutablePrivilegeDefinitionTest {
 
         assertNotEquals(def, otherDef);
         assertNotEquals(def, null);
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("othername", true, ImmutableList.of("aggrName")));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", false, ImmutableList.of("aggrName")));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("anotherName")));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, ImmutableList.of()));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("otherName", false, ImmutableList.of("aggrName","aggrName2")));
+        assertNotEquals(def, new ImmutablePrivilegeDefinition("othername", true, List.of("aggrName")));
+        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", false, List.of("aggrName")));
+        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, List.of("anotherName")));
+        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, List.of()));
+        assertNotEquals(def, new ImmutablePrivilegeDefinition("otherName", false, List.of("aggrName","aggrName2")));
     }
 
     @Test
     public void testToString() {
         assertEquals(def.toString(), def.toString());
         assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames()).toString());
-        assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), ImmutableList.of()).toString());
+        assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), List.of()).toString());
     }
 }

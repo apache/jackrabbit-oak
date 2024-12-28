@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -30,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
@@ -47,7 +48,7 @@ public class CompositeProviderGetTreePermissionTest extends AbstractSecurityTest
 
     private CompositePermissionProvider createProvider(@NotNull CompositeAuthorizationConfiguration.CompositionType compositionType,
                                                        @NotNull AggregatedPermissionProvider... providers) {
-        return CompositePermissionProvider.create(root, ImmutableList.copyOf(providers), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
+        return CompositePermissionProvider.create(root, Arrays.asList(providers), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
     }
 
     @Test

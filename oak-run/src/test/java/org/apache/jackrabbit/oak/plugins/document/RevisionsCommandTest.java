@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.RevisionsCommand;
@@ -409,11 +411,13 @@ public class RevisionsCommandTest {
 
     private static class RevisionsCmd implements Runnable {
 
-        private final ImmutableList<String> args;
+        private final List<String> args;
 
         public RevisionsCmd(String... args) {
-            this.args = ImmutableList.<String>builder().add(MongoUtils.URL)
-                    .add(args).build();
+            List<String> builder = new ArrayList<>();
+            builder.add(MongoUtils.URL);
+            builder.addAll(Arrays.asList(args));
+            this.args = Collections.unmodifiableList(builder);
         }
 
         @Override

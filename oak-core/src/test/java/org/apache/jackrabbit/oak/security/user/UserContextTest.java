@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -225,7 +224,7 @@ public class UserContextTest implements UserConstants {
                 NT_REP_GROUP, GROUP_PROPERTY_NAMES,
                 NT_REP_USER, USER_PROPERTY_NAMES,
                 NT_REP_PASSWORD, PWD_PROPERTY_NAMES,
-                NT_REP_MEMBER_REFERENCES, ImmutableList.of(REP_MEMBERS)
+                NT_REP_MEMBER_REFERENCES, List.of(REP_MEMBERS)
         );
 
         m.forEach((key, value) -> {
@@ -302,7 +301,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNotDefinesLocation() {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 PathUtils.ROOT_PATH,
                 NodeTypeConstants.NODE_TYPES_PATH,
                 "/content",

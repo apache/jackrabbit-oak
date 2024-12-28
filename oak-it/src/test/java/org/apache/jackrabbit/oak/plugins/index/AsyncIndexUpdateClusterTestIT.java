@@ -53,7 +53,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class AsyncIndexUpdateClusterTestIT {
@@ -65,8 +64,7 @@ public class AsyncIndexUpdateClusterTestIT {
     private MemoryBlobStore bs;
 
     private Random random = new Random();
-    private final List<String> values = ImmutableList.of("a", "b", "c", "d",
-            "e");
+    private final List<String> values = List.of("a", "b", "c", "d", "e");
 
     private Closer closer = Closer.create();
     private final AtomicBoolean illegalReindex = new AtomicBoolean(false);

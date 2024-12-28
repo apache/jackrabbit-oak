@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.createIndex;
@@ -44,7 +42,6 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -213,13 +210,13 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         assertEquals(2, getIndexDirNames(idxName).size());
 
         String barQuery = "select [jcr:path] from [nt:base] where [foo] = 'bar'";
-        assertQuery(barQuery, of("/libs/a", "/content/a"));
+        assertQuery(barQuery, List.of("/libs/a", "/content/a"));
 
         Result result = executeQuery(barQuery, SQL2, NO_BINDINGS);
         assertTrue(result.getRows().iterator().hasNext());
         assertEquals(2, result.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100));
 
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar2'", of("/libs/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar2'", List.of("/libs/b"));
     }
 
     @Test

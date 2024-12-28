@@ -30,8 +30,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
+import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -129,7 +129,7 @@ public class TypeEditorTest {
 
         NodeBuilder testNode = builder.child("testNode");
         testNode.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
-        testNode.setProperty(JCR_MIXINTYPES, ImmutableList.of("mix:title"), Type.NAMES);
+        testNode.setProperty(JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES);
         testNode.setProperty("jcr:title", true);
 
         try {
@@ -148,7 +148,7 @@ public class TypeEditorTest {
         NodeBuilder builder = root.builder();
         NodeBuilder testNode = builder.child("testNode");
         testNode.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
-        testNode.setProperty(JCR_MIXINTYPES, ImmutableList.of("mix:title"), Type.NAMES);
+        testNode.setProperty(JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES);
         testNode.setProperty("jcr:title", "title");
 
         NodeState before = builder.getNodeState();
@@ -177,7 +177,7 @@ public class TypeEditorTest {
         NodeBuilder ace = acl.child("first");
         ace.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_GRANT_ACE, Type.NAME);
         ace.setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, List.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
 
         try {
             hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
@@ -199,12 +199,12 @@ public class TypeEditorTest {
         NodeBuilder ace = acl.child("first");
         ace.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_GRANT_ACE, Type.NAME);
         ace.setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.NAMES);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, List.of(PrivilegeConstants.JCR_READ), Type.NAMES);
 
         NodeState before = builder.getNodeState();
 
         // change to invalid type
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, List.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
 
         try {
             hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
@@ -316,7 +316,7 @@ public class TypeEditorTest {
 
         builder = root.builder();
         before = builder.getNodeState();
-        builder.child("testcontent").setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
+        builder.child("testcontent").setProperty(JCR_MIXINTYPES, List.of(MIX_REFERENCEABLE), Type.NAMES);
         try {
             hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
             fail("should not be able to change mixin due to illegal uuid format");

@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
@@ -128,7 +129,7 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
             @NotNull
             @Override
             public Iterable<? extends SecurityConfiguration> getConfigurations() {
-                return ImmutableList.of();
+                return List.of();
             }
 
             @NotNull

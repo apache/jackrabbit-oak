@@ -27,9 +27,7 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -755,7 +753,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<String> continents = ImmutableList.of("africa", "america", "australia").iterator();
+        Iterator<String> continents = List.of("africa", "america", "australia").iterator();
         String expected = continents.next();
         while (result.hasNext()) {
             Authorizable a = result.next();
@@ -779,7 +777,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<String> continents = ImmutableList.of("Africa", "America", "africa", "australia").iterator();
+        Iterator<String> continents = List.of("Africa", "America", "africa", "australia").iterator();
         String expected = continents.next();
         while (result.hasNext()) {
             Authorizable a = result.next();

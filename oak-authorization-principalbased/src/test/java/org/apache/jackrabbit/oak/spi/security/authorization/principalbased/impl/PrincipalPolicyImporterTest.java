@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.User;
@@ -53,6 +52,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -148,10 +148,10 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     }
 
     private List<PropInfo> mockPropInfos(@NotNull Map<String, Value[]> restrictions) throws RepositoryException {
-        List<PropInfo> propInfos = new ArrayList();
+        List<PropInfo> propInfos = new ArrayList<>();
         for (Map.Entry<String,Value[]> r : restrictions.entrySet()) {
             String jcrName = r.getKey();
-            List<Value> vs = ImmutableList.copyOf(r.getValue());
+            List<Value> vs = Arrays.asList(r.getValue());
             PropInfo propInfo = mockPropInfo(jcrName);
             if (!vs.isEmpty()) {
                 TextValue first = when(mock(TextValue.class).getString()).thenReturn(vs.get(0).getString()).getMock();
@@ -574,7 +574,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         // rep:privileges with wrong type
         PropInfo propInfo = mockPropInfo(getJcrName(REP_PRIVILEGES));
         TextValue tx = when(mock(TextValue.class).getString()).thenReturn(getJcrName(JCR_READ)).getMock();
-        List values = ImmutableList.of(tx);
+        List values = List.of(tx);
         when(propInfo.getTextValues()).thenReturn(values);
         when(propInfo.getType()).thenReturn(PropertyType.STRING);
         propInfos.add(propInfo);

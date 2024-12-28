@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,6 +35,8 @@ import org.junit.Test;
 
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeTemplate;
+
+import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
@@ -64,7 +65,7 @@ public class CugValidatorTest extends AbstractCugTest {
         node = root.getTree(SUPPORTED_PATH2);
         try {
             node.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_CUG_POLICY, Type.NAME);
-            node.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+            node.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
             root.commit();
             fail();
         } catch (CommitFailedException e) {
@@ -118,9 +119,9 @@ public class CugValidatorTest extends AbstractCugTest {
 
     @Test(expected = CommitFailedException.class)
     public void testChangePrimaryTypeOfCug() throws Exception {
-        node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
+        node.setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_REP_CUG_MIXIN), Type.NAMES);
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NT_REP_CUG_POLICY);
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
         root.commit();
 
         try {
@@ -136,7 +137,7 @@ public class CugValidatorTest extends AbstractCugTest {
     @Test(expected = CommitFailedException.class)
     public void testInvalidPrimaryType() throws Exception {
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
 
         try {
             root.commit();
@@ -152,7 +153,7 @@ public class CugValidatorTest extends AbstractCugTest {
     @Test(expected = CommitFailedException.class)
     public void testMissingMixin() throws Exception {
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NT_REP_CUG_POLICY);
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
 
         try {
             root.commit();
@@ -167,9 +168,9 @@ public class CugValidatorTest extends AbstractCugTest {
 
     @Test(expected = CommitFailedException.class)
     public void testRemoveMixin() throws Exception {
-        node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
+        node.setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_REP_CUG_MIXIN), Type.NAMES);
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NT_REP_CUG_POLICY);
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
         root.commit();
 
         try {
@@ -186,9 +187,9 @@ public class CugValidatorTest extends AbstractCugTest {
 
     @Test(expected = CommitFailedException.class)
     public void testCugPolicyWithDifferentName() throws Exception {
-        node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
+        node.setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_REP_CUG_MIXIN), Type.NAMES);
         Tree cug = TreeUtil.addChild(node, "anotherName", NT_REP_CUG_POLICY);
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
         try {
             root.commit();
         }  catch (CommitFailedException e) {
@@ -228,7 +229,7 @@ public class CugValidatorTest extends AbstractCugTest {
     public void testJcrNodeTypesOutsideOfSystemIsValidated() throws Exception {
         Tree n = TreeUtil.addChild(node, JCR_NODE_TYPES, NT_OAK_UNSTRUCTURED);
         Tree cug = TreeUtil.addChild(n, REP_CUG_POLICY, NT_REP_CUG_POLICY);
-        cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+        cug.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME), Type.STRINGS);
 
         try {
             root.commit();

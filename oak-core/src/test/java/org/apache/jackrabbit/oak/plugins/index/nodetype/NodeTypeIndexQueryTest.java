@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
@@ -62,7 +61,7 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
     private static void mixLanguage(Tree t, String n) {
         Tree c = t.addChild(n);
         c.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
-        c.setProperty(JCR_MIXINTYPES, of("mix:language"), Type.NAMES);
+        c.setProperty(JCR_MIXINTYPES, List.of("mix:language"), Type.NAMES);
     }
 
     @Test
@@ -86,8 +85,8 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
 
         assertQuery("select [jcr:path] from [nt:unstructured] ",
                 new ArrayList<String>());
-        assertQuery("select [jcr:path] from [nt:folder] ", of("/c", "/d"));
-        assertQuery("select [jcr:path] from [mix:language] ", of("/e", "/f"));
+        assertQuery("select [jcr:path] from [nt:folder] ", List.of("/c", "/d"));
+        assertQuery("select [jcr:path] from [mix:language] ", List.of("/e", "/f"));
 
         setTraversalEnabled(true);
     }

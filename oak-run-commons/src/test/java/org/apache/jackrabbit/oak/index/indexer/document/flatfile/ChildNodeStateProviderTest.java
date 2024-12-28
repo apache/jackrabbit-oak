@@ -26,11 +26,11 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -60,17 +60,17 @@ public class ChildNodeStateProviderTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f", "/g", "/h"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(asList("jcr:content", "c", "d"), CollectionUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
 
         citr.reset();
         p = new ChildNodeStateProvider(citr, "/e", preferred);
-        assertEquals(singletonList("f"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("f"), CollectionUtils.toList(childNames(p.children())));
         assertEquals(7, citr.getCount());
 
 
         p = new ChildNodeStateProvider(citr, "/g", preferred);
-        assertEquals(emptyList(), copyOf(childNames(p.children())));
+        assertEquals(emptyList(), CollectionUtils.toList(childNames(p.children())));
     }
 
     @Test
@@ -79,22 +79,22 @@ public class ChildNodeStateProviderTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/b", "/a/b/c", "/a/b/c/d", "/e", "/e/f", "/g", "/h"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(singletonList("b"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("b"), CollectionUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
 
         citr.reset();
         p = new ChildNodeStateProvider(citr, "/a/b", preferred);
-        assertEquals(singletonList("c"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("c"), CollectionUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
 
         p = new ChildNodeStateProvider(citr, "/a/b/c", preferred);
-        assertEquals(singletonList("d"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("d"), CollectionUtils.toList(childNames(p.children())));
 
         p = new ChildNodeStateProvider(citr, "/a/b/c/d", preferred);
-        assertEquals(emptyList(), copyOf(childNames(p.children())));
+        assertEquals(emptyList(), CollectionUtils.toList(childNames(p.children())));
 
         p = new ChildNodeStateProvider(citr, "/h", preferred);
-        assertEquals(emptyList(), copyOf(childNames(p.children())));
+        assertEquals(emptyList(), CollectionUtils.toList(childNames(p.children())));
     }
 
     @Test
@@ -152,7 +152,7 @@ public class ChildNodeStateProviderTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(asList("jcr:content", "c", "d"), CollectionUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
     }
 
@@ -163,7 +163,7 @@ public class ChildNodeStateProviderTest {
                 "/a/c", "/a/c/status","/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(asList("jcr:content", "c", "d"), CollectionUtils.toList(childNames(p.children())));
         assertEquals(7, citr.getCount());
     }
 

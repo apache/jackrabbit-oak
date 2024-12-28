@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -76,14 +75,14 @@ public class PropInfoTest {
 
     @Test(expected = DisposeException.class)
     public void testDisposeMultipleThrowing() throws Exception {
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(mockTextValue("value", PropertyType.STRING, true)));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, List.of(mockTextValue("value", PropertyType.STRING, true)));
         propInfo.dispose();
     }
 
     @Test
     public void testDisposeMultiple() throws Exception {
         TextValue tv = mockTextValue("value", PropertyType.STRING, false);
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(tv));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, List.of(tv));
         propInfo.dispose();
         verify(tv, times(1)).dispose();
     }
@@ -121,10 +120,10 @@ public class PropInfoTest {
 
     @Test
     public void testIsUnknownMultiple() throws Exception {
-        PropInfo propInfo = new PropInfo("boolean", PropertyType.BOOLEAN, ImmutableList.of(mockTextValue("false", PropertyType.BOOLEAN)), PropInfo.MultipleStatus.UNKNOWN);
+        PropInfo propInfo = new PropInfo("boolean", PropertyType.BOOLEAN, List.of(mockTextValue("false", PropertyType.BOOLEAN)), PropInfo.MultipleStatus.UNKNOWN);
         assertTrue(propInfo.isUnknownMultiple());
 
-        propInfo = new PropInfo("boolean", PropertyType.BOOLEAN, ImmutableList.of(mockTextValue("false", PropertyType.BOOLEAN)), PropInfo.MultipleStatus.MULTIPLE);
+        propInfo = new PropInfo("boolean", PropertyType.BOOLEAN, List.of(mockTextValue("false", PropertyType.BOOLEAN)), PropInfo.MultipleStatus.MULTIPLE);
         assertFalse(propInfo.isUnknownMultiple());
     }
 
@@ -136,25 +135,25 @@ public class PropInfoTest {
 
     @Test
     public void testIsUnknownMultipleSingleList() throws Exception {
-        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, ImmutableList.of(mockTextValue("24", PropertyType.LONG)));
+        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, List.of(mockTextValue("24", PropertyType.LONG)));
         assertTrue(propInfo.isUnknownMultiple());
     }
 
     @Test
     public void testIsUnknownMultipleSingleList2() throws Exception {
-        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, ImmutableList.of(mockTextValue("24", PropertyType.LONG)), PropInfo.MultipleStatus.MULTIPLE);
+        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, List.of(mockTextValue("24", PropertyType.LONG)), PropInfo.MultipleStatus.MULTIPLE);
         assertFalse(propInfo.isUnknownMultiple());
     }
 
     @Test
     public void testIsUnknownMultipleEmpty() {
-        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, ImmutableList.of());
+        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, List.of());
         assertFalse(propInfo.isUnknownMultiple());
     }
 
     @Test
     public void testIsUnknownMultipleMultiple() throws Exception {
-        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, ImmutableList.of(mockTextValue("24", PropertyType.LONG), mockTextValue("44", PropertyType.LONG)));
+        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, List.of(mockTextValue("24", PropertyType.LONG), mockTextValue("44", PropertyType.LONG)));
         assertFalse(propInfo.isUnknownMultiple());
     }
 
@@ -169,14 +168,14 @@ public class PropInfoTest {
     @Test
     public void testGetTextValueSingleList() throws Exception {
         TextValue tv = mockTextValue("value", PropertyType.STRING);
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(tv));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, List.of(tv));
 
         assertEquals(tv, propInfo.getTextValue());
     }
 
     @Test(expected = RepositoryException.class)
     public void testGetTextValueMultiple() throws Exception {
-        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG), mockTextValue("35", PropertyType.LONG));
+        List<TextValue> tvs = List.of(mockTextValue("24", PropertyType.LONG), mockTextValue("35", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
         propInfo.getTextValue();
@@ -187,12 +186,12 @@ public class PropInfoTest {
         TextValue tv = mockTextValue("value", PropertyType.STRING);
         PropInfo propInfo = new PropInfo("string", PropertyType.STRING, tv);
 
-        assertEquals(ImmutableList.of(tv), propInfo.getTextValues());
+        assertEquals(List.of(tv), propInfo.getTextValues());
     }
 
     @Test
     public void testGetTextValuesMultiple() throws Exception {
-        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG));
+        List<TextValue> tvs = List.of(mockTextValue("24", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
         assertEquals(tvs, propInfo.getTextValues());
@@ -209,14 +208,14 @@ public class PropInfoTest {
     @Test
     public void testGetValueSingleList() throws Exception {
         TextValue tv = mockTextValue("value", PropertyType.STRING);
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(tv));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, List.of(tv));
 
         assertEquals(tv.getValue(PropertyType.STRING), propInfo.getValue(PropertyType.STRING));
     }
 
     @Test(expected = RepositoryException.class)
     public void testGetValueMultiple() throws Exception {
-        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG), mockTextValue("35", PropertyType.LONG));
+        List<TextValue> tvs = List.of(mockTextValue("24", PropertyType.LONG), mockTextValue("35", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
         propInfo.getValue(PropertyType.LONG);
@@ -227,19 +226,19 @@ public class PropInfoTest {
         TextValue tv = mockTextValue("value", PropertyType.STRING);
         PropInfo propInfo = new PropInfo("string", PropertyType.STRING, tv);
 
-        assertEquals(ImmutableList.of(tv.getValue(PropertyType.STRING)), propInfo.getValues(PropertyType.STRING));
+        assertEquals(List.of(tv.getValue(PropertyType.STRING)), propInfo.getValues(PropertyType.STRING));
     }
 
     @Test
     public void testGetValuesEmpty() throws Exception {
-        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, ImmutableList.of());
+        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, List.of());
 
         assertTrue(propInfo.getValues(PropertyType.LONG).isEmpty());
     }
 
     @Test
     public void testGetValuesMultiple() throws Exception {
-        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG));
+        List<TextValue> tvs = List.of(mockTextValue("24", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
         assertEquals(Lists.transform(tvs, input -> {
@@ -263,7 +262,7 @@ public class PropInfoTest {
 
     @Test
     public void testAsPropertyStateEmptyList() throws Exception {
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of());
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, List.of());
 
         PropertyState ps = propInfo.asPropertyState(mockPropDef(PropertyType.STRING, true));
         assertTrue(ps.isArray());
@@ -272,7 +271,7 @@ public class PropInfoTest {
 
     @Test
     public void testAsPropertyStateSingleList() throws Exception {
-        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING, ImmutableList.of(mockTextValue("a", PropertyType.STRING)), PropInfo.MultipleStatus.MULTIPLE);
+        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING, List.of(mockTextValue("a", PropertyType.STRING)), PropInfo.MultipleStatus.MULTIPLE);
 
         PropertyState ps = propInfo.asPropertyState(mockPropDef(PropertyType.STRING, true));
         assertTrue(ps.isArray());
@@ -281,7 +280,7 @@ public class PropInfoTest {
 
     @Test
     public void testAsPropertyStateMultiples() throws Exception {
-        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING, ImmutableList.of(mockTextValue("a", PropertyType.STRING), mockTextValue("b", PropertyType.STRING)));
+        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING, List.of(mockTextValue("a", PropertyType.STRING), mockTextValue("b", PropertyType.STRING)));
 
         PropertyState ps = propInfo.asPropertyState(mockPropDef(PropertyType.STRING, true));
         assertTrue(ps.isArray());

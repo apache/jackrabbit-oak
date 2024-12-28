@@ -25,7 +25,6 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -101,7 +100,7 @@ public class TreeTest extends AbstractOakCoreTest {
         assertEquals(cntA - 1, testRoot.getTree("/a").getChildrenCount(Long.MAX_VALUE));
 
         // for the following nodes the cnt must not differ
-        List<String> paths = ImmutableList.of("/a/b", "/a/b/c");
+        List<String> paths = List.of("/a/b", "/a/b/c");
         for (String path : paths) {
             assertEquals(
                     root.getTree(path).getChildrenCount(Long.MAX_VALUE),

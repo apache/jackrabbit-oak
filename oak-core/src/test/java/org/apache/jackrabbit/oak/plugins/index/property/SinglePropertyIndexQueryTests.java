@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
@@ -49,7 +48,7 @@ public class SinglePropertyIndexQueryTests extends AbstractQueryTest {
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = super.createTestIndexNode(root.getTree("/"), TYPE);
-        index.setProperty(PROPERTY_NAMES, of(INDEXED_PROPERTY), NAMES);
+        index.setProperty(PROPERTY_NAMES, List.of(INDEXED_PROPERTY), NAMES);
         index.setProperty(REINDEX_PROPERTY_NAME, true);
         root.commit();
     }
@@ -66,19 +65,19 @@ public class SinglePropertyIndexQueryTests extends AbstractQueryTest {
 
         // adding /content/node1 { a, b } 
         Tree node = content.addChild("node1");
-        node.setProperty(INDEXED_PROPERTY, of("a", "b"), STRINGS);
+        node.setProperty(INDEXED_PROPERTY, List.of("a", "b"), STRINGS);
         expected.add(node.getPath());
 
         // adding /content/node2 { c, d }
         node = content.addChild("node2");
-        node.setProperty(INDEXED_PROPERTY, of("c", "d"), STRINGS);
+        node.setProperty(INDEXED_PROPERTY, List.of("c", "d"), STRINGS);
         expected.add(node.getPath());
 
         // adding nodes with {a, x} and {c, x} these should not be returned
         node = content.addChild("node3");
-        node.setProperty(INDEXED_PROPERTY, of("a", "x"), STRINGS);
+        node.setProperty(INDEXED_PROPERTY, List.of("a", "x"), STRINGS);
         node = content.addChild("node4");
-        node.setProperty(INDEXED_PROPERTY, of("c", "x"), STRINGS);
+        node.setProperty(INDEXED_PROPERTY, List.of("c", "x"), STRINGS);
 
         root.commit();
 

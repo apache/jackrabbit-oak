@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -71,12 +70,12 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testRead() {
         Root testRoot = testSession.getLatestRoot();
 
-        List<String> visible = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+        List<String> visible = List.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : visible) {
             assertTrue(testRoot.getTree(p).exists());
         }
 
-        List<String> invisible = ImmutableList.of("/", "/a/d", "/a/d/b/e", "/a/d/b/e/c/f");
+        List<String> invisible = List.of("/", "/a/d", "/a/d/b/e", "/a/d/b/e/c/f");
         for (String p : invisible) {
             assertFalse(testRoot.getTree(p).exists());
         }
@@ -91,7 +90,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testAddProperty() throws Exception {
         Root testRoot = testSession.getLatestRoot();
 
-        List<String> paths = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+        List<String> paths = List.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : paths) {
             Tree t = testRoot.getTree(p);
             t.setProperty("b", "anyvalue");
@@ -132,7 +131,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testAddChild() throws Exception {
         Root testRoot = testSession.getLatestRoot();
 
-        List<String> paths = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+        List<String> paths = List.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : paths) {
             Tree t = testRoot.getTree(p);
             TreeUtil.addChild(t, "c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -143,7 +142,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     @Test
     public void testRemoveTree() {
         Root testRoot = testSession.getLatestRoot();
-        List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b", "/a");
+        List<String> paths = List.of("/a/d/b/e/c", "/a/d/b", "/a");
         for (String p : paths) {
             try {
                 testRoot.getTree(p).remove();
@@ -169,7 +168,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
         root.commit();
 
         Root testRoot = testSession.getLatestRoot();
-        List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b");
+        List<String> paths = List.of("/a/d/b/e/c", "/a/d/b");
         for (String p : paths) {
             testRoot.getTree(p).remove();
             testRoot.commit();
