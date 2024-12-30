@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -53,6 +52,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -182,7 +182,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         boolean isSystem = new SystemPrincipalConfig(getPrincipalNames()).containsSystemPrincipal(principals);
        
-        ImmutableList.Builder<ValidatorProvider> vps = new ImmutableList.Builder<>();
+        List<ValidatorProvider> vps = new ArrayList<>();
         vps.add(new ExternalIdentityValidatorProvider(isSystem, protectedExternalIds()));
 
         Set<String> idpNamesWithDynamicGroups = getIdpNamesWithDynamicGroups();
@@ -194,7 +194,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         if (ipt != IdentityProtectionType.NONE && !isSystem) {
             vps.add(new ExternalUserValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), ipt, getProtectionConfig()));
         }
-        return vps.build();
+        return Collections.unmodifiableList(vps);
     }
 
     @NotNull
