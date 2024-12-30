@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -371,7 +370,7 @@ public class SegmentDataStoreBlobGCIT {
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
         
-        assertTrue(Sets.difference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.difference(state.blobsPresent, existingAfterGC).isEmpty());
         assertEquals(gc.additionalBlobs, CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 

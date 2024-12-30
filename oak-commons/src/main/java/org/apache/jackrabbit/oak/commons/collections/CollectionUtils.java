@@ -261,6 +261,23 @@ public class CollectionUtils {
     }
 
     /**
+     * Returns a new set containing the difference of the two specified sets.
+     * The difference of two sets is a set containing elements that are in the first set
+     * but not in the second set.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the difference of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    public static <T> Set<T> difference(final Set<T> s1, final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        return s1.stream().filter(e -> !s2.contains(e)).collect(Collectors.toSet());
+    }
+
+    /**
      * Convert an iterable to a {@link java.util.ArrayDeque}.
      * The returning array deque is mutable and supports all optional operations.
      *

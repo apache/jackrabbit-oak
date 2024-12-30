@@ -43,7 +43,6 @@ import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -567,7 +566,7 @@ public class DataStoreCommandTest {
         additionalParams += " --check-consistency-gc true";
         testGc(dump, data, 0, false, false);
 
-        assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+        assertFileEquals(dump, "avail-", CollectionUtils.difference(data.added, data.missingDataStore));
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "consistencyCandidatesAfterGC", data.missingDataStore);
@@ -711,7 +710,7 @@ public class DataStoreCommandTest {
 
         cmd.execute(argsList.toArray(new String[0]));
         assertFileEquals(dump, "avail-", new HashSet<>());
-        assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
+        assertFileEquals(dump, "marked-", CollectionUtils.difference(data.added, data.deleted));
     }
 
 
@@ -734,18 +733,18 @@ public class DataStoreCommandTest {
         cmd.execute(argsList.toArray(new String[0]));
         
         if (!markOnly) {
-            assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+            assertFileEquals(dump, "avail-", CollectionUtils.difference(data.added, data.missingDataStore));
         } else {
             assertFileNull(dump, "avail-");
         }
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "marked-", verbose ?
-                encodedIdsAndPath(Sets.difference(verboseRootPath ? data.addedSubset :
+                encodedIdsAndPath(CollectionUtils.difference(verboseRootPath ? data.addedSubset :
                         data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
                 (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
-                        encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
-                        Sets.difference(data.added, data.deleted));
+                        encodedIdsAndPath(CollectionUtils.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
+                        CollectionUtils.difference(data.added, data.deleted));
         
         if (!markOnly) {
             // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
@@ -776,9 +775,9 @@ public class DataStoreCommandTest {
 
         // Verbose would have paths as well as ids changed, otherwise only ids would be listed as it is.
         assertFileEquals(dump, "dump-ref-", verbose ?
-                encodedIdsAndPath(Sets.difference(verboseRootPath ? data.addedSubset :
+                encodedIdsAndPath(CollectionUtils.difference(verboseRootPath ? data.addedSubset :
                         data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
-                Sets.difference(data.added, data.deleted), "dump");
+                CollectionUtils.difference(data.added, data.deleted), "dump");
 
     }
 
@@ -798,8 +797,8 @@ public class DataStoreCommandTest {
 
         // Verbose would have backend friendly encoded ids
         assertFileEquals(dump, "dump-id-", verbose ?
-                encodeIds(Sets.difference(data.added, data.missingDataStore), blobFixture.getType()) :
-                        Sets.difference(data.added, data.missingDataStore), "dump");
+                encodeIds(CollectionUtils.difference(data.added, data.missingDataStore), blobFixture.getType()) :
+                        CollectionUtils.difference(data.added, data.missingDataStore), "dump");
 
     }
 
@@ -816,21 +815,21 @@ public class DataStoreCommandTest {
         cmd.execute(argsList.toArray(new String[0]));
 
         if (!markOnly && !refsOld) {
-            assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+            assertFileEquals(dump, "avail-", CollectionUtils.difference(data.added, data.missingDataStore));
         } else {
             assertFileNull(dump, "avail-");
         }
 
-        assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
+        assertFileEquals(dump, "marked-", CollectionUtils.difference(data.added, data.deleted));
         if (!markOnly && !refsOld) {
             assertFileEquals(dump, "gccand-", data.deleted);
         } else {
             assertFileNull(dump, "gccand-");
         }
 
-        Sets.SetView<String> blobsBeforeGc = Sets.difference(data.added, data.missingDataStore);
+        Set<String> blobsBeforeGc = CollectionUtils.difference(data.added, data.missingDataStore);
         if (maxAge <= 0) {
-            assertEquals(Sets.difference(blobsBeforeGc, data.deleted), blobs(setupDataStore));
+            assertEquals(CollectionUtils.difference(blobsBeforeGc, data.deleted), blobs(setupDataStore));
         } else {
             assertEquals(blobsBeforeGc, blobs(setupDataStore));
         }

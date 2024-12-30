@@ -91,7 +91,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Implementation of {@link DocumentStore} for relational databases.
@@ -459,7 +458,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
 
-        Set<String> documentsToRead = Sets.difference(keys, documents.keySet());
+        Set<String> documentsToRead = CollectionUtils.difference(keys, documents.keySet());
         Map<String, T> readDocuments = readDocumentsUncached(collection, documentsToRead);
         documents.putAll(readDocuments);
 
@@ -557,7 +556,7 @@ public class RDBDocumentStore implements DocumentStore {
                 Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
                 connection.commit();
 
-                Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
+                Set<String> failedUpdates = CollectionUtils.difference(keysToUpdate, successfulUpdates);
                 oldDocs.keySet().removeAll(failedUpdates);
 
                 if (LOG.isTraceEnabled()) {

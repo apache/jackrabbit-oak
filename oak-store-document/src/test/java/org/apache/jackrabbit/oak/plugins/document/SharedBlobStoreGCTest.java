@@ -29,7 +29,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -175,8 +174,8 @@ public class SharedBlobStoreGCTest {
             }
         }
     
-        assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
-        assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(CollectionUtils.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        assertTrue(CollectionUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
     }
 
     @Test
@@ -277,7 +276,7 @@ public class SharedBlobStoreGCTest {
             }
         }
 
-        assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(CollectionUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
 
         // Only run the mark phase on all the nodes to get the stats
         cluster1.gc.collectGarbage(true);
@@ -302,8 +301,8 @@ public class SharedBlobStoreGCTest {
             }
         }
 
-        assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
-        assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(CollectionUtils.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        assertTrue(CollectionUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
     }
 
     @After

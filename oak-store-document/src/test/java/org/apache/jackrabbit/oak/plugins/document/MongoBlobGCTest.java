@@ -36,7 +36,6 @@ import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
@@ -355,7 +354,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
     
-        assertTrue(Sets.difference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.difference(state.blobsPresent, existingAfterGC).isEmpty());
         assertEquals(gc.additionalBlobs, CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 
