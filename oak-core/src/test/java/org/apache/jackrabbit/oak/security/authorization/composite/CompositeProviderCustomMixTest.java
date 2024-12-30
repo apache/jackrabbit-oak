@@ -20,8 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -63,9 +64,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, null);
 
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, true);
@@ -99,9 +100,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         Tree tree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
 
@@ -140,9 +141,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
 
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
@@ -170,9 +171,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
 
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
@@ -409,5 +410,14 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             return false;
         }
 
+    }
+
+    private <T> Set<Set<T>> powerSet(final Set<T> s) {
+        final T[] arr = s.toArray((T[]) new Object[0]);
+        return IntStream
+                .range(0, (int) Math.pow(2, arr.length))
+                .parallel() //performance improvement
+                .mapToObj(e -> IntStream.range(0, arr.length).filter(i -> (e & (0b1 << i)) != 0).mapToObj(i -> arr[i]).collect(Collectors.toSet()))
+                .collect(Collectors.toSet());
     }
 }
