@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.ArrayList;
@@ -28,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -343,7 +342,7 @@ public class Aggregate {
         }
 
         public boolean matches(String nodePath) {
-            List<String> pathElements = ImmutableList.copyOf(PathUtils.elements(nodePath));
+            List<String> pathElements = CollectionUtils.toList(PathUtils.elements(nodePath));
             if (pathElements.size() != elements.length){
                 return false;
             }

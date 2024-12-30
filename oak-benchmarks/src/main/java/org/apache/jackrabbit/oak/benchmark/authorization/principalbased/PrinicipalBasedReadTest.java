@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -161,7 +159,8 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
             }
             added = acl.addAccessControlEntry(principal, privileges);
         } else {
-            for (JackrabbitAccessControlPolicy policy : Iterables.concat(ImmutableList.copyOf(acMgr.getApplicablePolicies(principal)), ImmutableList.copyOf(acMgr.getPolicies(principal)))) {
+            for (JackrabbitAccessControlPolicy policy : Iterables.concat(Arrays.asList(acMgr.getApplicablePolicies(principal)),
+                    Arrays.asList(acMgr.getPolicies(principal)))) {
                 if (policy instanceof PrincipalAccessControlList) {
                     acl = (PrincipalAccessControlList) policy;
                     break;

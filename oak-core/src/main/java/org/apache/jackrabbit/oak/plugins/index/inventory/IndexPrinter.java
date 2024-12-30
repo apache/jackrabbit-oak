@@ -28,11 +28,11 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -76,7 +76,7 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     private void asyncLanesInfo(PrinterOutput po) {
-        List<String> asyncLanes = ImmutableList.copyOf(asyncIndexInfoService.getAsyncLanes());
+        List<String> asyncLanes = CollectionUtils.toList(asyncIndexInfoService.getAsyncLanes());
         po.startSection("Async Indexers State", true);
         po.text("Number of async indexer lanes", asyncLanes.size());
 
