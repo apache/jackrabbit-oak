@@ -94,7 +94,7 @@ public class MigrationFactory {
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
         upgrade.setSkipInitialization(options.isSkipInitialization());
-        upgrade.setCustomCommitHooks(loacCommitHooks());
+        upgrade.setCustomCommitHooks(loadCommitHooks());
         return upgrade;
     }
 
@@ -117,11 +117,11 @@ public class MigrationFactory {
         sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());
         sidegrade.setForceCheckpoints(options.isForceCheckpoints());
         sidegrade.setMigrateDocumentMetadata(options.isAddSecondaryMetadata());
-        sidegrade.setCustomCommitHooks(loacCommitHooks());
+        sidegrade.setCustomCommitHooks(loadCommitHooks());
         return sidegrade;
     }
 
-    private List<CommitHook> loacCommitHooks() {
+    private List<CommitHook> loadCommitHooks() {
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
         return Collections.unmodifiableList(CollectionUtils.toList(loader.iterator()));
     }
