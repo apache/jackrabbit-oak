@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -238,6 +239,25 @@ public class CollectionUtils {
         Objects.requireNonNull(s1);
         Objects.requireNonNull(s2);
         return s1.stream().filter(s2::contains).collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns a new set containing the symmetric difference of the two specified sets.
+     * The symmetric difference of two sets is a set containing elements that are in either of the sets,
+     * but not in their intersection.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the symmetric difference of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    public static <T> Set<T> symmetricDifference(final Set<T> s1, final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        final Set<T> result = new HashSet<>(s1);
+        s2.stream().filter(Predicate.not(result::add)).forEach(result::remove);
+        return result;
     }
 
     /**

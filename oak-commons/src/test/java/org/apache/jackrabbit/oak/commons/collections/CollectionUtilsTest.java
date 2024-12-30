@@ -309,6 +309,68 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testSymmetricDifferenceWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "d");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = new HashSet<>();
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "b", "c");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithBothEmptySets() {
+        final Set<String> set1 = new HashSet<>();
+        final Set<String> set2 = new HashSet<>();
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = new HashSet<>();
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSymmetricDifferenceWithNullFirstSet() {
+        final Set<String> set1 = null;
+        final Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.symmetricDifference(set1, set2);
+        fail("Shouldn't reach here");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSymmetricDifferenceWithNullSecondSet() {
+        Set<String> set1 = Set.of("a", "b", "c");
+        Set<String> set2 = null;
+
+        CollectionUtils.symmetricDifference(set1, set2);
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithNoCommonElements() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "b", "c", "d", "e", "f");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
     public void iteratorToIIteratable() {
         Iterator<String> iterator = List.of("a", "b", "c").iterator();
         iterator.next();

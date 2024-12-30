@@ -126,7 +126,7 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        assertTrue(Sets.symmetricDifference(
+        assertTrue(CollectionUtils.symmetricDifference(
                 CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
                 cluster1.getExistingBlobIds()).isEmpty());
     }
@@ -143,7 +143,7 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        assertTrue(Sets.symmetricDifference(
+        assertTrue(CollectionUtils.symmetricDifference(
                 CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
                 cluster1.getExistingBlobIds()).isEmpty());
     }
@@ -209,7 +209,7 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster2.gc.collectGarbage(false);
 
-        assertTrue(Sets.symmetricDifference(
+        assertTrue(CollectionUtils.symmetricDifference(
             CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
             cluster1.getExistingBlobIds()).isEmpty());
     }

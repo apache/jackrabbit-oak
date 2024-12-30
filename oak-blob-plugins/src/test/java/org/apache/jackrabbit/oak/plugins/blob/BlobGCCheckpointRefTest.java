@@ -25,7 +25,6 @@ import java.util.Set;
 
 import javax.management.openmbean.TabularData;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -66,7 +65,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         log.info("{} blobs remaining : {}", present.size(), present);
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(Sets.symmetricDifference(present, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(present, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -80,7 +79,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -101,7 +100,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         log.info("Max age configured {}", maxGcAge);
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     /**
