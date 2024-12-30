@@ -52,7 +52,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -221,7 +220,7 @@ public class BlobGCTest {
         executeGarbageCollection(cluster, cluster.getCollector(0), true);
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
 
-        assertTrue(Sets.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
         assertStats(secondCluster.statsProvider, 1, 0, totalAdded.size() - totalPresent.size(),
             totalAdded.size() - totalPresent.size(), secondCluster.blobStoreState.blobsPresent.size(), 
             cluster.blobSize, NAME);
@@ -263,7 +262,7 @@ public class BlobGCTest {
         executeGarbageCollection(cluster, cluster.getCollector(0), true);
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
 
-        assertTrue(Sets.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -288,7 +287,7 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(5, false, true), false);
 
-        assertTrue(Sets.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
         assertStats(secondCluster.statsProvider, 1, 0, totalAdded.size() - totalPresent.size(),
             totalAdded.size() - totalPresent.size(), secondCluster.blobStoreState.blobsPresent.size(),
             secondCluster.blobSize, NAME);
@@ -316,7 +315,7 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(6, false, true), false);
 
-        assertTrue(Sets.symmetricDifference(totalAdded, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(totalAdded, existingAfterGC).isEmpty());
         assertStats(secondCluster.statsProvider, 1, 1, 0,0, secondCluster.blobStoreState.blobsPresent.size(),
             secondCluster.blobSize, NAME);
     }
@@ -326,7 +325,7 @@ public class BlobGCTest {
         log.info("Starting gc()");
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
@@ -340,7 +339,7 @@ public class BlobGCTest {
 
         MarkSweepGarbageCollector collector = cluster.getCollector(0, true, false);
         Set<String> existingAfterGC = executeGarbageCollection(cluster, collector, false);
-        assertFalse(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertFalse(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1,
@@ -356,7 +355,7 @@ public class BlobGCTest {
 
         setupDirectBinary(1, 0);
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
@@ -369,7 +368,7 @@ public class BlobGCTest {
 
         setupDirectBinary(5, 2);
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
@@ -386,7 +385,7 @@ public class BlobGCTest {
         Set<String> existingAfterGC =
             executeGarbageCollection(cluster, cluster.getCollector(afterSetupTime - cluster.startReferenceTime + 2),
                 false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0, 0,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
             cluster.blobStoreState.blobsPresent.size(), cluster.blobSize, NAME);
@@ -553,7 +552,7 @@ public class BlobGCTest {
             cluster.blobStoreState.blobsPresent.size(), cluster.blobSize, NAME);
         assertEquals(deletedSize, getStatCount(cluster.statsProvider, NAME, TOTAL_SIZE_DELETED));
         customLogs.finished();
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -562,7 +561,7 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC =
             executeGarbageCollection(cluster, cluster.getCollector(0),true);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
+        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0, 0, 0, cluster.blobStoreState.blobsPresent.size(), cluster.blobSize, 
             NAME);
         assertEquals(cluster.blobStoreState.blobsPresent.size(), getStatCount(cluster.statsProvider, NAME,

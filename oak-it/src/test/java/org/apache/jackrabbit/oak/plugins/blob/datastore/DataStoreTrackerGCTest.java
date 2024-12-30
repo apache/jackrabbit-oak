@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
@@ -385,7 +384,7 @@ public class DataStoreTrackerGCTest {
         state.blobsPresent.addAll(newBlobs);
 
         // The new blobs should not be found now as new snapshot not done
-        assertEquals(Sets.difference(state.blobsAdded, retrieveTracked(tracker)), newBlobs);
+        assertEquals(CollectionUtils.difference(state.blobsAdded, retrieveTracked(tracker)), newBlobs);
 
         //force gc to retrieve blob ids from datastore
         cluster.gc.collectGarbage(false, true);

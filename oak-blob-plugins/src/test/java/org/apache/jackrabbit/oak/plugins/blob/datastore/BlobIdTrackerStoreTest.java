@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore;
 import org.junit.After;
@@ -40,7 +41,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.symmetricDifference;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -129,8 +129,7 @@ public class BlobIdTrackerStoreTest {
         Set<String> retrieved = retrieve(store);
 
         assertTrue("Incorrect elements with add before snapshot",
-            symmetricDifference(initAdd, retrieved)
-                .containsAll(Set.of("10001", "10002", "10003")));
+                CollectionUtils.symmetricDifference(initAdd, retrieved).containsAll(Set.of("10001", "10002", "10003")));
     }
 
     @Test

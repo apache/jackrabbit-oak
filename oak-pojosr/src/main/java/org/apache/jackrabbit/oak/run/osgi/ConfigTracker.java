@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.osgi.framework.BundleContext;
@@ -93,7 +93,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
         //current config files. Such configs must be remove. Note it does not lead to
         //removal of configs added by using ConfigAdmin directly, say using WebConsole
         //ui
-        Set<String> pidsToBeRemoved = Sets.difference(existingPids, configs.keySet());
+        Set<String> pidsToBeRemoved = CollectionUtils.difference(existingPids, configs.keySet());
         configInstaller.removeConfigs(pidsToBeRemoved);
     }
 

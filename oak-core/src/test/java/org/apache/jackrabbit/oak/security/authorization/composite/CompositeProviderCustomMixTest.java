@@ -216,7 +216,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         if (type == CompositionType.OR) {
-            return Sets.difference(Sets.difference(check, granted1), granted2).isEmpty();
+            return CollectionUtils.difference(CollectionUtils.difference(check, granted1), granted2).isEmpty();
         } else {
             Set<String> f1 = CollectionUtils.intersection(supported1, check);
             boolean hasf1 = granted1.containsAll(f1);
