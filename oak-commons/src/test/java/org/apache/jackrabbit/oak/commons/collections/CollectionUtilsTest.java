@@ -322,7 +322,7 @@ public class CollectionUtilsTest {
     @Test
     public void testSymmetricDifferenceWithEmptySet() {
         final Set<String> set1 = Set.of("a", "b", "c");
-        final Set<String> set2 = new HashSet<>();
+        final Set<String> set2 = Set.of();
 
         final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
 
@@ -332,12 +332,12 @@ public class CollectionUtilsTest {
 
     @Test
     public void testSymmetricDifferenceWithBothEmptySets() {
-        final Set<String> set1 = new HashSet<>();
-        final Set<String> set2 = new HashSet<>();
+        final Set<String> set1 = Set.of();
+        final Set<String> set2 = Set.of();
 
         final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
 
-        final Set<String> expected = new HashSet<>();
+        final Set<String> expected = Set.of();
         Assert.assertEquals(expected, result);
     }
 
