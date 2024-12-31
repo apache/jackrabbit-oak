@@ -96,8 +96,6 @@ import javax.jcr.InvalidItemStateException;
 
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -3326,7 +3324,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(doc);
         long previousValue = -1;
         List<String> values = new ArrayList<>(doc.getLocalMap("p").values());
-        for (String v : Lists.reverse(values)) {
+        for (String v : CollectionUtils.reverse(values)) {
             long currentValue = Long.parseLong(v);
             assertEquals(previousValue + 1, currentValue);
             previousValue = currentValue;

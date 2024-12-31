@@ -84,6 +84,37 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testReverseWithNonEmptyList() {
+        List<String> list = List.of("a", "b", "c");
+        List<String> result = CollectionUtils.reverse(list);
+        List<String> expected = List.of("c", "b", "a");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testReverseWithEmptyList() {
+        List<String> list = List.of();
+        List<String> result = CollectionUtils.reverse(list);
+        List<String> expected = List.of();
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testReverseWithNullList() {
+        List<String> list = null;
+        CollectionUtils.reverse(list);
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void testReverseWithSingleElementList() {
+        List<String> list = List.of("a");
+        List<String> result = CollectionUtils.reverse(list);
+        List<String> expected = List.of("a");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
     public void iterableToSet() {
         // create an iterable
         final Set<String> s = new HashSet<>(data);

@@ -115,6 +115,20 @@ public class CollectionUtils {
     }
 
     /**
+     * Returns a new list containing the elements of the specified list in reverse order.
+     *
+     * @param <T> the type of elements in the list
+     * @param l the list to be reversed, must not be null
+     * @return a new list containing the elements of the specified list in reverse order
+     * @throws NullPointerException if the list is null
+     */
+    @NotNull
+    public static <T> List<T> reverse(final List<T> l) {
+        Objects.requireNonNull(l);
+        return IntStream.range(0, l.size()).map(i -> l.size() - 1- i).mapToObj(l::get).collect(Collectors.toList());
+    }
+
+    /**
      * Convert an iterable to a set. The returning set is mutable and supports all optional operations.
      * @param iterable the iterable to convert
      * @return the set

@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -1960,7 +1959,7 @@ public final class DocumentNodeStore
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
-        for (Revision r : reverse(revs)) {
+        for (Revision r : CollectionUtils.reverse(revs)) {
             operations.clear();
             Revision previous = currentRev.getAndSet(r);
             if (previous == null) {
