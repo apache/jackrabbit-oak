@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 /**
  * Aggregation of a list of editor providers into a single provider.
  */
@@ -50,7 +48,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
             return providers.iterator().next();
         } else {
             return new CompositeIndexEditorProvider(
-                    ImmutableList.copyOf(providers));
+                    List.copyOf(providers));
         }
     }
 

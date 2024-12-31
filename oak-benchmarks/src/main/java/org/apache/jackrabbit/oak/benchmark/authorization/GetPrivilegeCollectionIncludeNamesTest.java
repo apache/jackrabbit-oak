@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -44,7 +43,7 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
         ACCESSCONTORL_MANAGER_HAS_PRIVILEGES
     } 
     
-    private static final List<String> ALL_PRIVILEGE_NAMES = ImmutableList.copyOf(PrivilegeBits.BUILT_IN.keySet());
+    private static final List<String> ALL_PRIVILEGE_NAMES = List.copyOf(PrivilegeBits.BUILT_IN.keySet());
     
     private final EvaluationType evalType;
     
@@ -73,7 +72,7 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
     @Override
     void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
         try {
-            List<String> privNames = ImmutableList.of(getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES));
+            List<String> privNames = List.of(getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES));
             String accessControlledPath = getAccessControlledPath(path);
             if (EvaluationType.ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION == evalType) {
                 PrivilegeCollection pc = ((JackrabbitAccessControlManager) acMgr).getPrivilegeCollection(accessControlledPath);

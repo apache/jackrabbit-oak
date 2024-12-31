@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.Closeable;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -173,7 +171,7 @@ public class NRTIndex implements Closeable {
         decrementReaderUseCount(readers);
 
         dirReader = latestReader;
-        readers = ImmutableList.copyOf(newReaders);
+        readers = List.copyOf(newReaders);
         return readers;
     }
 
