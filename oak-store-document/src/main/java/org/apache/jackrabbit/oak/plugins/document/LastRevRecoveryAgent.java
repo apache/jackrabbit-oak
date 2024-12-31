@@ -42,10 +42,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
@@ -724,7 +723,7 @@ public class LastRevRecoveryAgent {
         ClusterPredicate cp = new ClusterPredicate(clusterId);
 
         Revision lastModified = null;
-        for (String property : Sets.filter(doc.keySet(), PROPERTY_OR_DELETED::test)) {
+        for (String property : doc.keySet().stream().filter(PROPERTY_OR_DELETED).collect(Collectors.toSet())) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             // collect committed changes of this cluster node
             for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp::test).entrySet()) {

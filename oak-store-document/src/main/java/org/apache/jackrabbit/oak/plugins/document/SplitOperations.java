@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -45,7 +46,6 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.filter;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -438,7 +438,7 @@ class SplitOperations {
     private void collectLocalChanges(
             Map<String, NavigableMap<Revision, String>> committedLocally,
             Set<Revision> changes) {
-        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED::test)) {
+        for (String property : doc.keySet().stream().filter(PROPERTY_OR_DELETED).collect(Collectors.toSet())) {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
             committedLocally.put(property, splitMap);

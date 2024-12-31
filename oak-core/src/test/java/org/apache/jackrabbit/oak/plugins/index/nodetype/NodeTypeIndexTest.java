@@ -47,8 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 /**
  * {@code NodeTypeIndexTest} performs tests on {@link NodeTypeIndex}.
  */

@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -85,7 +86,6 @@ import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -1242,10 +1242,8 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private static class ExpectationListener implements EventListener {
-        private final Set<Expectation> expected = synchronizedSet(
-                Sets.<Expectation>newCopyOnWriteArraySet());
-        private final Set<Expectation> optional = synchronizedSet(
-                Sets.<Expectation>newCopyOnWriteArraySet());
+        private final Set<Expectation> expected = synchronizedSet(new CopyOnWriteArraySet<>());
+        private final Set<Expectation> optional = synchronizedSet(new CopyOnWriteArraySet<>());
         private final List<Event> unexpected = synchronizedList(
                 Lists.<Event>newCopyOnWriteArrayList());
 
