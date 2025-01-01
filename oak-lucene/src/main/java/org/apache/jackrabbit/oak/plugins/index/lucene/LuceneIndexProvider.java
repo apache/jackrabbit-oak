@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.Closeable;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -73,7 +72,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     @Override @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
+        return List.of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {

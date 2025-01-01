@@ -40,7 +40,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -2055,7 +2054,7 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public Map<String, String> getStats() {
         Map<String, String> builder = new HashMap<>();
-        List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
+        List<MongoCollection<?>> all = List.of(nodes, clusterNodes, settings, journal);
         all.forEach(c -> toMapBuilder(builder,
                 connection.getDatabase().runCommand(
                     new BasicDBObject("collStats", c.getNamespace().getCollectionName()),

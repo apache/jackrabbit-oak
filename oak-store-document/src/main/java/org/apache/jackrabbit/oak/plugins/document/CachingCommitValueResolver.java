@@ -28,7 +28,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.cache.CacheBuilder.newBuilder;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 
 /**
  * Resolves the commit value for a given change revision on a document.
@@ -36,7 +35,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 final class CachingCommitValueResolver implements CommitValueResolver {
 
     private static final List<String> COMMIT_ROOT_OR_REVISIONS
-            = of(NodeDocument.COMMIT_ROOT, NodeDocument.REVISIONS);
+            = List.of(NodeDocument.COMMIT_ROOT, NodeDocument.REVISIONS);
 
     private final Cache<Revision, String> commitValueCache;
 

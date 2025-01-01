@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -51,7 +50,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.of(new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));
+        return List.of(new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));
     }
 
 }

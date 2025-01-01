@@ -136,9 +136,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
@@ -164,7 +162,7 @@ public final class DocumentNodeStore
      * List of meta properties which are created by DocumentNodeStore and which needs to be
      * retained in any cloned copy of DocumentNodeState.
      */
-    public static final List<String> META_PROP_NAMES = ImmutableList.of(
+    public static final List<String> META_PROP_NAMES = List.of(
             DocumentBundlor.META_PROP_PATTERN,
             DocumentBundlor.META_PROP_BUNDLING_PATH,
             DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,

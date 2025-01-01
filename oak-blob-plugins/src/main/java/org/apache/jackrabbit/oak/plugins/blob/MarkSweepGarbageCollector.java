@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -52,8 +51,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
@@ -295,8 +292,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 if (references.containsKey(id)) {
-                    List<DataRecord> refRecs = references.get(id);
-                    for(DataRecord refRec : refRecs) {
+                    for(DataRecord refRec : references.get(id)) {
                         String uniqueSessionId = refRec.getIdentifier().toString()
                             .substring(SharedStoreRecordType.REFERENCES.getType().length() + 1);
 

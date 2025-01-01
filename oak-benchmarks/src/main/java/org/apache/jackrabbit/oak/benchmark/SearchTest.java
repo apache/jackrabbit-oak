@@ -40,7 +40,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -219,7 +218,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
         public void initialize(@NotNull NodeBuilder builder) {
 
             NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
-                    ImmutableList.<String>of("jcr:uuid"), null);
+                    List.of("jcr:uuid"), null);
             uuid.setProperty("info",
                     "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
 

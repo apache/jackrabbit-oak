@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -616,7 +615,7 @@ public final class IndexDefinitionBuilder {
 
     static class SelectiveEqualsDiff extends EqualsDiff {
         // Properties for which changes shouldn't auto set the reindex flag
-        static final List<String> ignorablePropertiesList = of(
+        static final List<String> ignorablePropertiesList = List.of(
                 FulltextIndexConstants.PROP_WEIGHT,
                 FIELD_BOOST,
                 IndexConstants.USE_IF_EXISTS,
@@ -626,7 +625,7 @@ public final class IndexDefinitionBuilder {
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);
-        static final List<String> ignorableFacetConfigProps = of(
+        static final List<String> ignorableFacetConfigProps = List.of(
                 FulltextIndexConstants.PROP_SECURE_FACETS,
                 FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,
                 FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);

@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -56,8 +57,8 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (!index.hasChildNode("acPrincipalName")) {
             NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
-                    ImmutableList.<String>of(REP_PRINCIPAL_NAME),
-                    ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
+                    List.of(REP_PRINCIPAL_NAME),
+                    List.of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
             acPrincipalName.setProperty("info", "Oak index used by authorization to quickly search a principal by name.");
         }
 

@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
 
@@ -39,7 +39,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreMetrics.class);
 
-    private static final ImmutableList<Collection<? extends Document>> COLLECTIONS = ImmutableList.of(
+    private static final List<Collection<? extends Document>> COLLECTIONS = List.of(
             Collection.NODES, Collection.JOURNAL, Collection.CLUSTER_NODES, Collection.SETTINGS, Collection.BLOBS
     );
 
