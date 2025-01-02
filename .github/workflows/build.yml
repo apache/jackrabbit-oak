@@ -35,21 +35,40 @@ jobs:
           java-version: 11
           distribution: temurin
           cache: maven
+          server-id: apache.snapshots.https # Value of the distributionManagement/repository/id field of the pom.xml
+          server-username: MAVEN_APACHE_NEXUS_USERNAME # env variable for username in deploy
+          server-password: MAVEN_APACHE_NEXUS_PASSWORD # env variable for token in deploy
+      # sets environment variables to be used in subsequent steps: https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-environment-variable
+      - name: Set environment variables
+        shell: bash
+        run: |
+          if [ "${{github.ref}}" = "refs/heads/trunk" ] && [ "${{github.event_name}}" = "push" ] && [ "${{github.repository_owner}}" = "apache" ]; then
+            echo 'Running on main branch of the canonical repo'
+            echo "MVN_ADDITIONAL_OPTS=-DdeployAtEnd=true" >> $GITHUB_ENV
+            echo "MVN_GOAL=deploy" >> $GITHUB_ENV
+            echo "MAVEN_APACHE_NEXUS_USERNAME=${{ secrets.NEXUS_USER }}" >> $GITHUB_ENV
+            echo "MAVEN_APACHE_NEXUS_PASSWORD=${{ secrets.NEXUS_PW }}" >> $GITHUB_ENV
+          else
+            echo 'Running outside main branch/canonical repo'
+            echo "MVN_ADDITIONAL_OPTS=" >> $GITHUB_ENV
+            echo "MVN_GOAL=install" >> $GITHUB_ENV
+          fi
       - name: Build
         # executing ITs requires installing artifacts to the local repository
-        run: mvn -B install -Pcoverage,integrationTesting,javadoc -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
+        run: mvn -B ${{ env.MVN_GOAL }} ${{ env.MVN_ADDITIONAL_OPTS }} -Pcoverage,integrationTesting,javadoc -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
       - name: Upload build result
         uses: actions/upload-artifact@v4
         with:
           name: compiled-classes-and-coverage
-          # compare with https://docs.sonarsource.com/sonarcloud/advanced-setup/languages/java/#java-analysis-and-bytecode
+          # compare with https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/languages/java/#java-analysis-and-bytecode
           path: |
              **/target/**/*.class
              **/target/site/jacoco*/*.xml
+  
   # execute analysis in a separate job for better visualization and usage of matrix builds
   # https://docs.sonarsource.com/sonarcloud/advanced-setup/ci-based-analysis/sonarscanner-for-maven/#invoking-the-goal
   sonar:
-    name: SonarCloud Analysis
+    name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: build
     # not supported on forks, https://portal.productboard.com/sonarsource/1-sonarqube-cloud/c/50-sonarcloud-analyzes-external-pull-request
@@ -68,13 +87,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: compiled-classes-and-coverage
-      - name: Cache SonarCloud packages
+      - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      - name: Analyze with SonarCloud
+      - name: Analyze with SonarQube
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
