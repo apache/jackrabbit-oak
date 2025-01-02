@@ -1,0 +1,32 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# format as outlined in https://github.com/commit-check/commit-check/blob/main/.commit-check.yml
+# further information in https://github.com/commit-check/commit-check/blob/main/README.rst
+checks:
+  - check: message
+    regex: '^OAK-\d+\s\S+.*'
+    error: "The commit message must start with 'OAK-<ID> ' followed by some descriptive text"
+    suggest: Please check your commit message whether it matches above regex
+
+  - check: author_name
+    regex: ^[A-Za-z ,.\'-]+$|.*(\[bot])
+    error: The committer name seems invalid
+    suggest: run command `git config user.name "Your Name"`
+
+  - check: author_email
+    regex: ^.+@.+$
+    error: The committer email seems invalid
+    suggest: run command `git config user.email yourname@example.com`
