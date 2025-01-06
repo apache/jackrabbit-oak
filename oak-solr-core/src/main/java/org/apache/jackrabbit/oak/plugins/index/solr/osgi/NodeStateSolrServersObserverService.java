@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 /**
  * An OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}.
  * This allows correct cleanup of any persisted Solr server configurations once they get changed or deleted.
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
 @Component(
         immediate = true
@@ -46,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 @Designate(
         ocd = NodeStateSolrServersObserverService.Configuration.class
 )
+@Deprecated(forRemoval=true, since="1.74.0")
 public class NodeStateSolrServersObserverService {
 
     @ObjectClassDefinition(
