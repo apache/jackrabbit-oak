@@ -48,9 +48,19 @@ however there are differences:
 * `useInExcerpt` does not support regexp relative properties.
 * For property definitions, `sync` and `unique` are ignored.
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
-* The behavior for `dynamicBoost` is slightly different: 
-  For Lucene indexes, boosting is done in indexing, while for Elastic it is done at query time.
-* The behavior for `suggest` is slightly different:
+* The behavior of `dynamicBoost` differs slightly between Lucene and Elasticsearch:  
+  - **Lucene**: Boosting is applied at indexing time.  
+  - **Elasticsearch**: Boosting is applied at query time.  
+
+Full-text queries automatically use dynamically boosted values to match relevant results, but this behavior may not always be desirable.
+To use these values exclusively for influencing relevance without affecting matching, configure the property definition as follows:
+```json
+{
+  "dynamicBoost": true,
+  "useInFullTextQuery": false
+}
+```
+* The behavior of `suggest` is slightly different:
   For Lucene indexes, the suggestor is updated every 10 minutes by default and the frequency
   can be changed by `suggestUpdateFrequencyMinutes` property in suggestion node under the index definition node.
   In Elastic indexes, there is no such delay and thus no need for the above config property. This is an improvement in ES over lucene.

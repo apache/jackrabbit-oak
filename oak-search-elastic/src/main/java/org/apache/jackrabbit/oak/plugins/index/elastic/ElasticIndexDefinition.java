@@ -187,7 +187,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final InferenceDefinition inferenceDefinition;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
-    private final List<PropertyDefinition> dynamicBoostProperties;
+    private final List<ElasticPropertyDefinition> dynamicBoostProperties;
     private final List<PropertyDefinition> similarityProperties;
     private final List<PropertyDefinition> similarityTagsProperties;
     private final String[] similarityTagsFields;
@@ -238,6 +238,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(IndexingRule::getNamePatternsProperties)
                 .filter(pd -> pd.dynamicBoost)
+                .map(pd -> (ElasticPropertyDefinition) pd)
                 .collect(Collectors.toList());
 
         this.similarityProperties = getDefinedRules()
@@ -278,7 +279,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         return propertiesByName;
     }
 
-    public List<PropertyDefinition> getDynamicBoostProperties() {
+    public List<ElasticPropertyDefinition> getDynamicBoostProperties() {
         return dynamicBoostProperties;
     }
 
